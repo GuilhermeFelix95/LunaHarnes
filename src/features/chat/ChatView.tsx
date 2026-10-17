@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cancelPrompt, onProviderEvent, sendPrompt } from "../../api";
 import { applyEvent } from "../../chat/reducer";
+import { PluginHost } from "../../plugins/host";
+import { loadInstalledPlugins } from "../../plugins/loader";
 import type { ChatMessage, ProviderKind } from "../../types";
 
 const PROVIDER_LABELS: Record<ProviderKind, string> = {
@@ -13,27 +15,48 @@ export function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [host] = useState(() => new PluginHost());
+  const responseText = useRef("");
+
+  useEffect(() => {
+    void loadInstalledPlugins(host).then(() => setNotes([...host.errors]));
+  }, [host]);
 
   useEffect(() => {
     const unlisten = onProviderEvent((event) => {
       setMessages((current) => applyEvent(current, event));
-      if (event.kind === "done") setRunning(false);
+      if (event.kind === "textDelta") responseText.current += event.text;
+      if (event.kind === "done") {
+        setRunning(false);
+        void host.runAfterResponse(responseText.current).then(() => setNotes([...host.errors]));
+      }
     });
     return () => {
       unlisten.then((stop) => stop());
     };
-  }, []);
+  }, [host]);
 
   async function send() {
     const prompt = draft.trim();
     if (!prompt || running) return;
-
     setDraft("");
+
+    // Comando de plugin (`/nome args`): se devolver texto, esse texto é o que vai ao provedor.
+    const command = await host.handleCommand(prompt);
+    if (command.handled && command.prompt === undefined) {
+      setNotes([...host.errors]);
+      return;
+    }
+    const outgoing = await host.runBeforeSend(command.handled ? command.prompt! : prompt);
+
     setRunning(true);
+    responseText.current = "";
     setMessages((current) => [...current, { role: "user", text: prompt }]);
+    setNotes([...host.errors]);
 
     try {
-      await sendPrompt(provider, prompt);
+      await sendPrompt(provider, outgoing);
     } catch (e) {
       setRunning(false);
       setMessages((current) =>
@@ -56,7 +79,20 @@ export function ChatView() {
             <option value="codex">{PROVIDER_LABELS.codex}</option>
           </select>
         </label>
+        {host.commandNames().length > 0 && (
+          <span className="chat__commands">
+            Comandos: {host.commandNames().map((c) => `/${c}`).join(", ")}
+          </span>
+        )}
       </header>
+
+      {notes.length > 0 && (
+        <ul className="chat__notes" aria-label="Avisos de plugins">
+          {notes.map((note, i) => (
+            <li key={i}>{note}</li>
+          ))}
+        </ul>
+      )}
 
       <ol className="chat__messages" aria-live="polite">
         {messages.map((m, i) => (

@@ -58,6 +58,28 @@ body {
   color: var(--error);
 }
 
+.chat__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.chat__commands {
+  color: var(--muted);
+}
+
+.chat__notes {
+  margin: 0;
+  padding: 8px 12px;
+  list-style: none;
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
 .chat__input {
   display: flex;
   gap: 8px;

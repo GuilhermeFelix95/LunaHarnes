@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { PluginManifest } from "./plugins/host";
 import type { ProviderEvent, ProviderKind } from "./types";
 
 export const PROVIDER_EVENT = "provider-event";
@@ -11,6 +12,19 @@ export function sendPrompt(provider: ProviderKind, prompt: string): Promise<void
 
 export function cancelPrompt(): Promise<void> {
   return invoke("cancel_prompt");
+}
+
+export interface PluginScan {
+  plugins: PluginManifest[];
+  errors: { folder: string; message: string }[];
+}
+
+export function listPlugins(): Promise<PluginScan> {
+  return invoke("list_plugins");
+}
+
+export function readPluginEntry(id: string): Promise<string> {
+  return invoke("read_plugin_entry", { id });
 }
 
 export function onProviderEvent(

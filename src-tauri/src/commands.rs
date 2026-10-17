@@ -1,7 +1,9 @@
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::plugins::loader::{self, PluginScan};
 use crate::providers::ProviderKind;
 use crate::session::{CancelHandle, Session};
 
@@ -43,6 +45,26 @@ pub fn send_prompt(
     });
 
     Ok(())
+}
+
+/// Pasta de plugins do usuário: `<app_data>/plugins`.
+fn plugins_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|dir| dir.join("plugins"))
+        .map_err(|e| format!("não foi possível localizar a pasta de dados do app: {e}"))
+}
+
+/// Lista os plugins instalados e os erros de validação de cada um.
+#[tauri::command]
+pub fn list_plugins(app: AppHandle) -> Result<PluginScan, String> {
+    Ok(loader::scan(&plugins_dir(&app)?))
+}
+
+/// Devolve o código do plugin para o frontend carregar como módulo.
+#[tauri::command]
+pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
+    loader::read_entry(&plugins_dir(&app)?, &id)
 }
 
 /// Para a execução em andamento, se houver.
