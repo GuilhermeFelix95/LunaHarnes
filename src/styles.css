@@ -11,6 +11,7 @@
   --user-bubble: #f0eee6;
   --code-bg: #f4f2ec;
   --error: #b3261e;
+  --hover: #ebe8df;
   --radius: 12px;
   color-scheme: light dark;
 }
@@ -28,6 +29,7 @@
     --user-bubble: #3a3936;
     --code-bg: #1f1e1d;
     --error: #ff8a80;
+    --hover: #3a3936;
   }
 }
 
@@ -43,6 +45,7 @@
   --user-bubble: #3a3936;
   --code-bg: #1f1e1d;
   --error: #ff8a80;
+  --hover: #3a3936;
 }
 
 * {
@@ -99,19 +102,76 @@ button:disabled {
   border-right: 1px solid var(--border);
 }
 
-.sidebar__new {
+.sidebar__top {
+  display: flex;
+  gap: 6px;
   margin-bottom: 8px;
+}
+
+.sidebar__new {
+  flex: 1;
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   text-align: left;
+  transition: background 0.15s ease;
+}
+
+.sidebar__new:hover,
+.sidebar__add:hover {
+  background: var(--hover);
+}
+
+.sidebar__add {
+  width: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 16px;
+}
+
+/* Um bloco por projeto: nome da pasta em cima, dias embaixo */
+.sidebar__project {
+  margin-top: 12px;
+}
+
+.sidebar__project-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
 }
 
 .sidebar h2 {
-  margin: 14px 8px 4px;
-  font-size: 12px;
+  margin: 0;
+  font-size: 13px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__project-new {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 16px;
+  padding: 0 4px;
+  opacity: 0;
+}
+
+.sidebar__project:hover .sidebar__project-new,
+.sidebar__project-new:focus-visible {
+  opacity: 1;
+}
+
+.sidebar h3 {
+  margin: 8px 8px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
@@ -178,7 +238,19 @@ button:disabled {
   border-bottom: 1px solid var(--border);
 }
 
-.chat__workspace {
+.chat__project {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chat__project strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.chat__project span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -212,6 +284,11 @@ button:disabled {
 .chat__empty {
   margin: auto;
   text-align: center;
+}
+
+.chat__empty p {
+  margin: 8px 0 0;
+  color: var(--muted);
 }
 
 .chat__empty h1 {
@@ -400,10 +477,85 @@ button:disabled {
 }
 
 .composer__selectors select {
+  max-width: 150px;
   border: none;
+  border-radius: 6px;
   background: transparent;
   color: var(--muted);
   padding: 2px 4px;
+  cursor: pointer;
+}
+
+.composer__selectors select:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.composer__selectors select:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.composer__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.composer__plan {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.composer__plan[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.composer--planning {
+  border-color: var(--accent);
+}
+
+/* Faixa que aparece no modo plano quando o agente responde */
+.plan-approval {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.plan-approval p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.plan-approval button {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+/* Foco visível para teclado em qualquer controle */
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .composer__action {

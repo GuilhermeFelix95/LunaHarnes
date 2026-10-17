@@ -18,6 +18,14 @@ pub struct Conversation {
     pub session_id: Option<String>,
     pub cwd: String,
     pub permission: Permission,
+    /// Modelo e esforço escolhidos na conversa. Ausentes em arquivos antigos = padrão da CLI.
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub effort: Option<String>,
+    /// Modo plano ligado: o agente pergunta e planeja antes de editar.
+    #[serde(default)]
+    pub planning: bool,
     pub created_at: u64,
     pub updated_at: u64,
     pub messages: Vec<Value>,
@@ -112,8 +120,26 @@ mod tests {
             permission: Permission::AcceptEdits,
             created_at: 1,
             updated_at,
+            model: None,
+            effort: None,
+            planning: false,
             messages: vec![json!({"role": "user", "text": "oi"})],
         }
+    }
+
+    #[test]
+    fn file_saved_before_model_and_planning_fields_still_loads() {
+        let dir = temp_dir("legacy");
+        fs::create_dir_all(&dir).unwrap();
+        let legacy = r#"{"id":"old-1","title":"Antiga","provider":"claude","sessionId":null,
+            "cwd":"C:\\p","permission":"acceptEdits","createdAt":1,"updatedAt":2,"messages":[]}"#;
+        fs::write(dir.join("old-1.json"), legacy).unwrap();
+
+        let loaded = load(&dir, "old-1").unwrap();
+
+        assert_eq!(loaded.model, None);
+        assert_eq!(loaded.effort, None);
+        assert!(!loaded.planning);
     }
 
     #[test]

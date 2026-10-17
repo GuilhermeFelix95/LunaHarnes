@@ -28,6 +28,8 @@ fn run(
         session_id,
         cwd,
         permission,
+        model: None,
+        effort: None,
     };
     let mut session = Session::start(&request).expect("o CLI deve iniciar");
     let mut events = Vec::new();

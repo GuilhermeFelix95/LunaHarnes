@@ -32,6 +32,36 @@ pub struct RunRequest {
     pub session_id: Option<String>,
     pub cwd: PathBuf,
     pub permission: Permission,
+    /// Modelo escolhido na lista que a própria CLI expõe. Ausente = padrão da CLI.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Nível de esforço de raciocínio, com o nome que a CLI usa (ex.: "high", "xhigh").
+    #[serde(default)]
+    pub effort: Option<String>,
+}
+
+impl RunRequest {
+    /// Recusa modelo ou esforço que não sejam um nome simples, antes de virarem argumento do CLI.
+    pub fn validate(&self) -> Result<(), String> {
+        for (field, value) in [("modelo", &self.model), ("esforço", &self.effort)] {
+            if let Some(value) = value {
+                if !is_plain_token(value) {
+                    return Err(format!("{field} inválido: {value:?}"));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Letras, números, `.`, `_` e `-`, sem começar por `-` (não pode parecer flag do CLI).
+fn is_plain_token(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 100
+        && !value.starts_with('-')
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
 }
 
 /// Evento interno único. O frontend nunca vê o JSON bruto de cada CLI.
@@ -56,7 +86,35 @@ mod tests {
             session_id: session_id.map(String::from),
             cwd: PathBuf::from("C:\\projeto"),
             permission,
+            model: None,
+            effort: None,
         }
+    }
+
+    fn with_model(mut request: RunRequest, model: &str, effort: &str) -> RunRequest {
+        request.model = Some(model.into());
+        request.effort = Some(effort.into());
+        request
+    }
+
+    #[test]
+    fn model_and_effort_must_be_plain_tokens() {
+        let mut req = request(ProviderKind::Claude, Permission::ReadOnly, None);
+        assert!(req.validate().is_ok());
+
+        req = with_model(req, "claude-opus-5-5", "xhigh");
+        assert!(req.validate().is_ok());
+
+        // Nada que pareça flag ou traga espaço/aspas chega aos argumentos do CLI.
+        assert!(with_model(request(ProviderKind::Codex, Permission::ReadOnly, None), "--help", "high")
+            .validate()
+            .is_err());
+        assert!(with_model(request(ProviderKind::Codex, Permission::ReadOnly, None), "gpt 5", "high")
+            .validate()
+            .is_err());
+        assert!(with_model(request(ProviderKind::Codex, Permission::ReadOnly, None), "gpt-5", "high\"x")
+            .validate()
+            .is_err());
     }
 
     #[test]
@@ -132,6 +190,61 @@ mod tests {
 
         let pos = args.iter().position(|a| a == "-s").unwrap();
         assert_eq!(args[pos + 1], "danger-full-access");
+    }
+
+    #[test]
+    fn claude_passes_model_and_effort_as_official_flags() {
+        let req = with_model(request(ProviderKind::Claude, Permission::AcceptEdits, None), "opus", "max");
+        let args = cli_args(&req);
+
+        let model = args.iter().position(|a| a == "--model").expect("--model presente");
+        assert_eq!(args[model + 1], "opus");
+        let effort = args.iter().position(|a| a == "--effort").expect("--effort presente");
+        assert_eq!(args[effort + 1], "max");
+    }
+
+    #[test]
+    fn codex_passes_model_flag_and_reasoning_effort_override() {
+        let req = with_model(request(ProviderKind::Codex, Permission::AcceptEdits, None), "gpt-5.5", "xhigh");
+
+        assert_eq!(
+            cli_args(&req),
+            [
+                "exec",
+                "--json",
+                "--skip-git-repo-check",
+                "-s",
+                "workspace-write",
+                "-m",
+                "gpt-5.5",
+                "-c",
+                "model_reasoning_effort=\"xhigh\"",
+                "-",
+            ]
+        );
+    }
+
+    #[test]
+    fn codex_resume_keeps_model_and_effort_before_the_subcommand() {
+        let req = with_model(request(ProviderKind::Codex, Permission::ReadOnly, Some("t-1")), "gpt-5.5", "low");
+
+        assert_eq!(
+            cli_args(&req),
+            [
+                "exec",
+                "-c",
+                "sandbox_mode=\"read-only\"",
+                "-m",
+                "gpt-5.5",
+                "-c",
+                "model_reasoning_effort=\"low\"",
+                "resume",
+                "t-1",
+                "--json",
+                "--skip-git-repo-check",
+                "-",
+            ]
+        );
     }
 
     #[test]

@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::conversations;
+use crate::models::{self, ModelOption};
 use crate::plugins::loader::{self, PluginScan};
 use crate::providers::{fallback_events, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
@@ -22,6 +23,7 @@ pub fn send_prompt(
     run: State<'_, ActiveRun>,
     request: RunRequest,
 ) -> Result<(), String> {
+    request.validate()?;
     let provider = request.provider;
     let mut active = run.0.lock().expect("lock da execução ativa");
     if active.is_some() {
@@ -123,6 +125,14 @@ pub async fn check_auth(provider: ProviderKind) -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(move || crate::auth::status(provider))
         .await
         .map_err(|e| format!("falha ao consultar o login: {e}"))?
+}
+
+/// Modelos e níveis de esforço que o CLI do provedor aceita.
+#[tauri::command]
+pub async fn list_models(provider: ProviderKind) -> Result<Vec<ModelOption>, String> {
+    tauri::async_runtime::spawn_blocking(move || models::load(provider))
+        .await
+        .map_err(|e| format!("falha ao listar os modelos: {e}"))?
 }
 
 /// Abre a janela de login oficial do CLI do provedor.

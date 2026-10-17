@@ -14,6 +14,7 @@ vi.mock("../../api", () => ({
   cancelPrompt: vi.fn(async () => {}),
   sendPrompt: vi.fn(async () => {}),
   getWorkspace: vi.fn(async () => "C:\\projeto"),
+  listModels: vi.fn(async () => []),
   pickWorkspace: vi.fn(async () => null),
   listPlugins: vi.fn(async () => ({ plugins: [], errors: [] })),
   readPluginEntry: vi.fn(async () => ""),

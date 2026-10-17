@@ -59,10 +59,16 @@ docs/                stack, contrato de plugins
   - `RunRequest` (provedor, prompt, `sessionId`, `cwd`, permissão) mapeado para os modos de cada CLI (`providers/claude.rs`, `providers/codex.rs`).
   - Streaming com `--include-partial-messages`; ferramentas viram `toolUse`.
   - Pasta de trabalho: `get_workspace` e seletor via `@tauri-apps/plugin-dialog`.
+- Fase C (modelo, esforço, modo plano e projetos):
+  - Modelo e esforço vêm da própria CLI (`src-tauri/src/models.rs`, comando `list_models`). Codex: `codex debug models` (fallback `--bundled`), só os modelos com `visibility: list`, com os níveis de cada modelo. Claude: aliases do `claude --help` (fable, opus, sonnet) e níveis low a max. Nomes completos do Claude não são listados.
+  - Flags: Claude `--model`/`--effort`; Codex `-m` e `-c model_reasoning_effort="..."`. Valores passam por `RunRequest::validate` (sem começar com `-`, só `[A-Za-z0-9._-]`).
+  - Modo plano (`src/chat/planning.ts`): instrução de planejamento no prompt, sandbox/permissão só leitura. Botão "Aprovar e executar" aparece após a resposta; a aprovação roda com a permissão escolhida no seletor.
+  - Conversas guardam `model`, `effort` e `planning` (campos com `serde(default)`, arquivos antigos carregam).
+  - Barra lateral agrupa por projeto (pasta) e, dentro de cada um, por dia. Botão "+" do projeto abre conversa nova naquela pasta; "+" no topo adiciona uma pasta.
 - Testes:
-  - `npm run test:rust`: 33 testes, roda de qualquer terminal (o script carrega o MSVC).
+  - `npm run test:rust`: 46 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
   - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.
-  - `npm test`: 18 testes de frontend.
+  - `npm test`: 43 testes de frontend.
 - CSP: `script-src 'self' blob:` é necessário para carregar plugins como módulo (ver `docs/plugins.md`, seção de segurança).
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

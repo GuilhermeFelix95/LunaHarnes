@@ -8,26 +8,25 @@ use super::{Permission, RunRequest};
 /// `exec resume` não aceita `-s`, então a retomada passa o sandbox por `-c sandbox_mode`.
 pub fn args(request: &RunRequest) -> Vec<String> {
     let sandbox = sandbox_mode(request.permission);
-    let args: Vec<String> = match &request.session_id {
-        None => vec![
-            "exec".into(),
-            "--json".into(),
-            "--skip-git-repo-check".into(),
-            "-s".into(),
-            sandbox.into(),
-            "-".into(),
-        ],
-        Some(id) => vec![
-            "exec".into(),
-            "-c".into(),
-            format!("sandbox_mode=\"{sandbox}\""),
-            "resume".into(),
-            id.clone(),
-            "--json".into(),
-            "--skip-git-repo-check".into(),
-            "-".into(),
-        ],
-    };
+    let mut args: Vec<String> = vec!["exec".into()];
+
+    // `-s` só existe em `exec` novo; a retomada recebe o mesmo modo por `-c sandbox_mode`.
+    match &request.session_id {
+        None => args.extend(["--json", "--skip-git-repo-check", "-s", sandbox].map(String::from)),
+        Some(_) => args.extend(["-c".to_string(), format!("sandbox_mode=\"{sandbox}\"")]),
+    }
+
+    if let Some(model) = &request.model {
+        args.extend(["-m".to_string(), model.clone()]);
+    }
+    if let Some(effort) = &request.effort {
+        args.extend(["-c".to_string(), format!("model_reasoning_effort=\"{effort}\"")]);
+    }
+
+    match &request.session_id {
+        None => args.push("-".into()),
+        Some(id) => args.extend(["resume".to_string(), id.clone(), "--json".into(), "--skip-git-repo-check".into(), "-".into()]),
+    }
     args
 }
 

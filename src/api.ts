@@ -5,6 +5,7 @@ import type { PluginManifest } from "./plugins/host";
 import type {
   Conversation,
   ConversationSummary,
+  ModelOption,
   ProviderEvent,
   ProviderKind,
   RunRequest,
@@ -40,6 +41,11 @@ export function readPluginEntry(id: string): Promise<string> {
   return invoke("read_plugin_entry", { id });
 }
 
+/// Modelos e níveis de esforço que a CLI do provedor aceita.
+export function listModels(provider: ProviderKind): Promise<ModelOption[]> {
+  return invoke("list_models", { provider });
+}
+
 /// `true` quando o CLI do provedor já tem uma conta conectada.
 export function checkAuth(provider: ProviderKind): Promise<boolean> {
   return invoke("check_auth", { provider });
@@ -72,7 +78,7 @@ export function getWorkspace(): Promise<string> {
 }
 
 /// Abre o seletor de pastas do sistema. `null` quando o usuário cancela.
-export async function pickWorkspace(current: string): Promise<string | null> {
-  const picked = await open({ directory: true, multiple: false, defaultPath: current });
+export async function pickWorkspace(current?: string): Promise<string | null> {
+  const picked = await open({ directory: true, multiple: false, defaultPath: current || undefined });
   return typeof picked === "string" ? picked : null;
 }

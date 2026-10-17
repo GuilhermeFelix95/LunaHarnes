@@ -20,6 +20,12 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     .map(|s| s.to_string())
     .collect();
 
+    if let Some(model) = &request.model {
+        args.extend(["--model".to_string(), model.clone()]);
+    }
+    if let Some(effort) = &request.effort {
+        args.extend(["--effort".to_string(), effort.clone()]);
+    }
     if let Some(id) = &request.session_id {
         args.push("--resume".into());
         args.push(id.clone());

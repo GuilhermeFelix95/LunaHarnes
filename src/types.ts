@@ -12,6 +12,18 @@ export interface RunRequest {
   sessionId?: string;
   cwd: string;
   permission: Permission;
+  /** Modelo da lista da CLI. Ausente = padrão da CLI. */
+  model?: string;
+  /** Nível de esforço com o nome da CLI. Ausente = padrão. */
+  effort?: string;
+}
+
+/// Modelo listado pela CLI (ver src-tauri/src/models.rs).
+export interface ModelOption {
+  id: string;
+  label: string;
+  efforts: string[];
+  defaultEffort: string | null;
 }
 
 export type ProviderEvent =
@@ -37,6 +49,9 @@ export interface Conversation {
   sessionId?: string;
   cwd: string;
   permission: Permission;
+  model?: string;
+  effort?: string;
+  planning: boolean;
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];

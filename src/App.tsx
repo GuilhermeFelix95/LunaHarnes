@@ -3,6 +3,7 @@ import {
   deleteConversation,
   listConversations,
   loadConversation,
+  pickWorkspace,
   saveConversation,
 } from "./api";
 import { ChatView } from "./features/chat/ChatView";
@@ -13,6 +14,8 @@ import type { Conversation, ConversationSummary } from "./types";
 interface Session {
   key: number;
   initial?: Conversation;
+  /** Pasta de uma conversa nova. Ausente = pasta de onde o luna foi rodado. */
+  startCwd?: string;
 }
 
 export function App() {
@@ -34,9 +37,19 @@ export function App() {
     }
   }
 
-  function newConversation() {
+  function newConversation(cwd?: string) {
     setActiveId(null);
-    setSession((current) => ({ key: current.key + 1 }));
+    setSession((current) => ({ key: current.key + 1, startCwd: cwd }));
+  }
+
+  /// Escolhe uma pasta e começa uma conversa nela. Cancelar o seletor não faz nada.
+  async function addProject() {
+    try {
+      const picked = await pickWorkspace();
+      if (picked) newConversation(picked);
+    } catch (e) {
+      setListError(String(e));
+    }
   }
 
   async function openConversation(id: string) {
@@ -66,7 +79,8 @@ export function App() {
       <Sidebar
         conversations={summaries}
         activeId={activeId}
-        onNew={newConversation}
+        onNew={(cwd) => newConversation(cwd)}
+        onAddProject={() => void addProject()}
         onOpen={(id) => void openConversation(id)}
         onDelete={(id) => void removeConversation(id)}
         error={listError}
@@ -74,6 +88,7 @@ export function App() {
       <ChatView
         key={session.key}
         initial={session.initial}
+        startCwd={session.startCwd}
         onPersist={(conversation) => {
           setActiveId(conversation.id);
           saveConversation(conversation)

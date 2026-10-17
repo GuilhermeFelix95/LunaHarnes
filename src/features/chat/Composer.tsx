@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import type { Permission, ProviderKind } from "../../types";
+import type { ModelOption, Permission, ProviderKind } from "../../types";
 
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
@@ -28,6 +28,15 @@ interface ComposerProps {
   providerLocked: boolean;
   permission: Permission;
   onPermission: (permission: Permission) => void;
+  /** Modelos que a CLI do provedor lista. Vazio enquanto carrega. */
+  models: ModelOption[];
+  /** Valor vazio = padrão da CLI. */
+  model: string;
+  onModel: (model: string) => void;
+  effort: string;
+  onEffort: (effort: string) => void;
+  planning: boolean;
+  onTogglePlanning: () => void;
 }
 
 /// Caixa de mensagem com Enter para enviar, Shift+Enter para quebrar linha e os seletores embaixo.
@@ -50,9 +59,13 @@ export function Composer(props: ComposerProps) {
     if (canSend) onSend();
   }
 
+  const selectedModel = props.models.find((m) => m.id === props.model);
+  // Sem modelo escolhido, a CLI decide o esforço: o seletor fica desligado.
+  const efforts = selectedModel?.efforts ?? [];
+
   return (
     <form
-      className="composer"
+      className={`composer${props.planning ? " composer--planning" : ""}`}
       onSubmit={(e) => {
         e.preventDefault();
         if (running) onStop();
@@ -62,7 +75,7 @@ export function Composer(props: ComposerProps) {
       <textarea
         ref={textarea}
         aria-label="Mensagem"
-        placeholder="Responda ou peça algo…"
+        placeholder={props.planning ? "Descreva o que quer planejar…" : "Responda ou peça algo…"}
         value={draft}
         onChange={(e) => onDraft(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -84,6 +97,32 @@ export function Composer(props: ComposerProps) {
             ))}
           </select>
           <select
+            aria-label="Modelo"
+            value={props.model}
+            disabled={running}
+            onChange={(e) => props.onModel(e.target.value)}
+          >
+            <option value="">Padrão da CLI</option>
+            {props.models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Esforço"
+            value={props.effort}
+            disabled={running || efforts.length === 0}
+            onChange={(e) => props.onEffort(e.target.value)}
+          >
+            <option value="">Padrão</option>
+            {efforts.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+          <select
             aria-label="Permissão"
             value={props.permission}
             disabled={running}
@@ -96,15 +135,27 @@ export function Composer(props: ComposerProps) {
             ))}
           </select>
         </div>
-        {running ? (
-          <button type="submit" className="composer__action composer__action--stop" aria-label="Parar">
-            ■
+        <div className="composer__actions">
+          <button
+            type="button"
+            className="composer__plan"
+            aria-label="Modo de planejamento"
+            aria-pressed={props.planning}
+            disabled={running}
+            onClick={props.onTogglePlanning}
+          >
+            Planejar
           </button>
-        ) : (
-          <button type="submit" className="composer__action" disabled={!canSend} aria-label="Enviar">
-            ↑
-          </button>
-        )}
+          {running ? (
+            <button type="submit" className="composer__action composer__action--stop" aria-label="Parar">
+              ■
+            </button>
+          ) : (
+            <button type="submit" className="composer__action" disabled={!canSend} aria-label="Enviar">
+              ↑
+            </button>
+          )}
+        </div>
       </div>
     </form>
   );

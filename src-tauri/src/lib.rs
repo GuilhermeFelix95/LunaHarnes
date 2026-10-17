@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod commands;
 pub mod conversations;
+pub mod models;
 pub mod plugins;
 pub mod providers;
 pub mod session;
@@ -16,6 +17,7 @@ pub fn run() {
             commands::list_plugins,
             commands::read_plugin_entry,
             commands::check_auth,
+            commands::list_models,
             commands::open_login,
             commands::get_workspace,
             commands::list_conversations,
