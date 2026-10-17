@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Plus, Settings } from "lucide-react";
+import lunaLogo from "../../assets/luna.svg";
 import type { ConversationSummary } from "../../types";
 import { groupByProject } from "./groupByProject";
 
@@ -45,12 +47,17 @@ export function Sidebar({
 
   return (
     <aside className="sidebar" aria-label="Projetos e conversas">
+      <div className="sidebar__brand">
+        <img src={lunaLogo} alt="" />
+        <span>LunaHarness</span>
+      </div>
+
       <div className="sidebar__top">
         <button type="button" className="sidebar__new" onClick={() => onNew()}>
           Nova conversa
         </button>
         <button type="button" className="sidebar__add" onClick={onAddProject} aria-label="Adicionar projeto">
-          +
+          <Plus size={16} aria-hidden="true" />
         </button>
       </div>
 
@@ -121,7 +128,7 @@ export function Sidebar({
 
       <footer className="sidebar__foot">
         <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>
-          <span aria-hidden="true">⚙</span> Configurações
+          <Settings size={16} aria-hidden="true" /> Configurações
         </button>
       </footer>
     </aside>

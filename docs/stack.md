@@ -84,7 +84,8 @@ docs/                stack, contrato de plugins
   - Pendente: o fundo do terminal ainda é preto fixo (não segue o tema). Troca Claude → Codex ainda não testada ponta a ponta, porque o Codex não está logado.
 - Fase F (em andamento):
   - Etapa 1 (ajustes): ícone novo; modelo padrão é o mais barato (Haiku 5.5 no Claude; `gpt-6-luna` no Codex, pela família "luna"/"mini"/"nano"), marcado com `default` em `models.rs`; clicar de novo num arquivo de Alterações fecha o diff; contexto e uso em k/M (`formatTokens`: "44k", "1,2M").
-  - Próximas etapas (ver o plano aprovado): visual "Vidro lunar", perfis de API (OpenRouter, DeepSeek, GLM, OpenCode, Kimi, personalizados) com a chave no keyring, marketplace de plugins e os recursos de MVP.
+  - Etapa 2 (visual "Vidro lunar"): tokens `--glass`, `--glass-border`, `--glow`, `--shadow` e `--radius-lg` em `src/styles.css` (o `--glow` muda por tema; o vidro é `color-mix` sobre `--surface`). Fundo com brilho radial do tema; barra lateral, painel e composer com `backdrop-filter`. Fonte Inter Variable (`@fontsource-variable/inter`, offline) importada em `main.tsx`. Ícones `lucide-react` 1.50.0 nos botões do composer, cabeçalho e barra lateral. Logo `src/assets/luna.svg` no topo da barra e na tela vazia, com sugestões que preenchem a caixa sem enviar. Avatar do agente (`PROVIDER_ICONS`) em cada resposta e ferramentas como chip. Terminal usa `--terminal-bg`/`--terminal-fg` e reage a `luna:theme`.
+  - Próximas etapas (ver o plano aprovado): perfis de API (OpenRouter, DeepSeek, GLM, OpenCode, Kimi, personalizados) com a chave no keyring, marketplace de plugins e os recursos de MVP.
 - Testes:
   - `npm run test:rust`: 62 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
   - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.

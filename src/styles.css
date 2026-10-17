@@ -15,6 +15,12 @@
   --terminal-bg: #1f1e1d;
   --terminal-fg: #f0eee6;
   --radius: 12px;
+  /* Vidro lunar: superfícies translúcidas com borda fina e brilho do tema. */
+  --radius-lg: 18px;
+  --glow: rgb(193 95 60 / 14%);
+  --glass: color-mix(in srgb, var(--surface) 72%, transparent);
+  --glass-border: color-mix(in srgb, var(--fg) 12%, transparent);
+  --shadow: 0 10px 30px rgb(0 0 0 / 10%);
   color-scheme: light dark;
 }
 
@@ -32,6 +38,8 @@
     --code-bg: #1f1e1d;
     --error: #ff8a80;
     --hover: #3a3936;
+    --glow: rgb(217 119 87 / 18%);
+    --shadow: 0 10px 30px rgb(0 0 0 / 40%);
   }
 }
 
@@ -50,6 +58,8 @@
   --hover: #3a3936;
   --terminal-bg: #1f1e1d;
   --terminal-fg: #f0eee6;
+  --glow: rgb(217 119 87 / 18%);
+  --shadow: 0 10px 30px rgb(0 0 0 / 40%);
 }
 
 /* Temas exclusivos (ver src/theme.ts). Definem todos os tokens, para valer em qualquer modo do sistema. */
@@ -68,6 +78,8 @@
   --hover: #232b42;
   --terminal-bg: #0b0f1a;
   --terminal-fg: #c9d1e6;
+  --glow: rgb(143 168 255 / 22%);
+  --shadow: 0 10px 40px rgb(0 0 0 / 45%);
   color-scheme: dark;
 }
 
@@ -86,6 +98,8 @@
   --hover: #1a2f33;
   --terminal-bg: #081012;
   --terminal-fg: #c8efe3;
+  --glow: rgb(61 220 151 / 16%);
+  --shadow: 0 10px 40px rgb(0 0 0 / 45%);
   color-scheme: dark;
 }
 
@@ -104,6 +118,7 @@
   --hover: #e6d9c2;
   --terminal-bg: #2b2118;
   --terminal-fg: #f6efe3;
+  --glow: rgb(181 83 42 / 14%);
   color-scheme: light;
 }
 
@@ -122,6 +137,8 @@
   --hover: #2c2c30;
   --terminal-bg: #111113;
   --terminal-fg: #e5e5e5;
+  --glow: rgb(242 163 58 / 12%);
+  --shadow: 0 10px 40px rgb(0 0 0 / 45%);
   color-scheme: dark;
 }
 
@@ -131,11 +148,20 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* Luar suave no canto de cima: o brilho do tema por trás do fundo. */
+  background: radial-gradient(1100px 620px at 18% -12%, var(--glow), transparent 62%), var(--bg);
+  background-attachment: fixed;
   color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 15px;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível em tudo, com o acento do tema */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button,
@@ -324,8 +350,25 @@ button:disabled {
   gap: 4px;
   padding: 12px;
   overflow-y: auto;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid var(--glass-border);
+}
+
+/* Marca no topo da barra: a lua do ícone e o nome */
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 10px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+}
+
+.sidebar__brand img {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
 }
 
 .sidebar__top {
@@ -528,6 +571,13 @@ button:disabled {
   text-align: center;
 }
 
+.chat__logo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 8px 24px var(--glow));
+}
+
 .chat__empty p {
   margin: 8px 0 0;
   color: var(--muted);
@@ -537,6 +587,29 @@ button:disabled {
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 400;
   font-size: 30px;
+}
+
+.chat__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.chat__suggestions button {
+  padding: 7px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  font-size: 13px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.chat__suggestions button:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: var(--hover);
 }
 
 .chat__notes {
@@ -588,17 +661,33 @@ button:disabled {
 .message__bubble {
   max-width: 80%;
   padding: 10px 14px;
-  border-radius: var(--radius);
-  background: var(--user-bubble);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
   white-space: pre-wrap;
 }
 
 .message__author {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
+}
+
+/* Avatar do agente: a cor do acento num círculo com o brilho do tema */
+.message__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--glow);
+  color: var(--accent);
 }
 
 .message__error {
@@ -613,7 +702,14 @@ button:disabled {
   color: var(--muted);
 }
 
+/* Ferramentas viram um chip discreto: o texto do agente continua em destaque */
 .tool-line summary {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass);
   cursor: pointer;
   overflow: hidden;
   white-space: nowrap;
@@ -712,10 +808,17 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: var(--shadow), 0 0 0 3px var(--glow);
 }
 
 .composer textarea {
@@ -829,14 +932,22 @@ textarea:focus-visible {
 }
 
 .composer__action {
-  width: 32px;
-  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: none;
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-fg);
-  font-size: 16px;
-  line-height: 1;
+  box-shadow: 0 0 0 4px var(--glow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.composer__action:hover:not(:disabled) {
+  transform: scale(1.05);
 }
 
 .composer__action--stop {
@@ -865,13 +976,16 @@ textarea:focus-visible {
 }
 
 .chat__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--muted);
   font-size: 13px;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .chat__tool:hover {
@@ -1088,8 +1202,9 @@ textarea:focus-visible {
   flex-direction: column;
   flex-shrink: 0;
   min-height: 0;
-  border-left: 1px solid var(--border);
-  background: var(--bg-sidebar);
+  border-left: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
+  backdrop-filter: blur(18px);
 }
 
 .side[hidden] {

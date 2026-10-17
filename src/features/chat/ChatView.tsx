@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { GitCompare, Terminal } from "lucide-react";
+import lunaLogo from "../../assets/luna.svg";
 import {
   cancelPrompt,
   checkAuth,
@@ -27,6 +29,9 @@ import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
 
 const TITLE_MAX_CHARS = 60;
+
+/// Sugestões da tela vazia: preenchem a caixa de mensagem, sem enviar sozinhas.
+const SUGGESTIONS = ["Explique este projeto", "Encontre bugs", "Escreva testes"];
 
 interface ChatViewProps {
   /** Conversa aberta do histórico. Ausente = conversa nova. */
@@ -311,7 +316,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
             aria-pressed={sideOpen && sideTab === "changes"}
             onClick={() => toggleSide("changes")}
           >
-            Alterações
+            <GitCompare size={14} aria-hidden="true" /> Alterações
           </button>
           <button
             type="button"
@@ -320,7 +325,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
             title="Terminal (Ctrl+`)"
             onClick={toggleTerminal}
           >
-            Terminal
+            <Terminal size={14} aria-hidden="true" /> Terminal
           </button>
         </div>
       </header>
@@ -350,12 +355,22 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 
         {messages.length === 0 ? (
           <div className="chat__empty">
+            <img src={lunaLogo} alt="" className="chat__logo" />
             <h1>Como posso ajudar?</h1>
             <p>
               {planning
                 ? "Modo de planejamento: o agente pergunta antes de editar nada."
                 : `Conversando com ${PROVIDER_LABELS[provider]}.`}
             </p>
+            {!planning && (
+              <div className="chat__suggestions">
+                {SUGGESTIONS.map((text) => (
+                  <button key={text} type="button" onClick={() => setDraft(text)}>
+                    {text}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <MessageList messages={messages} fallbackProvider={legacyProvider.current} running={running} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
+import { ArrowUp, Square } from "lucide-react";
 import type { ModelOption, Permission, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { ModelMenu } from "./ModelMenu";
@@ -133,11 +134,11 @@ export function Composer(props: ComposerProps) {
           </button>
           {running ? (
             <button type="submit" className="composer__action composer__action--stop" aria-label="Parar">
-              ■
+              <Square size={12} fill="currentColor" aria-hidden="true" />
             </button>
           ) : (
             <button type="submit" className="composer__action" disabled={!canSend} aria-label="Enviar">
-              ↑
+              <ArrowUp size={18} strokeWidth={2.4} aria-hidden="true" />
             </button>
           )}
         </div>

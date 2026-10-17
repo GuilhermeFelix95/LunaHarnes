@@ -1,6 +1,15 @@
+import { Bot, Sparkles, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
+
+/// Avatar de cada agente: o ícone aparece ao lado do nome em cada resposta.
+const PROVIDER_ICONS: Record<ProviderKind, LucideIcon> = { claude: Sparkles, codex: Bot };
+
+function ProviderIcon({ provider }: { provider: ProviderKind }) {
+  const Icon = PROVIDER_ICONS[provider];
+  return <Icon size={13} />;
+}
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -66,7 +75,12 @@ export function MessageList({ messages, fallbackProvider, running }: MessageList
             <div className="message__bubble">{item.message.text}</div>
           ) : (
             <div className="message__reply">
-              <span className="message__author">{PROVIDER_LABELS[item.provider]}</span>
+              <span className="message__author">
+                <span className="message__avatar" aria-hidden="true">
+                  <ProviderIcon provider={item.provider} />
+                </span>
+                {PROVIDER_LABELS[item.provider]}
+              </span>
               {item.parts.map((part, j) => {
                 if (part.kind === "tools") {
                   const working = running && i === items.length - 1 && j === item.parts.length - 1;

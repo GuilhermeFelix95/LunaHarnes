@@ -1,10 +1,16 @@
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TerminalPanel } from "./TerminalPanel";
+import { THEME_EVENT } from "../../theme";
 
 // O xterm desenha em canvas, que o jsdom não tem. O teste troca por um dublê que só guarda o que recebe.
 const xterm = vi.hoisted(() => ({
-  instances: [] as Array<{ written: string[]; onDataCb?: (d: string) => void; disposed: boolean }>,
+  instances: [] as Array<{
+    written: string[];
+    onDataCb?: (d: string) => void;
+    disposed: boolean;
+    options: { theme?: { background?: string; foreground?: string } };
+  }>,
 }));
 
 vi.mock("@xterm/xterm", () => ({
@@ -14,7 +20,9 @@ vi.mock("@xterm/xterm", () => ({
     written: string[] = [];
     onDataCb?: (d: string) => void;
     disposed = false;
-    constructor() {
+    options: { theme?: { background?: string; foreground?: string } };
+    constructor(options: { theme?: { background?: string; foreground?: string } }) {
+      this.options = options;
       xterm.instances.push(this);
     }
     loadAddon() {}
@@ -89,6 +97,21 @@ describe("TerminalPanel", () => {
 
     await waitFor(() => expect(api.terminalClose).toHaveBeenCalledWith("term-1"));
     expect(xterm.instances[0].disposed).toBe(true);
+  });
+
+  it("as cores do terminal vêm do tema e trocam junto com ele", async () => {
+    document.documentElement.style.setProperty("--terminal-bg", "#101010");
+    document.documentElement.style.setProperty("--terminal-fg", "#eeeeee");
+    render(<TerminalPanel cwd={"C:\projeto"} />);
+
+    expect(xterm.instances[0].options.theme).toEqual({ background: "#101010", foreground: "#eeeeee" });
+
+    document.documentElement.style.setProperty("--terminal-bg", "#202020");
+    window.dispatchEvent(new Event(THEME_EVENT));
+    expect(xterm.instances[0].options.theme?.background).toBe("#202020");
+
+    document.documentElement.style.removeProperty("--terminal-bg");
+    document.documentElement.style.removeProperty("--terminal-fg");
   });
 
   it("falha ao abrir mostra o motivo no painel", async () => {

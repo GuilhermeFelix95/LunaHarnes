@@ -3,6 +3,16 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { onTerminalData, onTerminalExit, terminalClose, terminalOpen, terminalResize, terminalWrite } from "../../api";
+import { THEME_EVENT } from "../../theme";
+
+/// Fundo e texto do terminal vêm dos tokens do tema, para trocar junto com ele.
+function terminalTheme() {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    background: style.getPropertyValue("--terminal-bg").trim() || undefined,
+    foreground: style.getPropertyValue("--terminal-fg").trim() || undefined,
+  };
+}
 
 interface TerminalPanelProps {
   /** Pasta onde o shell começa. Quem usa o painel troca a pasta com key={cwd}, o que reinicia o shell. */
@@ -24,11 +34,16 @@ export function TerminalPanel({ cwd }: TerminalPanelProps) {
       fontSize: 13,
       convertEol: true,
       scrollback: 5000,
+      theme: terminalTheme(),
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(host.current);
     fit.fit();
+    const onThemeChange = () => {
+      term.options.theme = terminalTheme();
+    };
+    window.addEventListener(THEME_EVENT, onThemeChange);
 
     let id: string | undefined;
     let disposed = false;
@@ -73,6 +88,7 @@ export function TerminalPanel({ cwd }: TerminalPanelProps) {
 
     return () => {
       disposed = true;
+      window.removeEventListener(THEME_EVENT, onThemeChange);
       resize.disconnect();
       input.dispose();
       unlisteners.forEach((p) => p.then((stop) => stop()));

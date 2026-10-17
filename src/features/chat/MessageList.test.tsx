@@ -26,6 +26,14 @@ describe("MessageList", () => {
     expect(screen.getByText("Pronto, criei o jogo.")).toBeTruthy();
   });
 
+  it("mostra o avatar do agente em cada resposta", () => {
+    render(<MessageList messages={turn} fallbackProvider="claude" running={false} />);
+
+    const avatars = document.querySelectorAll(".message__avatar");
+    expect(avatars).toHaveLength(1);
+    expect(avatars[0].querySelector("svg")).toBeTruthy();
+  });
+
   it("junta ferramentas seguidas numa linha recolhível com a contagem", () => {
     render(<MessageList messages={turn} fallbackProvider="claude" running={false} />);
 

@@ -59,6 +59,15 @@ describe("ChatView: continuidade e envio", () => {
     expect(await screen.findByText("Haiku 5.5")).toBeTruthy();
   });
 
+  it("sugestões da tela vazia preenchem a caixa sem enviar", async () => {
+    render(<ChatView onPersist={() => {}} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Encontre bugs" }));
+
+    expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).value).toBe("Encontre bugs");
+    expect(api.sendPrompt).not.toHaveBeenCalled();
+  });
+
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect(screen.getByLabelText("Mensagem")).toBeTruthy());
