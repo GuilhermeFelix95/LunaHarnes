@@ -1,11 +1,9 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { ModelOption, Permission, ProviderKind } from "../../types";
+import { PROVIDER_LABELS } from "../../chat/providers";
 import { ModelMenu } from "./ModelMenu";
 
-export const PROVIDER_LABELS: Record<ProviderKind, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-};
+export { PROVIDER_LABELS };
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
   readOnly: "Só leitura",
@@ -25,8 +23,6 @@ interface ComposerProps {
   blocked: boolean;
   provider: ProviderKind;
   onProvider: (provider: ProviderKind) => void;
-  /** Provedor não troca depois da primeira mensagem: o id da conversa é do CLI. */
-  providerLocked: boolean;
   permission: Permission;
   onPermission: (permission: Permission) => void;
   /** Modelos que a CLI do provedor lista. Vazio enquanto carrega. */
@@ -88,7 +84,7 @@ export function Composer(props: ComposerProps) {
           <select
             aria-label="Provedor"
             value={props.provider}
-            disabled={running || props.providerLocked}
+            disabled={running}
             onChange={(e) => props.onProvider(e.target.value as ProviderKind)}
           >
             {(Object.keys(PROVIDER_LABELS) as ProviderKind[]).map((p) => (

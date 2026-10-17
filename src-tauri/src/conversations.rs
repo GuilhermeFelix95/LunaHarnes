@@ -26,6 +26,10 @@ pub struct Conversation {
     /// Modo plano ligado: o agente pergunta e planeja antes de editar.
     #[serde(default)]
     pub planning: bool,
+    /// Sessão nativa de cada agente e quanto do histórico ele já viu (ver src/chat/handoff.ts).
+    /// Ausente em arquivos antigos: o frontend usa `session_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sessions: Option<Value>,
     pub created_at: u64,
     pub updated_at: u64,
     pub messages: Vec<Value>,
@@ -123,6 +127,7 @@ mod tests {
             model: None,
             effort: None,
             planning: false,
+            sessions: Some(json!({"claude": {"id": "sess-1", "seen": 1}, "codex": {"id": "th-9", "seen": 3}})),
             messages: vec![json!({"role": "user", "text": "oi"})],
         }
     }
@@ -140,6 +145,7 @@ mod tests {
         assert_eq!(loaded.model, None);
         assert_eq!(loaded.effort, None);
         assert!(!loaded.planning);
+        assert_eq!(loaded.sessions, None);
     }
 
     #[test]

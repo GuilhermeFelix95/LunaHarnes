@@ -1,37 +1,104 @@
-import type { ChatMessage } from "../../types";
+import { PROVIDER_LABELS } from "../../chat/providers";
+import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
 
 interface MessageListProps {
   messages: ChatMessage[];
-  providerLabel: string;
+  /** Autor das respostas antigas, salvas antes de cada mensagem guardar o agente. */
+  fallbackProvider: ProviderKind;
+  /** Resposta em andamento: a última linha de ferramentas mostra "Trabalhando…". */
+  running: boolean;
 }
 
-/// Mensagens da conversa: usuário em balão, resposta em markdown sem balão, ferramentas em linha recolhível.
-export function MessageList({ messages, providerLabel }: MessageListProps) {
+type Tool = NonNullable<ChatMessage["tool"]>;
+
+/** Pedaço de uma resposta: ferramentas seguidas viram um grupo; texto e erro ficam como estão. */
+type Part = { kind: "tools"; tools: Tool[] } | { kind: "text"; message: ChatMessage };
+
+type Item = { kind: "user"; message: ChatMessage } | { kind: "reply"; provider: ProviderKind; parts: Part[] };
+
+/// Agrupa as mensagens do agente entre duas mensagens do usuário numa resposta só.
+function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
+  const items: Item[] = [];
+  for (const m of messages) {
+    if (m.role === "user") {
+      items.push({ kind: "user", message: m });
+      continue;
+    }
+    let reply = items.at(-1);
+    if (reply?.kind !== "reply") {
+      reply = { kind: "reply", provider: m.provider ?? fallback, parts: [] };
+      items.push(reply);
+    }
+    const last = reply.parts.at(-1);
+    if (m.tool && !m.error) {
+      if (last?.kind === "tools") last.tools.push(m.tool);
+      else reply.parts.push({ kind: "tools", tools: [m.tool] });
+    } else {
+      reply.parts.push({ kind: "text", message: m });
+    }
+  }
+  return items;
+}
+
+/// "3 ações · Bash, Write ×2", ou o comando direto quando é uma ação só.
+function toolSummary(tools: Tool[]): string {
+  if (tools.length === 1) {
+    const [only] = tools;
+    return only.detail ? `${only.name} · ${only.detail}` : only.name;
+  }
+  const counts = new Map<string, number>();
+  for (const t of tools) counts.set(t.name, (counts.get(t.name) ?? 0) + 1);
+  const names = [...counts].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name)).join(", ");
+  return `${tools.length} ações · ${names}`;
+}
+
+/// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
+/// ferramentas recolhidas e o texto em destaque.
+export function MessageList({ messages, fallbackProvider, running }: MessageListProps) {
+  const items = group(messages, fallbackProvider);
+
   return (
     <ol className="messages" aria-live="polite">
-      {messages.map((m, i) => (
-        <li key={i} className={`message message--${m.role}`}>
-          {m.role === "user" ? (
-            <div className="message__bubble">{m.text}</div>
+      {items.map((item, i) => (
+        <li key={i} className={`message message--${item.kind === "user" ? "user" : "assistant"}`}>
+          {item.kind === "user" ? (
+            <div className="message__bubble">{item.message.text}</div>
           ) : (
             <div className="message__reply">
-              <span className="message__author">{providerLabel}</span>
-              {m.tool && (
-                <details className="tool-line">
-                  <summary>
-                    {m.tool.name}
-                    {m.tool.detail && <span className="tool-line__preview"> · {m.tool.detail}</span>}
-                  </summary>
-                  <code>{m.tool.detail}</code>
-                </details>
-              )}
-              {!m.tool && m.text && <Markdown text={m.text} />}
-              {m.error && (
-                <p role="alert" className="message__error">
-                  {m.error}
-                </p>
-              )}
+              <span className="message__author">{PROVIDER_LABELS[item.provider]}</span>
+              {item.parts.map((part, j) => {
+                if (part.kind === "tools") {
+                  const working = running && i === items.length - 1 && j === item.parts.length - 1;
+                  return (
+                    <details key={j} className="tool-line">
+                      <summary>
+                        {working && <span className="tool-line__working">Trabalhando… </span>}
+                        <span className="tool-line__preview">{toolSummary(part.tools)}</span>
+                      </summary>
+                      <ul className="tool-line__list">
+                        {part.tools.map((t, k) => (
+                          <li key={k}>
+                            <span className="tool-line__name">{t.name}</span>
+                            {t.detail && <code>{t.detail}</code>}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  );
+                }
+                const m = part.message;
+                return (
+                  <div key={j}>
+                    {m.text && <Markdown text={m.text} />}
+                    {m.error && (
+                      <p role="alert" className="message__error">
+                        {m.error}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </li>

@@ -29,7 +29,6 @@ function setup(overrides: Partial<Parameters<typeof Composer>[0]> = {}) {
     blocked: false,
     provider: "claude" as const,
     onProvider: vi.fn(),
-    providerLocked: false,
     permission: "acceptEdits" as const,
     onPermission: vi.fn(),
     models: CLAUDE_MODELS,
@@ -82,10 +81,9 @@ describe("Composer", () => {
     expect(props.onSend).not.toHaveBeenCalled();
   });
 
-  it("provedor travado depois da primeira mensagem", () => {
-    setup({ providerLocked: true });
-
-    expect((screen.getByLabelText("Provedor") as HTMLSelectElement).disabled).toBe(true);
+  it("o provedor pode ser trocado no meio da conversa, só não durante uma resposta", () => {
+    setup();
+    expect((screen.getByLabelText("Provedor") as HTMLSelectElement).disabled).toBe(false);
   });
 
   it("o seletor de esforço fica desligado enquanto nenhum modelo está escolhido", () => {

@@ -70,6 +70,43 @@ describe("ChatView: continuidade e envio", () => {
     expect(second.permission).toBe("acceptEdits");
   });
 
+  it("troca de agente no meio da conversa sem perder contexto", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("crie a landing page");
+    emit({ kind: "sessionStarted", sessionId: "sess-claude" });
+    emit({ kind: "textDelta", text: "Criei index.html." });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    // Claude → Codex: sessão nova com o histórico inteiro antes da mensagem.
+    fireEvent.change(screen.getByLabelText("Provedor"), { target: { value: "codex" } });
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    await send("agora ajuste o CSS");
+    const toCodex = vi.mocked(api.sendPrompt).mock.calls[1][0];
+    expect(toCodex.provider).toBe("codex");
+    expect(toCodex.sessionId).toBeUndefined();
+    expect(toCodex.prompt).toContain("crie a landing page");
+    expect(toCodex.prompt).toContain("### Claude Code\nCriei index.html.");
+    expect(toCodex.prompt).toMatch(/Nova mensagem do usuário:\nagora ajuste o CSS$/);
+    expect(screen.getByText("Criei index.html.")).toBeTruthy();
+
+    emit({ kind: "sessionStarted", sessionId: "sess-codex" });
+    emit({ kind: "textDelta", text: "Ajustei o CSS." });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    // Codex → Claude: retoma a sessão antiga e recebe só o que perdeu.
+    fireEvent.change(screen.getByLabelText("Provedor"), { target: { value: "claude" } });
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    await send("revise tudo");
+    const back = vi.mocked(api.sendPrompt).mock.calls[2][0];
+    expect(back.sessionId).toBe("sess-claude");
+    expect(back.prompt).toContain("### Codex\nAjustei o CSS.");
+    expect(back.prompt).not.toContain("crie a landing page");
+  });
+
   it("salva a conversa completa ao fim do turno, com o sessionId", async () => {
     const persist = vi.fn();
     render(<ChatView onPersist={persist} />);
@@ -87,7 +124,8 @@ describe("ChatView: continuidade e envio", () => {
     expect(saved.cwd).toBe("C:\\projeto");
     expect(saved.messages).toEqual([
       { role: "user", text: "pergunta" },
-      { role: "assistant", text: "resposta final" },
+      { role: "assistant", text: "resposta final", provider: "claude" },
     ]);
+    expect(saved.sessions).toEqual({ claude: { id: "sess-9", seen: 2 } });
   });
 });

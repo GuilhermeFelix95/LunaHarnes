@@ -269,6 +269,22 @@ button:disabled {
   margin-left: auto;
 }
 
+/* Volta ao fim da conversa quando o usuário rolou para cima. Fica preso ao pé da área que rola. */
+.chat__to-end {
+  position: sticky;
+  bottom: 8px;
+  z-index: 1;
+  align-self: center;
+  order: 99;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+}
+
 /* Corpo: centraliza a coluna de leitura */
 .chat__body {
   flex: 1;
@@ -374,6 +390,29 @@ button:disabled {
 
 .tool-line summary {
   cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tool-line__working {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tool-line__list {
+  margin: 6px 0 0;
+  padding: 0 0 0 14px;
+  list-style: none;
+  border-left: 2px solid var(--border);
+}
+
+.tool-line__list li + li {
+  margin-top: 6px;
+}
+
+.tool-line__name {
+  font-weight: 600;
 }
 
 .tool-line code {

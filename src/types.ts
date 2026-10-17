@@ -48,7 +48,17 @@ export interface ChatMessage {
   /** Linha de ferramenta (ex.: Bash com o comando executado). */
   tool?: { name: string; detail: string };
   error?: string;
+  /** Agente que respondeu. Ausente em conversas antigas = provedor da conversa. */
+  provider?: ProviderKind;
 }
+
+/// Sessão nativa de um agente e quantas mensagens do histórico ele já viu (ver src/chat/handoff.ts).
+export interface AgentSession {
+  id: string;
+  seen: number;
+}
+
+export type AgentSessions = Partial<Record<ProviderKind, AgentSession>>;
 
 /// Espelha src-tauri/src/conversations.rs (Conversation). Mensagens seguem o formato de ChatMessage.
 export interface Conversation {
@@ -61,6 +71,8 @@ export interface Conversation {
   model?: string;
   effort?: string;
   planning: boolean;
+  /** Sessões por agente. Ausente em arquivos antigos: vem de sessionId. */
+  sessions?: AgentSessions;
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];

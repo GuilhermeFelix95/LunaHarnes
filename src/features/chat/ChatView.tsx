@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   cancelPrompt,
   checkAuth,
+  getChanges,
   getWorkspace,
   listModels,
   onProviderEvent,
@@ -9,11 +10,13 @@ import {
   pickWorkspace,
   sendPrompt,
 } from "../../api";
+import { contextFor, withContext } from "../../chat/handoff";
 import { APPROVAL_PROMPT, withPlanInstruction } from "../../chat/planning";
 import { applyEvent } from "../../chat/reducer";
+import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost } from "../../plugins/host";
 import { loadInstalledPlugins } from "../../plugins/loader";
-import type { ChatMessage, Conversation, ModelOption, Permission, ProviderKind } from "../../types";
+import type { AgentSessions, ChatMessage, Conversation, ModelOption, Permission, ProviderKind } from "../../types";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
 import { TerminalPanel } from "../terminal/TerminalPanel";
@@ -55,8 +58,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const [notes, setNotes] = useState<string[]>([]);
   const [host] = useState(() => new PluginHost());
   const responseText = useRef("");
-  // Id da conversa no CLI. Vem no primeiro evento e é reenviado nas próximas mensagens.
-  const sessionId = useRef<string | undefined>(initial?.sessionId);
+  // Sessão nativa de cada agente e quanto do histórico ele já viu (ver chat/handoff.ts).
+  const sessions = useRef<AgentSessions>(initialSessions(initial));
+  // Agente do turno em andamento: os eventos da CLI não dizem de quem são.
+  const turnProvider = useRef<ProviderKind>(provider);
+  // Autor das respostas salvas antes de cada mensagem guardar o agente.
+  const legacyProvider = useRef<ProviderKind>(initial?.provider ?? provider);
   // null = ainda não verificado; false = precisa entrar na conta.
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
@@ -68,6 +75,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const [changesVersion, setChangesVersion] = useState(0);
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const { stuck, scrollToBottom } = useStickToBottom(body, messages);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -120,7 +129,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 
   useEffect(() => {
     const unlisten = onProviderEvent((event) => {
-      if (event.kind === "sessionStarted") sessionId.current = event.sessionId;
+      const turn = turnProvider.current;
+      if (event.kind === "sessionStarted") {
+        sessions.current = {
+          ...sessions.current,
+          [turn]: { id: event.sessionId, seen: sessions.current[turn]?.seen ?? 0 },
+        };
+      }
       if (event.kind === "textDelta") responseText.current += event.text;
       if (event.kind === "rateLimit") {
         setLimits((current) => ({
@@ -129,8 +144,11 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         }));
       }
       if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize });
-      commit(applyEvent(messagesRef.current, event));
+      commit(applyEvent(messagesRef.current, event, turn));
       if (event.kind === "done") {
+        const session = sessions.current[turn];
+        // O agente viu tudo até o fim deste turno.
+        if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
         setRunning(false);
         setChangesVersion((v) => v + 1);
         persist(messagesRef.current);
@@ -157,7 +175,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       id: conversationId,
       title,
       provider: latest.provider,
-      sessionId: sessionId.current,
+      sessionId: sessions.current[latest.provider]?.id,
+      sessions: sessions.current,
       cwd: latest.cwd,
       permission: latest.permission,
       model: latest.model || undefined,
@@ -186,7 +205,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   function switchWorkspace(path: string) {
     if (path === cwd) return;
     setCwd(path);
-    sessionId.current = undefined;
+    sessions.current = {};
     commit([]);
   }
 
@@ -197,17 +216,32 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 
   /// Envia um turno. `shown` aparece na conversa; `cliPrompt` é o que o CLI recebe.
   /// No modo plano, o CLI recebe a instrução de planejamento e roda só com leitura.
+  /// Se o agente ainda não viu parte do histórico (troca de agente), o contexto vai antes da mensagem.
   async function run(shown: string, cliPrompt: string, plan: boolean) {
     setRunning(true);
     responseText.current = "";
-    commit([...messagesRef.current, { role: "user", text: shown }]);
+    turnProvider.current = provider;
+    const history = messagesRef.current;
+    commit([...history, { role: "user", text: shown }]);
+    // Quem envia quer ver a resposta: volta a seguir o fim.
+    scrollToBottom();
     setNotes([...host.errors]);
 
     try {
+      const behind = (sessions.current[provider]?.seen ?? 0) < history.length;
+      const changes = behind ? await getChanges(cwd).catch(() => null) : null;
+      const { sessionId, preamble } = contextFor({
+        sessions: sessions.current,
+        target: provider,
+        history,
+        fallback: legacyProvider.current,
+        cwd,
+        changes,
+      });
       await sendPrompt({
         provider,
-        prompt: plan ? withPlanInstruction(cliPrompt) : cliPrompt,
-        sessionId: sessionId.current,
+        prompt: withContext(preamble, plan ? withPlanInstruction(cliPrompt) : cliPrompt),
+        sessionId,
         cwd,
         permission: plan ? "readOnly" : permission,
         model: model || undefined,
@@ -285,7 +319,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 
       <div className="chat__split">
       <div className="chat__column">
-      <div className="chat__body">
+      <div className="chat__body" ref={body}>
         {loggedIn === false && (
           <LoginPrompt
             provider={provider}
@@ -316,7 +350,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
             </p>
           </div>
         ) : (
-          <MessageList messages={messages} providerLabel={PROVIDER_LABELS[provider]} />
+          <MessageList messages={messages} fallbackProvider={legacyProvider.current} running={running} />
+        )}
+
+        {!stuck && messages.length > 0 && (
+          <button type="button" className="chat__to-end" onClick={scrollToBottom}>
+            Ir para o fim ↓
+          </button>
         )}
 
         {planning && lastIsReply && !running && (
@@ -339,11 +379,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         provider={provider}
         onProvider={(next) => {
           setProvider(next);
+          // A conversa continua: o novo agente recebe o histórico no próximo envio.
           setModel("");
           setEffort("");
-          sessionId.current = undefined;
         }}
-        providerLocked={messages.length > 0}
         permission={permission}
         onPermission={setPermission}
         models={models}
@@ -376,6 +415,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       </div>
     </div>
   );
+}
+
+/// Sessões de uma conversa salva. Arquivos antigos só têm `sessionId`, que o agente viu até o fim.
+function initialSessions(initial?: Conversation): AgentSessions {
+  if (initial?.sessions) return initial.sessions;
+  if (initial?.sessionId) return { [initial.provider]: { id: initial.sessionId, seen: initial.messages.length } };
+  return {};
 }
 
 /// Título da conversa: a primeira mensagem do usuário, já truncada.
