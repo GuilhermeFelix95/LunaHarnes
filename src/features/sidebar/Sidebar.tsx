@@ -1,8 +1,38 @@
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Plus, Settings } from "lucide-react";
 import lunaLogo from "../../assets/luna.svg";
 import type { ConversationSummary } from "../../types";
 import { groupByProject } from "./groupByProject";
+
+export const SIDEBAR_WIDTH_KEY = "luna.sidebar.width";
+const DEFAULT_WIDTH = 260;
+const MIN_WIDTH = 200;
+const MAX_FRACTION = 0.4;
+const KEY_STEP = 16;
+
+/// Largura entre 200 px e 40% da janela.
+export function clampSidebarWidth(width: number, windowWidth: number): number {
+  const max = Math.max(MIN_WIDTH, Math.floor(windowWidth * MAX_FRACTION));
+  return Math.min(Math.max(Math.round(width), MIN_WIDTH), max);
+}
+
+function loadWidth(): number {
+  try {
+    const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    if (Number.isFinite(saved) && saved > 0) return clampSidebarWidth(saved, window.innerWidth);
+  } catch {
+    // Armazenamento indisponível: usa o padrão.
+  }
+  return DEFAULT_WIDTH;
+}
+
+function saveWidth(width: number) {
+  try {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width));
+  } catch {
+    // Sem armazenamento, a largura vale só nesta sessão.
+  }
+}
 
 /// Conversas cujo título contém o texto digitado (sem diferenciar maiúsculas e acentos).
 export function filterByTitle(items: ConversationSummary[], query: string): ConversationSummary[] {
@@ -44,12 +74,58 @@ export function Sidebar({
   settingsOpen = false,
   error,
 }: SidebarProps) {
+  // Largura ajustável pela alça na borda direita, como o painel da direita.
+  const [width, setWidth] = useState(loadWidth);
+  const drag = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  function resize(next: number) {
+    const clamped = clampSidebarWidth(next, window.innerWidth);
+    setWidth(clamped);
+    return clamped;
+  }
+
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    drag.current = { startX: e.clientX, startWidth: width };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+
+  function onPointerMove(e: PointerEvent<HTMLDivElement>) {
+    if (!drag.current) return;
+    resize(drag.current.startWidth + (e.clientX - drag.current.startX));
+  }
+
+  function onPointerUp(e: PointerEvent<HTMLDivElement>) {
+    if (!drag.current) return;
+    const final = resize(drag.current.startWidth + (e.clientX - drag.current.startX));
+    drag.current = null;
+    saveWidth(final);
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const delta = e.key === "ArrowRight" ? KEY_STEP : e.key === "ArrowLeft" ? -KEY_STEP : 0;
+    if (!delta) return;
+    e.preventDefault();
+    saveWidth(resize(width + delta));
+  }
+
   const [query, setQuery] = useState("");
   const matching = filterByTitle(conversations, query);
   const projects = groupByProject(matching, new Date());
 
   return (
-    <aside className="sidebar" aria-label="Projetos e conversas">
+    <aside className="sidebar" aria-label="Projetos e conversas" style={{ width: `${width}px` }}>
+      <div
+        className="sidebar__resize"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Largura da barra lateral"
+        aria-valuenow={width}
+        tabIndex={0}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onKeyDown={onKeyDown}
+      />
       <div className="sidebar__brand">
         <img src={lunaLogo} alt="" />
         <span>LunaHarness</span>

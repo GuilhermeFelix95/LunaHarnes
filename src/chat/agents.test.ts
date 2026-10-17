@@ -3,8 +3,8 @@ import type { ApiPreset, ApiProfile } from "../types";
 import { agentKey, agentOptions } from "./agents";
 
 const presets: ApiPreset[] = [
-  { preset: "deepSeek", label: "DeepSeek", engine: "claude", defaultBaseUrl: "https://api.deepseek.com/anthropic" },
-  { preset: "openAi", label: "OpenAI (chave)", engine: "codex", defaultBaseUrl: "" },
+  { preset: "deepSeek", label: "DeepSeek", engine: "claude", defaultBaseUrl: "https://api.deepseek.com/anthropic", suggestedModels: [], defaultModel: "" },
+  { preset: "openAi", label: "OpenAI (chave)", engine: "codex", defaultBaseUrl: "", suggestedModels: [], defaultModel: "" },
 ];
 
 const profiles: ApiProfile[] = [

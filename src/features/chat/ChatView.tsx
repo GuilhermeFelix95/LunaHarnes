@@ -24,7 +24,7 @@ import {
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
@@ -82,7 +82,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [cwd, setCwd] = useState(initial?.cwd ?? startCwd ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
   const [effort, setEffort] = useState(initial?.effort ?? "");
-  const [planning, setPlanning] = useState(initial?.planning ?? false);
+  // Conversa nova começa na entrevista (modo plano); "Pular entrevista" desliga.
+  const [planning, setPlanning] = useState(initial?.planning ?? !initial);
+  // Último plano da conversa: a resposta do modo plano (ou da spec) fica no painel.
+  const [plan, setPlan] = useState<string | undefined>(initial?.plan);
+  const planRef = useRef(plan);
+  // O turno em andamento é de planejamento? Só a resposta desse turno vira plano.
+  const turnPlanning = useRef(false);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
@@ -260,6 +266,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
         setRunning(false);
         setChangesVersion((v) => v + 1);
+        if (turnPlanning.current && responseText.current.trim()) {
+          planRef.current = responseText.current;
+          setPlan(responseText.current);
+          setSideOpen(true);
+          setSideTab("plan");
+        }
         persist(messagesRef.current);
         void host.runAfterResponse(responseText.current).then(() => setNotes([...host.errors]));
       }
@@ -293,6 +305,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       planning: latest.planning,
       profile: latest.profileId ?? undefined,
       costUsd: costRef.current || undefined,
+      plan: planRef.current,
       createdAt: createdAt.current,
       updatedAt: Date.now(),
       messages: current,
@@ -337,6 +350,7 @@ ${cliPrompt}`;
       rewindNote.current = null;
     }
     responseText.current = "";
+    turnPlanning.current = plan;
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
@@ -497,6 +511,12 @@ ${outgoing}`
     setChangesVersion((n) => n + 1);
   }
 
+  /// Gera a spec da conversa (estilo to-spec): um turno de planejamento que só lê, e a resposta vira o plano.
+  async function generateSpec() {
+    if (running || loggedIn !== true) return;
+    await run("Gerar spec da conversa", SPEC_INSTRUCTION, true);
+  }
+
   /// Aprovação do plano: sai do modo plano e manda o agente executar com a permissão escolhida.
   async function approvePlan() {
     if (running || loggedIn !== true) return;
@@ -555,6 +575,14 @@ ${outgoing}`
           <button
             type="button"
             className="chat__tool"
+            aria-pressed={sideOpen && sideTab === "plan"}
+            onClick={() => toggleSide("plan")}
+          >
+            Plano
+          </button>
+          <button
+            type="button"
+            className="chat__tool"
             aria-pressed={sideOpen && sideTab === "terminal"}
             title="Terminal (Ctrl+`)"
             onClick={toggleTerminal}
@@ -601,6 +629,11 @@ ${outgoing}`
                 ? "Modo de planejamento: o agente pergunta antes de editar nada."
                 : `Conversando com ${agentLabel}.`}
             </p>
+            {planning && (
+              <button type="button" className="chat__skip" onClick={() => setPlanning(false)}>
+                Pular entrevista
+              </button>
+            )}
             {!planning && (
               <div className="chat__suggestions">
                 {SUGGESTIONS.map((text) => (
@@ -687,6 +720,9 @@ ${outgoing}`
           setSideTab(tab);
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
+        plan={plan}
+        onGenerateSpec={() => void generateSpec()}
+        canGenerateSpec={!running && !blocked && messages.length > 0}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
       />
       </div>

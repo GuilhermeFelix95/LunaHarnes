@@ -70,9 +70,49 @@ describe("ChatView: continuidade e envio", () => {
     expect(await screen.findByText("Haiku 5.5")).toBeTruthy();
   });
 
+  it("conversa nova começa na entrevista, e pular desliga o modo plano", async () => {
+    render(<ChatView onPersist={() => {}} />);
+
+    expect(await screen.findByText(/Modo de planejamento/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Pular entrevista" }));
+
+    expect(screen.queryByText(/Modo de planejamento/)).toBeNull();
+  });
+
+  it("no modo plano, a resposta vai para a aba Plano do painel e abre a aba", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("quero um app de tarefas");
+    emit({ kind: "textDelta", text: "## Plano\n\nPasso 1: criar a tela." });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    expect(vi.mocked(api.sendPrompt).mock.calls[0][0].permission).toBe("readOnly");
+    expect(screen.getByRole("tab", { name: "Plano" }).getAttribute("aria-selected")).toBe("true");
+    expect(document.querySelector(".side__plan")?.textContent).toContain("Passo 1: criar a tela.");
+  });
+
+  it("Gerar spec manda o pedido de spec em modo somente leitura", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    await send("quero um app de tarefas");
+    emit({ kind: "textDelta", text: "Plano curto." });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Gerar spec" }));
+
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
+    const spec = vi.mocked(api.sendPrompt).mock.calls[1][0];
+    expect(spec.prompt).toContain("## Problem Statement");
+    expect(spec.permission).toBe("readOnly");
+  });
+
   it("sugestões da tela vazia preenchem a caixa sem enviar", async () => {
     render(<ChatView onPersist={() => {}} />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "Pular entrevista" }));
     fireEvent.click(await screen.findByRole("button", { name: "Encontre bugs" }));
 
     expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).value).toBe("Encontre bugs");
@@ -81,7 +121,7 @@ describe("ChatView: continuidade e envio", () => {
 
   it("perfil de API vira o agente: manda o id e o motor, e a resposta leva o nome do perfil", async () => {
     vi.mocked(api.apiPresets).mockResolvedValueOnce([
-      { preset: "deepSeek", label: "DeepSeek", engine: "claude", defaultBaseUrl: "https://api.deepseek.com/anthropic" },
+      { preset: "deepSeek", label: "DeepSeek", engine: "claude", defaultBaseUrl: "https://api.deepseek.com/anthropic", suggestedModels: [], defaultModel: "" },
     ]);
     vi.mocked(api.listApiProfiles).mockResolvedValueOnce([
       { id: "p1", name: "DeepSeek", preset: "deepSeek", baseUrl: "", models: ["deepseek-chat"], defaultModel: "deepseek-chat" },
@@ -105,7 +145,7 @@ describe("ChatView: continuidade e envio", () => {
 
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {
     render(<ChatView onPersist={() => {}} />);
-    await waitFor(() => expect(screen.getByLabelText("Mensagem")).toBeTruthy());
+    fireEvent.click(await screen.findByRole("button", { name: "Pular entrevista" }));
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("primeira");
@@ -126,6 +166,7 @@ describe("ChatView: continuidade e envio", () => {
 
   it("troca de agente no meio da conversa sem perder contexto", async () => {
     render(<ChatView onPersist={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Pular entrevista" }));
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("crie a landing page");

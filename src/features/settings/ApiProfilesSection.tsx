@@ -140,6 +140,17 @@ export function ApiProfilesSection() {
   const presetLabel = (preset: string) => presets.find((p) => p.preset === preset)?.label ?? preset;
   const selectedPreset = presets.find((p) => p.preset === form.preset);
 
+  /// Escolher o provedor preenche os modelos prontos, como o OpenCode faz. O usuário só cola a chave.
+  function choosePreset(preset: string) {
+    const info = presets.find((p) => p.preset === preset);
+    setForm({
+      ...form,
+      preset,
+      models: info && info.suggestedModels.length > 0 ? info.suggestedModels.join(", ") : form.models,
+      defaultModel: info?.defaultModel ?? form.defaultModel,
+    });
+  }
+
   return (
     <section className="settings__section" aria-labelledby="settings-accounts">
       <h2 id="settings-accounts">Contas e APIs</h2>
@@ -203,7 +214,7 @@ export function ApiProfilesSection() {
         </label>
         <label>
           Provedor
-          <select aria-label="Preset" value={form.preset} onChange={(e) => setForm({ ...form, preset: e.target.value })}>
+          <select aria-label="Preset" value={form.preset} onChange={(e) => choosePreset(e.target.value)}>
             {presets.map((p) => (
               <option key={p.preset} value={p.preset}>
                 {p.label} · via {PROVIDER_LABELS[p.engine]}
@@ -235,7 +246,7 @@ export function ApiProfilesSection() {
           <input
             value={form.models}
             onChange={(e) => setForm({ ...form, models: e.target.value })}
-            placeholder="ex.: deepseek-chat, deepseek-reasoner"
+            placeholder="ex.: deepseek-flash, deepseek-v4-pro"
           />
         </label>
         <label>

@@ -39,6 +39,10 @@ export interface ApiPreset {
   label: string;
   engine: ProviderKind;
   defaultBaseUrl: string;
+  /** Modelos que já vêm prontos no preset: o usuário só cola a chave. */
+  suggestedModels: string[];
+  /** Modelo padrão entre os sugeridos. Vazio = nenhum. */
+  defaultModel: string;
 }
 
 /// Nível de esforço de um modelo (ver src-tauri/src/models.rs). `id` é o valor enviado à CLI.
@@ -106,6 +110,8 @@ export interface Conversation {
   profile?: string;
   /** Custo acumulado em dólares, quando o uso é por API. */
   costUsd?: number;
+  /** Último plano gerado nesta conversa (aba Plano do painel). */
+  plan?: string;
   /** Sessões por agente. Ausente em arquivos antigos: vem de sessionId. */
   sessions?: AgentSessions;
   createdAt: number;

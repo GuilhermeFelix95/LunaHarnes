@@ -9,6 +9,19 @@ export const PLAN_INSTRUCTION = [
   "5. Só comece a executar depois que o usuário aprovar.",
 ].join("\n");
 
+/// Gerar spec (estilo to-spec): sintetiza a conversa, sem perguntas novas. A resposta vira o plano no painel.
+export const SPEC_INSTRUCTION = [
+  "Sintetize a conversa até agora numa spec, sem fazer novas perguntas e sem alterar arquivos.",
+  "Use estas seções, nesta ordem, em Markdown:",
+  "## Problem Statement",
+  "## Solution",
+  "## User Stories",
+  "## Implementation Decisions",
+  "## Testing Decisions",
+  "## Out of Scope",
+  "## Further Notes",
+].join("\n");
+
 /// Enviado quando o usuário aprova: o turno seguinte já sai do modo plano.
 export const APPROVAL_PROMPT =
   "O plano foi aprovado. Execute-o agora, editando os arquivos necessários, e resuma o que foi feito ao final.";

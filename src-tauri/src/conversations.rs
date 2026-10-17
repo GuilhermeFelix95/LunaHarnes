@@ -32,6 +32,9 @@ pub struct Conversation {
     /// Custo acumulado em dólares, quando o uso é por API. Ausente = a CLI não informou.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cost_usd: Option<f64>,
+    /// Último plano gerado nesta conversa (resposta do modo plano ou da spec). Ausente = nenhum.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plan: Option<String>,
     /// Sessão nativa de cada agente e quanto do histórico ele já viu (ver src/chat/handoff.ts).
     /// Ausente em arquivos antigos: o frontend usa `session_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -135,6 +138,7 @@ mod tests {
             planning: false,
             profile: None,
             cost_usd: None,
+            plan: None,
             sessions: Some(json!({"claude": {"id": "sess-1", "seen": 1}, "codex": {"id": "th-9", "seen": 3}})),
             messages: vec![json!({"role": "user", "text": "oi"})],
         }

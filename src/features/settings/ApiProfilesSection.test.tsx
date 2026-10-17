@@ -16,7 +16,7 @@ vi.mock("../../api", () => ({
 
 import * as api from "../../api";
 
-const openRouter = { preset: "openRouter", label: "OpenRouter", engine: "claude" as const, defaultBaseUrl: "https://openrouter.ai/api" };
+const openRouter = { preset: "openRouter", label: "OpenRouter", engine: "claude" as const, defaultBaseUrl: "https://openrouter.ai/api", suggestedModels: [], defaultModel: "" };
 
 describe("ApiProfilesSection", () => {
   beforeEach(() => {
@@ -46,6 +46,19 @@ describe("ApiProfilesSection", () => {
     expect(sent).toMatchObject({ name: "Minha OR", preset: "openRouter" });
     expect(JSON.stringify(sent)).not.toContain("sk-or-123");
     expect((screen.getByLabelText("Chave da API") as HTMLInputElement).value).toBe("");
+  });
+
+  it("escolher o provedor já preenche os modelos prontos, e só falta a chave", async () => {
+    vi.mocked(api.apiPresets).mockResolvedValueOnce([
+      { preset: "deepSeek", label: "DeepSeek", engine: "claude" as const, defaultBaseUrl: "https://api.deepseek.com/anthropic", suggestedModels: ["deepseek-flash", "deepseek-v4-pro"], defaultModel: "deepseek-flash" },
+    ]);
+    render(<ApiProfilesSection />);
+    await screen.findByRole("option", { name: /DeepSeek/ });
+
+    fireEvent.change(screen.getByLabelText("Preset"), { target: { value: "deepSeek" } });
+
+    expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe("deepseek-flash, deepseek-v4-pro");
+    expect((screen.getByLabelText("Modelo padrão") as HTMLInputElement).value).toBe("deepseek-flash");
   });
 
   it("testar conexão mostra a resposta do modelo", async () => {

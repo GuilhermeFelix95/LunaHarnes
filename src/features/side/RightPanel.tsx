@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { Markdown } from "../chat/Markdown";
 
-export type SideTab = "changes" | "terminal";
+export type SideTab = "changes" | "plan" | "terminal";
 
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 320;
@@ -38,16 +39,21 @@ interface RightPanelProps {
   tab: SideTab;
   onTab: (tab: SideTab) => void;
   changes: ReactNode;
+  /** Último plano da conversa, em Markdown. Ausente = ainda não há plano. */
+  plan?: string;
+  onGenerateSpec: () => void;
+  canGenerateSpec: boolean;
   terminal: ReactNode;
 }
 
 const TABS: Array<[SideTab, string]> = [
   ["changes", "Alterações"],
+  ["plan", "Plano"],
   ["terminal", "Terminal"],
 ];
 
 /// Painel à direita do chat, com abas e largura ajustável pela alça na borda esquerda.
-export function RightPanel({ open, tab, onTab, changes, terminal }: RightPanelProps) {
+export function RightPanel({ open, tab, onTab, changes, plan, onGenerateSpec, canGenerateSpec, terminal }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
 
@@ -112,6 +118,20 @@ export function RightPanel({ open, tab, onTab, changes, terminal }: RightPanelPr
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "changes"}>
         {changes}
+      </div>
+      <div className="side__body side__plan" role="tabpanel" hidden={tab !== "plan"}>
+        <div className="side__plan-head">
+          <button type="button" onClick={onGenerateSpec} disabled={!canGenerateSpec}>
+            Gerar spec
+          </button>
+        </div>
+        {plan ? (
+          <Markdown text={plan} />
+        ) : (
+          <p className="side__empty">
+            Ao planejar, o plano completo aparece aqui. Use "Gerar spec" para resumir a conversa numa spec.
+          </p>
+        )}
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>
         {terminal}

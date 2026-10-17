@@ -2,18 +2,22 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clampWidth, RightPanel, WIDTH_KEY } from "./RightPanel";
 
-function setup(tab: "changes" | "terminal" = "changes") {
+function setup(tab: "changes" | "plan" | "terminal" = "changes", plan?: string) {
   const onTab = vi.fn();
+  const onGenerateSpec = vi.fn();
   render(
     <RightPanel
       open
       tab={tab}
       onTab={onTab}
       changes={<p>lista de alterações</p>}
+      plan={plan}
+      onGenerateSpec={onGenerateSpec}
+      canGenerateSpec
       terminal={<p>shell</p>}
     />,
   );
-  return { onTab };
+  return { onTab, onGenerateSpec };
 }
 
 describe("RightPanel", () => {
@@ -58,6 +62,27 @@ describe("RightPanel", () => {
 
     fireEvent.keyDown(handle, { key: "ArrowRight" });
     expect(panel.style.width).toBe("240px");
+  });
+
+  it("mostra o plano completo na aba Plano, em Markdown", () => {
+    setup("plan", "## Solution\n\nFazer **X** primeiro.");
+
+    expect(screen.getByRole("heading", { name: "Solution" })).toBeTruthy();
+    expect(screen.getByText("X").tagName).toBe("STRONG");
+  });
+
+  it("sem plano, a aba explica como gerar um", () => {
+    setup("plan");
+
+    expect(screen.getByText(/aparece aqui/)).toBeTruthy();
+  });
+
+  it("Gerar spec chama o handler da conversa", () => {
+    const { onGenerateSpec } = setup("plan");
+
+    fireEvent.click(screen.getByRole("button", { name: "Gerar spec" }));
+
+    expect(onGenerateSpec).toHaveBeenCalledOnce();
   });
 
   it("largura fica entre 240 px e 60% da janela", () => {

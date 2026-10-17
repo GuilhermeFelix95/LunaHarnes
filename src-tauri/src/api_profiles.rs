@@ -43,24 +43,55 @@ pub struct PresetInfo {
     pub label: &'static str,
     pub engine: ProviderKind,
     pub default_base_url: &'static str,
+    /// Modelos que já vêm prontos, como o OpenCode faz: o usuário só cola a chave.
+    pub suggested_models: &'static [&'static str],
+    /// Modelo escolhido por padrão entre os sugeridos. Vazio = nenhum.
+    pub default_model: &'static str,
 }
 
 impl Preset {
     pub fn info(self) -> PresetInfo {
-        let (label, engine, default_base_url) = match self {
-            Preset::Anthropic => ("Anthropic (chave)", ProviderKind::Claude, ""),
-            Preset::OpenRouter => ("OpenRouter", ProviderKind::Claude, "https://openrouter.ai/api"),
-            Preset::DeepSeek => ("DeepSeek", ProviderKind::Claude, "https://api.deepseek.com/anthropic"),
-            Preset::Zai => ("Z.ai (GLM)", ProviderKind::Claude, "https://api.z.ai/api/anthropic"),
-            Preset::OpenCodeZen => ("OpenCode Zen", ProviderKind::Claude, "https://opencode.ai/zen"),
-            Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, ""),
-            Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, ""),
+        // Modelos sugeridos: IDs a confirmar na lista oficial de cada provedor antes de publicar.
+        let (label, engine, default_base_url, suggested_models, default_model): (_, _, _, &[&str], &str) = match self {
+            Preset::Anthropic => (
+                "Anthropic (chave)",
+                ProviderKind::Claude,
+                "",
+                &["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+                "claude-sonnet-5-5",
+            ),
+            Preset::OpenRouter => (
+                "OpenRouter",
+                ProviderKind::Claude,
+                "https://openrouter.ai/api",
+                &["qwen/qwen3-coder:free"],
+                "qwen/qwen3-coder:free",
+            ),
+            Preset::DeepSeek => (
+                "DeepSeek",
+                ProviderKind::Claude,
+                "https://api.deepseek.com/anthropic",
+                &["deepseek-flash", "deepseek-v4-pro"],
+                "deepseek-flash",
+            ),
+            Preset::Zai => (
+                "Z.ai (GLM)",
+                ProviderKind::Claude,
+                "https://api.z.ai/api/anthropic",
+                &["glm-5.2", "glm-5.1"],
+                "glm-5.2",
+            ),
+            Preset::OpenCodeZen => ("OpenCode Zen", ProviderKind::Claude, "https://opencode.ai/zen", &[], ""),
+            Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, "", &[], ""),
+            Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, "", &[], ""),
         };
         PresetInfo {
             preset: self,
             label,
             engine,
             default_base_url,
+            suggested_models,
+            default_model,
         }
     }
 }
@@ -414,5 +445,17 @@ mod tests {
         let list = presets();
         assert_eq!(list.len(), 7);
         assert_eq!(list.iter().find(|p| p.preset == Preset::OpenAi).unwrap().engine, ProviderKind::Codex);
+    }
+
+    #[test]
+    fn default_model_is_one_of_the_suggested_models() {
+        for info in presets() {
+            assert!(
+                info.default_model.is_empty() || info.suggested_models.contains(&info.default_model),
+                "{:?}: padrão fora da lista sugerida",
+                info.preset
+            );
+            assert!(info.suggested_models.iter().all(|m| is_model_token(m)));
+        }
     }
 }
