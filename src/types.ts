@@ -28,3 +28,25 @@ export interface ChatMessage {
   tool?: { name: string; detail: string };
   error?: string;
 }
+
+/// Espelha src-tauri/src/conversations.rs (Conversation). Mensagens seguem o formato de ChatMessage.
+export interface Conversation {
+  id: string;
+  title: string;
+  provider: ProviderKind;
+  sessionId?: string;
+  cwd: string;
+  permission: Permission;
+  createdAt: number;
+  updatedAt: number;
+  messages: ChatMessage[];
+}
+
+/// Linha da barra lateral (sem as mensagens).
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  provider: ProviderKind;
+  cwd: string;
+  updatedAt: number;
+}

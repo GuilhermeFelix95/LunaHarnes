@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::conversations;
 use crate::plugins::loader::{self, PluginScan};
 use crate::providers::{fallback_events, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
@@ -78,6 +79,34 @@ pub fn list_plugins(app: AppHandle) -> Result<PluginScan, String> {
 #[tauri::command]
 pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
     loader::read_entry(&plugins_dir(&app)?, &id)
+}
+
+/// Pasta de conversas: `<app_data>/conversations`.
+fn conversations_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map(|dir| dir.join("conversations"))
+        .map_err(|e| format!("não foi possível localizar a pasta de dados do app: {e}"))
+}
+
+#[tauri::command]
+pub fn list_conversations(app: AppHandle) -> Result<Vec<conversations::Summary>, String> {
+    Ok(conversations::list(&conversations_dir(&app)?))
+}
+
+#[tauri::command]
+pub fn load_conversation(app: AppHandle, id: String) -> Result<conversations::Conversation, String> {
+    conversations::load(&conversations_dir(&app)?, &id)
+}
+
+#[tauri::command]
+pub fn save_conversation(app: AppHandle, conversation: conversations::Conversation) -> Result<(), String> {
+    conversations::save(&conversations_dir(&app)?, &conversation)
+}
+
+#[tauri::command]
+pub fn delete_conversation(app: AppHandle, id: String) -> Result<(), String> {
+    conversations::delete(&conversations_dir(&app)?, &id)
 }
 
 /// Pasta de trabalho inicial: a pasta de onde o `luna` foi rodado.

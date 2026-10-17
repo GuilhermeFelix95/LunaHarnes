@@ -47,6 +47,12 @@ docs/                stack, contrato de plugins
 - Etapa 5: contrato em `docs/plugins.md` e plugin de referência em `plugins-examples/hello-world`.
 - Login: a app verifica a conta de cada CLI (`check_auth`) e bloqueia o envio até ela estar conectada. O login interativo roda numa janela própria (`open_login`). Só Windows por enquanto.
 - Comando `luna`: `bin/luna.mjs`, registrado com `npm link`. Abre o executável de release (`npm run build:app`).
+- Fase B (interface e histórico):
+  - Conversas em `<app_data>/conversations/<id>.json` (`src-tauri/src/conversations.rs`). Id só `[a-z0-9-]`.
+  - Layout: `App.tsx` (barra lateral + chat). `ChatView` persiste a conversa ao fim de cada turno.
+  - Componentes em `src/features/`: `chat/` (Composer, MessageList, Markdown), `sidebar/` (Sidebar, groupByDay), `auth/` (LoginPrompt).
+  - Markdown: `react-markdown` + `remark-gfm`, sem `rehype-raw`. Links não navegam dentro do app.
+  - Tema: tokens em `src/styles.css` (claro, escuro por sistema e por `data-theme`).
 - Fase A (funcionamento):
   - Executável resolvido só com `.exe`, `.cmd` ou `.bat` no Windows (o script sem extensão instalado pelo npm dava erro 193).
   - Processos sem janela de console (`hidden_command`). stderr capturado; se o CLI sair sem `Done`, a app emite erro com o motivo.

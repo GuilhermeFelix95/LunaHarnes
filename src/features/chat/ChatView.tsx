@@ -11,32 +11,38 @@ import {
 import { applyEvent } from "../../chat/reducer";
 import { PluginHost } from "../../plugins/host";
 import { loadInstalledPlugins } from "../../plugins/loader";
-import type { ChatMessage, Permission, ProviderKind } from "../../types";
+import type { ChatMessage, Conversation, Permission, ProviderKind } from "../../types";
 import { LoginPrompt } from "../auth/LoginPrompt";
+import { Composer, PROVIDER_LABELS } from "./Composer";
+import { MessageList } from "./MessageList";
 
-const PROVIDER_LABELS: Record<ProviderKind, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-};
+const TITLE_MAX_CHARS = 60;
 
-const PERMISSION_LABELS: Record<Permission, string> = {
-  readOnly: "Só leitura",
-  acceptEdits: "Aceitar edições",
-  fullAccess: "Acesso total",
-};
+interface ChatViewProps {
+  /** Conversa aberta do histórico. Ausente = conversa nova. */
+  initial?: Conversation;
+  /** Chamado ao fim de cada turno, com a conversa inteira, para salvar em disco. */
+  onPersist: (conversation: Conversation) => void;
+}
 
-export function ChatView() {
-  const [provider, setProvider] = useState<ProviderKind>("claude");
-  const [permission, setPermission] = useState<Permission>("acceptEdits");
-  const [cwd, setCwd] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function ChatView({ initial, onPersist }: ChatViewProps) {
+  const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
+  const createdAt = useRef(initial?.createdAt ?? Date.now());
+
+  const [provider, setProvider] = useState<ProviderKind>(initial?.provider ?? "claude");
+  const [permission, setPermission] = useState<Permission>(initial?.permission ?? "acceptEdits");
+  const [cwd, setCwd] = useState(initial?.cwd ?? "");
+  const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
+  const messagesRef = useRef(messages);
+  const live = useRef({ provider, cwd, permission });
+  live.current = { provider, cwd, permission };
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const [host] = useState(() => new PluginHost());
   const responseText = useRef("");
   // Id da conversa no CLI. Vem no primeiro evento e é reenviado nas próximas mensagens.
-  const sessionId = useRef<string | undefined>(undefined);
+  const sessionId = useRef<string | undefined>(initial?.sessionId);
   // null = ainda não verificado; false = precisa entrar na conta.
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
@@ -44,7 +50,9 @@ export function ChatView() {
 
   useEffect(() => {
     void loadInstalledPlugins(host).then(() => setNotes([...host.errors]));
-    void getWorkspace().then(setCwd).catch((e) => setNotes([String(e)]));
+    if (!cwd) {
+      void getWorkspace().then(setCwd).catch((e) => setNotes([String(e)]));
+    }
   }, [host]);
 
   useEffect(() => {
@@ -54,10 +62,11 @@ export function ChatView() {
   useEffect(() => {
     const unlisten = onProviderEvent((event) => {
       if (event.kind === "sessionStarted") sessionId.current = event.sessionId;
-      setMessages((current) => applyEvent(current, event));
       if (event.kind === "textDelta") responseText.current += event.text;
+      commit(applyEvent(messagesRef.current, event));
       if (event.kind === "done") {
         setRunning(false);
+        persist(messagesRef.current);
         void host.runAfterResponse(responseText.current).then(() => setNotes([...host.errors]));
       }
     });
@@ -65,6 +74,30 @@ export function ChatView() {
       unlisten.then((stop) => stop());
     };
   }, [host]);
+
+  function commit(next: ChatMessage[]) {
+    messagesRef.current = next;
+    setMessages(next);
+  }
+
+  function persist(current: ChatMessage[]) {
+    if (current.length === 0) return;
+    const firstUser = current.find((m) => m.role === "user");
+    const title = firstUser ? truncate(firstUser.text, TITLE_MAX_CHARS) : "Nova conversa";
+    // Lido da ref: o listener de eventos é registrado uma vez e não vê valores novos pelo closure.
+    const { provider: currentProvider, cwd: currentCwd, permission: currentPermission } = live.current;
+    onPersist({
+      id: conversationId,
+      title,
+      provider: currentProvider,
+      sessionId: sessionId.current,
+      cwd: currentCwd,
+      permission: currentPermission,
+      createdAt: createdAt.current,
+      updatedAt: Date.now(),
+      messages: current,
+    });
+  }
 
   async function verifyLogin() {
     setChecking(true);
@@ -85,7 +118,7 @@ export function ChatView() {
     if (!picked || picked === cwd) return;
     setCwd(picked);
     sessionId.current = undefined;
-    setMessages([]);
+    commit([]);
   }
 
   async function send() {
@@ -103,7 +136,7 @@ export function ChatView() {
 
     setRunning(true);
     responseText.current = "";
-    setMessages((current) => [...current, { role: "user", text: prompt }]);
+    commit([...messagesRef.current, { role: "user", text: prompt }]);
     setNotes([...host.errors]);
 
     try {
@@ -116,46 +149,23 @@ export function ChatView() {
       });
     } catch (e) {
       setRunning(false);
-      setMessages((current) =>
-        applyEvent(current, { kind: "error", message: String(e) }),
-      );
+      commit(applyEvent(messagesRef.current, { kind: "error", message: String(e) }));
+      persist(messagesRef.current);
     }
   }
 
+  // Sem conta conectada ou sem pasta de trabalho ainda carregada, não há como enviar.
+  const blocked = loggedIn !== true || !cwd;
+
   return (
-    <main className="chat">
+    <div className="chat">
       <header className="chat__header">
-        <label>
-          Provedor{" "}
-          <select
-            value={provider}
-            disabled={running || messages.length > 0}
-            onChange={(e) => setProvider(e.target.value as ProviderKind)}
-          >
-            <option value="claude">{PROVIDER_LABELS.claude}</option>
-            <option value="codex">{PROVIDER_LABELS.codex}</option>
-          </select>
-        </label>
-        <label>
-          Permissão{" "}
-          <select
-            value={permission}
-            disabled={running}
-            onChange={(e) => setPermission(e.target.value as Permission)}
-          >
-            {(Object.keys(PERMISSION_LABELS) as Permission[]).map((p) => (
-              <option key={p} value={p}>
-                {PERMISSION_LABELS[p]}
-              </option>
-            ))}
-          </select>
-        </label>
         <span className="chat__workspace" title={cwd}>
-          {cwd}{" "}
-          <button type="button" onClick={() => void changeWorkspace()} disabled={running}>
-            Trocar
-          </button>
+          {cwd}
         </span>
+        <button type="button" className="chat__link" onClick={() => void changeWorkspace()} disabled={running}>
+          Trocar pasta
+        </button>
         {host.commandNames().length > 0 && (
           <span className="chat__commands">
             Comandos: {host.commandNames().map((c) => `/${c}`).join(", ")}
@@ -163,66 +173,57 @@ export function ChatView() {
         )}
       </header>
 
-      {loggedIn === false && (
-        <LoginPrompt
-          provider={provider}
-          onLogin={() => {
-            openLogin(provider).catch((e) => setLoginError(String(e)));
-          }}
-          onCheck={() => void verifyLogin()}
-          checking={checking}
-          error={loginError}
-        />
-      )}
-
-      {notes.length > 0 && (
-        <ul className="chat__notes" aria-label="Avisos">
-          {notes.map((note, i) => (
-            <li key={i}>{note}</li>
-          ))}
-        </ul>
-      )}
-
-      <ol className="chat__messages" aria-live="polite">
-        {messages.map((m, i) => (
-          <li key={i} className={`chat__message chat__message--${m.role}`}>
-            <strong>{m.role === "user" ? "Você" : PROVIDER_LABELS[provider]}</strong>
-            {m.tool ? (
-              <p className="chat__tool">
-                {m.tool.name} · {m.tool.detail}
-              </p>
-            ) : (
-              <p>{m.text}</p>
-            )}
-            {m.error && <p role="alert" className="chat__error">{m.error}</p>}
-          </li>
-        ))}
-      </ol>
-
-      <form
-        className="chat__input"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send();
-        }}
-      >
-        <textarea
-          aria-label="Mensagem"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          disabled={loggedIn !== true}
-          rows={3}
-        />
-        {running ? (
-          <button type="button" onClick={() => void cancelPrompt()}>
-            Parar
-          </button>
-        ) : (
-          <button type="submit" disabled={!draft.trim() || loggedIn !== true}>
-            Enviar
-          </button>
+      <div className="chat__body">
+        {loggedIn === false && (
+          <LoginPrompt
+            provider={provider}
+            onLogin={() => {
+              openLogin(provider).catch((e) => setLoginError(String(e)));
+            }}
+            onCheck={() => void verifyLogin()}
+            checking={checking}
+            error={loginError}
+          />
         )}
-      </form>
-    </main>
+
+        {notes.length > 0 && (
+          <ul className="chat__notes" aria-label="Avisos">
+            {notes.map((note, i) => (
+              <li key={i}>{note}</li>
+            ))}
+          </ul>
+        )}
+
+        {messages.length === 0 ? (
+          <div className="chat__empty">
+            <h1>Como posso ajudar?</h1>
+          </div>
+        ) : (
+          <MessageList messages={messages} providerLabel={PROVIDER_LABELS[provider]} />
+        )}
+      </div>
+
+      <Composer
+        draft={draft}
+        onDraft={setDraft}
+        onSend={() => void send()}
+        onStop={() => void cancelPrompt()}
+        running={running}
+        blocked={blocked}
+        provider={provider}
+        onProvider={(next) => {
+          setProvider(next);
+          sessionId.current = undefined;
+        }}
+        providerLocked={messages.length > 0}
+        permission={permission}
+        onPermission={setPermission}
+      />
+    </div>
   );
+}
+
+function truncate(text: string, max: number): string {
+  const single = text.replace(/\s+/g, " ").trim();
+  return single.length > max ? `${single.slice(0, max - 1)}…` : single;
 }

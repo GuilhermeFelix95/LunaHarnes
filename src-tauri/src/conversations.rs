@@ -1,0 +1,160 @@
+//! Histórico de conversas em disco: `<app_data>/conversations/<id>.json`.
+//! O conteúdo das mensagens é guardado como o frontend o envia; o Rust só cuida do arquivo.
+
+use std::fs;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+use crate::providers::{Permission, ProviderKind};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Conversation {
+    pub id: String,
+    pub title: String,
+    pub provider: ProviderKind,
+    pub session_id: Option<String>,
+    pub cwd: String,
+    pub permission: Permission,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub messages: Vec<Value>,
+}
+
+/// Linha da barra lateral: sem as mensagens, para listar muitas conversas rápido.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Summary {
+    pub id: String,
+    pub title: String,
+    pub provider: ProviderKind,
+    pub cwd: String,
+    pub updated_at: u64,
+}
+
+/// Id vem do frontend (UUID minúsculo). Validar impede travessia de caminho (`../`).
+pub fn is_valid_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 64
+        && id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+}
+
+fn file_for(dir: &Path, id: &str) -> Result<std::path::PathBuf, String> {
+    if !is_valid_id(id) {
+        return Err(format!("id de conversa inválido: `{id}`"));
+    }
+    Ok(dir.join(format!("{id}.json")))
+}
+
+pub fn save(dir: &Path, conversation: &Conversation) -> Result<(), String> {
+    let file = file_for(dir, &conversation.id)?;
+    fs::create_dir_all(dir).map_err(|e| format!("não foi possível criar a pasta de conversas: {e}"))?;
+    let text = serde_json::to_string_pretty(conversation)
+        .map_err(|e| format!("não foi possível serializar a conversa: {e}"))?;
+    fs::write(&file, text).map_err(|e| format!("não foi possível salvar a conversa `{}`: {e}", conversation.id))
+}
+
+pub fn load(dir: &Path, id: &str) -> Result<Conversation, String> {
+    let file = file_for(dir, id)?;
+    let text = fs::read_to_string(&file).map_err(|e| format!("conversa `{id}` não encontrada: {e}"))?;
+    serde_json::from_str(&text).map_err(|e| format!("conversa `{id}` está corrompida: {e}"))
+}
+
+/// Lista as conversas, da mais recente para a mais antiga. Arquivo corrompido é ignorado
+/// para não esconder as outras conversas.
+pub fn list(dir: &Path) -> Vec<Summary> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut summaries: Vec<Summary> = entries
+        .flatten()
+        .filter_map(|entry| fs::read_to_string(entry.path()).ok())
+        .filter_map(|text| serde_json::from_str::<Conversation>(&text).ok())
+        .map(|c| Summary {
+            id: c.id,
+            title: c.title,
+            provider: c.provider,
+            cwd: c.cwd,
+            updated_at: c.updated_at,
+        })
+        .collect();
+    summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    summaries
+}
+
+pub fn delete(dir: &Path, id: &str) -> Result<(), String> {
+    let file = file_for(dir, id)?;
+    fs::remove_file(&file).map_err(|e| format!("não foi possível excluir a conversa `{id}`: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("lunaharness-conv-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        dir
+    }
+
+    fn conversation(id: &str, updated_at: u64) -> Conversation {
+        Conversation {
+            id: id.into(),
+            title: format!("Conversa {id}"),
+            provider: ProviderKind::Claude,
+            session_id: Some("sess-1".into()),
+            cwd: "C:\\projeto".into(),
+            permission: Permission::AcceptEdits,
+            created_at: 1,
+            updated_at,
+            messages: vec![json!({"role": "user", "text": "oi"})],
+        }
+    }
+
+    #[test]
+    fn save_then_load_keeps_everything() {
+        let dir = temp_dir("roundtrip");
+        let original = conversation("abc-123", 10);
+
+        save(&dir, &original).unwrap();
+
+        assert_eq!(load(&dir, "abc-123").unwrap(), original);
+    }
+
+    #[test]
+    fn list_orders_most_recent_first_and_skips_corrupted_files() {
+        let dir = temp_dir("list");
+        save(&dir, &conversation("antiga", 5)).unwrap();
+        save(&dir, &conversation("recente", 50)).unwrap();
+        fs::write(dir.join("quebrada.json"), "{ não é json").unwrap();
+
+        let ids: Vec<String> = list(&dir).into_iter().map(|s| s.id).collect();
+
+        assert_eq!(ids, ["recente", "antiga"]);
+    }
+
+    #[test]
+    fn rejects_ids_that_could_escape_the_folder() {
+        let dir = temp_dir("traversal");
+
+        assert!(save(&dir, &conversation("../fora", 1)).is_err());
+        assert!(load(&dir, "..\\fora").is_err());
+        assert!(delete(&dir, "a/b").is_err());
+    }
+
+    #[test]
+    fn delete_removes_the_conversation() {
+        let dir = temp_dir("delete");
+        save(&dir, &conversation("apagar", 1)).unwrap();
+
+        delete(&dir, "apagar").unwrap();
+
+        assert!(load(&dir, "apagar").is_err());
+        assert!(list(&dir).is_empty());
+    }
+}

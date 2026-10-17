@@ -9,8 +9,12 @@ if not exist "%VSWHERE%" (
   exit /b 1
 )
 
+rem Parenteses no caminho do Program Files (x86) quebram o for /f: a saida vai para um arquivo.
+set "VSINFO=%TEMP%\lunaharness-vsdir.txt"
+"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath > "%VSINFO%"
 set "VSDIR="
-for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSDIR=%%i"
+set /p VSDIR=<"%VSINFO%"
+del "%VSINFO%" >nul 2>&1
 if not defined VSDIR (
   echo Build Tools com C++ nao encontrado. Instale a carga "Desenvolvimento para desktop com C++".
   exit /b 1

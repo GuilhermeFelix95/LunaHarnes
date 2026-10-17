@@ -1,93 +1,244 @@
+/* Tokens de cor: claro por padrão, escuro pelo sistema ou pelo atributo data-theme. */
 :root {
-  --bg: #f7f7f8;
-  --fg: #1d1d1f;
-  --muted: #6e6e73;
-  --accent: #5b5bd6;
-  --error: #b42318;
+  --bg: #faf9f5;
+  --bg-sidebar: #f0eee6;
+  --surface: #ffffff;
+  --fg: #1f1e1d;
+  --muted: #6b6a68;
+  --border: #e4e1d8;
+  --accent: #c15f3c;
+  --accent-fg: #ffffff;
+  --user-bubble: #f0eee6;
+  --code-bg: #f4f2ec;
+  --error: #b3261e;
+  --radius: 12px;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #161618;
-    --fg: #f2f2f4;
-    --muted: #9b9ba3;
-    --accent: #8b8bf0;
+    --bg: #262624;
+    --bg-sidebar: #1f1e1d;
+    --surface: #30302e;
+    --fg: #f0eee6;
+    --muted: #a6a39b;
+    --border: #3d3d3a;
+    --accent: #d97757;
+    --accent-fg: #1f1e1d;
+    --user-bubble: #3a3936;
+    --code-bg: #1f1e1d;
     --error: #ff8a80;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #262624;
+  --bg-sidebar: #1f1e1d;
+  --surface: #30302e;
+  --fg: #f0eee6;
+  --muted: #a6a39b;
+  --border: #3d3d3a;
+  --accent: #d97757;
+  --accent-fg: #1f1e1d;
+  --user-bubble: #3a3936;
+  --code-bg: #1f1e1d;
+  --error: #ff8a80;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+button,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Layout: barra lateral + área principal */
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100vh;
 }
 
 .chat {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   height: 100vh;
-  padding: 16px;
-  box-sizing: border-box;
-  gap: 12px;
 }
 
-.chat__messages {
-  flex: 1;
+/* Barra lateral */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
   overflow-y: auto;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
 }
 
-.chat__message p {
-  margin: 4px 0 12px;
-  white-space: pre-wrap;
+.sidebar__new {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: left;
 }
 
-.chat__message--user strong {
+.sidebar h2 {
+  margin: 14px 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
 }
 
-.chat__message--assistant strong {
-  color: var(--accent);
+.sidebar ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.chat__error {
+.sidebar li {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.sidebar li.is-active {
+  background: var(--surface);
+}
+
+.sidebar__item {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__delete {
+  opacity: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0 6px;
+}
+
+.sidebar li:hover .sidebar__delete,
+.sidebar li.is-active .sidebar__delete {
+  opacity: 1;
+}
+
+.sidebar__empty,
+.sidebar__error {
+  margin: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sidebar__error {
   color: var(--error);
 }
 
+/* Cabeçalho do chat */
 .chat__header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.chat__workspace {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.chat__link {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 0;
 }
 
 .chat__commands {
-  color: var(--muted);
+  margin-left: auto;
+}
+
+/* Corpo: centraliza a coluna de leitura */
+.chat__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.chat__empty {
+  margin: auto;
+  text-align: center;
+}
+
+.chat__empty h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: 30px;
 }
 
 .chat__notes {
   margin: 0;
   padding: 8px 12px;
   list-style: none;
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--error);
   font-size: 13px;
   background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
 .login-prompt {
-  padding: 12px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .login-prompt p {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
 
 .login-prompt__actions {
@@ -95,13 +246,195 @@ body {
   gap: 8px;
 }
 
-.chat__input {
+.login-prompt__error {
+  color: var(--error);
+  font-size: 13px;
+}
+
+/* Mensagens */
+.messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.message--user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.message__bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--user-bubble);
+  white-space: pre-wrap;
+}
+
+.message__author {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.message__error {
+  color: var(--error);
+  font-size: 13px;
+}
+
+/* Ferramentas: linha recolhível */
+.tool-line {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tool-line summary {
+  cursor: pointer;
+}
+
+.tool-line code {
+  display: block;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--code-bg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Markdown */
+.markdown p {
+  margin: 0 0 10px;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 22px;
+}
+
+.markdown code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--code-bg);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.code-block {
+  position: relative;
+  margin: 10px 0;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+.code-block pre code {
+  padding: 0;
+  background: none;
+}
+
+.code-block__copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.md-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Composer */
+.composer {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto 16px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+}
+
+.composer textarea {
+  width: 100%;
+  min-height: 24px;
+  max-height: 200px;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.composer__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.chat__input textarea {
-  flex: 1;
-  resize: none;
-  font: inherit;
+.composer__selectors {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.composer__selectors select {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 2px 4px;
+}
+
+.composer__action {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.composer__action--stop {
+  border-radius: 8px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+}
+
+/* Telas estreitas: a barra lateral some e o conteúdo ocupa a largura toda */
+@media (max-width: 720px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .message__bubble {
+    max-width: 92%;
+  }
 }

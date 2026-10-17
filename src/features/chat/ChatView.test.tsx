@@ -31,8 +31,8 @@ function emit(event: ProviderEvent) {
 
 async function send(text: string) {
   fireEvent.change(screen.getByLabelText("Mensagem"), { target: { value: text } });
-  fireEvent.click(screen.getByText("Enviar"));
-  await waitFor(() => expect(screen.getByText("Parar")).toBeTruthy());
+  fireEvent.click(screen.getByLabelText("Enviar"));
+  await waitFor(() => expect(screen.getByLabelText("Parar")).toBeTruthy());
 }
 
 describe("ChatView: continuidade e envio", () => {
@@ -41,15 +41,15 @@ describe("ChatView: continuidade e envio", () => {
   });
 
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {
-    render(<ChatView />);
+    render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect(screen.getByLabelText("Mensagem")).toBeTruthy());
-    await waitFor(() => expect((screen.getByText("Enviar") as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("primeira");
     emit({ kind: "sessionStarted", sessionId: "sess-1" });
     emit({ kind: "textDelta", text: "resposta" });
     emit({ kind: "done", ok: true });
-    await waitFor(() => expect(screen.getByText("Enviar")).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
 
     await send("segunda");
 
@@ -59,5 +59,26 @@ describe("ChatView: continuidade e envio", () => {
     expect(second.sessionId).toBe("sess-1");
     expect(second.cwd).toBe("C:\\projeto");
     expect(second.permission).toBe("acceptEdits");
+  });
+
+  it("salva a conversa completa ao fim do turno, com o sessionId", async () => {
+    const persist = vi.fn();
+    render(<ChatView onPersist={persist} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("pergunta");
+    emit({ kind: "sessionStarted", sessionId: "sess-9" });
+    emit({ kind: "textDelta", text: "resposta final" });
+    emit({ kind: "done", ok: true });
+
+    await waitFor(() => expect(persist).toHaveBeenCalled());
+    const saved = persist.mock.calls.at(-1)![0];
+    expect(saved.sessionId).toBe("sess-9");
+    expect(saved.title).toBe("pergunta");
+    expect(saved.cwd).toBe("C:\\projeto");
+    expect(saved.messages).toEqual([
+      { role: "user", text: "pergunta" },
+      { role: "assistant", text: "resposta final" },
+    ]);
   });
 });
