@@ -89,6 +89,7 @@ button:disabled {
   flex-direction: column;
   min-width: 0;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* Barra lateral */
@@ -636,9 +637,10 @@ textarea:focus-visible {
 
 .chat__foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px 12px;
   width: 100%;
   max-width: 768px;
   margin: -8px auto 12px;
@@ -656,6 +658,7 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
   padding: 3px 8px;
   border: none;
   border-radius: 6px;
@@ -779,6 +782,7 @@ textarea:focus-visible {
 /* Medidor de uso e contexto */
 .usage {
   display: flex;
+  flex: 1 1 260px;
   gap: 14px;
   align-items: center;
   flex-wrap: wrap;

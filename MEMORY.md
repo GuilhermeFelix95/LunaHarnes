@@ -15,3 +15,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-17 | Fase C (modelo, esforço, modo plano e projetos): seletores de modelo e esforço lidos da CLI (`list_models`); modo plano com aprovação; barra lateral agrupada por projeto. Testes: 46 Rust e 43 frontend.
 2026-10-17 | Fase D (catálogo do Desktop, pasta no rodapé, painel de alterações pelo git, terminal embutido em PTY, uso 5h/semana e contexto da CLI). Testes: 60 Rust e 70 frontend.
 2026-10-17 | Ajuste do rodapé do composer: seletores quebram linha, botão de enviar fica dentro do cartão, painel de alterações com 260 px. Testes focados (chat e alterações) passando.
+2026-10-17 | Seletor de modelo sem "Padrão da CLI" (começa pelo primeiro modelo da lista). Teste E2E com luna em repo git: terminal, alterações, medidor e plano com aprovação. Ajuste do rodapé do chat e da barra de rolagem. Testes: 60 Rust (focados: 23) e 71 frontend.

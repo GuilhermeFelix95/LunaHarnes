@@ -73,10 +73,12 @@ docs/                stack, contrato de plugins
   - Terminal embaixo da coluna do chat (`terminal.rs`, `TerminalPanel.tsx`): PowerShell num PTY (`portable-pty` 0.9, ConPTY), com `@xterm/xterm` 6.0.0 e `@xterm/addon-fit` 0.11.0. Ctrl+` alterna. Trocar a pasta reinicia o terminal (`key={cwd}`).
   - Uso da conta e contexto (só Claude): evento `rate_limit_event` (janelas `five_hour` e `seven_day`, `utilization` e `resetsAt`) e `result.modelUsage` (tamanho da janela). Fixture real: `tests/fixtures/claude_usage.jsonl`. O medidor (`UsageMeter.tsx`) mostra no rodapé.
   - Pendente de confirmação: se `utilization` é fração de 0 a 1. A captura mostra 0.45 e 0.35; falta comparar com o número do Claude Desktop.
+  - O seletor de modelo não tem mais "Padrão da CLI": sem escolha, usa o primeiro modelo da lista (`ChatView.tsx`). O esforço ainda tem "Padrão".
+  - Teste E2E com `luna` numa pasta git de teste: terminal, painel de alterações, medidor de uso e modo plano com aprovação funcionaram. Smoke do Claude passou nos quatro casos.
 - Testes:
   - `npm run test:rust`: 60 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
   - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.
-  - `npm test`: 70 testes de frontend.
+  - `npm test`: 71 testes de frontend.
 - CSP: `script-src 'self' blob:` é necessário para carregar plugins como módulo (ver `docs/plugins.md`, seção de segurança).
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

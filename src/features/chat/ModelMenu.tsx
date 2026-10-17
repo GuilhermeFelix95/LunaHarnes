@@ -3,7 +3,6 @@ import type { ModelOption } from "../../types";
 
 interface ModelMenuProps {
   models: ModelOption[];
-  /** Vazio = padrão da CLI. */
   value: string;
   onChange: (id: string) => void;
   disabled?: boolean;
@@ -45,24 +44,14 @@ export function ModelMenu({ models, value, onChange, disabled }: ModelMenuProps)
         aria-label="Modelo"
         aria-haspopup="listbox"
         aria-expanded={open}
-        disabled={disabled}
+        disabled={disabled || models.length === 0}
         onClick={() => setOpen((on) => !on)}
       >
-        {current?.label ?? "Padrão da CLI"}
+        {current?.label ?? "Sem modelos"}
       </button>
 
       {open && (
         <div className="model-menu__panel" role="listbox" aria-label="Modelos">
-          <button
-            type="button"
-            role="option"
-            aria-selected={value === ""}
-            className="model-menu__item"
-            onClick={() => choose("")}
-          >
-            <span className="model-menu__name">Padrão da CLI</span>
-            <span className="model-menu__desc">Usa o modelo que a própria CLI escolher</span>
-          </button>
           {models.map((m) => (
             <button
               key={m.id}

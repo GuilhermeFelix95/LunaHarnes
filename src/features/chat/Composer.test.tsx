@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Composer } from "./Composer";
 
@@ -115,6 +115,15 @@ describe("Composer", () => {
     expect(screen.getByRole("option", { name: /Opus 5\.5/ })).toBeTruthy();
     expect(screen.getByText("Para trabalho complexo")).toBeTruthy();
     expect(screen.getByRole("option", { name: /Sonnet 5\.5/ })).toBeTruthy();
+  });
+
+  it("o seletor de modelo lista só os modelos suportados, sem 'Padrão da CLI'", () => {
+    setup({ model: "claude-opus-5-5" });
+    fireEvent.click(screen.getByLabelText("Modelo"));
+
+    expect(screen.queryByText("Padrão da CLI")).toBeNull();
+    const list = screen.getByRole("listbox", { name: "Modelos" });
+    expect(within(list).getAllByRole("option")).toHaveLength(2);
   });
 
   it("escolher um modelo manda o ID da CLI, não o nome de exibição", () => {

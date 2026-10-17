@@ -102,7 +102,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     let active = true;
     listModels(provider)
       .then((list) => {
-        if (active) setModels(list);
+        if (!active) return;
+        setModels(list);
+        // Sem escolha válida, usa o primeiro modelo da lista.
+        const chosen = list.find((m) => m.id === live.current.model) ?? list[0];
+        const supported = chosen?.efforts.map((e) => e.id) ?? [];
+        setModel(chosen?.id ?? "");
+        if (!supported.includes(live.current.effort)) setEffort("");
       })
       .catch((e) => {
         if (active) setNotes((current) => [...current, String(e)]);
