@@ -5,7 +5,7 @@ use std::process::{Child, ChildStderr, ChildStdout, Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
-use crate::providers::{cli_args, cli_name, label, parse_line, ProviderEvent, ProviderKind, RunRequest};
+use crate::providers::{cli_args, cli_name, label, parse_line, stdin_input, ProviderEvent, ProviderKind, RunRequest};
 
 /// Quantidade máxima de stderr guardada para mostrar ao usuário em caso de falha.
 const STDERR_TAIL_BYTES: usize = 4096;
@@ -64,9 +64,10 @@ impl Session {
 
     /// Como `start`, mas com variáveis de ambiente extras só para este processo (perfis de API).
     pub fn start_with_env(request: &RunRequest, env: &[(String, String)]) -> Result<Self, String> {
+        let input = stdin_input(request)?;
         Self::spawn(
             request.provider,
-            &request.prompt,
+            &input,
             cli_name(request.provider),
             cli_args(request),
             Some(&request.cwd),

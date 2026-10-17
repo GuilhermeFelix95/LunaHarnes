@@ -163,6 +163,54 @@ pub fn diff_of(cwd: &Path, path: &str) -> Result<String, String> {
     }
 }
 
+/// Limite de sugestões do @arquivo.
+const MAX_FILE_SUGGESTIONS: usize = 50;
+
+/// Arquivos do projeto para o @arquivo: rastreados e novos que não estão no .gitignore.
+/// Filtra pelo trecho digitado (sem diferenciar maiúsculas). Fora do git a lista fica vazia.
+pub fn list_files(cwd: &Path, query: &str) -> Result<Vec<String>, String> {
+    let inside = run_git(cwd, &["rev-parse", "--is-inside-work-tree"])?;
+    if inside.as_deref().map(str::trim) != Some("true") {
+        return Ok(Vec::new());
+    }
+    let listed = run_git(cwd, &["ls-files", "-z", "--cached", "--others", "--exclude-standard"])?
+        .unwrap_or_default();
+    let needle = query.to_lowercase();
+    Ok(listed
+        .split('\0')
+        .filter(|p| !p.is_empty() && p.to_lowercase().contains(&needle))
+        .take(MAX_FILE_SUGGESTIONS)
+        .map(str::to_string)
+        .collect())
+}
+
+/// Desfaz a alteração de um arquivo. Modificado ou removido volta ao HEAD; novo é apagado.
+/// Renomeação não é desfeita aqui: o caminho antigo não vem na lista, então fica para o git.
+pub fn discard(cwd: &Path, path: &str, status: &str) -> Result<(), String> {
+    if !is_safe_relative(path) {
+        return Err(format!("caminho fora do projeto: `{path}`"));
+    }
+    match status {
+        "untracked" => std::fs::remove_file(cwd.join(path))
+            .map_err(|e| format!("não foi possível apagar `{path}`: {e}")),
+        "added" => git_ok(cwd, &["rm", "-f", "--", path]),
+        "modified" | "deleted" => git_ok(cwd, &["restore", "--source=HEAD", "--staged", "--worktree", "--", path]),
+        _ => Err("desfazer renomeação não é suportado: use o git".into()),
+    }
+}
+
+/// Roda o git e falha com a saída de erro dele, se houver.
+fn git_ok(cwd: &Path, args: &[&str]) -> Result<(), String> {
+    let output = git(cwd)?
+        .args(args)
+        .output()
+        .map_err(|e| format!("não foi possível rodar o git: {e}"))?;
+    if output.status.success() {
+        return Ok(());
+    }
+    Err(format!("git falhou: {}", String::from_utf8_lossy(&output.stderr).trim()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -266,5 +314,81 @@ mod tests {
         if !changes.is_repo {
             assert!(changes.files.is_empty());
         }
+    }
+
+    /// Desfazer volta o modificado ao HEAD, apaga o novo e não toca no resto.
+    #[test]
+    fn discard_restores_modified_and_removes_new_files_only() {
+        let dir = std::env::temp_dir().join(format!("lunaharness-discard-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let run = |args: &[&str]| {
+            let ok = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&dir)
+                .output()
+                .expect("git precisa estar no PATH para este teste")
+                .status
+                .success();
+            assert!(ok, "git {args:?} falhou");
+        };
+        run(&["init", "-q"]);
+        run(&["config", "user.email", "teste@luna.local"]);
+        run(&["config", "user.name", "Teste"]);
+        std::fs::write(dir.join("a.txt"), "um\n").unwrap();
+        std::fs::write(dir.join("b.txt"), "outro\n").unwrap();
+        run(&["add", "-A"]);
+        run(&["commit", "-q", "-m", "base"]);
+
+        std::fs::write(dir.join("a.txt"), "alterado\n").unwrap();
+        std::fs::write(dir.join("novo.txt"), "novo\n").unwrap();
+        discard(&dir, "a.txt", "modified").unwrap();
+        discard(&dir, "novo.txt", "untracked").unwrap();
+
+        // No Windows o git pode restaurar com CRLF (core.autocrlf): compara sem o fim de linha.
+        let restored = std::fs::read_to_string(dir.join("a.txt")).unwrap().replace("\r\n", "\n");
+        assert_eq!(restored, "um\n");
+        assert!(!dir.join("novo.txt").exists());
+        assert_eq!(std::fs::read_to_string(dir.join("b.txt")).unwrap(), "outro\n");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn list_files_skips_ignored_files_and_filters_by_query() {
+        let dir = std::env::temp_dir().join(format!("lunaharness-listfiles-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        let run = |args: &[&str]| {
+            let ok = std::process::Command::new("git")
+                .args(args)
+                .current_dir(&dir)
+                .output()
+                .expect("git precisa estar no PATH para este teste")
+                .status
+                .success();
+            assert!(ok, "git {args:?} falhou");
+        };
+        run(&["init", "-q"]);
+        std::fs::write(dir.join(".gitignore"), "*.log
+").unwrap();
+        std::fs::write(dir.join("src/Parser.ts"), "x
+").unwrap();
+        std::fs::write(dir.join("notas.md"), "x
+").unwrap();
+        std::fs::write(dir.join("erro.log"), "x
+").unwrap();
+
+        assert_eq!(list_files(&dir, "parser").unwrap(), vec!["src/Parser.ts".to_string()]);
+        let all = list_files(&dir, "").unwrap();
+        assert!(all.contains(&"notas.md".to_string()));
+        assert!(!all.iter().any(|p| p.ends_with(".log")), "arquivo ignorado não entra");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn discard_refuses_paths_outside_the_project() {
+        let dir = std::env::temp_dir();
+        assert!(discard(&dir, "../x.txt", "untracked").is_err());
+        assert!(discard(&dir, "a.txt", "renamed").is_err());
     }
 }

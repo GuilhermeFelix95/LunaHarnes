@@ -7,9 +7,14 @@ import {
   getChanges,
   getWorkspace,
   apiPresets,
+  checkpointPreview,
+  checkpointRestore,
+  checkpointTake,
   apiProfileHasKey,
   listApiProfiles,
+  listFiles,
   listModels,
+  saveAttachment,
   onProviderEvent,
   PLUGINS_CHANGED,
   PROFILES_CHANGED,
@@ -23,6 +28,7 @@ import { APPROVAL_PROMPT, withPlanInstruction } from "../../chat/planning";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
+import { notifyIfUnfocused } from "../../notifications";
 import { loadInstalledPlugins } from "../../plugins/loader";
 import type {
   AgentSessions,
@@ -57,9 +63,11 @@ interface ChatViewProps {
   recentFolders?: string[];
   /** Chamado ao fim de cada turno, com a conversa inteira, para salvar em disco. */
   onPersist: (conversation: Conversation) => void;
+  /** Avisa a barra lateral quando esta conversa começa ou termina uma resposta. */
+  onRunning?: (conversationId: string, running: boolean) => void;
 }
 
-export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: ChatViewProps) {
+export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning }: ChatViewProps) {
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
   const createdAt = useRef(initial?.createdAt ?? Date.now());
 
@@ -80,7 +88,18 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const messagesRef = useRef(messages);
   const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, running: false, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
+  // Sugestões do @arquivo para o trecho digitado depois do último "@".
+  const [files, setFiles] = useState<string[]>([]);
+  const fileRequest = useRef(0);
+  // Arquivos escolhidos no @ desde o último envio: o pedido recebe a lista deles.
+  const picked = useRef(new Set<string>());
+  // Imagens do próximo envio: o arquivo já está na pasta de anexos; a url é só a miniatura.
+  const [attachments, setAttachments] = useState<{ id: number; path: string; url: string }[]>([]);
+  const attachmentSeq = useRef(0);
   const [running, setRunning] = useState(false);
+  useEffect(() => {
+    onRunning?.(conversationId, running);
+  }, [running]);
   const [notes, setNotes] = useState<string[]>([]);
   const [host] = useState(() => new PluginHost());
   // Modos que os plugins oferecem; o escolhido vale só para o próximo envio.
@@ -94,6 +113,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   // Chave do agente do turno (ver chat/agents.ts) e nome do perfil, para marcar as respostas.
   const turnAgent = useRef<string>(agentKey(provider, profileId));
   const turnLabel = useRef<string | undefined>(undefined);
+  // Aviso que vai à frente do próximo pedido depois de voltar a um checkpoint.
+  const rewindNote = useRef<string | null>(null);
   // Autor das respostas salvas antes de cada mensagem guardar o agente.
   const legacyProvider = useRef<ProviderKind>(initial?.provider ?? provider);
   // null = ainda não verificado; false = precisa entrar na conta.
@@ -203,7 +224,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   }, [provider, profileId, profiles]);
 
   useEffect(() => {
-    const unlisten = onProviderEvent((event) => {
+    const unlisten = onProviderEvent(conversationId, (event) => {
       const turn = turnAgent.current;
       if (event.kind === "sessionStarted") {
         sessions.current = {
@@ -224,7 +245,16 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         setCostUsd(costRef.current);
       }
       commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
+      if (event.kind === "error") {
+        void notifyIfUnfocused("Erro na resposta", "Uma resposta falhou. Abra a conversa para ver o motivo.");
+      }
       if (event.kind === "done") {
+        const firstUser = messagesRef.current.find((m) => m.role === "user");
+        const subject = firstUser ? truncate(firstUser.text, 40) : "a conversa";
+        void notifyIfUnfocused(
+          live.current.planning ? "Plano pronto para revisar" : "Resposta pronta",
+          `"${subject}" terminou.`,
+        );
         const session = sessions.current[turn];
         // O agente viu tudo até o fim deste turno.
         if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
@@ -237,7 +267,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     return () => {
       unlisten.then((stop) => stop());
     };
-  }, [host]);
+  }, [host, conversationId]);
 
   function commit(next: ChatMessage[]) {
     messagesRef.current = next;
@@ -298,19 +328,29 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   /// Envia um turno. `shown` aparece na conversa; `cliPrompt` é o que o CLI recebe.
   /// No modo plano, o CLI recebe a instrução de planejamento e roda só com leitura.
   /// Se o agente ainda não viu parte do histórico (troca de agente), o contexto vai antes da mensagem.
-  async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode) {
+  async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode, images: string[] = []) {
     setRunning(true);
+    if (rewindNote.current) {
+      cliPrompt = `${rewindNote.current}
+
+${cliPrompt}`;
+      rewindNote.current = null;
+    }
     responseText.current = "";
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
     const history = messagesRef.current;
-    commit([...history, { role: "user", text: shown }]);
+    const userMsg: ChatMessage = { role: "user", text: shown };
+    commit([...history, userMsg]);
     // Quem envia quer ver a resposta: volta a seguir o fim.
     scrollToBottom();
     setNotes([...host.errors]);
 
     try {
+      // Checkpoint antes de qualquer alteração do agente: é o ponto para o qual "Voltar até aqui" leva.
+      const checkpoint = await checkpointTake(cwd).catch(() => null);
+      if (checkpoint) commit(messagesRef.current.map((m) => (m === userMsg ? { ...m, checkpoint } : m)));
       const key = turnAgent.current;
       const behind = (sessions.current[key]?.seen ?? 0) < history.length;
       const changes = behind ? await getChanges(cwd).catch(() => null) : null;
@@ -325,18 +365,74 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       await sendPrompt({
         provider,
         profile: profileId ?? undefined,
+        images,
         prompt: withContext(preamble, plan ? withPlanInstruction(cliPrompt) : mode ? mode.instruction + "\n\n" + cliPrompt : cliPrompt),
         sessionId,
         cwd,
         permission: plan || mode ? "readOnly" : permission,
         model: model || undefined,
         effort: effort || undefined,
-      });
+      }, conversationId);
     } catch (e) {
       setRunning(false);
       commit(applyEvent(messagesRef.current, { kind: "error", message: String(e) }));
       persist(messagesRef.current);
     }
+  }
+
+  /// Anexa uma imagem: confere tipo e tamanho, salva na pasta de anexos e guarda a miniatura.
+  async function attachFile(file: File) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setNotes([`${file.name}: use PNG, JPEG ou WebP`]);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setNotes([`${file.name}: imagem maior que 10 MB`]);
+      return;
+    }
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      }
+      const path = await saveAttachment(file.name, btoa(binary));
+      const id = ++attachmentSeq.current;
+      setAttachments((current) => [...current, { id, path, url: URL.createObjectURL(file) }]);
+    } catch (e) {
+      setNotes([String(e)]);
+    }
+  }
+
+  function removeAttachment(id: number) {
+    const gone = attachments.find((a) => a.id === id);
+    if (gone) URL.revokeObjectURL(gone.url);
+    setAttachments((current) => current.filter((a) => a.id !== id));
+  }
+
+  /// Digitar "@" abre a lista de arquivos do projeto; o trecho depois do "@" filtra.
+  function changeDraft(value: string) {
+    setDraft(value);
+    const match = /@([^s@]*)$/.exec(value);
+    const request = ++fileRequest.current;
+    if (!match) {
+      setFiles([]);
+      return;
+    }
+    listFiles(cwd, match[1])
+      .then((list) => {
+        if (request === fileRequest.current) setFiles(list);
+      })
+      .catch(() => {
+        if (request === fileRequest.current) setFiles([]);
+      });
+  }
+
+  /// Escolhe um arquivo da lista: o "@" digitado vira o caminho completo.
+  function pickFile(path: string) {
+    setDraft((current) => current.replace(/@([^s@]*)$/, () => `@${path} `));
+    picked.current.add(path);
+    setFiles([]);
   }
 
   async function send() {
@@ -351,8 +447,54 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       return;
     }
     const outgoing = await host.runBeforeSend(command.handled ? command.prompt! : prompt);
+    // Arquivos citados com o "@" entram no pedido por nome, para o agente saber que devem ser lidos.
+    const mentioned = [...picked.current].filter((p) => prompt.includes(`@${p}`));
+    picked.current.clear();
+    const withFiles =
+      mentioned.length > 0
+        ? `Arquivos citados no pedido (leia antes de responder): ${mentioned.join(", ")}
+
+${outgoing}`
+        : outgoing;
     // Modo de plugin: só leitura e com a instrução do modo na frente do pedido.
-    await run(prompt, outgoing, planning, modes.find((m) => m.id === modeId));
+    // As imagens vão com este envio; a lista de anexos volta a vazia.
+    const imagePaths = attachments.map((a) => a.path);
+    attachments.forEach((a) => URL.revokeObjectURL(a.url));
+    setAttachments([]);
+    await run(prompt, withFiles, planning, modes.find((m) => m.id === modeId), imagePaths);
+  }
+
+  /// Volta os arquivos ao início deste turno e tira a conversa daquele ponto para baixo.
+  /// O texto do pedido volta para o campo de envio, para o usuário poder reenviar ou editar.
+  async function rewind(index: number, checkpoint: string) {
+    if (running) return;
+    let plan;
+    try {
+      plan = await checkpointPreview(cwd, checkpoint);
+    } catch (e) {
+      setNotes([String(e)]);
+      return;
+    }
+    const question =
+      plan.removed.length + plan.restored.length === 0
+        ? "Voltar até aqui? Nenhum arquivo muda; a conversa volta a este ponto."
+        : `Voltar até aqui? ${plan.restored.length} arquivo(s) voltam ao que eram e ${plan.removed.length} criado(s) depois serão apagados. As mensagens a partir daqui saem da conversa.`;
+    if (!window.confirm(question)) return;
+    try {
+      await checkpointRestore(cwd, checkpoint);
+    } catch (e) {
+      setNotes([String(e)]);
+      return;
+    }
+    const kept = messagesRef.current.slice(0, index);
+    const text = messagesRef.current[index].text;
+    commit(kept);
+    // Sem sessão nativa, o próximo envio reenvia o histórico que sobrou, em texto.
+    sessions.current = {};
+    rewindNote.current = "Os arquivos foram restaurados para um ponto anterior desta conversa. Considere só o estado atual.";
+    setDraft(text);
+    persist(kept);
+    setChangesVersion((n) => n + 1);
   }
 
   /// Aprovação do plano: sai do modo plano e manda o agente executar com a permissão escolhida.
@@ -470,7 +612,15 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
             )}
           </div>
         ) : (
-          <MessageList messages={messages} fallbackProvider={legacyProvider.current} running={running} />
+          <MessageList
+            messages={messages}
+            fallbackProvider={legacyProvider.current}
+            running={running}
+            onRewind={(m) => {
+              const index = messagesRef.current.indexOf(m);
+              if (index >= 0 && m.checkpoint) void rewind(index, m.checkpoint);
+            }}
+          />
         )}
 
         {!stuck && messages.length > 0 && (
@@ -491,9 +641,14 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 
       <Composer
         draft={draft}
-        onDraft={setDraft}
+        onDraft={changeDraft}
+        attachments={attachments}
+        onAttach={(file) => void attachFile(file)}
+        onRemoveAttachment={removeAttachment}
+        files={files}
+        onPickFile={pickFile}
         onSend={() => void send()}
-        onStop={() => void cancelPrompt()}
+        onStop={() => void cancelPrompt(conversationId)}
         running={running}
         blocked={blocked}
         agent={agentK}

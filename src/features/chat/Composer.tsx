@@ -39,6 +39,13 @@ interface ComposerProps {
   onEffort: (effort: string) => void;
   planning: boolean;
   onTogglePlanning: () => void;
+  /** Imagens anexadas (miniaturas) e os gestos para anexar e tirar. */
+  attachments?: { id: number; url: string }[];
+  onAttach?: (file: File) => void;
+  onRemoveAttachment?: (id: number) => void;
+  /** Sugestões do @arquivo, já filtradas. Vazio = nenhum @ aberto. */
+  files?: string[];
+  onPickFile?: (path: string) => void;
   /** Modos oferecidos por plugins. `mode` é o id ligado ou vazio; só um liga por vez. */
   modes: PluginMode[];
   mode: string;
@@ -72,12 +79,47 @@ export function Composer(props: ComposerProps) {
   return (
     <form
       className={`composer${props.planning ? " composer--planning" : ""}`}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        const images = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/"));
+        if (images.length === 0) return;
+        e.preventDefault();
+        images.forEach((file) => props.onAttach?.(file));
+      }}
       onSubmit={(e) => {
         e.preventDefault();
         if (running) onStop();
         else if (canSend) onSend();
       }}
     >
+      {(props.files ?? []).length > 0 && (
+        <ul className="composer__files" role="listbox" aria-label="Arquivos do projeto">
+          {(props.files ?? []).map((path) => (
+            <li key={path}>
+              <button type="button" role="option" aria-selected={false} onClick={() => props.onPickFile?.(path)}>
+                {path}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {(props.attachments ?? []).length > 0 && (
+        <ul className="composer__attachments" aria-label="Imagens anexadas">
+          {(props.attachments ?? []).map((a) => (
+            <li key={a.id}>
+              <img src={a.url} alt="Imagem anexada" />
+              <button
+                type="button"
+                aria-label="Tirar imagem"
+                onClick={() => props.onRemoveAttachment?.(a.id)}
+                disabled={running}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <textarea
         ref={textarea}
         aria-label="Mensagem"
@@ -85,6 +127,12 @@ export function Composer(props: ComposerProps) {
         value={draft}
         onChange={(e) => onDraft(e.target.value)}
         onKeyDown={handleKeyDown}
+        onPaste={(e) => {
+          const images = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+          if (images.length === 0) return;
+          e.preventDefault();
+          images.forEach((file) => props.onAttach?.(file));
+        }}
         disabled={blocked}
         rows={1}
       />

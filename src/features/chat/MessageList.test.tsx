@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "../../types";
 import { MessageList } from "./MessageList";
 
@@ -79,5 +79,28 @@ describe("MessageList com perfil de API", () => {
 
     expect(screen.getByText("DeepSeek · via Claude Code")).toBeTruthy();
     expect(screen.queryByText("Claude Code")).toBeNull();
+  });
+});
+
+describe("MessageList: voltar até aqui", () => {
+  it("oferece voltar só em pedidos com checkpoint e devolve a mensagem", () => {
+    const onRewind = vi.fn();
+    const asked = { role: "user" as const, text: "refatore o parser", checkpoint: "a".repeat(40) };
+    const plain = { role: "user" as const, text: "sem git" };
+    render(
+      <MessageList messages={[plain, asked]} fallbackProvider="claude" running={false} onRewind={onRewind} />,
+    );
+
+    const buttons = screen.getAllByRole("button", { name: "Voltar até aqui" });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(onRewind).toHaveBeenCalledWith(asked);
+  });
+
+  it("não deixa voltar enquanto a resposta está em andamento", () => {
+    const asked = { role: "user" as const, text: "x", checkpoint: "b".repeat(40) };
+    render(<MessageList messages={[asked]} fallbackProvider="claude" running onRewind={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Voltar até aqui" }).hasAttribute("disabled")).toBe(true);
   });
 });

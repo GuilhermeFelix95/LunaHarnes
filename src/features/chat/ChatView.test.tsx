@@ -12,12 +12,17 @@ vi.mock("../../api", () => ({
   checkAuth: vi.fn(async () => true),
   openLogin: vi.fn(async () => {}),
   cancelPrompt: vi.fn(async () => {}),
+  checkpointTake: vi.fn(async () => null),
+  checkpointPreview: vi.fn(async () => ({ removed: [], restored: [] })),
+  checkpointRestore: vi.fn(async () => ({ removed: [], restored: [] })),
   sendPrompt: vi.fn(async () => {}),
   getWorkspace: vi.fn(async () => "C:\\projeto"),
   listModels: vi.fn(async () => []),
   apiPresets: vi.fn(async () => []),
   apiProfileHasKey: vi.fn(async () => true),
   listApiProfiles: vi.fn(async () => []),
+  listFiles: vi.fn(async () => []),
+  saveAttachment: vi.fn(async () => "C:\\anexos\\foto.png"),
   PROFILES_CHANGED: "luna:profiles-changed",
   getChanges: vi.fn(async () => ({ isRepo: false, files: [] })),
   getFileDiff: vi.fn(async () => ""),
@@ -32,7 +37,7 @@ vi.mock("../../api", () => ({
   readPluginEntry: vi.fn(async () => ""),
   getPluginsState: vi.fn(async () => ({ disabled: [] })),
   PLUGINS_CHANGED: "luna:plugins-changed",
-  onProviderEvent: vi.fn(async (handler: (event: ProviderEvent) => void) => {
+  onProviderEvent: vi.fn(async (_runId: string, handler: (event: ProviderEvent) => void) => {
     bridge.emit = handler;
     return () => {};
   }),

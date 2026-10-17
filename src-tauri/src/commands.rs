@@ -1,34 +1,56 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::api_profiles::{self, ApiProfile, PresetInfo};
 use crate::changes::{self, Changes};
+use crate::checkpoints;
 use crate::conversations;
 use crate::models::{self, ModelOption};
 use crate::plugins::loader::{self, PluginScan};
 use crate::plugins::marketplace::{self, Catalog, PluginsState};
-use crate::providers::{fallback_events, Permission, ProviderEvent, ProviderKind, RunRequest};
+use crate::providers::{fallback_events, image_media_type, Permission, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
 use crate::terminal::{self, Terminals};
 
 /// Nome do evento que o frontend escuta (espelha `PROVIDER_EVENT` em src/api.ts).
 const PROVIDER_EVENT: &str = "provider-event";
 
-/// Uma execução por vez, conforme o escopo do MVP (chat único).
+/// Tamanho máximo de uma imagem anexada, em bytes.
+const MAX_ATTACHMENT_BYTES: usize = 10 * 1024 * 1024;
+
+/// Contador para nomes de anexo distintos dentro do mesmo milissegundo.
+static NEXT_ATTACHMENT: AtomicU64 = AtomicU64::new(1);
+
+/// Uma execução por conversa: cada `run_id` (id da aba do chat) tem o seu processo.
+/// Conversas diferentes rodam ao mesmo tempo; a mesma conversa não aceita dois envios.
 #[derive(Default)]
-pub struct ActiveRun(pub Mutex<Option<CancelHandle>>);
+pub struct ActiveRuns(pub Mutex<HashMap<String, CancelHandle>>);
+
+/// Evento de execução: o frontend filtra pelo `run_id` para entregar à conversa certa.
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RunEvent<'a> {
+    run_id: &'a str,
+    event: ProviderEvent,
+}
 
 /// Inicia o CLI, envia o prompt e devolve sem esperar o fim: a saída chega por eventos.
 #[tauri::command]
 pub fn send_prompt(
     app: AppHandle,
-    run: State<'_, ActiveRun>,
+    runs: State<'_, ActiveRuns>,
     request: RunRequest,
+    run_id: String,
 ) -> Result<(), String> {
     request.validate()?;
+    if run_id.is_empty() || run_id.len() > 64 || !run_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err("identificador de execução inválido".into());
+    }
     let env = match &request.profile {
         Some(id) => {
             let dir = app_data_dir(&app)?;
@@ -37,14 +59,30 @@ pub fn send_prompt(
         }
         None => Vec::new(),
     };
+    // Imagens só podem vir da pasta de anexos do app: o pedido não lê arquivo arbitrário do disco.
+    if !request.images.is_empty() {
+        let folder = app_data_dir(&app)?.join("attachments");
+        let folder = folder.canonicalize().ok();
+        for image in &request.images {
+            let inside = image
+                .canonicalize()
+                .ok()
+                .zip(folder.clone())
+                .is_some_and(|(file, folder)| file.starts_with(folder));
+            if !inside {
+                return Err("imagem fora da pasta de anexos do app".into());
+            }
+        }
+    }
+
     let provider = request.provider;
-    let mut active = run.0.lock().expect("lock da execução ativa");
-    if active.is_some() {
-        return Err("já existe uma resposta em andamento; aguarde ou pare antes de enviar outra".into());
+    let mut active = runs.0.lock().expect("lock das execuções ativas");
+    if active.contains_key(&run_id) {
+        return Err("já existe uma resposta em andamento nesta conversa; aguarde ou pare antes de enviar outra".into());
     }
 
     let mut session = Session::start_with_env(&request, &env)?;
-    *active = Some(session.cancel_handle());
+    active.insert(run_id.clone(), session.cancel_handle());
     drop(active);
 
     std::thread::spawn(move || {
@@ -54,7 +92,7 @@ pub fn send_prompt(
                 saw_done = true;
             }
             // Falha ao emitir só acontece se a janela já foi fechada; nada a fazer.
-            let _ = app.emit(PROVIDER_EVENT, event);
+            let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event });
         });
 
         let outcome = session.finish();
@@ -65,12 +103,12 @@ pub fn send_prompt(
                 Err(e) => (None, format!("falha ao aguardar o processo: {e}")),
             };
             for event in fallback_events(provider, code, &stderr) {
-                let _ = app.emit(PROVIDER_EVENT, event);
+                let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event });
             }
         }
 
-        let run = app.state::<ActiveRun>();
-        *run.0.lock().expect("lock da execução ativa") = None;
+        let runs = app.state::<ActiveRuns>();
+        runs.0.lock().expect("lock das execuções ativas").remove(&run_id);
     });
 
     Ok(())
@@ -166,6 +204,7 @@ pub async fn test_api_profile(app: AppHandle, id: String) -> Result<String, Stri
             model: profile.default_model.clone(),
             effort: None,
             profile: Some(profile.id.clone()),
+            images: Vec::new(),
         };
         let mut session = Session::start_with_env(&request, &env)?;
         let mut text = String::new();
@@ -346,6 +385,73 @@ pub async fn get_changes(cwd: String) -> Result<Changes, String> {
 
 /// Diff de um arquivo alterado, relativo à pasta de trabalho.
 #[tauri::command]
+pub async fn discard_change(cwd: String, path: String, status: String) -> Result<(), String> {
+    changes::discard(Path::new(&cwd), &path, &status)
+}
+
+/// Arquivos que o @arquivo pode citar no composer, filtrados pelo trecho digitado.
+#[tauri::command]
+pub async fn list_files(cwd: String, query: String) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || changes::list_files(Path::new(&cwd), &query))
+        .await
+        .map_err(|e| format!("falha ao listar os arquivos: {e}"))?
+}
+
+/// Salva uma imagem colada ou arrastada na pasta de anexos e devolve o caminho.
+/// `data` é o conteúdo em base64. Aceita PNG, JPEG e WebP até 10 MB.
+#[tauri::command]
+pub fn save_attachment(app: AppHandle, name: String, data: String) -> Result<String, String> {
+    let probe = Path::new(&name);
+    if image_media_type(probe).is_none() {
+        return Err("formato de imagem não suportado: use PNG, JPEG ou WebP".into());
+    }
+    let bytes = STANDARD
+        .decode(data)
+        .map_err(|_| "a imagem não chegou inteira; tente de novo".to_string())?;
+    if bytes.len() > MAX_ATTACHMENT_BYTES {
+        return Err("imagem maior que 10 MB".into());
+    }
+    let folder = app_data_dir(&app)?.join("attachments");
+    std::fs::create_dir_all(&folder).map_err(|e| format!("não foi possível criar a pasta de anexos: {e}"))?;
+    let ext = probe
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("png")
+        .to_ascii_lowercase();
+    let millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let file = folder.join(format!("{millis}-{}.{ext}", NEXT_ATTACHMENT.fetch_add(1, Ordering::Relaxed)));
+    std::fs::write(&file, &bytes).map_err(|e| format!("não foi possível salvar a imagem: {e}"))?;
+    Ok(file.to_string_lossy().into_owned())
+}
+
+/// Grava um checkpoint do estado atual antes de um turno. `None` fora de repositório git.
+#[tauri::command]
+pub async fn checkpoint_take(cwd: String) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || checkpoints::take(Path::new(&cwd)))
+        .await
+        .map_err(|e| format!("falha ao gravar o checkpoint: {e}"))?
+}
+
+/// Diz o que mudaria ao voltar a um checkpoint, sem mexer nos arquivos.
+#[tauri::command]
+pub async fn checkpoint_preview(cwd: String, checkpoint: String) -> Result<checkpoints::RestorePreview, String> {
+    tauri::async_runtime::spawn_blocking(move || checkpoints::preview(Path::new(&cwd), &checkpoint))
+        .await
+        .map_err(|e| format!("falha ao comparar o checkpoint: {e}"))?
+}
+
+/// Volta os arquivos ao checkpoint. Quem chama confirma antes com o resultado de `checkpoint_preview`.
+#[tauri::command]
+pub async fn checkpoint_restore(cwd: String, checkpoint: String) -> Result<checkpoints::RestorePreview, String> {
+    tauri::async_runtime::spawn_blocking(move || checkpoints::restore(Path::new(&cwd), &checkpoint))
+        .await
+        .map_err(|e| format!("falha ao restaurar o checkpoint: {e}"))?
+}
+
+#[tauri::command]
 pub async fn get_file_diff(cwd: String, path: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || changes::diff_of(std::path::Path::new(&cwd), &path))
         .await
@@ -419,11 +525,11 @@ pub fn open_login(provider: ProviderKind) -> Result<(), String> {
     crate::auth::open_login(provider)
 }
 
-/// Para a execução em andamento, se houver.
+/// Para a execução de uma conversa, se houver.
 #[tauri::command]
-pub fn cancel_prompt(run: State<'_, ActiveRun>) -> Result<(), String> {
-    let active = run.0.lock().expect("lock da execução ativa");
-    match active.as_ref() {
+pub fn cancel_prompt(run_id: String, runs: State<'_, ActiveRuns>) -> Result<(), String> {
+    let active = runs.0.lock().expect("lock das execuções ativas");
+    match active.get(&run_id) {
         Some(handle) => handle
             .cancel()
             .map_err(|e| format!("não foi possível parar a execução: {e}")),

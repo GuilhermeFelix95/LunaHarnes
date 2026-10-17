@@ -18,6 +18,8 @@ function normalize(text: string): string {
 interface SidebarProps {
   conversations: ConversationSummary[];
   activeId: string | null;
+  /** Conversas com resposta em andamento: ganham um indicador. */
+  runningIds?: string[];
   /** Sem pasta: usa a pasta de onde o `luna` foi rodado. */
   onNew: (cwd?: string) => void;
   onAddProject: () => void;
@@ -33,6 +35,7 @@ interface SidebarProps {
 export function Sidebar({
   conversations,
   activeId,
+  runningIds = [],
   onNew,
   onAddProject,
   onOpen,
@@ -108,6 +111,9 @@ export function Sidebar({
                       onClick={() => onOpen(item.id)}
                       title={item.title}
                     >
+                      {runningIds.includes(item.id) && (
+                        <span className="sidebar__running" role="img" aria-label="Respondendo" />
+                      )}
                       {item.title}
                     </button>
                     <button

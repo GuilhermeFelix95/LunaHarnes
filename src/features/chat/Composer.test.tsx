@@ -183,3 +183,19 @@ describe("Composer: modos de plugin", () => {
     expect(props.onMode).toHaveBeenCalledWith("");
   });
 });
+
+describe("Composer: @arquivo e imagens", () => {
+  it("escolher uma sugestão devolve o caminho do arquivo", () => {
+    const props = setup({ files: ["src/Parser.ts"], onPickFile: vi.fn() });
+    fireEvent.click(screen.getByRole("option", { name: "src/Parser.ts" }));
+
+    expect(props.onPickFile).toHaveBeenCalledWith("src/Parser.ts");
+  });
+
+  it("tirar uma imagem anexada devolve o id dela", () => {
+    const props = setup({ attachments: [{ id: 3, url: "blob:foto" }], onRemoveAttachment: vi.fn() });
+    fireEvent.click(screen.getByRole("button", { name: "Tirar imagem" }));
+
+    expect(props.onRemoveAttachment).toHaveBeenCalledWith(3);
+  });
+});

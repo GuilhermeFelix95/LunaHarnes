@@ -1,8 +1,9 @@
-use serde_json::Value;
+use base64::{engine::general_purpose::STANDARD, Engine};
+use serde_json::{json, Value};
 
 use super::ProviderEvent;
 
-use super::{LimitWindow, Permission, RunRequest};
+use super::{image_media_type, LimitWindow, Permission, RunRequest};
 
 /// `claude -p` lê o prompt do stdin e emite JSON por linha.
 /// `--include-partial-messages` manda os deltas de texto conforme chegam.
@@ -19,6 +20,9 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     .iter()
     .map(|s| s.to_string())
     .collect();
+    if !request.images.is_empty() {
+        args.extend(["--input-format".to_string(), "stream-json".to_string()]);
+    }
 
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
@@ -31,6 +35,26 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         args.push(id.clone());
     }
     args
+}
+
+/// Entrada do CLI pelo stdin. Sem imagens é o prompt puro. Com imagens, uma linha stream-json:
+/// o texto e um bloco de imagem em base64 para cada arquivo.
+pub fn input(request: &RunRequest) -> Result<String, String> {
+    if request.images.is_empty() {
+        return Ok(request.prompt.clone());
+    }
+    let mut content = vec![json!({ "type": "text", "text": request.prompt })];
+    for path in &request.images {
+        let media_type = image_media_type(path).ok_or("formato de imagem não suportado")?;
+        let bytes = std::fs::read(path)
+            .map_err(|e| format!("não foi possível ler a imagem {}: {e}", path.display()))?;
+        content.push(json!({
+            "type": "image",
+            "source": { "type": "base64", "media_type": media_type, "data": STANDARD.encode(bytes) }
+        }));
+    }
+    let line = json!({ "type": "user", "message": { "role": "user", "content": content } });
+    Ok(format!("{line}\n"))
 }
 
 fn permission_mode(permission: Permission) -> &'static str {
@@ -251,5 +275,54 @@ mod tests {
     #[test]
     fn unknown_types_are_ignored() {
         assert!(parse_line(r#"{"type":"tool_use_summary"}"#).is_empty());
+    }
+
+    #[test]
+    fn images_switch_input_to_stream_json_with_one_block_per_image() {
+        let dir = std::env::temp_dir().join(format!("lunaharness-claude-img-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("foto.png");
+        std::fs::write(&path, [0x89u8, b'P', b'N', b'G']).unwrap();
+        let request = RunRequest {
+            provider: crate::providers::ProviderKind::Claude,
+            prompt: "o que tem na imagem?".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: None,
+            effort: None,
+            profile: None,
+            images: vec![path.clone()],
+        };
+
+        let flags = args(&request);
+        assert!(flags.windows(2).any(|w| w == ["--input-format", "stream-json"]));
+
+        let line = input(&request).unwrap();
+        let value: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
+        let content = &value["message"]["content"];
+        assert_eq!(content[0]["text"], "o que tem na imagem?");
+        assert_eq!(content[1]["type"], "image");
+        assert_eq!(content[1]["source"]["media_type"], "image/png");
+        let data = STANDARD.decode(content[1]["source"]["data"].as_str().unwrap()).unwrap();
+        assert_eq!(data, vec![0x89u8, b'P', b'N', b'G']);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn without_images_the_prompt_goes_to_stdin_as_it_is() {
+        let request = RunRequest {
+            provider: crate::providers::ProviderKind::Claude,
+            prompt: "oi".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: None,
+            effort: None,
+            profile: None,
+            images: Vec::new(),
+        };
+        assert_eq!(input(&request).unwrap(), "oi");
+        assert!(!args(&request).iter().any(|a| a == "--input-format"));
     }
 }

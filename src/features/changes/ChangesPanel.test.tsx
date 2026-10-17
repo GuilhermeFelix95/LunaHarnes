@@ -5,6 +5,7 @@ import { ChangesPanel } from "./ChangesPanel";
 vi.mock("../../api", () => ({
   getChanges: vi.fn(),
   getFileDiff: vi.fn(),
+  discardChange: vi.fn(async () => {}),
 }));
 
 import * as api from "../../api";
@@ -44,7 +45,7 @@ describe("ChangesPanel", () => {
     vi.mocked(api.getFileDiff).mockResolvedValue("@@ -1 +1,2 @@\n um\n+tres\n-velho\n");
     render(<ChangesPanel cwd={"C:\\projeto"} version={0} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /src\/a\.ts/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /^src\/a\.ts/ }));
 
     await waitFor(() => expect(api.getFileDiff).toHaveBeenCalledWith("C:\\projeto", "src/a.ts"));
     expect(await screen.findByText("+tres", { exact: false })).toBeTruthy();
@@ -57,7 +58,7 @@ describe("ChangesPanel", () => {
     vi.mocked(api.getFileDiff).mockResolvedValue("@@ -1 +1 @@\n+novo\n");
     render(<ChangesPanel cwd={"C:\\projeto"} version={0} />);
 
-    const item = await screen.findByRole("button", { name: /src\/a\.ts/ });
+    const item = await screen.findByRole("button", { name: /^src\/a\.ts/ });
     fireEvent.click(item);
     expect(await screen.findByLabelText("Diff de src/a.ts")).toBeTruthy();
 
@@ -74,5 +75,21 @@ describe("ChangesPanel", () => {
     rerender(<ChangesPanel cwd={"C:\\projeto"} version={1} />);
 
     await waitFor(() => expect(api.getChanges).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("ChangesPanel: desfazer", () => {
+  it("pede confirmação antes de desfazer e depois chama o backend", async () => {
+    vi.mocked(api.getChanges).mockResolvedValue(changed as never);
+    vi.mocked(api.getFileDiff).mockResolvedValue("");
+    render(<ChangesPanel cwd="/projeto" version={0} />);
+
+    const undo = await screen.findByRole("button", { name: "Desfazer src/a.ts" });
+    fireEvent.click(undo);
+    expect(api.discardChange).not.toHaveBeenCalled();
+    expect(undo.textContent).toBe("Confirmar");
+
+    fireEvent.click(undo);
+    await waitFor(() => expect(api.discardChange).toHaveBeenCalledWith("/projeto", "src/a.ts", "modified"));
   });
 });

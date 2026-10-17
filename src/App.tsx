@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   deleteConversation,
   listConversations,
@@ -11,8 +11,9 @@ import { SettingsView } from "./features/settings/SettingsView";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { Conversation, ConversationSummary } from "./types";
 
-/// Conversa aberta na tela. `key` força a remontagem do chat ao trocar de conversa.
-interface Session {
+/// Conversa aberta na barra. Cada uma fica montada: uma resposta em andamento segue
+/// mesmo quando o usuário troca de conversa (ver `hidden` abaixo).
+interface Chat {
   key: number;
   initial?: Conversation;
   /** Pasta de uma conversa nova. Ausente = pasta de onde o luna foi rodado. */
@@ -22,8 +23,13 @@ interface Session {
 export function App() {
   const [summaries, setSummaries] = useState<ConversationSummary[]>([]);
   const [listError, setListError] = useState<string | undefined>(undefined);
+  const [chats, setChats] = useState<Chat[]>([{ key: 0 }]);
+  const [activeKey, setActiveKey] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [session, setSession] = useState<Session>({ key: 0 });
+  const [runningIds, setRunningIds] = useState<string[]>([]);
+  // Id salvo de cada aba, para reabrir uma conversa sem criar outra aba para ela.
+  const chatIds = useRef<Record<number, string>>({});
+  const nextKey = useRef(1);
   // O chat fica montado enquanto as configurações estão abertas, para não cortar uma resposta.
   const [view, setView] = useState<"chat" | "settings">("chat");
 
@@ -40,10 +46,16 @@ export function App() {
     }
   }
 
-  function newConversation(cwd?: string) {
-    setView("chat");
+  function addChat(chat: Omit<Chat, "key">) {
+    const key = nextKey.current++;
+    setChats((current) => [...current, { ...chat, key }]);
+    setActiveKey(key);
     setActiveId(null);
-    setSession((current) => ({ key: current.key + 1, startCwd: cwd }));
+    setView("chat");
+  }
+
+  function newConversation(cwd?: string) {
+    addChat({ startCwd: cwd });
   }
 
   /// Escolhe uma pasta e começa uma conversa nela. Cancelar o seletor não faz nada.
@@ -57,11 +69,18 @@ export function App() {
   }
 
   async function openConversation(id: string) {
+    const open = chats.find((c) => chatIds.current[c.key] === id);
+    if (open) {
+      setActiveKey(open.key);
+      setActiveId(id);
+      setView("chat");
+      return;
+    }
     try {
       const conversation = await loadConversation(id);
-      setView("chat");
+      chatIds.current[nextKey.current] = id;
+      addChat({ initial: conversation });
       setActiveId(id);
-      setSession((current) => ({ key: current.key + 1, initial: conversation }));
     } catch (e) {
       setListError(String(e));
     }
@@ -69,14 +88,35 @@ export function App() {
 
   async function removeConversation(id: string) {
     const title = summaries.find((s) => s.id === id)?.title ?? "esta conversa";
+    if (runningIds.includes(id)) {
+      setListError(`"${title}" ainda está respondendo. Espere a resposta terminar para excluir.`);
+      return;
+    }
     if (!window.confirm(`Excluir "${title}"? Essa ação não pode ser desfeita.`)) return;
     try {
       await deleteConversation(id);
+      const gone = chats.filter((c) => chatIds.current[c.key] === id);
+      setChats((current) => current.filter((c) => !gone.includes(c)));
       if (activeId === id) newConversation();
       await refreshList();
     } catch (e) {
       setListError(String(e));
     }
+  }
+
+  function onPersist(key: number, conversation: Conversation) {
+    chatIds.current[key] = conversation.id;
+    if (key === activeKey) setActiveId(conversation.id);
+    saveConversation(conversation)
+      .then(refreshList)
+      .catch((e) => setListError(String(e)));
+  }
+
+  function onRunning(id: string, running: boolean) {
+    setRunningIds((current) => {
+      const without = current.filter((x) => x !== id);
+      return running ? [...without, id] : without;
+    });
   }
 
   // Pastas de conversas anteriores, sem repetir: alimentam o menu de troca no rodapé do chat.
@@ -87,6 +127,7 @@ export function App() {
       <Sidebar
         conversations={summaries}
         activeId={activeId}
+        runningIds={runningIds}
         onNew={(cwd) => newConversation(cwd)}
         onAddProject={() => void addProject()}
         onOpen={(id) => void openConversation(id)}
@@ -97,20 +138,17 @@ export function App() {
       />
       <main className="app__main">
       {view === "settings" && <SettingsView onClose={() => setView("chat")} />}
-      <div className="app__view" hidden={view !== "chat"}>
-      <ChatView
-        key={session.key}
-        initial={session.initial}
-        startCwd={session.startCwd}
-        recentFolders={recentFolders}
-        onPersist={(conversation) => {
-          setActiveId(conversation.id);
-          saveConversation(conversation)
-            .then(refreshList)
-            .catch((e) => setListError(String(e)));
-        }}
-      />
-      </div>
+      {chats.map((chat) => (
+        <div key={chat.key} className="app__view" hidden={view !== "chat" || chat.key !== activeKey}>
+          <ChatView
+            initial={chat.initial}
+            startCwd={chat.startCwd}
+            recentFolders={recentFolders}
+            onPersist={(conversation) => onPersist(chat.key, conversation)}
+            onRunning={onRunning}
+          />
+        </div>
+      ))}
       </main>
     </div>
   );

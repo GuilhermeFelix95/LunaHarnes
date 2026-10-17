@@ -18,6 +18,8 @@ export interface RunRequest {
   effort?: string;
   /** Perfil de API (id em api-profiles.json). Ausente = login da própria CLI. A chave fica no cofre. */
   profile?: string;
+  /** Caminhos das imagens anexadas, salvas pelo app (save_attachment). */
+  images?: string[];
 }
 
 /// Perfil de API salvo, sem a chave (ver src-tauri/src/api_profiles.rs).
@@ -76,6 +78,8 @@ export interface ChatMessage {
   provider?: ProviderKind;
   /** Nome do agente que respondeu, quando é um perfil de API (ex.: "DeepSeek · via Claude Code"). */
   agent?: string;
+  /** Estado dos arquivos antes deste turno (só em mensagens do usuário, em repositório git). */
+  checkpoint?: string;
 }
 
 /// Sessão nativa de um agente e quantas mensagens do histórico ele já viu (ver src/chat/handoff.ts).

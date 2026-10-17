@@ -17,6 +17,8 @@ interface MessageListProps {
   fallbackProvider: ProviderKind;
   /** Resposta em andamento: a última linha de ferramentas mostra "Trabalhando…". */
   running: boolean;
+  /** Volta a conversa e os arquivos ao ponto deste pedido (só mensagens do usuário com checkpoint). */
+  onRewind?: (message: ChatMessage) => void;
 }
 
 type Tool = NonNullable<ChatMessage["tool"]>;
@@ -68,7 +70,7 @@ function toolSummary(tools: Tool[]): string {
 
 /// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
 /// ferramentas recolhidas e o texto em destaque.
-export function MessageList({ messages, fallbackProvider, running }: MessageListProps) {
+export function MessageList({ messages, fallbackProvider, running, onRewind }: MessageListProps) {
   const items = group(messages, fallbackProvider);
 
   return (
@@ -76,7 +78,19 @@ export function MessageList({ messages, fallbackProvider, running }: MessageList
       {items.map((item, i) => (
         <li key={i} className={`message message--${item.kind === "user" ? "user" : "assistant"}`}>
           {item.kind === "user" ? (
-            <div className="message__bubble">{item.message.text}</div>
+            <>
+              <div className="message__bubble">{item.message.text}</div>
+              {onRewind && item.message.checkpoint && (
+                <button
+                  type="button"
+                  className="message__rewind"
+                  disabled={running}
+                  onClick={() => onRewind(item.message)}
+                >
+                  Voltar até aqui
+                </button>
+              )}
+            </>
           ) : (
             <div className="message__reply">
               <span className="message__author">

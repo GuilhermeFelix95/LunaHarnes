@@ -1547,3 +1547,188 @@ textarea:focus-visible {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Fase F, etapa 5: paralelismo, desfazer, checkpoint, @arquivo, imagens e avisos. */
+.sidebar__running {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: luna-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes luna-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.changes__undo {
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.changes__undo:hover:not(:disabled) {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.changes__undo.is-confirming {
+  color: var(--accent-fg);
+  background: var(--error);
+  border-color: var(--error);
+}
+
+.changes__undo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.message__rewind {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.message__rewind:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.composer__mode {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.composer__mode[aria-pressed="true"] {
+  color: var(--accent-fg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.composer__files,
+.composer__attachments {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.composer__files {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: var(--glass);
+}
+
+.composer__files button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.composer__files button:hover,
+.composer__files button:focus-visible {
+  background: var(--hover);
+  outline: none;
+}
+
+.composer__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.composer__attachments li {
+  position: relative;
+}
+
+.composer__attachments img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-border);
+}
+
+.composer__attachments button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.settings__check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--fg);
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+}
+
+.dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 12px;
+}
+
+.tabs button {
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--fg);
+  background: var(--hover);
+}

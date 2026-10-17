@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getChanges, getFileDiff } from "../../api";
-import type { Changes } from "../../types";
+import { discardChange, getChanges, getFileDiff } from "../../api";
+import type { ChangedFile, Changes } from "../../types";
 
 interface ChangesPanelProps {
   cwd: string;
@@ -22,6 +22,9 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
   const [error, setError] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState<string>("");
+  // Arquivo que espera a segunda confirmação de "Desfazer".
+  const [undoing, setUndoing] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -38,7 +41,7 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
     return () => {
       active = false;
     };
-  }, [cwd, version]);
+  }, [cwd, version, reload]);
 
   /// Clicar no arquivo aberto fecha o diff; clicar em outro troca.
   async function open(path: string) {
@@ -52,6 +55,26 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
       setDiff(await getFileDiff(cwd, path));
     } catch (e) {
       setDiff(String(e));
+    }
+  }
+
+  /// Primeiro clique pede confirmação; o segundo desfaz. Arquivo novo é apagado, então a confirmação importa.
+  async function undo(file: { path: string; status: ChangedFile["status"] }) {
+    if (undoing !== file.path) {
+      setUndoing(file.path);
+      return;
+    }
+    try {
+      await discardChange(cwd, file.path, file.status);
+      setUndoing(null);
+      if (selected === file.path) {
+        setSelected(null);
+        setDiff("");
+      }
+      setReload((n) => n + 1);
+    } catch (e) {
+      setUndoing(null);
+      setError(String(e));
     }
   }
 
@@ -99,6 +122,16 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
                 {file.additions !== null && <span className="diff-add">+{file.additions}</span>}
                 {file.deletions !== null && <span className="diff-del">−{file.deletions}</span>}
               </span>
+            </button>
+            <button
+              type="button"
+              className={`changes__undo${undoing === file.path ? " is-confirming" : ""}`}
+              aria-label={`Desfazer ${file.path}`}
+              disabled={file.status === "renamed"}
+              title={file.status === "renamed" ? "Renomeação: desfaça pelo git" : "Desfazer esta alteração"}
+              onClick={() => void undo(file)}
+            >
+              {undoing === file.path ? "Confirmar" : "Desfazer"}
             </button>
           </li>
         ))}

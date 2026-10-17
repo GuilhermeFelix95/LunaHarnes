@@ -2,6 +2,7 @@ import { useState } from "react";
 import { applyTheme, loadTheme, saveTheme, THEMES, type ThemeId } from "../../theme";
 import { ApiProfilesSection } from "./ApiProfilesSection";
 import { PluginsSection } from "./PluginsSection";
+import { NotificationsSection } from "./NotificationsSection";
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -53,6 +54,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
       <ApiProfilesSection />
 
       <PluginsSection />
+
+      <NotificationsSection />
     </div>
   );
 }

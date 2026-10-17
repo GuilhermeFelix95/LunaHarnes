@@ -9,10 +9,19 @@ use super::{Permission, RunRequest};
 pub fn args(request: &RunRequest) -> Vec<String> {
     let sandbox = sandbox_mode(request.permission);
     let mut args: Vec<String> = vec!["exec".into()];
+    // Uma flag `-i` por imagem, sempre antes de `--json`: assim o `-` do stdin nunca vira valor de imagem.
+    let images: Vec<String> = request
+        .images
+        .iter()
+        .flat_map(|p| ["-i".to_string(), p.display().to_string()])
+        .collect();
 
     // `-s` só existe em `exec` novo; a retomada recebe o mesmo modo por `-c sandbox_mode`.
     match &request.session_id {
-        None => args.extend(["--json", "--skip-git-repo-check", "-s", sandbox].map(String::from)),
+        None => {
+            args.extend(images.iter().cloned());
+            args.extend(["--json", "--skip-git-repo-check", "-s", sandbox].map(String::from));
+        }
         Some(_) => args.extend(["-c".to_string(), format!("sandbox_mode=\"{sandbox}\"")]),
     }
 
@@ -25,7 +34,11 @@ pub fn args(request: &RunRequest) -> Vec<String> {
 
     match &request.session_id {
         None => args.push("-".into()),
-        Some(id) => args.extend(["resume".to_string(), id.clone(), "--json".into(), "--skip-git-repo-check".into(), "-".into()]),
+        Some(id) => {
+            args.extend(["resume".to_string(), id.clone()]);
+            args.extend(images.iter().cloned());
+            args.extend(["--json".to_string(), "--skip-git-repo-check".into(), "-".into()]);
+        }
     }
     args
 }
@@ -167,5 +180,30 @@ mod tests {
             parse_line(r#"{"type":"turn.completed","usage":{}}"#),
             vec![ProviderEvent::Done { ok: true }]
         );
+    }
+
+    /// Cada imagem ganha a sua flag \`-i\`, antes de \`--json\`; o \`-\` do stdin fica por último.
+    #[test]
+    fn each_image_gets_its_own_flag_before_the_stdin_marker() {
+        let request = RunRequest {
+            provider: crate::providers::ProviderKind::Codex,
+            prompt: "x".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: None,
+            effort: None,
+            profile: None,
+            images: vec![
+                std::path::PathBuf::from("C:\\a\\1.png"),
+                std::path::PathBuf::from("C:\\a\\2.jpg"),
+            ],
+        };
+        let flags = args(&request);
+        let first = flags.iter().position(|a| a == "-i").unwrap();
+        assert_eq!(flags[first + 1], "C:\\a\\1.png");
+        assert_eq!(flags.iter().filter(|a| *a == "-i").count(), 2);
+        assert!(first < flags.iter().position(|a| a == "--json").unwrap());
+        assert_eq!(flags.last().unwrap(), "-");
     }
 }

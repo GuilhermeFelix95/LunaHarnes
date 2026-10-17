@@ -18,18 +18,23 @@ import type {
 export const PROVIDER_EVENT = "provider-event";
 
 /// Envia o prompt ao CLI escolhido. A saída chega pelos eventos `provider-event`.
-export function sendPrompt(request: RunRequest): Promise<void> {
-  return invoke("send_prompt", { request });
+/// `runId` é o id da conversa: cada conversa tem a sua execução, e várias rodam ao mesmo tempo.
+export function sendPrompt(request: RunRequest, runId: string): Promise<void> {
+  return invoke("send_prompt", { request, runId });
 }
 
-export function cancelPrompt(): Promise<void> {
-  return invoke("cancel_prompt");
+export function cancelPrompt(runId: string): Promise<void> {
+  return invoke("cancel_prompt", { runId });
 }
 
+/// Entrega só os eventos da execução `runId`.
 export function onProviderEvent(
+  runId: string,
   handler: (event: ProviderEvent) => void,
 ): Promise<UnlistenFn> {
-  return listen<ProviderEvent>(PROVIDER_EVENT, (e) => handler(e.payload));
+  return listen<{ runId: string; event: ProviderEvent }>(PROVIDER_EVENT, (e) => {
+    if (e.payload.runId === runId) handler(e.payload.event);
+  });
 }
 
 export interface PluginScan {
@@ -95,6 +100,41 @@ export function getChanges(cwd: string): Promise<Changes> {
 /// Diff de um arquivo alterado.
 export function getFileDiff(cwd: string, path: ChangedFile["path"]): Promise<string> {
   return invoke("get_file_diff", { cwd, path });
+}
+
+/// Salva uma imagem anexada (base64) na pasta de anexos do app e devolve o caminho.
+export function saveAttachment(name: string, data: string): Promise<string> {
+  return invoke("save_attachment", { name, data });
+}
+
+/// Arquivos do projeto para o @arquivo, filtrados pelo trecho digitado (até 50).
+export function listFiles(cwd: string, query: string): Promise<string[]> {
+  return invoke("list_files", { cwd, query });
+}
+
+/// Grava o estado dos arquivos antes de um turno. `null` fora de repositório git.
+export function checkpointTake(cwd: string): Promise<string | null> {
+  return invoke("checkpoint_take", { cwd });
+}
+
+export interface RestorePreview {
+  /** Arquivos criados depois do checkpoint: serão apagados. */
+  removed: string[];
+  /** Arquivos alterados ou removidos depois: voltam ao que eram. */
+  restored: string[];
+}
+
+export function checkpointPreview(cwd: string, checkpoint: string): Promise<RestorePreview> {
+  return invoke("checkpoint_preview", { cwd, checkpoint });
+}
+
+export function checkpointRestore(cwd: string, checkpoint: string): Promise<RestorePreview> {
+  return invoke("checkpoint_restore", { cwd, checkpoint });
+}
+
+/// Desfaz a alteração de um arquivo: volta ao HEAD, ou apaga o que nunca foi commitado.
+export function discardChange(cwd: string, path: string, status: ChangedFile["status"]): Promise<void> {
+  return invoke("discard_change", { cwd, path, status });
 }
 
 /// Abre um shell na pasta dada e devolve o id para escrever, redimensionar e fechar.

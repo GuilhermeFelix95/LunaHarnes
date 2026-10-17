@@ -1,7 +1,7 @@
 pub mod claude;
 pub mod codex;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +42,9 @@ pub struct RunRequest {
     /// A chave não vem aqui: o app a lê do cofre de credenciais.
     #[serde(default)]
     pub profile: Option<String>,
+    /// Imagens anexadas (PNG, JPEG ou WebP) na pasta de anexos do app. Ausente = sem imagem.
+    #[serde(default)]
+    pub images: Vec<PathBuf>,
 }
 
 impl RunRequest {
@@ -56,6 +59,12 @@ impl RunRequest {
             if !is_plain_token(effort) {
                 return Err(format!("esforço inválido: {effort:?}"));
             }
+        }
+        if self.images.len() > MAX_IMAGES {
+            return Err(format!("no máximo {MAX_IMAGES} imagens por pedido"));
+        }
+        if let Some(bad) = self.images.iter().find(|p| image_media_type(p).is_none()) {
+            return Err(format!("formato de imagem não suportado: {}", bad.display()));
         }
         Ok(())
     }
@@ -106,6 +115,27 @@ pub enum LimitWindow {
     SevenDay,
 }
 
+/// Máximo de imagens por pedido.
+pub const MAX_IMAGES: usize = 5;
+
+/// Tipo MIME de uma imagem aceita, pela extensão. \`None\` = formato não suportado.
+pub fn image_media_type(path: &Path) -> Option<&'static str> {
+    match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
+        "png" => Some("image/png"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "webp" => Some("image/webp"),
+        _ => None,
+    }
+}
+
+/// O que o CLI lê pelo stdin: o prompt puro, ou (Claude com imagens) uma linha stream-json.
+pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
+    match request.provider {
+        ProviderKind::Claude => claude::input(request),
+        ProviderKind::Codex => Ok(request.prompt.clone()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,6 +150,7 @@ mod tests {
             model: None,
             effort: None,
             profile: None,
+            images: Vec::new(),
         }
     }
 
@@ -332,6 +363,16 @@ mod tests {
         assert_eq!(json["kind"], "sessionStarted");
         assert_eq!(json["sessionId"], "abc");
     }
+    #[test]
+    fn validate_rejects_unknown_image_types_and_too_many_images() {
+        let mut r = request(ProviderKind::Claude, Permission::ReadOnly, None);
+        r.images = vec![PathBuf::from("C:\\x\\foto.gif")];
+        assert!(r.validate().is_err());
+        r.images = vec![PathBuf::from("C:\\x\\foto.png"); MAX_IMAGES + 1];
+        assert!(r.validate().is_err());
+        r.images = vec![PathBuf::from("C:\\x\\foto.webp")];
+        assert!(r.validate().is_ok());
+    }
 }
 
 /// Traduz uma linha de saída do CLI para eventos internos.
@@ -384,3 +425,4 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
         ProviderKind::Codex => "codex",
     }
 }
+

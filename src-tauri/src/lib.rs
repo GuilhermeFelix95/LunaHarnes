@@ -1,6 +1,7 @@
 pub mod api_profiles;
 pub mod auth;
 pub mod changes;
+pub mod checkpoints;
 pub mod commands;
 pub mod conversations;
 pub mod models;
@@ -12,9 +13,10 @@ pub mod terminal;
 /// Ponto de entrada do app Tauri.
 pub fn run() {
     tauri::Builder::default()
-        .manage(commands::ActiveRun::default())
+        .manage(commands::ActiveRuns::default())
         .manage(terminal::Terminals::default())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
             commands::cancel_prompt,
@@ -24,6 +26,12 @@ pub fn run() {
             commands::list_models,
             commands::get_changes,
             commands::get_file_diff,
+            commands::discard_change,
+            commands::checkpoint_take,
+            commands::list_files,
+            commands::save_attachment,
+            commands::checkpoint_preview,
+            commands::checkpoint_restore,
             commands::terminal_open,
             commands::terminal_write,
             commands::terminal_resize,

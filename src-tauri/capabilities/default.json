@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Permissões mínimas da janela principal: apenas os comandos próprios e eventos.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:default"]
+  "permissions": ["core:default", "dialog:default", "notification:default"]
 }
