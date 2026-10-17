@@ -4,7 +4,8 @@ use std::path::{Component, Path};
 use serde::{Deserialize, Serialize};
 
 /// Permissões que o host sabe conceder. Qualquer outra recusa o plugin.
-pub const KNOWN_PERMISSIONS: &[&str] = &["commands", "hooks"];
+/// `modes` só permite registrar modos que restringem (somente leitura); nunca amplia permissão.
+pub const KNOWN_PERMISSIONS: &[&str] = &["commands", "hooks", "modes"];
 
 /// Conteúdo de `manifest.json`. A pasta do plugin precisa ter o mesmo nome do `id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -112,7 +113,7 @@ fn read_manifest(plugins_dir: &Path, folder: &str) -> Result<Manifest, String> {
     Ok(manifest)
 }
 
-fn is_valid_id(id: &str) -> bool {
+pub(crate) fn is_valid_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 64
         && !id.starts_with('-')
@@ -121,7 +122,7 @@ fn is_valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
 
-fn is_safe_relative(path: &str) -> bool {
+pub(crate) fn is_safe_relative(path: &str) -> bool {
     !path.is_empty()
         && Path::new(path)
             .components()

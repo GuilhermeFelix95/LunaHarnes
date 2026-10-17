@@ -13,6 +13,16 @@ export type CommandHandler = (args: string) => string | void | Promise<string | 
 export type BeforeSendHook = (prompt: string) => string | void | Promise<string | void>;
 export type AfterResponseHook = (text: string) => void | Promise<void>;
 
+/// Modo que o plugin oferece no composer. Ligado, ele acrescenta `instruction` ao pedido e força a leitura.
+export interface PluginMode {
+  id: string;
+  label: string;
+  description: string;
+  instruction: string;
+  /** Só `readOnly`: um modo restringe, nunca dá mais permissão do que o composer já tem. */
+  permission: "readOnly";
+}
+
 export interface PluginApi {
   /** Requer permissão `commands`. Nome sem barra: `ola` vira `/ola`. */
   registerCommand(name: string, handler: CommandHandler): void;
@@ -20,6 +30,8 @@ export interface PluginApi {
   onBeforeSend(hook: BeforeSendHook): void;
   /** Requer permissão `hooks`. Recebe o texto final da resposta. */
   onAfterResponse(hook: AfterResponseHook): void;
+  /** Requer permissão `modes`. Só aceita modos de somente leitura. */
+  registerMode(mode: PluginMode): void;
 }
 
 export interface PluginModule {
@@ -34,12 +46,13 @@ export interface CommandResult {
 }
 
 const COMMAND_NAME = /^[a-z][a-z0-9-]*$/;
-const PERMISSIONS = ["commands", "hooks"] as const;
+const PERMISSIONS = ["commands", "hooks", "modes"] as const;
 
 export class PluginHost {
   private commands = new Map<string, { pluginId: string; handler: CommandHandler }>();
   private beforeSendHooks: { pluginId: string; hook: BeforeSendHook }[] = [];
   private afterResponseHooks: { pluginId: string; hook: AfterResponseHook }[] = [];
+  private modes = new Map<string, { pluginId: string; mode: PluginMode }>();
   readonly loaded: string[] = [];
   readonly errors: string[] = [];
 
@@ -102,6 +115,21 @@ export class PluginHost {
     return [...this.commands.keys()].sort();
   }
 
+  /** Modos oferecidos pelos plugins ativos, na ordem em que foram registrados. */
+  modeList(): PluginMode[] {
+    return [...this.modes.values()].map((entry) => entry.mode);
+  }
+
+  /** Esvazia tudo, para recarregar os plugins depois de instalar, desinstalar ou ligar/desligar um. */
+  reset() {
+    this.commands.clear();
+    this.beforeSendHooks = [];
+    this.afterResponseHooks = [];
+    this.modes.clear();
+    this.loaded.length = 0;
+    this.errors.length = 0;
+  }
+
   private createApi(manifest: PluginManifest): PluginApi {
     const { id, permissions } = manifest;
     const require = (permission: (typeof PERMISSIONS)[number]) => {
@@ -128,6 +156,22 @@ export class PluginHost {
       onAfterResponse: (hook) => {
         require("hooks");
         this.afterResponseHooks.push({ pluginId: id, hook });
+      },
+      registerMode: (mode) => {
+        require("modes");
+        if (!COMMAND_NAME.test(mode.id)) {
+          throw new Error(`id de modo inválido "${mode.id}": use letras minúsculas, números e hífen`);
+        }
+        if (mode.permission !== "readOnly") {
+          throw new Error(`modo "${mode.id}" precisa usar permission "readOnly": um modo só pode restringir`);
+        }
+        if (!mode.label.trim() || !mode.instruction.trim()) {
+          throw new Error(`modo "${mode.id}" precisa de label e instruction`);
+        }
+        if (this.modes.has(mode.id)) {
+          throw new Error(`modo "${mode.id}" já existe (registrado por ${this.modes.get(mode.id)!.pluginId})`);
+        }
+        this.modes.set(mode.id, { pluginId: id, mode: { ...mode } });
       },
     };
   }

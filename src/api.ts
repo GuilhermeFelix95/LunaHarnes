@@ -162,3 +162,69 @@ export function testApiProfile(id: string): Promise<string> {
 
 /// Avisa as telas que a lista de perfis mudou (ver ApiProfilesSection e ChatView).
 export const PROFILES_CHANGED = "luna:profiles-changed";
+/// Avisa o chat que a lista de plugins mudou (instalar, desinstalar, ligar ou desligar).
+export const PLUGINS_CHANGED = "luna:plugins-changed";
+
+/// Nome do catálogo oficial embutido (ver src-tauri/marketplace/official.json).
+export const OFFICIAL_SOURCE = "oficial";
+
+export interface CatalogFile {
+  path: string;
+  sha256: string;
+  content: string | null;
+  url: string | null;
+}
+
+export interface CatalogPlugin {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  version: string;
+  entry: string;
+  permissions: string[];
+  files: CatalogFile[];
+}
+
+export interface Catalog {
+  name: string;
+  plugins: CatalogPlugin[];
+}
+
+export interface PluginsState {
+  disabled: string[];
+}
+
+export function listCatalogSources(): Promise<string[]> {
+  return invoke("list_catalog_sources");
+}
+
+/// Baixa e confere o catálogo antes de guardar a URL.
+export function addCatalogSource(url: string): Promise<Catalog> {
+  return invoke("add_catalog_source", { url });
+}
+
+export function removeCatalogSource(url: string): Promise<void> {
+  return invoke("remove_catalog_source", { url });
+}
+
+/// `source` é `OFFICIAL_SOURCE` ou uma URL já adicionada.
+export function loadCatalog(source: string): Promise<Catalog> {
+  return invoke("load_catalog", { source });
+}
+
+export function installCatalogPlugin(source: string, id: string): Promise<void> {
+  return invoke("install_catalog_plugin", { source, id });
+}
+
+export function uninstallPlugin(id: string): Promise<void> {
+  return invoke("uninstall_plugin", { id });
+}
+
+export function getPluginsState(): Promise<PluginsState> {
+  return invoke("get_plugins_state");
+}
+
+export function setPluginEnabled(id: string, enabled: boolean): Promise<PluginsState> {
+  return invoke("set_plugin_enabled", { id, enabled });
+}

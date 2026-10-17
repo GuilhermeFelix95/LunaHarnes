@@ -13,6 +13,17 @@ vi.mock("../../api", () => ({
   saveApiProfile: vi.fn(async () => ({})),
   setApiProfileKey: vi.fn(async () => {}),
   testApiProfile: vi.fn(async () => "ok"),
+  listPlugins: vi.fn(async () => ({ plugins: [], errors: [] })),
+  getPluginsState: vi.fn(async () => ({ disabled: [] })),
+  listCatalogSources: vi.fn(async () => []),
+  loadCatalog: vi.fn(async () => ({ name: "oficial", plugins: [] })),
+  OFFICIAL_SOURCE: "oficial",
+  PLUGINS_CHANGED: "luna:plugins-changed",
+  addCatalogSource: vi.fn(async () => ({ name: "x", plugins: [] })),
+  installCatalogPlugin: vi.fn(async () => {}),
+  removeCatalogSource: vi.fn(async () => {}),
+  setPluginEnabled: vi.fn(async () => ({ disabled: [] })),
+  uninstallPlugin: vi.fn(async () => {}),
 }));
 
 

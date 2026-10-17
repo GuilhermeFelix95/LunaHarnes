@@ -30,6 +30,8 @@ vi.mock("../../api", () => ({
   pickWorkspace: vi.fn(async () => null),
   listPlugins: vi.fn(async () => ({ plugins: [], errors: [] })),
   readPluginEntry: vi.fn(async () => ""),
+  getPluginsState: vi.fn(async () => ({ disabled: [] })),
+  PLUGINS_CHANGED: "luna:plugins-changed",
   onProviderEvent: vi.fn(async (handler: (event: ProviderEvent) => void) => {
     bridge.emit = handler;
     return () => {};

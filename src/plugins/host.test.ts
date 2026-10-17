@@ -114,3 +114,60 @@ describe("PluginHost", () => {
     expect(host.loaded).toEqual(["bom"]);
   });
 });
+
+describe("PluginHost: modos", () => {
+  const mode = {
+    id: "ask",
+    label: "Perguntar",
+    description: "Só explica",
+    instruction: "Só explique.",
+    permission: "readOnly" as const,
+  };
+
+  it("registra um modo de somente leitura com a permissão modes", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(manifest({ permissions: ["modes"] }), plugin((api) => api.registerMode(mode)));
+
+    expect(ok).toBe(true);
+    expect(host.modeList()).toEqual([mode]);
+  });
+
+  it("recusa modo sem a permissão modes", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(manifest({ permissions: ["commands"] }), plugin((api) => api.registerMode(mode)));
+
+    expect(ok).toBe(false);
+    expect(host.errors[0]).toContain('não tem a permissão "modes"');
+    expect(host.modeList()).toEqual([]);
+  });
+
+  it("nunca aceita modo que dê mais permissão do que o composer tem", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(
+      manifest({ permissions: ["modes"] }),
+      plugin((api) => api.registerMode({ ...mode, permission: "fullAccess" as never })),
+    );
+
+    expect(ok).toBe(false);
+    expect(host.errors[0]).toContain('precisa usar permission "readOnly"');
+    expect(host.modeList()).toEqual([]);
+  });
+
+  it("rejeita id de modo repetido e reset esvazia modos, comandos e erros", async () => {
+    const host = new PluginHost();
+    await host.load(
+      manifest({ permissions: ["modes", "commands"] }),
+      plugin((api) => {
+        api.registerMode(mode);
+        api.registerMode(mode);
+        api.registerCommand("ola", () => "x");
+      }),
+    );
+    expect(host.errors[0]).toContain('modo "ask" já existe');
+
+    host.reset();
+    expect(host.modeList()).toEqual([]);
+    expect(host.commandNames()).toEqual([]);
+    expect(host.errors).toEqual([]);
+  });
+});

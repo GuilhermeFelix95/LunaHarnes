@@ -9,6 +9,7 @@ use crate::changes::{self, Changes};
 use crate::conversations;
 use crate::models::{self, ModelOption};
 use crate::plugins::loader::{self, PluginScan};
+use crate::plugins::marketplace::{self, Catalog, PluginsState};
 use crate::providers::{fallback_events, Permission, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
 use crate::terminal::{self, Terminals};
@@ -205,6 +206,82 @@ pub fn list_plugins(app: AppHandle) -> Result<PluginScan, String> {
 #[tauri::command]
 pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
     loader::read_entry(&plugins_dir(&app)?, &id)
+}
+
+/// Nome do catálogo oficial embutido no app, para o frontend pedir sem URL.
+const OFFICIAL_SOURCE: &str = "oficial";
+
+/// Catálogo oficial (embutido) ou um dos catálogos por URL que o usuário adicionou.
+async fn catalog_of(app: &AppHandle, source: &str) -> Result<Catalog, String> {
+    if source == OFFICIAL_SOURCE {
+        return marketplace::official();
+    }
+    let dir = app_data_dir(app)?;
+    if !marketplace::load_sources(&dir)?.urls.iter().any(|u| u == source) {
+        return Err("este catálogo não está na lista de catálogos".into());
+    }
+    marketplace::fetch_catalog(source).await
+}
+
+#[tauri::command]
+pub fn list_catalog_sources(app: AppHandle) -> Result<Vec<String>, String> {
+    Ok(marketplace::load_sources(&app_data_dir(&app)?)?.urls)
+}
+
+/// Baixa e confere o catálogo antes de guardar a URL: endereço ruim ou catálogo inválido não entra na lista.
+#[tauri::command]
+pub async fn add_catalog_source(app: AppHandle, url: String) -> Result<Catalog, String> {
+    marketplace::validate_https(&url)?;
+    let catalog = marketplace::fetch_catalog(&url).await?;
+    marketplace::add_source(&app_data_dir(&app)?, &url)?;
+    Ok(catalog)
+}
+
+#[tauri::command]
+pub fn remove_catalog_source(app: AppHandle, url: String) -> Result<(), String> {
+    marketplace::remove_source(&app_data_dir(&app)?, &url).map(|_| ())
+}
+
+#[tauri::command]
+pub async fn load_catalog(app: AppHandle, source: String) -> Result<Catalog, String> {
+    catalog_of(&app, &source).await
+}
+
+/// Baixa os arquivos do plugin, confere os hashes e instala na pasta de plugins.
+#[tauri::command]
+pub async fn install_catalog_plugin(app: AppHandle, source: String, id: String) -> Result<(), String> {
+    let catalog = catalog_of(&app, &source).await?;
+    let plugin = catalog
+        .plugins
+        .into_iter()
+        .find(|p| p.id == id)
+        .ok_or_else(|| format!("o plugin `{id}` não está no catálogo"))?;
+
+    let mut contents = Vec::with_capacity(plugin.files.len());
+    for file in &plugin.files {
+        let bytes = match (&file.content, &file.url) {
+            (Some(text), None) => text.clone().into_bytes(),
+            (None, Some(url)) => marketplace::fetch_bytes(url).await?,
+            _ => return Err(format!("arquivo `{}` do plugin `{id}` está mal formado", file.path)),
+        };
+        contents.push((file.path.clone(), bytes));
+    }
+    marketplace::install_files(&plugins_dir(&app)?, &plugin, &contents)
+}
+
+#[tauri::command]
+pub fn uninstall_plugin(app: AppHandle, id: String) -> Result<(), String> {
+    marketplace::uninstall(&plugins_dir(&app)?, &id)
+}
+
+#[tauri::command]
+pub fn get_plugins_state(app: AppHandle) -> Result<PluginsState, String> {
+    marketplace::load_state(&app_data_dir(&app)?)
+}
+
+#[tauri::command]
+pub fn set_plugin_enabled(app: AppHandle, id: String, enabled: bool) -> Result<PluginsState, String> {
+    marketplace::set_enabled(&app_data_dir(&app)?, &id, enabled)
 }
 
 /// Pasta de conversas: `<app_data>/conversations`.

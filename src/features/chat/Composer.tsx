@@ -2,6 +2,7 @@ import { useEffect, useRef, type KeyboardEvent } from "react";
 import { ArrowUp, Square } from "lucide-react";
 import type { ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
+import type { PluginMode } from "../../plugins/host";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { ModelMenu } from "./ModelMenu";
 
@@ -38,6 +39,10 @@ interface ComposerProps {
   onEffort: (effort: string) => void;
   planning: boolean;
   onTogglePlanning: () => void;
+  /** Modos oferecidos por plugins. `mode` é o id ligado ou vazio; só um liga por vez. */
+  modes: PluginMode[];
+  mode: string;
+  onMode: (id: string) => void;
 }
 
 /// Caixa de mensagem com Enter para enviar, Shift+Enter para quebrar linha e os seletores embaixo.
@@ -125,6 +130,19 @@ export function Composer(props: ComposerProps) {
           </select>
         </div>
         <div className="composer__actions">
+          {props.modes.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className="composer__mode"
+              title={m.description}
+              aria-pressed={props.mode === m.id}
+              disabled={running}
+              onClick={() => props.onMode(props.mode === m.id ? "" : m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
           <button
             type="button"
             className="composer__plan"

@@ -11,6 +11,7 @@ import {
   listApiProfiles,
   listModels,
   onProviderEvent,
+  PLUGINS_CHANGED,
   PROFILES_CHANGED,
   openLogin,
   pickWorkspace,
@@ -21,7 +22,7 @@ import { contextFor, withContext } from "../../chat/handoff";
 import { APPROVAL_PROMPT, withPlanInstruction } from "../../chat/planning";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
-import { PluginHost } from "../../plugins/host";
+import { PluginHost, type PluginMode } from "../../plugins/host";
 import { loadInstalledPlugins } from "../../plugins/loader";
 import type {
   AgentSessions,
@@ -77,11 +78,14 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
-  const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, sideTab: "changes" as SideTab });
+  const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, running: false, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
   const [host] = useState(() => new PluginHost());
+  // Modos que os plugins oferecem; o escolhido vale só para o próximo envio.
+  const [modes, setModes] = useState<PluginMode[]>([]);
+  const [modeId, setModeId] = useState("");
   const responseText = useRef("");
   // Sessão nativa de cada agente e quanto do histórico ele já viu (ver chat/handoff.ts).
   const sessions = useRef<AgentSessions>(initialSessions(initial));
@@ -102,7 +106,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
   const [terminalOpened, setTerminalOpened] = useState(false);
   const [changesVersion, setChangesVersion] = useState(0);
-  live.current = { provider, profileId, cwd, permission, model, effort, planning, sideTab };
+  live.current = { provider, profileId, cwd, permission, model, effort, planning, running, sideTab };
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -133,7 +137,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   }
 
   useEffect(() => {
-    void loadInstalledPlugins(host).then(() => setNotes([...host.errors]));
+    void loadInstalledPlugins(host).then(() => {
+      setModes(host.modeList());
+      setNotes([...host.errors]);
+    });
     if (!cwd) {
       void getWorkspace().then(setCwd).catch((e) => setNotes([String(e)]));
     }
@@ -142,6 +149,20 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   useEffect(() => {
     void verifyLogin();
   }, [provider, profileId]);
+
+  // Configurações instalou, removeu ou ligou/desligou um plugin: recarrega sem mexer numa resposta em andamento.
+  useEffect(() => {
+    const reload = () => {
+      if (live.current.running) return;
+      host.reset();
+      void loadInstalledPlugins(host).then(() => {
+        setModes(host.modeList());
+        setNotes([...host.errors]);
+      });
+    };
+    window.addEventListener(PLUGINS_CHANGED, reload);
+    return () => window.removeEventListener(PLUGINS_CHANGED, reload);
+  }, [host]);
 
   // Perfis e presets: recarregados quando a página de configurações muda a lista.
   useEffect(() => {
@@ -277,7 +298,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   /// Envia um turno. `shown` aparece na conversa; `cliPrompt` é o que o CLI recebe.
   /// No modo plano, o CLI recebe a instrução de planejamento e roda só com leitura.
   /// Se o agente ainda não viu parte do histórico (troca de agente), o contexto vai antes da mensagem.
-  async function run(shown: string, cliPrompt: string, plan: boolean) {
+  async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode) {
     setRunning(true);
     responseText.current = "";
     turnProvider.current = provider;
@@ -304,10 +325,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       await sendPrompt({
         provider,
         profile: profileId ?? undefined,
-        prompt: withContext(preamble, plan ? withPlanInstruction(cliPrompt) : cliPrompt),
+        prompt: withContext(preamble, plan ? withPlanInstruction(cliPrompt) : mode ? mode.instruction + "\n\n" + cliPrompt : cliPrompt),
         sessionId,
         cwd,
-        permission: plan ? "readOnly" : permission,
+        permission: plan || mode ? "readOnly" : permission,
         model: model || undefined,
         effort: effort || undefined,
       });
@@ -330,7 +351,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       return;
     }
     const outgoing = await host.runBeforeSend(command.handled ? command.prompt! : prompt);
-    await run(prompt, outgoing, planning);
+    // Modo de plugin: só leitura e com a instrução do modo na frente do pedido.
+    await run(prompt, outgoing, planning, modes.find((m) => m.id === modeId));
   }
 
   /// Aprovação do plano: sai do modo plano e manda o agente executar com a permissão escolhida.
@@ -484,6 +506,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         onModel={changeModel}
         effort={effort}
         onEffort={setEffort}
+        modes={modes}
+        mode={modeId}
+        onMode={setModeId}
         planning={planning}
         onTogglePlanning={() => setPlanning((on) => !on)}
       />

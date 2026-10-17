@@ -40,7 +40,15 @@ pub fn run() {
             commands::delete_api_profile,
             commands::set_api_profile_key,
             commands::api_profile_has_key,
-            commands::test_api_profile
+            commands::test_api_profile,
+            commands::list_catalog_sources,
+            commands::add_catalog_source,
+            commands::remove_catalog_source,
+            commands::load_catalog,
+            commands::install_catalog_plugin,
+            commands::uninstall_plugin,
+            commands::get_plugins_state,
+            commands::set_plugin_enabled
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaHarness");

@@ -17,3 +17,6 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 portable-pty = "0.9"
 keyring = "4.2.0"
+# Marketplace de plugins: confere o sha256 de cada arquivo e baixa catálogos por HTTPS (TLS com rustls).
+sha2 = "0.11.0"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }

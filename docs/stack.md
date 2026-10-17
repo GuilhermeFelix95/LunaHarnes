@@ -45,6 +45,7 @@ docs/                stack, contrato de plugins
 - Testes: `cargo test` (18) e `npx vitest run` (13). Build: `npx vite build`. A UI ainda não foi exercitada num `tauri dev` real.
 - Etapa 4 (plugins): loader em Rust (`src-tauri/src/plugins/loader.rs`) com validação de manifesto e travessia bloqueada. Host em TS (`src/plugins/host.ts`) com permissões `commands` e `hooks`. Painéis (`registerPanel`) ficaram fora do MVP.
 - Etapa 5: contrato em `docs/plugins.md` e plugin de referência em `plugins-examples/hello-world`.
+- Fase F, etapa 4 (marketplace): `src-tauri/src/plugins/marketplace.rs` (catálogo oficial embutido em `src-tauri/marketplace/official.json`, catálogos por URL https, sha256 obrigatório, instalação em pasta temporária). Permissão `modes` (`registerMode`, só `readOnly`) com chips no composer. Plugin oficial `plugins-examples/ask-mode` (modo Perguntar). Configurações > Plugins (Instalados e Marketplace). Crates novos: `sha2` e `reqwest` (rustls).
 - Login: a app verifica a conta de cada CLI (`check_auth`) e bloqueia o envio até ela estar conectada. O login interativo roda numa janela própria (`open_login`). Só Windows por enquanto.
 - Comando `luna`: `bin/luna.mjs`, registrado com `npm link`. Abre o executável de release (`npm run build:app`).
 - Fase B (interface e histórico):

@@ -44,6 +44,9 @@ function setup(overrides: Partial<Parameters<typeof Composer>[0]> = {}) {
     onEffort: vi.fn(),
     planning: false,
     onTogglePlanning: vi.fn(),
+    modes: [] as { id: string; label: string; description: string; instruction: string; permission: "readOnly" }[],
+    mode: "",
+    onMode: vi.fn(),
     ...overrides,
   };
   render(<Composer {...props} />);
@@ -158,5 +161,25 @@ describe("Composer", () => {
     expect(plan.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(plan);
     expect(props.onTogglePlanning).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Composer: modos de plugin", () => {
+  const ASK = { id: "ask", label: "Perguntar", description: "Só explica", instruction: "Só explique.", permission: "readOnly" as const };
+
+  it("liga um modo ao clicar no chip", () => {
+    const props = setup({ modes: [ASK] });
+    fireEvent.click(screen.getByRole("button", { name: "Perguntar" }));
+
+    expect(props.onMode).toHaveBeenCalledWith("ask");
+  });
+
+  it("desliga o modo ativo ao clicar de novo", () => {
+    const props = setup({ modes: [ASK], mode: "ask" });
+    const chip = screen.getByRole("button", { name: "Perguntar" });
+    expect(chip.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(chip);
+    expect(props.onMode).toHaveBeenCalledWith("");
   });
 });
