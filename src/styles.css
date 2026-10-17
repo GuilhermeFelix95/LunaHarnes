@@ -80,6 +80,21 @@ body {
   background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
+.login-prompt {
+  padding: 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.login-prompt p {
+  margin: 0 0 8px;
+}
+
+.login-prompt__actions {
+  display: flex;
+  gap: 8px;
+}
+
 .chat__input {
   display: flex;
   gap: 8px;

@@ -27,6 +27,16 @@ export function readPluginEntry(id: string): Promise<string> {
   return invoke("read_plugin_entry", { id });
 }
 
+/// `true` quando o CLI do provedor já tem uma conta conectada.
+export function checkAuth(provider: ProviderKind): Promise<boolean> {
+  return invoke("check_auth", { provider });
+}
+
+/// Abre a janela de login oficial do CLI (interativa, no navegador).
+export function openLogin(provider: ProviderKind): Promise<void> {
+  return invoke("open_login", { provider });
+}
+
 export function onProviderEvent(
   handler: (event: ProviderEvent) => void,
 ): Promise<UnlistenFn> {

@@ -120,7 +120,7 @@ impl Session {
 
 /// Procura o executável no PATH. No Windows, CLIs instalados via npm são shims
 /// `.cmd`, então as extensões `.exe` e `.cmd` também são testadas.
-fn resolve_program(program: &str) -> Option<PathBuf> {
+pub(crate) fn resolve_program(program: &str) -> Option<PathBuf> {
     if Path::new(program).is_absolute() {
         return Path::new(program).is_file().then(|| PathBuf::from(program));
     }

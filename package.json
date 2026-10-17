@@ -3,9 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "luna": "bin/luna.mjs"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:app": "tauri build --no-bundle",
     "test": "vitest run",
     "tauri": "tauri"
   },

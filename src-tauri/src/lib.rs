@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod commands;
 pub mod plugins;
 pub mod providers;
@@ -11,7 +12,9 @@ pub fn run() {
             commands::send_prompt,
             commands::cancel_prompt,
             commands::list_plugins,
-            commands::read_plugin_entry
+            commands::read_plugin_entry,
+            commands::check_auth,
+            commands::open_login
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaHarness");

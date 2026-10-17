@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { cancelPrompt, onProviderEvent, sendPrompt } from "../../api";
+import {
+  cancelPrompt,
+  checkAuth,
+  onProviderEvent,
+  openLogin,
+  sendPrompt,
+} from "../../api";
 import { applyEvent } from "../../chat/reducer";
 import { PluginHost } from "../../plugins/host";
 import { loadInstalledPlugins } from "../../plugins/loader";
 import type { ChatMessage, ProviderKind } from "../../types";
+import { LoginPrompt } from "../auth/LoginPrompt";
 
 const PROVIDER_LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
@@ -18,10 +25,29 @@ export function ChatView() {
   const [notes, setNotes] = useState<string[]>([]);
   const [host] = useState(() => new PluginHost());
   const responseText = useRef("");
+  // null = ainda não verificado; false = precisa entrar na conta.
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     void loadInstalledPlugins(host).then(() => setNotes([...host.errors]));
   }, [host]);
+
+  useEffect(() => {
+    void verifyLogin();
+  }, [provider]);
+
+  async function verifyLogin() {
+    setChecking(true);
+    try {
+      setLoggedIn(await checkAuth(provider));
+    } catch (e) {
+      setLoggedIn(false);
+      setNotes((current) => [...current, String(e)]);
+    } finally {
+      setChecking(false);
+    }
+  }
 
   useEffect(() => {
     const unlisten = onProviderEvent((event) => {
@@ -39,7 +65,7 @@ export function ChatView() {
 
   async function send() {
     const prompt = draft.trim();
-    if (!prompt || running) return;
+    if (!prompt || running || loggedIn !== true) return;
     setDraft("");
 
     // Comando de plugin (`/nome args`): se devolver texto, esse texto é o que vai ao provedor.
@@ -94,6 +120,19 @@ export function ChatView() {
         </ul>
       )}
 
+      {loggedIn === false && (
+        <LoginPrompt
+          provider={provider}
+          onLogin={() => {
+            openLogin(provider).catch((e) =>
+              setNotes((current) => [...current, String(e)]),
+            );
+          }}
+          onCheck={() => void verifyLogin()}
+          checking={checking}
+        />
+      )}
+
       <ol className="chat__messages" aria-live="polite">
         {messages.map((m, i) => (
           <li key={i} className={`chat__message chat__message--${m.role}`}>
@@ -115,6 +154,7 @@ export function ChatView() {
           aria-label="Mensagem"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          disabled={loggedIn !== true}
           rows={3}
         />
         {running ? (
@@ -122,7 +162,7 @@ export function ChatView() {
             Parar
           </button>
         ) : (
-          <button type="submit" disabled={!draft.trim()}>
+          <button type="submit" disabled={!draft.trim() || loggedIn !== true}>
             Enviar
           </button>
         )}

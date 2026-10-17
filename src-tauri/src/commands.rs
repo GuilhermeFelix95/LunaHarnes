@@ -67,6 +67,20 @@ pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
     loader::read_entry(&plugins_dir(&app)?, &id)
 }
 
+/// Verifica se o usuário já entrou na conta do provedor.
+#[tauri::command]
+pub async fn check_auth(provider: ProviderKind) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || crate::auth::status(provider))
+        .await
+        .map_err(|e| format!("falha ao consultar o login: {e}"))?
+}
+
+/// Abre a janela de login oficial do CLI do provedor.
+#[tauri::command]
+pub fn open_login(provider: ProviderKind) -> Result<(), String> {
+    crate::auth::open_login(provider)
+}
+
 /// Para a execução em andamento, se houver.
 #[tauri::command]
 pub fn cancel_prompt(run: State<'_, ActiveRun>) -> Result<(), String> {
