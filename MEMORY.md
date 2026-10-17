@@ -6,3 +6,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-17 | Repositório Git iniciado, `.gitignore` e `docs/stack.md` criados.
 2026-10-17 | Rust (rustup, stable) e MSVC Build Tools instalados. `cargo test` só roda com o ambiente do MSVC carregado (vcvars64).
 2026-10-17 | Núcleo de providers em `src-tauri/src/providers` (parsers Claude stream-json e Codex JSONL) e `session.rs` (spawn, pump, cancel, resolução de .cmd no Windows). 9 testes passando. Fixture de sucesso do Codex pendente (exige `codex login`).
+2026-10-17 | Scaffold Tauri 2 + React/TS: comandos `send_prompt` e `cancel_prompt`, evento `provider-event`, `ChatView` com streaming e troca de provedor, reducer testado. Bugs corrigidos com teste antes: contrato camelCase dos campos do evento e cancelamento que deixava o pipe aberto (agora mata a árvore com taskkill /T).

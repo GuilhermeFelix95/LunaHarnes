@@ -1,13 +1,41 @@
 use std::env;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, ChildStdout, Command, Stdio};
+use std::sync::{Arc, Mutex};
 
 use crate::providers::{cli_args, cli_name, parse_line, ProviderEvent, ProviderKind};
 
-/// Processo filho de uma execução de CLI. Encerrar com `cancel` mata o processo.
+/// Processo filho de uma execução de CLI.
+/// `pump` lê a saída numa thread; `cancel_handle` permite matar o processo de outra thread.
 pub struct Session {
-    child: Child,
+    child: Arc<Mutex<Child>>,
+    stdout: Option<ChildStdout>,
+}
+
+/// Cópia leve para cancelar a execução sem precisar do `Session` inteiro.
+#[derive(Clone)]
+pub struct CancelHandle {
+    child: Arc<Mutex<Child>>,
+}
+
+impl CancelHandle {
+    /// Mata o processo e os filhos dele. No Windows, o `.cmd` do CLI roda via `cmd.exe`
+    /// e o `node` real é neto; matar só o pai deixaria o pipe de stdout aberto.
+    pub fn cancel(&self) -> std::io::Result<()> {
+        let mut child = self.child.lock().expect("lock do processo");
+        if cfg!(windows) {
+            let status = Command::new("taskkill")
+                .args(["/PID", &child.id().to_string(), "/T", "/F"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()?;
+            if status.success() {
+                return Ok(());
+            }
+        }
+        child.kill()
+    }
 }
 
 impl Session {
@@ -48,13 +76,23 @@ impl Session {
                 .map_err(|e| format!("falha ao enviar prompt para {}: {e}", kind_label(kind)))?;
         }
 
-        Ok(Self { child })
+        let stdout = child.stdout.take();
+        Ok(Self {
+            child: Arc::new(Mutex::new(child)),
+            stdout,
+        })
+    }
+
+    pub fn cancel_handle(&self) -> CancelHandle {
+        CancelHandle {
+            child: Arc::clone(&self.child),
+        }
     }
 
     /// Lê o stdout linha a linha, traduz para eventos e chama `on_event`.
     /// Bloqueia até o processo fechar a saída.
     pub fn pump(&mut self, kind: ProviderKind, mut on_event: impl FnMut(ProviderEvent)) {
-        let Some(stdout) = self.child.stdout.take() else {
+        let Some(stdout) = self.stdout.take() else {
             on_event(ProviderEvent::Error {
                 message: "stdout do processo indisponível".into(),
             });
@@ -75,13 +113,8 @@ impl Session {
         }
     }
 
-    /// Encerra o processo. Chamar de outra thread enquanto `pump` roda.
-    pub fn cancel(&mut self) -> std::io::Result<()> {
-        self.child.kill()
-    }
-
     pub fn wait(&mut self) -> std::io::Result<std::process::ExitStatus> {
-        self.child.wait()
+        self.child.lock().expect("lock do processo").wait()
     }
 }
 
@@ -141,6 +174,31 @@ mod tests {
 
         assert!(events.contains(&ProviderEvent::TextDelta { text: "ok".into() }));
         assert_eq!(events.last(), Some(&ProviderEvent::Done { ok: true }));
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn cancel_stops_a_running_process() {
+        let mut session = Session::spawn(
+            ProviderKind::Claude,
+            "",
+            "C:\\Windows\\System32\\cmd.exe",
+            vec!["/C".into(), "ping".into(), "-n".into(), "60".into(), "127.0.0.1".into()],
+        )
+        .expect("cmd.exe deve existir");
+
+        let handle = session.cancel_handle();
+        let canceller = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            handle.cancel().expect("cancelamento deve funcionar");
+        });
+
+        let started = std::time::Instant::now();
+        session.pump(ProviderKind::Claude, |_| {});
+        canceller.join().unwrap();
+        session.wait().expect("processo deve terminar após cancelamento");
+
+        assert!(started.elapsed() < std::time::Duration::from_secs(30));
     }
 
     #[test]

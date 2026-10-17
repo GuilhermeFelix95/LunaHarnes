@@ -1,0 +1,70 @@
+:root {
+  --bg: #f7f7f8;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --accent: #5b5bd6;
+  --error: #b42318;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161618;
+    --fg: #f2f2f4;
+    --muted: #9b9ba3;
+    --accent: #8b8bf0;
+    --error: #ff8a80;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, sans-serif;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+.chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chat__message p {
+  margin: 4px 0 12px;
+  white-space: pre-wrap;
+}
+
+.chat__message--user strong {
+  color: var(--muted);
+}
+
+.chat__message--assistant strong {
+  color: var(--accent);
+}
+
+.chat__error {
+  color: var(--error);
+}
+
+.chat__input {
+  display: flex;
+  gap: 8px;
+}
+
+.chat__input textarea {
+  flex: 1;
+  resize: none;
+  font: inherit;
+}

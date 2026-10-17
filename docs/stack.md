@@ -40,6 +40,8 @@ docs/                stack, contrato de plugins
 ## Estado atual
 
 - Etapa 1 (repositório e documentação): concluída.
-- Etapa 2 (providers e sessão em Rust): código e 9 testes passando. Fixture de sucesso do Codex pendente (`codex login`).
+- Etapa 2 (providers e sessão em Rust): código e testes passando. Fixture de sucesso do Codex pendente (`codex login`).
+- Etapa 3 (Tauri + UI de chat): comandos `send_prompt` e `cancel_prompt` (`src-tauri/src/commands.rs`), evento `provider-event`, `ChatView` com streaming e troca de provedor. Ícone provisório gerado em `src-tauri/icons`.
+- Testes: `cargo test` (11) e `npx vitest run` (4). Build: `npx vite build`. A UI ainda não foi exercitada num `tauri dev` real.
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

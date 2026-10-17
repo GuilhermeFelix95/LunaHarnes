@@ -13,12 +13,29 @@ pub enum ProviderKind {
 
 /// Evento interno único. O frontend nunca vê o JSON bruto de cada CLI.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum ProviderEvent {
     SessionStarted { session_id: String },
     TextDelta { text: String },
     Error { message: String },
     Done { ok: bool },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serialized_event_matches_frontend_contract() {
+        let json = serde_json::to_value(ProviderEvent::SessionStarted {
+            session_id: "abc".into(),
+        })
+        .unwrap();
+
+        // src/types.ts espera { kind: "sessionStarted", sessionId }.
+        assert_eq!(json["kind"], "sessionStarted");
+        assert_eq!(json["sessionId"], "abc");
+    }
 }
 
 /// Traduz uma linha de saída do CLI para eventos internos.
