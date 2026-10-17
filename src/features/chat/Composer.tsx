@@ -1,5 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { ModelOption, Permission, ProviderKind } from "../../types";
+import { ModelMenu } from "./ModelMenu";
 
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
@@ -96,19 +97,7 @@ export function Composer(props: ComposerProps) {
               </option>
             ))}
           </select>
-          <select
-            aria-label="Modelo"
-            value={props.model}
-            disabled={running}
-            onChange={(e) => props.onModel(e.target.value)}
-          >
-            <option value="">Padrão da CLI</option>
-            {props.models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+          <ModelMenu models={props.models} value={props.model} onChange={props.onModel} disabled={running} />
           <select
             aria-label="Esforço"
             value={props.effort}
@@ -117,8 +106,8 @@ export function Composer(props: ComposerProps) {
           >
             <option value="">Padrão</option>
             {efforts.map((level) => (
-              <option key={level} value={level}>
-                {level}
+              <option key={level.id} value={level.id}>
+                {level.recommended ? `${level.label} (recomendado)` : level.label}
               </option>
             ))}
           </select>

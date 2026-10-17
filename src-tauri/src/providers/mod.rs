@@ -71,8 +71,20 @@ pub enum ProviderEvent {
     SessionStarted { session_id: String },
     TextDelta { text: String },
     ToolUse { name: String, detail: String },
+    /// Uso de uma janela de limite da conta (sessão de 5 horas ou semana). `utilization` vem de 0 a 1.
+    RateLimit { window: LimitWindow, utilization: f64, resets_at: i64 },
+    /// Tokens que ocupam a janela de contexto no último turno, e o tamanho dessa janela.
+    Context { tokens: u64, window_size: u64 },
     Error { message: String },
     Done { ok: bool },
+}
+
+/// Janelas de limite que o Claude informa. O nome vai para o frontend como está aqui.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LimitWindow {
+    FiveHour,
+    SevenDay,
 }
 
 #[cfg(test)]

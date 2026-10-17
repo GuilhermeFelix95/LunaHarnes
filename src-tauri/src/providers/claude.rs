@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use super::ProviderEvent;
 
-use super::{Permission, RunRequest};
+use super::{LimitWindow, Permission, RunRequest};
 
 /// `claude -p` lê o prompt do stdin e emite JSON por linha.
 /// `--include-partial-messages` manda os deltas de texto conforme chegam.
@@ -87,6 +87,7 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                     .collect()
             })
             .unwrap_or_default(),
+        Some("rate_limit_event") => rate_limit_events(&value),
         Some("result") => {
             let is_error = value.get("is_error").and_then(Value::as_bool).unwrap_or(false);
             let mut events = Vec::new();
@@ -98,11 +99,44 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                     .to_string();
                 events.push(ProviderEvent::Error { message });
             }
+            events.extend(context_event(&value));
             events.push(ProviderEvent::Done { ok: !is_error });
             events
         }
         _ => vec![],
     }
+}
+
+/// `rate_limit_event` traz as duas janelas em `unifiedWindows`. Cada uma vira um evento.
+fn rate_limit_events(value: &Value) -> Vec<ProviderEvent> {
+    let windows = &value["rate_limit_info"]["unifiedWindows"];
+    [("five_hour", LimitWindow::FiveHour), ("seven_day", LimitWindow::SevenDay)]
+        .into_iter()
+        .filter_map(|(key, window)| {
+            let info = windows.get(key)?;
+            Some(ProviderEvent::RateLimit {
+                window,
+                utilization: info["utilization"].as_f64()?,
+                resets_at: info["resetsAt"].as_i64()?,
+            })
+        })
+        .collect()
+}
+
+/// No fim do turno, `modelUsage` dá o tamanho da janela e `usage` diz quantos tokens entraram.
+/// Os tokens que contam para o contexto são os da última chamada ao modelo.
+fn context_event(value: &Value) -> Option<ProviderEvent> {
+    let (_, model) = value["modelUsage"].as_object()?.iter().next()?;
+    let window_size = model["contextWindow"].as_u64()?;
+
+    let usage = &value["usage"];
+    let last = usage["iterations"].as_array().and_then(|list| list.last()).unwrap_or(usage);
+    let tokens = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]
+        .iter()
+        .map(|key| last[*key].as_u64().unwrap_or(0))
+        .sum();
+
+    Some(ProviderEvent::Context { tokens, window_size })
 }
 
 /// Resumo curto do que a ferramenta fez, para a linha de ferramenta no chat.
@@ -120,6 +154,7 @@ mod tests {
 
     const PARTIAL: &str = include_str!("../../tests/fixtures/claude_partial.jsonl");
     const TOOL: &str = include_str!("../../tests/fixtures/claude_tool.jsonl");
+    const USAGE: &str = include_str!("../../tests/fixtures/claude_usage.jsonl");
 
     fn events_of(fixture: &str) -> Vec<ProviderEvent> {
         fixture.lines().flat_map(parse_line).collect()
@@ -181,8 +216,36 @@ mod tests {
         );
     }
 
+    /// Captura real: uma execução curta mostra as janelas de 5 horas e semana e o contexto do turno.
+    #[test]
+    fn real_capture_reports_both_limit_windows_and_context() {
+        let events = events_of(USAGE);
+
+        let limit = |want: LimitWindow| {
+            events.iter().find_map(|e| match e {
+                ProviderEvent::RateLimit { window, utilization, resets_at } if *window == want => {
+                    Some((*utilization, *resets_at))
+                }
+                _ => None,
+            })
+        };
+        let (five, five_reset) = limit(LimitWindow::FiveHour).expect("janela de 5 horas");
+        let (week, week_reset) = limit(LimitWindow::SevenDay).expect("janela semanal");
+
+        assert!((five - 0.45).abs() < 1e-9);
+        assert_eq!(five_reset, 1792266000);
+        assert!((week - 0.35).abs() < 1e-9);
+        assert_eq!(week_reset, 1792512000);
+
+        // input 2 + cache de leitura 26559 + cache de criação 17499.
+        assert!(events.contains(&ProviderEvent::Context {
+            tokens: 44060,
+            window_size: 1_000_000,
+        }));
+    }
+
     #[test]
     fn unknown_types_are_ignored() {
-        assert!(parse_line(r#"{"type":"rate_limit_event"}"#).is_empty());
+        assert!(parse_line(r#"{"type":"tool_use_summary"}"#).is_empty());
     }
 }

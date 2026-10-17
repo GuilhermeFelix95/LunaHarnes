@@ -74,6 +74,9 @@ export function App() {
     }
   }
 
+  // Pastas de conversas anteriores, sem repetir: alimentam o menu de troca no rodapé do chat.
+  const recentFolders = [...new Set(summaries.map((s) => s.cwd))];
+
   return (
     <div className="app">
       <Sidebar
@@ -89,6 +92,7 @@ export function App() {
         key={session.key}
         initial={session.initial}
         startCwd={session.startCwd}
+        recentFolders={recentFolders}
         onPersist={(conversation) => {
           setActiveId(conversation.id);
           saveConversation(conversation)

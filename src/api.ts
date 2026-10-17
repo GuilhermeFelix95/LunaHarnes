@@ -3,6 +3,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { PluginManifest } from "./plugins/host";
 import type {
+  ChangedFile,
+  Changes,
   Conversation,
   ConversationSummary,
   ModelOption,
@@ -81,4 +83,45 @@ export function getWorkspace(): Promise<string> {
 export async function pickWorkspace(current?: string): Promise<string | null> {
   const picked = await open({ directory: true, multiple: false, defaultPath: current || undefined });
   return typeof picked === "string" ? picked : null;
+}
+
+/// Arquivos alterados na pasta de trabalho, pelo git.
+export function getChanges(cwd: string): Promise<Changes> {
+  return invoke("get_changes", { cwd });
+}
+
+/// Diff de um arquivo alterado.
+export function getFileDiff(cwd: string, path: ChangedFile["path"]): Promise<string> {
+  return invoke("get_file_diff", { cwd, path });
+}
+
+/// Abre um shell na pasta dada e devolve o id para escrever, redimensionar e fechar.
+export function terminalOpen(cwd: string, cols: number, rows: number): Promise<string> {
+  return invoke("terminal_open", { cwd, cols, rows });
+}
+
+export function terminalWrite(id: string, data: string): Promise<void> {
+  return invoke("terminal_write", { id, data });
+}
+
+export function terminalResize(id: string, cols: number, rows: number): Promise<void> {
+  return invoke("terminal_resize", { id, cols, rows });
+}
+
+export function terminalClose(id: string): Promise<void> {
+  return invoke("terminal_close", { id });
+}
+
+export interface TerminalDataEvent {
+  id: string;
+  data: string;
+}
+
+/// Saída de um terminal. Cada handler filtra pelo próprio id.
+export function onTerminalData(handler: (event: TerminalDataEvent) => void): Promise<UnlistenFn> {
+  return listen<TerminalDataEvent>("terminal-data", (e) => handler(e.payload));
+}
+
+export function onTerminalExit(handler: (id: string) => void): Promise<UnlistenFn> {
+  return listen<{ id: string }>("terminal-exit", (e) => handler(e.payload.id));
 }

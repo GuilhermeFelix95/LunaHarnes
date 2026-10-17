@@ -1,13 +1,16 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::changes::{self, Changes};
 use crate::conversations;
 use crate::models::{self, ModelOption};
 use crate::plugins::loader::{self, PluginScan};
 use crate::providers::{fallback_events, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
+use crate::terminal::{self, Terminals};
 
 /// Nome do evento que o frontend escuta (espelha `PROVIDER_EVENT` em src/api.ts).
 const PROVIDER_EVENT: &str = "provider-event";
@@ -133,6 +136,83 @@ pub async fn list_models(provider: ProviderKind) -> Result<Vec<ModelOption>, Str
     tauri::async_runtime::spawn_blocking(move || models::load(provider))
         .await
         .map_err(|e| format!("falha ao listar os modelos: {e}"))?
+}
+
+/// Arquivos alterados na pasta de trabalho (lidos do git).
+#[tauri::command]
+pub async fn get_changes(cwd: String) -> Result<Changes, String> {
+    tauri::async_runtime::spawn_blocking(move || changes::collect(std::path::Path::new(&cwd)))
+        .await
+        .map_err(|e| format!("falha ao ler as alterações: {e}"))?
+}
+
+/// Diff de um arquivo alterado, relativo à pasta de trabalho.
+#[tauri::command]
+pub async fn get_file_diff(cwd: String, path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || changes::diff_of(std::path::Path::new(&cwd), &path))
+        .await
+        .map_err(|e| format!("falha ao ler o diff: {e}"))?
+}
+
+/// Terminais criados nesta execução do app; o id só serve para o frontend endereçar cada um.
+static NEXT_TERMINAL: AtomicU64 = AtomicU64::new(1);
+
+/// Abre um shell (PowerShell) na pasta dada. A saída chega pelo evento `terminal-data`.
+#[tauri::command]
+pub fn terminal_open(
+    app: AppHandle,
+    terminals: State<'_, Terminals>,
+    cwd: String,
+    cols: u16,
+    rows: u16,
+) -> Result<String, String> {
+    let id = format!("term-{}", NEXT_TERMINAL.fetch_add(1, Ordering::Relaxed));
+    let data_app = app.clone();
+    let data_id = id.clone();
+    let exit_app = app.clone();
+    let exit_id = id.clone();
+
+    let terminal = terminal::spawn(
+        terminal::shell_command()?,
+        Path::new(&cwd),
+        cols,
+        rows,
+        move |data| {
+            let _ = data_app.emit(terminal::DATA_EVENT, terminal::TerminalData { id: data_id.clone(), data });
+        },
+        move || {
+            let _ = exit_app.emit(terminal::EXIT_EVENT, terminal::TerminalExit { id: exit_id });
+        },
+    )?;
+
+    terminals.0.lock().expect("lock dos terminais").insert(id.clone(), terminal);
+    Ok(id)
+}
+
+/// Envia teclas ao shell.
+#[tauri::command]
+pub fn terminal_write(terminals: State<'_, Terminals>, id: String, data: String) -> Result<(), String> {
+    let mut map = terminals.0.lock().expect("lock dos terminais");
+    map.get_mut(&id)
+        .ok_or_else(|| format!("terminal {id} não existe mais"))?
+        .write(&data)
+}
+
+#[tauri::command]
+pub fn terminal_resize(terminals: State<'_, Terminals>, id: String, cols: u16, rows: u16) -> Result<(), String> {
+    let map = terminals.0.lock().expect("lock dos terminais");
+    map.get(&id)
+        .ok_or_else(|| format!("terminal {id} não existe mais"))?
+        .resize(cols, rows)
+}
+
+/// Encerra o shell e tira o terminal da lista.
+#[tauri::command]
+pub fn terminal_close(terminals: State<'_, Terminals>, id: String) -> Result<(), String> {
+    if let Some(mut terminal) = terminals.0.lock().expect("lock dos terminais").remove(&id) {
+        terminal.kill();
+    }
+    Ok(())
 }
 
 /// Abre a janela de login oficial do CLI do provedor.

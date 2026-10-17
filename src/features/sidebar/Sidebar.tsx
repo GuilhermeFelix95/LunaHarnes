@@ -1,5 +1,17 @@
+import { useState } from "react";
 import type { ConversationSummary } from "../../types";
 import { groupByProject } from "./groupByProject";
+
+/// Conversas cujo título contém o texto digitado (sem diferenciar maiúsculas e acentos).
+export function filterByTitle(items: ConversationSummary[], query: string): ConversationSummary[] {
+  const needle = normalize(query.trim());
+  if (!needle) return items;
+  return items.filter((item) => normalize(item.title).includes(needle));
+}
+
+function normalize(text: string): string {
+  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
 
 interface SidebarProps {
   conversations: ConversationSummary[];
@@ -14,7 +26,9 @@ interface SidebarProps {
 
 /// Barra lateral: conversas agrupadas por projeto (pasta), com os dias dentro de cada um.
 export function Sidebar({ conversations, activeId, onNew, onAddProject, onOpen, onDelete, error }: SidebarProps) {
-  const projects = groupByProject(conversations, new Date());
+  const [query, setQuery] = useState("");
+  const matching = filterByTitle(conversations, query);
+  const projects = groupByProject(matching, new Date());
 
   return (
     <aside className="sidebar" aria-label="Projetos e conversas">
@@ -27,9 +41,26 @@ export function Sidebar({ conversations, activeId, onNew, onAddProject, onOpen, 
         </button>
       </div>
 
+      {conversations.length > 0 && (
+        <input
+          type="search"
+          className="sidebar__search"
+          aria-label="Buscar conversas"
+          placeholder="Buscar conversas"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      )}
+
       {error && <p role="alert" className="sidebar__error">{error}</p>}
 
-      {projects.length === 0 && <p className="sidebar__empty">Suas conversas aparecem aqui, agrupadas por projeto.</p>}
+      {projects.length === 0 && (
+        <p className="sidebar__empty">
+          {conversations.length === 0
+            ? "Suas conversas aparecem aqui, agrupadas por projeto."
+            : "Nenhuma conversa encontrada."}
+        </p>
+      )}
 
       {projects.map((project) => (
         <section key={project.cwd} className="sidebar__project">

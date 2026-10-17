@@ -18,18 +18,27 @@ export interface RunRequest {
   effort?: string;
 }
 
-/// Modelo listado pela CLI (ver src-tauri/src/models.rs).
+/// Nível de esforço de um modelo (ver src-tauri/src/models.rs). `id` é o valor enviado à CLI.
+export interface EffortOption {
+  id: string;
+  label: string;
+  recommended: boolean;
+}
+
+/// Modelo listado para o seletor (ver src-tauri/src/models.rs).
 export interface ModelOption {
   id: string;
   label: string;
-  efforts: string[];
-  defaultEffort: string | null;
+  description: string | null;
+  efforts: EffortOption[];
 }
 
 export type ProviderEvent =
   | { kind: "sessionStarted"; sessionId: string }
   | { kind: "textDelta"; text: string }
   | { kind: "toolUse"; name: string; detail: string }
+  | { kind: "rateLimit"; window: "fiveHour" | "sevenDay"; utilization: number; resetsAt: number }
+  | { kind: "context"; tokens: number; windowSize: number }
   | { kind: "error"; message: string }
   | { kind: "done"; ok: boolean };
 
@@ -64,4 +73,17 @@ export interface ConversationSummary {
   provider: ProviderKind;
   cwd: string;
   updatedAt: number;
+}
+
+/// Arquivo alterado na pasta de trabalho (ver src-tauri/src/changes.rs).
+export interface ChangedFile {
+  path: string;
+  status: "added" | "modified" | "deleted" | "renamed" | "untracked";
+  additions: number | null;
+  deletions: number | null;
+}
+
+export interface Changes {
+  isRepo: boolean;
+  files: ChangedFile[];
 }

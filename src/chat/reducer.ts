@@ -34,6 +34,9 @@ export function applyEvent(
     }
     case "sessionStarted":
     case "done":
+    case "rateLimit":
+    case "context":
+      // Não mudam a conversa: o ChatView usa para o medidor de uso.
       return messages;
   }
 }

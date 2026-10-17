@@ -14,10 +14,13 @@ import { applyEvent } from "../../chat/reducer";
 import { PluginHost } from "../../plugins/host";
 import { loadInstalledPlugins } from "../../plugins/loader";
 import type { ChatMessage, Conversation, ModelOption, Permission, ProviderKind } from "../../types";
+import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
-import { folderName } from "../sidebar/groupByProject";
+import { TerminalPanel } from "../terminal/TerminalPanel";
 import { Composer, PROVIDER_LABELS } from "./Composer";
 import { MessageList } from "./MessageList";
+import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
+import { WorkspaceChip } from "./WorkspaceChip";
 
 const TITLE_MAX_CHARS = 60;
 
@@ -26,11 +29,13 @@ interface ChatViewProps {
   initial?: Conversation;
   /** Pasta de uma conversa nova. Ausente = pasta de onde o luna foi rodado. */
   startCwd?: string;
+  /** Pastas de conversas anteriores, para o menu de troca. */
+  recentFolders?: string[];
   /** Chamado ao fim de cada turno, com a conversa inteira, para salvar em disco. */
   onPersist: (conversation: Conversation) => void;
 }
 
-export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
+export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: ChatViewProps) {
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
   const createdAt = useRef(initial?.createdAt ?? Date.now());
 
@@ -56,6 +61,31 @@ export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [loginError, setLoginError] = useState<string | undefined>(undefined);
+  const [showChanges, setShowChanges] = useState(true);
+  const [showTerminal, setShowTerminal] = useState(false);
+  // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
+  const [terminalOpened, setTerminalOpened] = useState(false);
+  const [changesVersion, setChangesVersion] = useState(0);
+  const [limits, setLimits] = useState<LimitState>({});
+  const [context, setContext] = useState<ContextState | null>(null);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === "`") {
+        e.preventDefault();
+        toggleTerminal();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // toggleTerminal só usa setters do React, que não mudam entre renderizações.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function toggleTerminal() {
+    setTerminalOpened(true);
+    setShowTerminal((on) => !on);
+  }
 
   useEffect(() => {
     void loadInstalledPlugins(host).then(() => setNotes([...host.errors]));
@@ -86,9 +116,17 @@ export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
     const unlisten = onProviderEvent((event) => {
       if (event.kind === "sessionStarted") sessionId.current = event.sessionId;
       if (event.kind === "textDelta") responseText.current += event.text;
+      if (event.kind === "rateLimit") {
+        setLimits((current) => ({
+          ...current,
+          [event.window]: { utilization: event.utilization, resetsAt: event.resetsAt },
+        }));
+      }
+      if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize });
       commit(applyEvent(messagesRef.current, event));
       if (event.kind === "done") {
         setRunning(false);
+        setChangesVersion((v) => v + 1);
         persist(messagesRef.current);
         void host.runAfterResponse(responseText.current).then(() => setNotes([...host.errors]));
       }
@@ -139,12 +177,16 @@ export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
   }
 
   /// Trocar de pasta encerra a conversa atual: o id de sessão pertence à pasta anterior.
-  async function changeWorkspace() {
-    const picked = await pickWorkspace(cwd);
-    if (!picked || picked === cwd) return;
-    setCwd(picked);
+  function switchWorkspace(path: string) {
+    if (path === cwd) return;
+    setCwd(path);
     sessionId.current = undefined;
     commit([]);
+  }
+
+  async function browseWorkspace() {
+    const picked = await pickWorkspace(cwd);
+    if (picked) switchWorkspace(picked);
   }
 
   /// Envia um turno. `shown` aparece na conversa; `cliPrompt` é o que o CLI recebe.
@@ -197,7 +239,7 @@ export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
   function changeModel(next: string) {
     setModel(next);
     // Nível que o novo modelo não aceita volta para o padrão.
-    const supported = models.find((m) => m.id === next)?.efforts ?? [];
+    const supported = models.find((m) => m.id === next)?.efforts.map((e) => e.id) ?? [];
     if (!supported.includes(effort)) setEffort("");
   }
 
@@ -208,20 +250,35 @@ export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
   return (
     <div className="chat">
       <header className="chat__header">
-        <div className="chat__project" title={cwd}>
-          <strong>{folderName(cwd)}</strong>
-          <span>{cwd}</span>
-        </div>
-        <button type="button" className="chat__link" onClick={() => void changeWorkspace()} disabled={running}>
-          Trocar pasta
-        </button>
+        <h2 className="chat__title">{messages.length > 0 ? titleOf(messages) : "Nova conversa"}</h2>
         {host.commandNames().length > 0 && (
           <span className="chat__commands">
             Comandos: {host.commandNames().map((c) => `/${c}`).join(", ")}
           </span>
         )}
+        <div className="chat__tools">
+          <button
+            type="button"
+            className="chat__tool"
+            aria-pressed={showChanges}
+            onClick={() => setShowChanges((on) => !on)}
+          >
+            Alterações
+          </button>
+          <button
+            type="button"
+            className="chat__tool"
+            aria-pressed={showTerminal}
+            title="Terminal (Ctrl+`)"
+            onClick={toggleTerminal}
+          >
+            Terminal
+          </button>
+        </div>
       </header>
 
+      <div className="chat__split">
+      <div className="chat__column">
       <div className="chat__body">
         {loggedIn === false && (
           <LoginPrompt
@@ -291,8 +348,34 @@ export function ChatView({ initial, startCwd, onPersist }: ChatViewProps) {
         planning={planning}
         onTogglePlanning={() => setPlanning((on) => !on)}
       />
+      <div className="chat__foot">
+        <WorkspaceChip
+          cwd={cwd}
+          recent={recentFolders}
+          disabled={running}
+          onPick={switchWorkspace}
+          onBrowse={() => void browseWorkspace()}
+        />
+        {provider === "claude" && <UsageMeter limits={limits} context={context} />}
+      </div>
+
+      {terminalOpened && (
+        <div hidden={!showTerminal}>
+          <TerminalPanel key={cwd} cwd={cwd} />
+        </div>
+      )}
+      </div>
+
+      {showChanges && cwd && <ChangesPanel cwd={cwd} version={changesVersion} />}
+      </div>
     </div>
   );
+}
+
+/// Título da conversa: a primeira mensagem do usuário, já truncada.
+function titleOf(messages: ChatMessage[]): string {
+  const first = messages.find((m) => m.role === "user");
+  return first ? truncate(first.text, TITLE_MAX_CHARS) : "Nova conversa";
 }
 
 function truncate(text: string, max: number): string {

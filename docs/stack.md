@@ -65,10 +65,18 @@ docs/                stack, contrato de plugins
   - Modo plano (`src/chat/planning.ts`): instrução de planejamento no prompt, sandbox/permissão só leitura. Botão "Aprovar e executar" aparece após a resposta; a aprovação roda com a permissão escolhida no seletor.
   - Conversas guardam `model`, `effort` e `planning` (campos com `serde(default)`, arquivos antigos carregam).
   - Barra lateral agrupa por projeto (pasta) e, dentro de cada um, por dia. Botão "+" do projeto abre conversa nova naquela pasta; "+" no topo adiciona uma pasta.
+- Fase D (catálogo, pasta, alterações, terminal e uso):
+  - Catálogo de modelos do Claude copiado do seletor do Claude Desktop 2.42304.0 (`models.rs`): Opus 5.5, Sonnet 5.5, Haiku 5.5 e Fable 5.1, com descrição e níveis Low, Medium, High, Extra (`xhigh`) e Max. O recomendado vem marcado. Quando sair modelo novo, copiar de novo do Desktop.
+  - Seletor de modelo com nome e descrição (`ModelMenu.tsx`). A pasta de trabalho saiu do topo e fica no rodapé (`WorkspaceChip.tsx`), com recentes.
+  - Barra lateral com busca por título (`Sidebar.tsx`, `filterByTitle`).
+  - Painel de alterações à direita (`changes.rs`, `ChangesPanel.tsx`): `git status --porcelain -z` e `git diff --numstat -z`, com diff por arquivo. Fora de git, mostra aviso.
+  - Terminal embaixo da coluna do chat (`terminal.rs`, `TerminalPanel.tsx`): PowerShell num PTY (`portable-pty` 0.9, ConPTY), com `@xterm/xterm` 6.0.0 e `@xterm/addon-fit` 0.11.0. Ctrl+` alterna. Trocar a pasta reinicia o terminal (`key={cwd}`).
+  - Uso da conta e contexto (só Claude): evento `rate_limit_event` (janelas `five_hour` e `seven_day`, `utilization` e `resetsAt`) e `result.modelUsage` (tamanho da janela). Fixture real: `tests/fixtures/claude_usage.jsonl`. O medidor (`UsageMeter.tsx`) mostra no rodapé.
+  - Pendente de confirmação: se `utilization` é fração de 0 a 1. A captura mostra 0.45 e 0.35; falta comparar com o número do Claude Desktop.
 - Testes:
-  - `npm run test:rust`: 46 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
+  - `npm run test:rust`: 60 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
   - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.
-  - `npm test`: 43 testes de frontend.
+  - `npm test`: 70 testes de frontend.
 - CSP: `script-src 'self' blob:` é necessário para carregar plugins como módulo (ver `docs/plugins.md`, seção de segurança).
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

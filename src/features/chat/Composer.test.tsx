@@ -2,9 +2,21 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Composer } from "./Composer";
 
+const effort = (id: string, label: string, recommended = false) => ({ id, label, recommended });
+
 const CLAUDE_MODELS = [
-  { id: "opus", label: "Opus", efforts: ["low", "high", "max"], defaultEffort: null },
-  { id: "sonnet", label: "Sonnet", efforts: ["low", "medium"], defaultEffort: null },
+  {
+    id: "claude-opus-5-5",
+    label: "Opus 5.5",
+    description: "Para trabalho complexo",
+    efforts: [effort("low", "Low"), effort("medium", "Medium", true), effort("max", "Max")],
+  },
+  {
+    id: "claude-sonnet-5-5",
+    label: "Sonnet 5.5",
+    description: "Mais eficiente",
+    efforts: [effort("low", "Low"), effort("medium", "Medium", true)],
+  },
 ];
 
 function setup(overrides: Partial<Parameters<typeof Composer>[0]> = {}) {
@@ -83,19 +95,34 @@ describe("Composer", () => {
   });
 
   it("mostra só os níveis que o modelo escolhido aceita", () => {
-    setup({ model: "sonnet" });
-    const effort = screen.getByLabelText("Esforço") as HTMLSelectElement;
-    const levels = Array.from(effort.options).map((o) => o.value);
+    setup({ model: "claude-sonnet-5-5" });
+    const levels = Array.from((screen.getByLabelText("Esforço") as HTMLSelectElement).options).map((o) => o.value);
 
-    expect(effort.disabled).toBe(false);
     expect(levels).toEqual(["", "low", "medium"]);
   });
 
-  it("escolher modelo avisa o componente com o id que a CLI recebe", () => {
-    const props = setup();
-    fireEvent.change(screen.getByLabelText("Modelo"), { target: { value: "opus" } });
+  it("marca o nível recomendado com o nome que o Desktop usa", () => {
+    setup({ model: "claude-opus-5-5" });
+    const options = Array.from((screen.getByLabelText("Esforço") as HTMLSelectElement).options).map((o) => o.textContent);
 
-    expect(props.onModel).toHaveBeenCalledWith("opus");
+    expect(options).toContain("Medium (recomendado)");
+  });
+
+  it("o seletor de modelo mostra o nome e a descrição de cada modelo", () => {
+    setup();
+    fireEvent.click(screen.getByLabelText("Modelo"));
+
+    expect(screen.getByRole("option", { name: /Opus 5\.5/ })).toBeTruthy();
+    expect(screen.getByText("Para trabalho complexo")).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Sonnet 5\.5/ })).toBeTruthy();
+  });
+
+  it("escolher um modelo manda o ID da CLI, não o nome de exibição", () => {
+    const props = setup();
+    fireEvent.click(screen.getByLabelText("Modelo"));
+    fireEvent.click(screen.getByRole("option", { name: /Opus 5\.5/ }));
+
+    expect(props.onModel).toHaveBeenCalledWith("claude-opus-5-5");
   });
 
   it("o botão Planejar reflete o modo e alterna ao clicar", () => {
