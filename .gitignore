@@ -1,0 +1,15 @@
+# Dependências e builds
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Ambiente local
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
