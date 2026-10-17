@@ -39,5 +39,7 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
-- Etapa 1 do plano: repositório e documentação base.
-- Pendente: toolchain Rust e MSVC Build Tools (necessários para `cargo check` e `tauri dev`).
+- Etapa 1 (repositório e documentação): concluída.
+- Etapa 2 (providers e sessão em Rust): código e 9 testes passando. Fixture de sucesso do Codex pendente (`codex login`).
+- Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
+- Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.
