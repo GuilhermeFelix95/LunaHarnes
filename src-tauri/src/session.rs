@@ -59,12 +59,18 @@ impl CancelHandle {
 impl Session {
     /// Inicia o CLI para a execução pedida e envia o prompt pelo stdin.
     pub fn start(request: &RunRequest) -> Result<Self, String> {
+        Self::start_with_env(request, &[])
+    }
+
+    /// Como `start`, mas com variáveis de ambiente extras só para este processo (perfis de API).
+    pub fn start_with_env(request: &RunRequest, env: &[(String, String)]) -> Result<Self, String> {
         Self::spawn(
             request.provider,
             &request.prompt,
             cli_name(request.provider),
             cli_args(request),
             Some(&request.cwd),
+            env,
         )
     }
 
@@ -74,6 +80,7 @@ impl Session {
         program: &str,
         args: Vec<String>,
         cwd: Option<&Path>,
+        env: &[(String, String)],
     ) -> Result<Self, String> {
         if let Some(dir) = cwd {
             if !dir.is_dir() {
@@ -93,6 +100,7 @@ impl Session {
 
         let mut command = hidden_command(&executable);
         command.args(&args);
+        command.envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
         if let Some(dir) = cwd {
             command.current_dir(dir);
         }
@@ -235,6 +243,7 @@ mod tests {
             "C:\\Windows\\System32\\cmd.exe",
             vec!["/C".into(), "type".into(), fixture],
             None,
+            &[],
         )
         .expect("cmd.exe deve existir");
 
@@ -255,6 +264,7 @@ mod tests {
             "C:\\Windows\\System32\\cmd.exe",
             vec!["/C".into(), "ping".into(), "-n".into(), "60".into(), "127.0.0.1".into()],
             None,
+            &[],
         )
         .expect("cmd.exe deve existir");
 
@@ -283,6 +293,7 @@ mod tests {
             "C:\\Windows\\System32\\cmd.exe",
             vec!["/C".into(), "echo falhou 1>&2 & exit /b 3".into()],
             None,
+            &[],
         )
         .expect("cmd.exe deve existir");
 
@@ -323,6 +334,7 @@ mod tests {
             "claude",
             vec![],
             Some(&missing),
+            &[],
         );
 
         let message = result.err().expect("pasta inexistente deve ser recusada");
@@ -337,6 +349,7 @@ mod tests {
             "comando-que-nao-existe-lunaharness",
             vec![],
             None,
+            &[],
         );
         let message = match result {
             Ok(_) => panic!("não deveria iniciar um comando inexistente"),

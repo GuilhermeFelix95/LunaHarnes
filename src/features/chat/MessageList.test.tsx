@@ -66,3 +66,18 @@ describe("MessageList", () => {
     expect(screen.getByText("Codex")).toBeTruthy();
   });
 });
+
+describe("MessageList com perfil de API", () => {
+  it("mostra o nome do perfil no lugar do nome do CLI", () => {
+    render(
+      <MessageList
+        messages={[{ role: "assistant", text: "oi", provider: "claude", agent: "DeepSeek · via Claude Code" }]}
+        fallbackProvider="claude"
+        running={false}
+      />,
+    );
+
+    expect(screen.getByText("DeepSeek · via Claude Code")).toBeTruthy();
+    expect(screen.queryByText("Claude Code")).toBeNull();
+  });
+});

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { applyTheme, loadTheme, saveTheme, THEMES, type ThemeId } from "../../theme";
+import { ApiProfilesSection } from "./ApiProfilesSection";
 
 interface SettingsViewProps {
   onClose: () => void;
 }
 
-/// Página de configurações. Por enquanto, só a escolha de tema.
+/// Página de configurações: tema, login das CLIs e perfis de API.
 export function SettingsView({ onClose }: SettingsViewProps) {
   const [theme, setTheme] = useState<ThemeId>(loadTheme);
 
@@ -47,6 +48,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           ))}
         </div>
       </section>
+
+      <ApiProfilesSection />
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { PluginManifest } from "./plugins/host";
 import type {
+  ApiPreset,
+  ApiProfile,
   ChangedFile,
   Changes,
   Conversation,
@@ -125,3 +127,38 @@ export function onTerminalData(handler: (event: TerminalDataEvent) => void): Pro
 export function onTerminalExit(handler: (id: string) => void): Promise<UnlistenFn> {
   return listen<{ id: string }>("terminal-exit", (e) => handler(e.payload.id));
 }
+
+/// Provedores prontos para criar um perfil de API.
+export function apiPresets(): Promise<ApiPreset[]> {
+  return invoke("api_presets");
+}
+
+export function listApiProfiles(): Promise<ApiProfile[]> {
+  return invoke("list_api_profiles");
+}
+
+/// Salva o perfil sem a chave e devolve o perfil com o id definido.
+export function saveApiProfile(profile: Omit<ApiProfile, "id"> & { id?: string }): Promise<ApiProfile> {
+  return invoke("save_api_profile", { profile: { id: "", ...profile } });
+}
+
+export function deleteApiProfile(id: string): Promise<void> {
+  return invoke("delete_api_profile", { id });
+}
+
+/// Guarda a chave no cofre do Windows. Não há função para ler a chave de volta.
+export function setApiProfileKey(id: string, key: string): Promise<void> {
+  return invoke("set_api_profile_key", { id, key });
+}
+
+export function apiProfileHasKey(id: string): Promise<boolean> {
+  return invoke("api_profile_has_key", { id });
+}
+
+/// Manda um prompt mínimo pelo perfil e devolve a resposta do modelo.
+export function testApiProfile(id: string): Promise<string> {
+  return invoke("test_api_profile", { id });
+}
+
+/// Avisa as telas que a lista de perfis mudou (ver ApiProfilesSection e ChatView).
+export const PROFILES_CHANGED = "luna:profiles-changed";

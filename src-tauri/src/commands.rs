@@ -4,11 +4,12 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::api_profiles::{self, ApiProfile, PresetInfo};
 use crate::changes::{self, Changes};
 use crate::conversations;
 use crate::models::{self, ModelOption};
 use crate::plugins::loader::{self, PluginScan};
-use crate::providers::{fallback_events, ProviderEvent, ProviderKind, RunRequest};
+use crate::providers::{fallback_events, Permission, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
 use crate::terminal::{self, Terminals};
 
@@ -27,13 +28,21 @@ pub fn send_prompt(
     request: RunRequest,
 ) -> Result<(), String> {
     request.validate()?;
+    let env = match &request.profile {
+        Some(id) => {
+            let dir = app_data_dir(&app)?;
+            let profile = load_profile(&dir, id)?;
+            profile_env(&dir, &profile, request.provider)?
+        }
+        None => Vec::new(),
+    };
     let provider = request.provider;
     let mut active = run.0.lock().expect("lock da execução ativa");
     if active.is_some() {
         return Err("já existe uma resposta em andamento; aguarde ou pare antes de enviar outra".into());
     }
 
-    let mut session = Session::start(&request)?;
+    let mut session = Session::start_with_env(&request, &env)?;
     *active = Some(session.cancel_handle());
     drop(active);
 
@@ -64,6 +73,118 @@ pub fn send_prompt(
     });
 
     Ok(())
+}
+
+/// Pasta de dados do app (conversas, plugins, perfis de API).
+fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|e| format!("não foi possível localizar a pasta de dados do app: {e}"))
+}
+
+fn load_profile(dir: &Path, id: &str) -> Result<ApiProfile, String> {
+    api_profiles::load_all(dir)?
+        .into_iter()
+        .find(|p| p.id == id)
+        .ok_or_else(|| format!("perfil de API `{id}` não encontrado"))
+}
+
+/// Variáveis do perfil para esta execução. Recusa motor diferente do pedido e perfil sem chave.
+fn profile_env(dir: &Path, profile: &ApiProfile, provider: ProviderKind) -> Result<Vec<(String, String)>, String> {
+    if profile.engine() != provider {
+        return Err(format!("o perfil \"{}\" usa outro motor", profile.name));
+    }
+    let key = api_profiles::read_key(&profile.id)?.ok_or_else(|| {
+        format!("o perfil \"{}\" ainda não tem chave. Cole a chave em Configurações > Contas e APIs.", profile.name)
+    })?;
+    let config = api_profiles::config_dir(dir, &profile.id);
+    std::fs::create_dir_all(&config).map_err(|e| format!("não foi possível criar a pasta do perfil: {e}"))?;
+    Ok(api_profiles::env_for(profile, &key, &config))
+}
+
+/// Provedores prontos para criar um perfil.
+#[tauri::command]
+pub fn api_presets() -> Vec<PresetInfo> {
+    api_profiles::presets()
+}
+
+#[tauri::command]
+pub fn list_api_profiles(app: AppHandle) -> Result<Vec<ApiProfile>, String> {
+    api_profiles::load_all(&app_data_dir(&app)?)
+}
+
+/// Cria ou altera um perfil (sem chave). Devolve o perfil com o id definido.
+#[tauri::command]
+pub fn save_api_profile(app: AppHandle, profile: ApiProfile) -> Result<ApiProfile, String> {
+    let dir = app_data_dir(&app)?;
+    let ready = api_profiles::prepare(profile)?;
+    let mut all = api_profiles::load_all(&dir)?;
+    match all.iter_mut().find(|p| p.id == ready.id) {
+        Some(existing) => *existing = ready.clone(),
+        None => all.push(ready.clone()),
+    }
+    api_profiles::save_all(&dir, &all)?;
+    Ok(ready)
+}
+
+#[tauri::command]
+pub fn delete_api_profile(app: AppHandle, id: String) -> Result<(), String> {
+    let dir = app_data_dir(&app)?;
+    let mut all = api_profiles::load_all(&dir)?;
+    all.retain(|p| p.id != id);
+    api_profiles::save_all(&dir, &all)?;
+    api_profiles::delete_key(&id)
+}
+
+/// Guarda a chave no cofre do Windows. A chave nunca volta para a interface.
+#[tauri::command]
+pub fn set_api_profile_key(app: AppHandle, id: String, key: String) -> Result<(), String> {
+    load_profile(&app_data_dir(&app)?, &id)?;
+    api_profiles::save_key(&id, &key)
+}
+
+/// Diz só se há chave salva; o valor não sai do cofre.
+#[tauri::command]
+pub fn api_profile_has_key(id: String) -> Result<bool, String> {
+    api_profiles::read_key(&id).map(|key| key.is_some())
+}
+
+/// Manda um prompt mínimo pelo perfil e devolve a resposta: prova que a chave, a URL e o modelo funcionam.
+#[tauri::command]
+pub async fn test_api_profile(app: AppHandle, id: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = app_data_dir(&app)?;
+        let profile = load_profile(&dir, &id)?;
+        let env = profile_env(&dir, &profile, profile.engine())?;
+        let request = RunRequest {
+            provider: profile.engine(),
+            prompt: "Responda apenas: ok".into(),
+            session_id: None,
+            cwd: dir.clone(),
+            permission: Permission::ReadOnly,
+            model: profile.default_model.clone(),
+            effort: None,
+            profile: Some(profile.id.clone()),
+        };
+        let mut session = Session::start_with_env(&request, &env)?;
+        let mut text = String::new();
+        let mut error = None;
+        let mut ok = false;
+        session.pump(request.provider, |event| match event {
+            ProviderEvent::TextDelta { text: chunk } => text.push_str(&chunk),
+            ProviderEvent::Error { message } => error = Some(message),
+            ProviderEvent::Done { ok: finished } => ok = finished,
+            _ => {}
+        });
+        session.finish().map_err(|e| format!("falha ao aguardar o CLI: {e}"))?;
+        match (ok, error) {
+            (true, _) => Ok(text.trim().to_string()),
+            (false, Some(message)) => Err(message),
+            (false, None) => Err("o CLI não respondeu".into()),
+        }
+    })
+    .await
+    .map_err(|e| format!("falha ao testar o perfil: {e}"))?
 }
 
 /// Pasta de plugins do usuário: `<app_data>/plugins`.

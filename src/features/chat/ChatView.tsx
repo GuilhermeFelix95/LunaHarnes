@@ -6,19 +6,33 @@ import {
   checkAuth,
   getChanges,
   getWorkspace,
+  apiPresets,
+  apiProfileHasKey,
+  listApiProfiles,
   listModels,
   onProviderEvent,
+  PROFILES_CHANGED,
   openLogin,
   pickWorkspace,
   sendPrompt,
 } from "../../api";
+import { agentKey, agentOptions } from "../../chat/agents";
 import { contextFor, withContext } from "../../chat/handoff";
 import { APPROVAL_PROMPT, withPlanInstruction } from "../../chat/planning";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost } from "../../plugins/host";
 import { loadInstalledPlugins } from "../../plugins/loader";
-import type { AgentSessions, ChatMessage, Conversation, ModelOption, Permission, ProviderKind } from "../../types";
+import type {
+  AgentSessions,
+  ApiPreset,
+  ApiProfile,
+  ChatMessage,
+  Conversation,
+  ModelOption,
+  Permission,
+  ProviderKind,
+} from "../../types";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
 import { RightPanel, type SideTab } from "../side/RightPanel";
@@ -49,6 +63,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const createdAt = useRef(initial?.createdAt ?? Date.now());
 
   const [provider, setProvider] = useState<ProviderKind>(initial?.provider ?? "claude");
+  // Perfil de API escolhido (null = login da CLI). O agente da conversa é o motor mais o perfil.
+  const [profileId, setProfileId] = useState<string | null>(initial?.profile ?? null);
+  const [profiles, setProfiles] = useState<ApiProfile[]>([]);
+  const [presets, setPresets] = useState<ApiPreset[]>([]);
+  const [costUsd, setCostUsd] = useState(initial?.costUsd ?? 0);
+  const costRef = useRef(costUsd);
   const [permission, setPermission] = useState<Permission>(initial?.permission ?? "acceptEdits");
   const [cwd, setCwd] = useState(initial?.cwd ?? startCwd ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
@@ -57,7 +77,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
-  const live = useRef({ provider, cwd, permission, model, effort, planning, sideTab: "changes" as SideTab });
+  const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
@@ -67,6 +87,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const sessions = useRef<AgentSessions>(initialSessions(initial));
   // Agente do turno em andamento: os eventos da CLI não dizem de quem são.
   const turnProvider = useRef<ProviderKind>(provider);
+  // Chave do agente do turno (ver chat/agents.ts) e nome do perfil, para marcar as respostas.
+  const turnAgent = useRef<string>(agentKey(provider, profileId));
+  const turnLabel = useRef<string | undefined>(undefined);
   // Autor das respostas salvas antes de cada mensagem guardar o agente.
   const legacyProvider = useRef<ProviderKind>(initial?.provider ?? provider);
   // null = ainda não verificado; false = precisa entrar na conta.
@@ -79,7 +102,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
   const [terminalOpened, setTerminalOpened] = useState(false);
   const [changesVersion, setChangesVersion] = useState(0);
-  live.current = { provider, cwd, permission, model, effort, planning, sideTab };
+  live.current = { provider, profileId, cwd, permission, model, effort, planning, sideTab };
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -118,11 +141,29 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 
   useEffect(() => {
     void verifyLogin();
-  }, [provider]);
+  }, [provider, profileId]);
+
+  // Perfis e presets: recarregados quando a página de configurações muda a lista.
+  useEffect(() => {
+    const reload = () => {
+      Promise.all([listApiProfiles(), apiPresets()])
+        .then(([list, known]) => {
+          setProfiles(list);
+          setPresets(known);
+        })
+        .catch((e) => setNotes((current) => [...current, String(e)]));
+    };
+    reload();
+    window.addEventListener(PROFILES_CHANGED, reload);
+    return () => window.removeEventListener(PROFILES_CHANGED, reload);
+  }, []);
 
   useEffect(() => {
     let active = true;
-    listModels(provider)
+    // Perfil: os modelos que o usuário listou nele. Sem perfil: a lista que a CLI expõe.
+    const profile = profileId ? profiles.find((p) => p.id === profileId) : undefined;
+    const source: Promise<ModelOption[]> = profileId ? Promise.resolve(profileModels(profile)) : listModels(provider);
+    source
       .then((list) => {
         if (!active) return;
         setModels(list);
@@ -138,11 +179,11 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     return () => {
       active = false;
     };
-  }, [provider]);
+  }, [provider, profileId, profiles]);
 
   useEffect(() => {
     const unlisten = onProviderEvent((event) => {
-      const turn = turnProvider.current;
+      const turn = turnAgent.current;
       if (event.kind === "sessionStarted") {
         sessions.current = {
           ...sessions.current,
@@ -157,7 +198,11 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         }));
       }
       if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize });
-      commit(applyEvent(messagesRef.current, event, turn));
+      if (event.kind === "cost") {
+        costRef.current += event.usd;
+        setCostUsd(costRef.current);
+      }
+      commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
       if (event.kind === "done") {
         const session = sessions.current[turn];
         // O agente viu tudo até o fim deste turno.
@@ -188,13 +233,15 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       id: conversationId,
       title,
       provider: latest.provider,
-      sessionId: sessions.current[latest.provider]?.id,
+      sessionId: sessions.current[agentKey(latest.provider, latest.profileId)]?.id,
       sessions: sessions.current,
       cwd: latest.cwd,
       permission: latest.permission,
       model: latest.model || undefined,
       effort: latest.effort || undefined,
       planning: latest.planning,
+      profile: latest.profileId ?? undefined,
+      costUsd: costRef.current || undefined,
       createdAt: createdAt.current,
       updatedAt: Date.now(),
       messages: current,
@@ -204,7 +251,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   async function verifyLogin() {
     setChecking(true);
     try {
-      setLoggedIn(await checkAuth(provider));
+      setLoggedIn(profileId ? await apiProfileHasKey(profileId) : await checkAuth(provider));
       setLoginError(undefined);
     } catch (e) {
       setLoggedIn(false);
@@ -234,6 +281,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     setRunning(true);
     responseText.current = "";
     turnProvider.current = provider;
+    turnAgent.current = agentKey(provider, profileId);
+    turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
     const history = messagesRef.current;
     commit([...history, { role: "user", text: shown }]);
     // Quem envia quer ver a resposta: volta a seguir o fim.
@@ -241,11 +290,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     setNotes([...host.errors]);
 
     try {
-      const behind = (sessions.current[provider]?.seen ?? 0) < history.length;
+      const key = turnAgent.current;
+      const behind = (sessions.current[key]?.seen ?? 0) < history.length;
       const changes = behind ? await getChanges(cwd).catch(() => null) : null;
       const { sessionId, preamble } = contextFor({
         sessions: sessions.current,
-        target: provider,
+        target: key,
         history,
         fallback: legacyProvider.current,
         cwd,
@@ -253,6 +303,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       });
       await sendPrompt({
         provider,
+        profile: profileId ?? undefined,
         prompt: withContext(preamble, plan ? withPlanInstruction(cliPrompt) : cliPrompt),
         sessionId,
         cwd,
@@ -296,6 +347,20 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     if (!supported.includes(effort)) setEffort("");
   }
 
+  const agentK = agentKey(provider, profileId);
+  const options = agentOptions(profiles, presets);
+  const agentLabel = options.find((o) => o.key === agentK)?.label ?? PROVIDER_LABELS[provider];
+
+  /// Troca de agente: a conversa continua, e o novo agente recebe o histórico no próximo envio.
+  function changeAgent(key: string) {
+    const next = options.find((o) => o.key === key);
+    if (!next) return;
+    setProvider(next.engine);
+    setProfileId(next.profileId ?? null);
+    setModel("");
+    setEffort("");
+  }
+
   // Sem conta conectada ou sem pasta de trabalho ainda carregada, não há como enviar.
   const blocked = loggedIn !== true || !cwd;
   const lastIsReply = messages.at(-1)?.role === "assistant";
@@ -307,6 +372,11 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         {host.commandNames().length > 0 && (
           <span className="chat__commands">
             Comandos: {host.commandNames().map((c) => `/${c}`).join(", ")}
+          </span>
+        )}
+        {costUsd > 0 && (
+          <span className="chat__cost">
+            {costUsd.toLocaleString("pt-BR", { style: "currency", currency: "USD" })} nesta conversa
           </span>
         )}
         <div className="chat__tools">
@@ -333,7 +403,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
       <div className="chat__split">
       <div className="chat__column">
       <div className="chat__body" ref={body}>
-        {loggedIn === false && (
+        {loggedIn === false && profileId && (
+          <p role="alert" className="chat__notes">
+            Este perfil ainda não tem chave. Cole a chave em Configurações &gt; Contas e APIs.
+          </p>
+        )}
+        {loggedIn === false && !profileId && (
           <LoginPrompt
             provider={provider}
             onLogin={() => {
@@ -360,7 +435,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
             <p>
               {planning
                 ? "Modo de planejamento: o agente pergunta antes de editar nada."
-                : `Conversando com ${PROVIDER_LABELS[provider]}.`}
+                : `Conversando com ${agentLabel}.`}
             </p>
             {!planning && (
               <div className="chat__suggestions">
@@ -399,13 +474,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         onStop={() => void cancelPrompt()}
         running={running}
         blocked={blocked}
-        provider={provider}
-        onProvider={(next) => {
-          setProvider(next);
-          // A conversa continua: o novo agente recebe o histórico no próximo envio.
-          setModel("");
-          setEffort("");
-        }}
+        agent={agentK}
+        agents={options}
+        onAgent={changeAgent}
         permission={permission}
         onPermission={setPermission}
         models={models}
@@ -424,7 +495,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
           onPick={switchWorkspace}
           onBrowse={() => void browseWorkspace()}
         />
-        {provider === "claude" && <UsageMeter limits={limits} context={context} />}
+        {provider === "claude" && !profileId && <UsageMeter limits={limits} context={context} />}
       </div>
       </div>
 
@@ -446,8 +517,21 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
 /// Sessões de uma conversa salva. Arquivos antigos só têm `sessionId`, que o agente viu até o fim.
 function initialSessions(initial?: Conversation): AgentSessions {
   if (initial?.sessions) return initial.sessions;
-  if (initial?.sessionId) return { [initial.provider]: { id: initial.sessionId, seen: initial.messages.length } };
+  if (initial?.sessionId) {
+    return { [agentKey(initial.provider, initial.profile)]: { id: initial.sessionId, seen: initial.messages.length } };
+  }
   return {};
+}
+
+/// Modelos de um perfil de API: os que o usuário listou. A API não informa níveis de esforço.
+function profileModels(profile?: ApiProfile): ModelOption[] {
+  return (profile?.models ?? []).map((id) => ({
+    id,
+    label: id,
+    description: null,
+    efforts: [],
+    default: id === profile?.defaultModel,
+  }));
 }
 
 /// Título da conversa: a primeira mensagem do usuário, já truncada.

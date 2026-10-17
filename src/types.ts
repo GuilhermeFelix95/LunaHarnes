@@ -16,6 +16,27 @@ export interface RunRequest {
   model?: string;
   /** Nível de esforço com o nome da CLI. Ausente = padrão. */
   effort?: string;
+  /** Perfil de API (id em api-profiles.json). Ausente = login da própria CLI. A chave fica no cofre. */
+  profile?: string;
+}
+
+/// Perfil de API salvo, sem a chave (ver src-tauri/src/api_profiles.rs).
+export interface ApiProfile {
+  id: string;
+  name: string;
+  preset: string;
+  /** Vazio = endereço padrão do preset. */
+  baseUrl: string;
+  models: string[];
+  defaultModel: string | null;
+}
+
+/// Provedor pronto para criar um perfil (ver `api_profiles::presets`).
+export interface ApiPreset {
+  preset: string;
+  label: string;
+  engine: ProviderKind;
+  defaultBaseUrl: string;
 }
 
 /// Nível de esforço de um modelo (ver src-tauri/src/models.rs). `id` é o valor enviado à CLI.
@@ -41,6 +62,7 @@ export type ProviderEvent =
   | { kind: "toolUse"; name: string; detail: string }
   | { kind: "rateLimit"; window: "fiveHour" | "sevenDay"; utilization: number; resetsAt: number }
   | { kind: "context"; tokens: number; windowSize: number }
+  | { kind: "cost"; usd: number }
   | { kind: "error"; message: string }
   | { kind: "done"; ok: boolean };
 
@@ -52,6 +74,8 @@ export interface ChatMessage {
   error?: string;
   /** Agente que respondeu. Ausente em conversas antigas = provedor da conversa. */
   provider?: ProviderKind;
+  /** Nome do agente que respondeu, quando é um perfil de API (ex.: "DeepSeek · via Claude Code"). */
+  agent?: string;
 }
 
 /// Sessão nativa de um agente e quantas mensagens do histórico ele já viu (ver src/chat/handoff.ts).
@@ -60,7 +84,8 @@ export interface AgentSession {
   seen: number;
 }
 
-export type AgentSessions = Partial<Record<ProviderKind, AgentSession>>;
+/// Chave: "claude", "codex" ou "api:<id do perfil>" (ver src/chat/agents.ts).
+export type AgentSessions = Partial<Record<string, AgentSession>>;
 
 /// Espelha src-tauri/src/conversations.rs (Conversation). Mensagens seguem o formato de ChatMessage.
 export interface Conversation {
@@ -73,6 +98,10 @@ export interface Conversation {
   model?: string;
   effort?: string;
   planning: boolean;
+  /** Perfil de API da conversa. Ausente = login da CLI. */
+  profile?: string;
+  /** Custo acumulado em dólares, quando o uso é por API. */
+  costUsd?: number;
   /** Sessões por agente. Ausente em arquivos antigos: vem de sessionId. */
   sessions?: AgentSessions;
   createdAt: number;

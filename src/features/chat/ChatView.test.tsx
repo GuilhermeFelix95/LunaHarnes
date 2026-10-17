@@ -15,6 +15,10 @@ vi.mock("../../api", () => ({
   sendPrompt: vi.fn(async () => {}),
   getWorkspace: vi.fn(async () => "C:\\projeto"),
   listModels: vi.fn(async () => []),
+  apiPresets: vi.fn(async () => []),
+  apiProfileHasKey: vi.fn(async () => true),
+  listApiProfiles: vi.fn(async () => []),
+  PROFILES_CHANGED: "luna:profiles-changed",
   getChanges: vi.fn(async () => ({ isRepo: false, files: [] })),
   getFileDiff: vi.fn(async () => ""),
   terminalOpen: vi.fn(async () => "term-1"),
@@ -66,6 +70,30 @@ describe("ChatView: continuidade e envio", () => {
 
     expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).value).toBe("Encontre bugs");
     expect(api.sendPrompt).not.toHaveBeenCalled();
+  });
+
+  it("perfil de API vira o agente: manda o id e o motor, e a resposta leva o nome do perfil", async () => {
+    vi.mocked(api.apiPresets).mockResolvedValueOnce([
+      { preset: "deepSeek", label: "DeepSeek", engine: "claude", defaultBaseUrl: "https://api.deepseek.com/anthropic" },
+    ]);
+    vi.mocked(api.listApiProfiles).mockResolvedValueOnce([
+      { id: "p1", name: "DeepSeek", preset: "deepSeek", baseUrl: "", models: ["deepseek-chat"], defaultModel: "deepseek-chat" },
+    ]);
+    render(<ChatView onPersist={() => {}} />);
+
+    await screen.findByRole("option", { name: "DeepSeek · via Claude Code" });
+    fireEvent.change(screen.getByLabelText("Provedor"), { target: { value: "api:p1" } });
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("olá");
+    emit({ kind: "textDelta", text: "oi" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    const request = vi.mocked(api.sendPrompt).mock.calls[0][0];
+    expect(request.profile).toBe("p1");
+    expect(request.provider).toBe("claude");
+    expect(document.querySelector(".message__author")?.textContent).toContain("DeepSeek · via Claude Code");
   });
 
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {

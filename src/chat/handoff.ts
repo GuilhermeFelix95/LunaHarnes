@@ -24,7 +24,7 @@ const STATUS_LABELS: Record<ChangedFile["status"], string> = {
 
 function block(m: ChatMessage, fallback: ProviderKind): string {
   if (m.role === "user") return `### Você\n${m.text}`;
-  const author = PROVIDER_LABELS[m.provider ?? fallback];
+  const author = m.agent ?? PROVIDER_LABELS[m.provider ?? fallback];
   if (m.tool) return `- Ferramenta (${author}): ${m.tool.name}${m.tool.detail ? ` · ${m.tool.detail}` : ""}`;
   const error = m.error ? `\n(erro: ${m.error})` : "";
   return `### ${author}\n${m.text}${error}`;
@@ -59,8 +59,8 @@ function renderChanges(changes: Changes | null): string {
 
 interface ContextInput {
   sessions: AgentSessions;
-  /** Agente que vai responder agora. */
-  target: ProviderKind;
+  /** Agente que vai responder agora: "claude", "codex" ou "api:<id>" (ver chat/agents.ts). */
+  target: string;
   /** Mensagens anteriores à nova mensagem do usuário. */
   history: ChatMessage[];
   /** Autor das respostas antigas que não têm `provider`. */

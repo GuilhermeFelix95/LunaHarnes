@@ -1,3 +1,4 @@
+pub mod api_profiles;
 pub mod auth;
 pub mod changes;
 pub mod commands;
@@ -32,7 +33,14 @@ pub fn run() {
             commands::list_conversations,
             commands::load_conversation,
             commands::save_conversation,
-            commands::delete_conversation
+            commands::delete_conversation,
+            commands::api_presets,
+            commands::list_api_profiles,
+            commands::save_api_profile,
+            commands::delete_api_profile,
+            commands::set_api_profile_key,
+            commands::api_profile_has_key,
+            commands::test_api_profile
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaHarness");

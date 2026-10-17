@@ -38,16 +38,23 @@ pub struct RunRequest {
     /// Nível de esforço de raciocínio, com o nome que a CLI usa (ex.: "high", "xhigh").
     #[serde(default)]
     pub effort: Option<String>,
+    /// Perfil de API (id em api-profiles.json). Ausente = login da própria CLI.
+    /// A chave não vem aqui: o app a lê do cofre de credenciais.
+    #[serde(default)]
+    pub profile: Option<String>,
 }
 
 impl RunRequest {
     /// Recusa modelo ou esforço que não sejam um nome simples, antes de virarem argumento do CLI.
     pub fn validate(&self) -> Result<(), String> {
-        for (field, value) in [("modelo", &self.model), ("esforço", &self.effort)] {
-            if let Some(value) = value {
-                if !is_plain_token(value) {
-                    return Err(format!("{field} inválido: {value:?}"));
-                }
+        if let Some(model) = &self.model {
+            if !is_model_token(model) {
+                return Err(format!("modelo inválido: {model:?}"));
+            }
+        }
+        if let Some(effort) = &self.effort {
+            if !is_plain_token(effort) {
+                return Err(format!("esforço inválido: {effort:?}"));
             }
         }
         Ok(())
@@ -55,13 +62,23 @@ impl RunRequest {
 }
 
 /// Letras, números, `.`, `_` e `-`, sem começar por `-` (não pode parecer flag do CLI).
-fn is_plain_token(value: &str) -> bool {
+pub(crate) fn is_plain_token(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 100
         && !value.starts_with('-')
         && value
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
+/// Nome de modelo: como `is_plain_token`, mas aceita `/` e `:` (slugs de agregadores, ex.: `z-ai/glm-5.2:free`).
+pub fn is_model_token(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 100
+        && !value.starts_with('-')
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '/' | ':'))
 }
 
 /// Evento interno único. O frontend nunca vê o JSON bruto de cada CLI.
@@ -75,6 +92,8 @@ pub enum ProviderEvent {
     RateLimit { window: LimitWindow, utilization: f64, resets_at: i64 },
     /// Tokens que ocupam a janela de contexto no último turno, e o tamanho dessa janela.
     Context { tokens: u64, window_size: u64 },
+    /// Custo do turno em dólares, quando a CLI informa (uso com API). Com assinatura, a CLI não informa.
+    Cost { usd: f64 },
     Error { message: String },
     Done { ok: bool },
 }
@@ -100,6 +119,7 @@ mod tests {
             permission,
             model: None,
             effort: None,
+            profile: None,
         }
     }
 
@@ -127,6 +147,15 @@ mod tests {
         assert!(with_model(request(ProviderKind::Codex, Permission::ReadOnly, None), "gpt-5", "high\"x")
             .validate()
             .is_err());
+    }
+
+    #[test]
+    fn model_names_accept_slashes_and_colons_from_aggregators() {
+        let req = with_model(request(ProviderKind::Claude, Permission::ReadOnly, None), "z-ai/glm-5.2:free", "high");
+        assert!(req.validate().is_ok());
+
+        // Caracteres de shell continuam de fora, mesmo com as barras liberadas.
+        assert!(with_model(request(ProviderKind::Claude, Permission::ReadOnly, None), "a&b", "high").validate().is_err());
     }
 
     #[test]
@@ -273,6 +302,23 @@ mod tests {
                 ProviderEvent::Done { ok: false },
             ]
         );
+    }
+
+    #[test]
+    fn result_with_api_cost_reports_it_before_done() {
+        let line = r#"{"type":"result","is_error":false,"total_cost_usd":0.0421,"result":"ok"}"#;
+        let events = parse_line(ProviderKind::Claude, line);
+
+        assert_eq!(
+            events,
+            vec![ProviderEvent::Cost { usd: 0.0421 }, ProviderEvent::Done { ok: true }]
+        );
+    }
+
+    #[test]
+    fn result_without_cost_keeps_the_old_events() {
+        let line = r#"{"type":"result","is_error":false,"result":"ok"}"#;
+        assert_eq!(parse_line(ProviderKind::Claude, line), vec![ProviderEvent::Done { ok: true }]);
     }
 
     #[test]

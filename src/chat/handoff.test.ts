@@ -89,3 +89,17 @@ describe("contextFor", () => {
     expect(result.preamble).toContain("não é um repositório git");
   });
 });
+
+describe("renderHistory com perfis de API", () => {
+  it("usa o nome do perfil como autor da resposta", () => {
+    const text = renderHistory(
+      [
+        { role: "user", text: "oi" },
+        { role: "assistant", text: "tudo bem", provider: "claude", agent: "DeepSeek · via Claude Code" },
+      ],
+      "claude",
+    );
+
+    expect(text).toContain("### DeepSeek · via Claude Code\ntudo bem");
+  });
+});

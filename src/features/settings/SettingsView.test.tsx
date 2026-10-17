@@ -3,6 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { THEME_KEY } from "../../theme";
 import { SettingsView } from "./SettingsView";
 
+vi.mock("../../api", () => ({
+  apiPresets: vi.fn(async () => []),
+  apiProfileHasKey: vi.fn(async () => true),
+  checkAuth: vi.fn(async () => true),
+  deleteApiProfile: vi.fn(async () => {}),
+  listApiProfiles: vi.fn(async () => []),
+  PROFILES_CHANGED: "luna:profiles-changed",
+  saveApiProfile: vi.fn(async () => ({})),
+  setApiProfileKey: vi.fn(async () => {}),
+  testApiProfile: vi.fn(async () => "ok"),
+}));
+
+
 describe("SettingsView", () => {
   beforeEach(() => {
     localStorage.clear();

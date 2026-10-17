@@ -8,13 +8,14 @@ function lastTextReply(messages: ChatMessage[]): ChatMessage | undefined {
 
 /// Aplica um evento do provedor à lista de mensagens.
 /// Deltas de texto anexam à última resposta; ferramentas viram linhas próprias.
-/// `provider` marca as mensagens novas com o agente que respondeu.
+/// `provider` e `agent` marcam as mensagens novas com o agente que respondeu (`agent` é o nome do perfil de API).
 export function applyEvent(
   messages: ChatMessage[],
   event: ProviderEvent,
   provider?: ProviderKind,
+  agent?: string,
 ): ChatMessage[] {
-  const by = provider ? { provider } : {};
+  const by = { ...(provider ? { provider } : {}), ...(agent ? { agent } : {}) };
   switch (event.kind) {
     case "textDelta": {
       const reply = lastTextReply(messages);
@@ -39,6 +40,7 @@ export function applyEvent(
     case "done":
     case "rateLimit":
     case "context":
+    case "cost":
       // Não mudam a conversa: o ChatView usa para o medidor de uso.
       return messages;
   }

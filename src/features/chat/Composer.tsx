@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { ArrowUp, Square } from "lucide-react";
-import type { ModelOption, Permission, ProviderKind } from "../../types";
+import type { ModelOption, Permission } from "../../types";
+import type { AgentOption } from "../../chat/agents";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { ModelMenu } from "./ModelMenu";
 
@@ -22,8 +23,10 @@ interface ComposerProps {
   running: boolean;
   /** Desabilita o texto e o envio (ex.: conta não conectada). */
   blocked: boolean;
-  provider: ProviderKind;
-  onProvider: (provider: ProviderKind) => void;
+  /** Agente da conversa (chave de chat/agents.ts). */
+  agent: string;
+  agents: AgentOption[];
+  onAgent: (key: string) => void;
   permission: Permission;
   onPermission: (permission: Permission) => void;
   /** Modelos que a CLI do provedor lista. Vazio enquanto carrega. */
@@ -84,13 +87,13 @@ export function Composer(props: ComposerProps) {
         <div className="composer__selectors">
           <select
             aria-label="Provedor"
-            value={props.provider}
+            value={props.agent}
             disabled={running}
-            onChange={(e) => props.onProvider(e.target.value as ProviderKind)}
+            onChange={(e) => props.onAgent(e.target.value)}
           >
-            {(Object.keys(PROVIDER_LABELS) as ProviderKind[]).map((p) => (
-              <option key={p} value={p}>
-                {PROVIDER_LABELS[p]}
+            {props.agents.map((a) => (
+              <option key={a.key} value={a.key}>
+                {a.label}
               </option>
             ))}
           </select>

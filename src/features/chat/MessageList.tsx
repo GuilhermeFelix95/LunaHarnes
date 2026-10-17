@@ -24,7 +24,9 @@ type Tool = NonNullable<ChatMessage["tool"]>;
 /** Pedaço de uma resposta: ferramentas seguidas viram um grupo; texto e erro ficam como estão. */
 type Part = { kind: "tools"; tools: Tool[] } | { kind: "text"; message: ChatMessage };
 
-type Item = { kind: "user"; message: ChatMessage } | { kind: "reply"; provider: ProviderKind; parts: Part[] };
+type Item =
+  | { kind: "user"; message: ChatMessage }
+  | { kind: "reply"; provider: ProviderKind; label?: string; parts: Part[] };
 
 /// Agrupa as mensagens do agente entre duas mensagens do usuário numa resposta só.
 function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
@@ -39,6 +41,8 @@ function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
       reply = { kind: "reply", provider: m.provider ?? fallback, parts: [] };
       items.push(reply);
     }
+    // Resposta de perfil de API: o nome do perfil aparece no lugar do nome do CLI.
+    if (m.agent) reply.label = m.agent;
     const last = reply.parts.at(-1);
     if (m.tool && !m.error) {
       if (last?.kind === "tools") last.tools.push(m.tool);
@@ -79,7 +83,7 @@ export function MessageList({ messages, fallbackProvider, running }: MessageList
                 <span className="message__avatar" aria-hidden="true">
                   <ProviderIcon provider={item.provider} />
                 </span>
-                {PROVIDER_LABELS[item.provider]}
+                {item.label ?? PROVIDER_LABELS[item.provider]}
               </span>
               {item.parts.map((part, j) => {
                 if (part.kind === "tools") {

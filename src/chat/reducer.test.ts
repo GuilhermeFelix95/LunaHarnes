@@ -51,3 +51,11 @@ describe("applyEvent", () => {
     expect(applyEvent(messages, { kind: "done", ok: true })).toBe(messages);
   });
 });
+
+describe("applyEvent com agente de perfil", () => {
+  it("marca a resposta com o provedor e o nome do perfil", () => {
+    const result = applyEvent([{ role: "user", text: "oi" }], { kind: "textDelta", text: "Olá" }, "claude", "DeepSeek · via Claude Code");
+
+    expect(result[1]).toEqual({ role: "assistant", text: "Olá", provider: "claude", agent: "DeepSeek · via Claude Code" });
+  });
+});

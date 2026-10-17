@@ -26,6 +26,12 @@ pub struct Conversation {
     /// Modo plano ligado: o agente pergunta e planeja antes de editar.
     #[serde(default)]
     pub planning: bool,
+    /// Perfil de API usado na conversa (id em api-profiles.json). Ausente = login da CLI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Custo acumulado em dólares, quando o uso é por API. Ausente = a CLI não informou.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost_usd: Option<f64>,
     /// Sessão nativa de cada agente e quanto do histórico ele já viu (ver src/chat/handoff.ts).
     /// Ausente em arquivos antigos: o frontend usa `session_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -127,6 +133,8 @@ mod tests {
             model: None,
             effort: None,
             planning: false,
+            profile: None,
+            cost_usd: None,
             sessions: Some(json!({"claude": {"id": "sess-1", "seen": 1}, "codex": {"id": "th-9", "seen": 3}})),
             messages: vec![json!({"role": "user", "text": "oi"})],
         }
@@ -156,6 +164,20 @@ mod tests {
         save(&dir, &original).unwrap();
 
         assert_eq!(load(&dir, "abc-123").unwrap(), original);
+    }
+
+    #[test]
+    fn profile_and_cost_survive_a_round_trip() {
+        let dir = temp_dir("profile-cost");
+        let mut original = conversation("perfil-1", 10);
+        original.profile = Some("p1".into());
+        original.cost_usd = Some(0.042);
+
+        save(&dir, &original).unwrap();
+
+        let loaded = load(&dir, "perfil-1").unwrap();
+        assert_eq!(loaded.profile.as_deref(), Some("p1"));
+        assert_eq!(loaded.cost_usd, Some(0.042));
     }
 
     #[test]

@@ -100,6 +100,10 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 events.push(ProviderEvent::Error { message });
             }
             events.extend(context_event(&value));
+            // Com API, a CLI informa o custo do turno. Com assinatura, o campo não vem.
+            if let Some(usd) = value.get("total_cost_usd").and_then(Value::as_f64) {
+                events.push(ProviderEvent::Cost { usd });
+            }
             events.push(ProviderEvent::Done { ok: !is_error });
             events
         }
