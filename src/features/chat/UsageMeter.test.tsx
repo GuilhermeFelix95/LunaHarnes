@@ -12,7 +12,7 @@ describe("UsageMeter", () => {
   it("mostra o contexto do turno com tokens e porcentagem", () => {
     render(<UsageMeter limits={{}} context={{ tokens: 44060, windowSize: 1_000_000 }} />);
 
-    expect(screen.getByText(/44 mil de 1,0 mi \(4%\)/)).toBeTruthy();
+    expect(screen.getByText(/44k de 1M \(4%\)/)).toBeTruthy();
   });
 
   it("mostra a sessão de 5 horas e a semana com porcentagem e reset", () => {

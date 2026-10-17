@@ -31,6 +31,8 @@ export interface ModelOption {
   label: string;
   description: string | null;
   efforts: EffortOption[];
+  /** Modelo escolhido quando a conversa não tem escolha: o mais barato do provedor. */
+  default: boolean;
 }
 
 export type ProviderEvent =

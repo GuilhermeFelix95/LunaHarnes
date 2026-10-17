@@ -122,7 +122,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         if (!active) return;
         setModels(list);
         // Sem escolha válida, usa o primeiro modelo da lista.
-        const chosen = list.find((m) => m.id === live.current.model) ?? list[0];
+        const chosen = list.find((m) => m.id === live.current.model) ?? list.find((m) => m.default) ?? list[0];
         const supported = chosen?.efforts.map((e) => e.id) ?? [];
         setModel(chosen?.id ?? "");
         if (!supported.includes(live.current.effort)) setEffort("");

@@ -10,12 +10,14 @@ const CLAUDE_MODELS = [
     label: "Opus 5.5",
     description: "Para trabalho complexo",
     efforts: [effort("low", "Low"), effort("medium", "Medium", true), effort("max", "Max")],
+    default: false,
   },
   {
     id: "claude-sonnet-5-5",
     label: "Sonnet 5.5",
     description: "Mais eficiente",
     efforts: [effort("low", "Low"), effort("medium", "Medium", true)],
+    default: false,
   },
 ];
 

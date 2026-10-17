@@ -25,6 +25,8 @@ pub struct ModelOption {
     pub label: String,
     pub description: Option<String>,
     pub efforts: Vec<EffortOption>,
+    /// Modelo escolhido quando a conversa não tem escolha: o mais barato do provedor.
+    pub default: bool,
 }
 
 fn effort(id: &str, label: &str, recommended: bool) -> EffortOption {
@@ -53,6 +55,7 @@ pub fn claude_catalog() -> Vec<ModelOption> {
         label: label.into(),
         description: Some(description.into()),
         efforts: claude_efforts(recommended),
+        default: false,
     };
 
     vec![
@@ -61,6 +64,9 @@ pub fn claude_catalog() -> Vec<ModelOption> {
         model("claude-haiku-5-5", "Haiku 5.5", "O mais rápido para respostas rápidas", "medium"),
         model("claude-fable-5-1", "Fable 5.1", "Para seus desafios mais difíceis", "high"),
     ]
+    .into_iter()
+    .map(|m| ModelOption { default: m.id == "claude-haiku-5-5", ..m })
+    .collect()
 }
 
 /// Nome de exibição de um nível do Codex. Os níveis que a CLI não nomeia ficam com o próprio id.
@@ -84,7 +90,7 @@ pub fn parse_codex_catalog(json: &str) -> Result<Vec<ModelOption>, String> {
         .and_then(Value::as_array)
         .ok_or("catálogo do Codex sem a lista `models`")?;
 
-    Ok(models
+    let mut listed: Vec<ModelOption> = models
         .iter()
         .filter(|m| m["visibility"] == "list")
         .filter_map(|m| {
@@ -97,9 +103,20 @@ pub fn parse_codex_catalog(json: &str) -> Result<Vec<ModelOption>, String> {
                 .filter_map(|level| level["effort"].as_str())
                 .map(|id| effort(id, codex_effort_label(id), Some(id) == default))
                 .collect();
-            Some(ModelOption { id, label, description: None, efforts })
+            Some(ModelOption { id, label, description: None, efforts, default: false })
         })
-        .collect())
+        .collect();
+
+    // Padrão: a família mais barata da lista, na ordem em que a CLI mostra os modelos.
+    if let Some(cheapest) = listed.iter().position(|m| is_cheapest_family(&m.id)) {
+        listed[cheapest].default = true;
+    }
+    Ok(listed)
+}
+
+/// Famílias de modelo pequeno e barato do Codex (ex.: gpt-6-luna).
+fn is_cheapest_family(id: &str) -> bool {
+    ["luna", "mini", "nano"].iter().any(|family| id.contains(family))
 }
 
 /// Roda `codex debug models`. Tenta a lista atual; se falhar (ex.: sem rede), usa a que vem com o binário.
@@ -139,6 +156,22 @@ mod tests {
 
     fn ids(models: &[ModelOption]) -> Vec<&str> {
         models.iter().map(|m| m.id.as_str()).collect()
+    }
+
+    #[test]
+    fn claude_catalog_defaults_to_the_cheapest_model() {
+        let models = claude_catalog();
+        let defaults: Vec<&str> = models.iter().filter(|m| m.default).map(|m| m.id.as_str()).collect();
+
+        assert_eq!(defaults, ["claude-haiku-5-5"]);
+    }
+
+    #[test]
+    fn codex_catalog_defaults_to_the_cheapest_family() {
+        let models = parse_codex_catalog(FIXTURE).unwrap();
+        let defaults: Vec<&str> = models.iter().filter(|m| m.default).map(|m| m.id.as_str()).collect();
+
+        assert_eq!(defaults, ["gpt-6-luna"]);
     }
 
     #[test]

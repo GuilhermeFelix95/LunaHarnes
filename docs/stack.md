@@ -41,7 +41,7 @@ docs/                stack, contrato de plugins
 
 - Etapa 1 (repositório e documentação): concluída.
 - Etapa 2 (providers e sessão em Rust): código e testes passando. Fixture de sucesso do Codex pendente (`codex login`).
-- Etapa 3 (Tauri + UI de chat): comandos `send_prompt` e `cancel_prompt` (`src-tauri/src/commands.rs`), evento `provider-event`, `ChatView` com streaming e troca de provedor. Ícone provisório gerado em `src-tauri/icons`.
+- Etapa 3 (Tauri + UI de chat): comandos `send_prompt` e `cancel_prompt` (`src-tauri/src/commands.rs`), evento `provider-event`, `ChatView` com streaming e troca de provedor. Ícone da Luna (lua e órbita) em `src-tauri/icons`, gerado a partir de `src-tauri/icons/source.svg` com `npx tauri icon`. O `tauri.conf.json` declara os ícones do bundle, senão a janela usa o ícone padrão do Tauri.
 - Testes: `cargo test` (18) e `npx vitest run` (13). Build: `npx vite build`. A UI ainda não foi exercitada num `tauri dev` real.
 - Etapa 4 (plugins): loader em Rust (`src-tauri/src/plugins/loader.rs`) com validação de manifesto e travessia bloqueada. Host em TS (`src/plugins/host.ts`) com permissões `commands` e `hooks`. Painéis (`registerPanel`) ficaram fora do MVP.
 - Etapa 5: contrato em `docs/plugins.md` e plugin de referência em `plugins-examples/hello-world`.
@@ -82,10 +82,13 @@ docs/                stack, contrato de plugins
   - Painel direito com abas Alterações e Terminal e largura ajustável pela alça (`src/features/side/RightPanel.tsx`). Largura entre 240 px e 60% da janela, salva em `luna.rightPanel.width`. O terminal fica montado ao trocar de aba.
   - Configurações (`SettingsView.tsx`) com temas: Sistema, Claro, Escuro, Luna, Aurora, Duna e Grafite (`src/theme.ts`, cores em `styles.css`). A escolha fica em `luna.theme` e é aplicada em `main.tsx` antes do primeiro render.
   - Pendente: o fundo do terminal ainda é preto fixo (não segue o tema). Troca Claude → Codex ainda não testada ponta a ponta, porque o Codex não está logado.
+- Fase F (em andamento):
+  - Etapa 1 (ajustes): ícone novo; modelo padrão é o mais barato (Haiku 5.5 no Claude; `gpt-6-luna` no Codex, pela família "luna"/"mini"/"nano"), marcado com `default` em `models.rs`; clicar de novo num arquivo de Alterações fecha o diff; contexto e uso em k/M (`formatTokens`: "44k", "1,2M").
+  - Próximas etapas (ver o plano aprovado): visual "Vidro lunar", perfis de API (OpenRouter, DeepSeek, GLM, OpenCode, Kimi, personalizados) com a chave no keyring, marketplace de plugins e os recursos de MVP.
 - Testes:
-  - `npm run test:rust`: 60 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
+  - `npm run test:rust`: 62 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
   - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.
-  - `npm test`: 103 testes de frontend.
+  - `npm test`: 105 testes de frontend.
 - CSP: `script-src 'self' blob:` é necessário para carregar plugins como módulo (ver `docs/plugins.md`, seção de segurança).
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

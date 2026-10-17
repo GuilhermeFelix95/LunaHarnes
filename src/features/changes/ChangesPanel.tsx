@@ -40,7 +40,13 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
     };
   }, [cwd, version]);
 
+  /// Clicar no arquivo aberto fecha o diff; clicar em outro troca.
   async function open(path: string) {
+    if (selected === path) {
+      setSelected(null);
+      setDiff("");
+      return;
+    }
     setSelected(path);
     try {
       setDiff(await getFileDiff(cwd, path));
@@ -84,6 +90,7 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
             <button
               type="button"
               className={`changes__item${selected === file.path ? " is-selected" : ""}`}
+              aria-pressed={selected === file.path}
               onClick={() => void open(file.path)}
               title={`${file.path} · ${STATUS_LABEL[file.status]}`}
             >

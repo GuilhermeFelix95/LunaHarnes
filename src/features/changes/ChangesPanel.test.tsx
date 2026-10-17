@@ -52,6 +52,20 @@ describe("ChangesPanel", () => {
     expect(document.querySelector(".diff-line--del")?.textContent).toContain("-velho");
   });
 
+  it("clicar de novo no arquivo aberto fecha o diff", async () => {
+    vi.mocked(api.getChanges).mockResolvedValue(changed as never);
+    vi.mocked(api.getFileDiff).mockResolvedValue("@@ -1 +1 @@\n+novo\n");
+    render(<ChangesPanel cwd={"C:\\projeto"} version={0} />);
+
+    const item = await screen.findByRole("button", { name: /src\/a\.ts/ });
+    fireEvent.click(item);
+    expect(await screen.findByLabelText("Diff de src/a.ts")).toBeTruthy();
+
+    fireEvent.click(item);
+    await waitFor(() => expect(screen.queryByLabelText(/Diff de/)).toBeNull());
+    expect(item.getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("recarrega a lista quando a versão muda (fim de turno)", async () => {
     vi.mocked(api.getChanges).mockResolvedValue(changed as never);
     const { rerender } = render(<ChangesPanel cwd={"C:\\projeto"} version={0} />);

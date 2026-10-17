@@ -49,6 +49,16 @@ describe("ChatView: continuidade e envio", () => {
     vi.clearAllMocks();
   });
 
+  it("sem escolha salva, começa pelo modelo marcado como padrão (o mais barato)", async () => {
+    vi.mocked(api.listModels).mockResolvedValueOnce([
+      { id: "claude-opus-5-5", label: "Opus 5.5", description: null, efforts: [], default: false },
+      { id: "claude-haiku-5-5", label: "Haiku 5.5", description: null, efforts: [], default: true },
+    ]);
+    render(<ChatView onPersist={() => {}} />);
+
+    expect(await screen.findByText("Haiku 5.5")).toBeTruthy();
+  });
+
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect(screen.getByLabelText("Mensagem")).toBeTruthy());

@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { contextPercent, formatReset, formatTokens, utilizationPercent } from "./usage";
 
 describe("usage", () => {
-  it("formata tokens em mil e milhões", () => {
-    expect(formatTokens(44060)).toBe("44 mil");
-    expect(formatTokens(1_000_000)).toBe("1,0 mi");
+  it("formata tokens em k e M, como os provedores", () => {
+    expect(formatTokens(44060)).toBe("44k");
+    expect(formatTokens(1_000_000)).toBe("1M");
+    expect(formatTokens(1_200_000)).toBe("1,2M");
     expect(formatTokens(950)).toBe("950");
+    expect(formatTokens(850)).toBe("850");
   });
 
   it("calcula a porcentagem do contexto sem passar de 100", () => {

@@ -1,9 +1,9 @@
 /// Formatação do uso da conta e do contexto. Recebe os valores da CLI (ver providers/claude.rs).
 
-/// Tokens por extenso, curtos: "44 mil", "1,0 mi".
+/// Tokens em k e M, como os provedores mostram: "44k", "1,2M".
 export function formatTokens(tokens: number): string {
-  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1).replace(".", ",")} mi`;
-  if (tokens >= 1_000) return `${Math.round(tokens / 1_000)} mil`;
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1).replace(/\.0$/, "").replace(".", ",")}M`;
+  if (tokens >= 1_000) return `${Math.round(tokens / 1_000)}k`;
   return String(tokens);
 }
 
