@@ -7,6 +7,7 @@ import {
   saveConversation,
 } from "./api";
 import { ChatView } from "./features/chat/ChatView";
+import { SettingsView } from "./features/settings/SettingsView";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { Conversation, ConversationSummary } from "./types";
 
@@ -23,6 +24,8 @@ export function App() {
   const [listError, setListError] = useState<string | undefined>(undefined);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [session, setSession] = useState<Session>({ key: 0 });
+  // O chat fica montado enquanto as configurações estão abertas, para não cortar uma resposta.
+  const [view, setView] = useState<"chat" | "settings">("chat");
 
   useEffect(() => {
     void refreshList();
@@ -38,6 +41,7 @@ export function App() {
   }
 
   function newConversation(cwd?: string) {
+    setView("chat");
     setActiveId(null);
     setSession((current) => ({ key: current.key + 1, startCwd: cwd }));
   }
@@ -55,6 +59,7 @@ export function App() {
   async function openConversation(id: string) {
     try {
       const conversation = await loadConversation(id);
+      setView("chat");
       setActiveId(id);
       setSession((current) => ({ key: current.key + 1, initial: conversation }));
     } catch (e) {
@@ -86,8 +91,13 @@ export function App() {
         onAddProject={() => void addProject()}
         onOpen={(id) => void openConversation(id)}
         onDelete={(id) => void removeConversation(id)}
+        onSettings={() => setView((v) => (v === "settings" ? "chat" : "settings"))}
+        settingsOpen={view === "settings"}
         error={listError}
       />
+      <main className="app__main">
+      {view === "settings" && <SettingsView onClose={() => setView("chat")} />}
+      <div className="app__view" hidden={view !== "chat"}>
       <ChatView
         key={session.key}
         initial={session.initial}
@@ -100,6 +110,8 @@ export function App() {
             .catch((e) => setListError(String(e)));
         }}
       />
+      </div>
+      </main>
     </div>
   );
 }

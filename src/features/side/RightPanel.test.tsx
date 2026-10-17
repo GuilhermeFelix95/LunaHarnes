@@ -1,0 +1,75 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clampWidth, RightPanel, WIDTH_KEY } from "./RightPanel";
+
+function setup(tab: "changes" | "terminal" = "changes") {
+  const onTab = vi.fn();
+  render(
+    <RightPanel
+      open
+      tab={tab}
+      onTab={onTab}
+      changes={<p>lista de alterações</p>}
+      terminal={<p>shell</p>}
+    />,
+  );
+  return { onTab };
+}
+
+describe("RightPanel", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1000 });
+  });
+
+  it("mantém o terminal montado ao mostrar outra aba, para não perder o shell", () => {
+    setup("changes");
+
+    expect(screen.getByText("shell").closest("[hidden]")).toBeTruthy();
+    expect(screen.getByText("lista de alterações").closest("[hidden]")).toBeNull();
+  });
+
+  it("as abas avisam qual foi escolhida", () => {
+    const { onTab } = setup("changes");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Terminal" }));
+
+    expect(onTab).toHaveBeenCalledWith("terminal");
+  });
+
+  it("arrastar a alça muda a largura e salva", () => {
+    setup();
+    const handle = screen.getByRole("separator", { name: "Ajustar largura do painel" });
+    const panel = screen.getByRole("complementary", { name: "Painel lateral" });
+
+    fireEvent.pointerDown(handle, { clientX: 700, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 600, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 600, pointerId: 1 });
+
+    expect(panel.style.width).toBe("420px");
+    expect(localStorage.getItem(WIDTH_KEY)).toBe("420");
+  });
+
+  it("teclas de seta ajustam a largura respeitando os limites", () => {
+    localStorage.setItem(WIDTH_KEY, "250");
+    setup();
+    const handle = screen.getByRole("separator", { name: "Ajustar largura do painel" });
+    const panel = screen.getByRole("complementary", { name: "Painel lateral" });
+
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(panel.style.width).toBe("240px");
+  });
+
+  it("largura fica entre 240 px e 60% da janela", () => {
+    expect(clampWidth(100, 1000)).toBe(240);
+    expect(clampWidth(900, 1000)).toBe(600);
+    expect(clampWidth(400, 1000)).toBe(400);
+  });
+
+  it("valor salvo inválido volta para o padrão", () => {
+    localStorage.setItem(WIDTH_KEY, "abc");
+    setup();
+
+    expect(screen.getByRole("complementary", { name: "Painel lateral" }).style.width).toBe("320px");
+  });
+});

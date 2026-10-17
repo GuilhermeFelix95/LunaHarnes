@@ -75,10 +75,17 @@ docs/                stack, contrato de plugins
   - Pendente de confirmação: se `utilization` é fração de 0 a 1. A captura mostra 0.45 e 0.35; falta comparar com o número do Claude Desktop.
   - O seletor de modelo não tem mais "Padrão da CLI": sem escolha, usa o primeiro modelo da lista (`ChatView.tsx`). O esforço ainda tem "Padrão".
   - Teste E2E com `luna` numa pasta git de teste: terminal, painel de alterações, medidor de uso e modo plano com aprovação funcionaram. Smoke do Claude passou nos quatro casos.
+- Fase E (troca de agente, painel direito, temas e rolagem):
+  - Troca de agente no meio da conversa (`src/chat/handoff.ts`). Cada agente guarda a própria sessão e quantas mensagens já viu (`sessions` na conversa; arquivos antigos usam `sessionId`). Ao trocar, o agente recebe o histórico em texto original (ou só o que perdeu) e o estado do git, sem resumo por modelo. Acima de 120 mil caracteres, só respostas antigas do agente são cortadas.
+  - Respostas agrupadas (`MessageList.tsx`): o nome do agente aparece uma vez por resposta e as ferramentas seguidas viram uma linha recolhível com a contagem.
+  - Rolagem que segue o fim da resposta (`src/chat/useStickToBottom.ts`). Ao rolar para cima, para onde o usuário está e aparece "Ir para o fim".
+  - Painel direito com abas Alterações e Terminal e largura ajustável pela alça (`src/features/side/RightPanel.tsx`). Largura entre 240 px e 60% da janela, salva em `luna.rightPanel.width`. O terminal fica montado ao trocar de aba.
+  - Configurações (`SettingsView.tsx`) com temas: Sistema, Claro, Escuro, Luna, Aurora, Duna e Grafite (`src/theme.ts`, cores em `styles.css`). A escolha fica em `luna.theme` e é aplicada em `main.tsx` antes do primeiro render.
+  - Pendente: o fundo do terminal ainda é preto fixo (não segue o tema). Troca Claude → Codex ainda não testada ponta a ponta, porque o Codex não está logado.
 - Testes:
   - `npm run test:rust`: 60 testes unitários, roda de qualquer terminal (o script carrega o MSVC).
   - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.
-  - `npm test`: 71 testes de frontend.
+  - `npm test`: 103 testes de frontend.
 - CSP: `script-src 'self' blob:` é necessário para carregar plugins como módulo (ver `docs/plugins.md`, seção de segurança).
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

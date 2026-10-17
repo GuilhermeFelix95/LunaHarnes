@@ -12,6 +12,8 @@
   --code-bg: #f4f2ec;
   --error: #b3261e;
   --hover: #ebe8df;
+  --terminal-bg: #1f1e1d;
+  --terminal-fg: #f0eee6;
   --radius: 12px;
   color-scheme: light dark;
 }
@@ -46,6 +48,81 @@
   --code-bg: #1f1e1d;
   --error: #ff8a80;
   --hover: #3a3936;
+  --terminal-bg: #1f1e1d;
+  --terminal-fg: #f0eee6;
+}
+
+/* Temas exclusivos (ver src/theme.ts). Definem todos os tokens, para valer em qualquer modo do sistema. */
+:root[data-theme="luna"] {
+  --bg: #141826;
+  --bg-sidebar: #0f1320;
+  --surface: #1c2233;
+  --fg: #e6eaf5;
+  --muted: #9aa3bd;
+  --border: #2a3149;
+  --accent: #8fa8ff;
+  --accent-fg: #0f1320;
+  --user-bubble: #232b42;
+  --code-bg: #0f1320;
+  --error: #ff8a9a;
+  --hover: #232b42;
+  --terminal-bg: #0b0f1a;
+  --terminal-fg: #c9d1e6;
+  color-scheme: dark;
+}
+
+:root[data-theme="aurora"] {
+  --bg: #0f1a1c;
+  --bg-sidebar: #0b1416;
+  --surface: #152427;
+  --fg: #e3f4ef;
+  --muted: #8fb3ab;
+  --border: #1f3a3d;
+  --accent: #3ddc97;
+  --accent-fg: #06261a;
+  --user-bubble: #2a2445;
+  --code-bg: #0b1416;
+  --error: #ff8a80;
+  --hover: #1a2f33;
+  --terminal-bg: #081012;
+  --terminal-fg: #c8efe3;
+  color-scheme: dark;
+}
+
+:root[data-theme="duna"] {
+  --bg: #f6efe3;
+  --bg-sidebar: #ede3d1;
+  --surface: #fffaf1;
+  --fg: #2b2118;
+  --muted: #7a6a58;
+  --border: #e0d3bc;
+  --accent: #b5532a;
+  --accent-fg: #fffaf1;
+  --user-bubble: #e6d9c2;
+  --code-bg: #efe6d6;
+  --error: #a8261b;
+  --hover: #e6d9c2;
+  --terminal-bg: #2b2118;
+  --terminal-fg: #f6efe3;
+  color-scheme: light;
+}
+
+:root[data-theme="grafite"] {
+  --bg: #1c1c1e;
+  --bg-sidebar: #151517;
+  --surface: #252528;
+  --fg: #f2f2f2;
+  --muted: #a1a1a6;
+  --border: #38383c;
+  --accent: #f2a33a;
+  --accent-fg: #1c1c1e;
+  --user-bubble: #2c2c30;
+  --code-bg: #151517;
+  --error: #ff7b72;
+  --hover: #2c2c30;
+  --terminal-bg: #111113;
+  --terminal-fg: #e5e5e5;
+  color-scheme: dark;
 }
 
 * {
@@ -75,6 +152,154 @@ button {
 button:disabled {
   cursor: default;
   opacity: 0.5;
+}
+
+/* Área principal: chat ou configurações */
+.app__main {
+  min-width: 0;
+  height: 100vh;
+}
+
+.app__view[hidden] {
+  display: none;
+}
+
+/* Rodapé da barra lateral: preso embaixo mesmo com a lista rolando */
+.sidebar__foot {
+  position: sticky;
+  bottom: -12px;
+  margin: auto -12px -12px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.sidebar__settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+  text-align: left;
+}
+
+.sidebar__settings:hover,
+.sidebar__settings[aria-pressed="true"] {
+  background: var(--hover);
+}
+
+/* Configurações */
+.settings {
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 24px;
+}
+
+.settings__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 880px;
+  margin: 0 auto 24px;
+}
+
+.settings__head h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.settings__close {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.settings__section {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.settings__section h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+
+.theme-card:hover {
+  border-color: var(--muted);
+}
+
+.theme-card[aria-checked="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.theme-card__preview {
+  position: relative;
+  display: block;
+  height: 88px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.theme-card__sidebar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 28%;
+}
+
+.theme-card__bubble {
+  position: absolute;
+  top: 18px;
+  right: 12px;
+  width: 42%;
+  height: 16px;
+  border-radius: 8px;
+}
+
+.theme-card__accent {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.theme-card__name {
+  font-weight: 600;
+}
+
+.theme-card__desc {
+  font-size: 12px;
+  color: var(--muted);
 }
 
 /* Layout: barra lateral + área principal */
@@ -856,15 +1081,78 @@ textarea:focus-visible {
 }
 
 /* Painel de alterações (direita) */
-.changes {
+/* Painel da direita: abas e alça de largura */
+.side {
+  position: relative;
   display: flex;
   flex-direction: column;
-  width: 260px;
+  flex-shrink: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.side[hidden] {
+  display: none;
+}
+
+.side__resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  z-index: 2;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.side__resize:hover,
+.side__resize:focus-visible {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  outline: none;
+}
+
+.side__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.side__tab {
+  padding: 6px 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.side__tab[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.side__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.side__body[hidden] {
+  display: none;
+}
+
+.changes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-height: 0;
   overflow-y: auto;
   padding: 12px;
-  border-left: 1px solid var(--border);
-  background: var(--bg-sidebar);
   font-size: 13px;
 }
 
@@ -964,9 +1252,9 @@ textarea:focus-visible {
 
 /* Terminal embaixo da coluna do chat */
 .terminal {
-  height: 240px;
-  border-top: 1px solid var(--border);
-  background: #1f1e1d;
+  flex: 1;
+  min-height: 0;
+  background: var(--terminal-bg);
   padding: 6px 8px;
 }
 
@@ -1003,7 +1291,7 @@ textarea:focus-visible {
   }
 
   .sidebar,
-  .changes {
+  .side {
     display: none;
   }
 

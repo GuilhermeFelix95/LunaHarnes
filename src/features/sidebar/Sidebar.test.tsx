@@ -21,6 +21,7 @@ function setup() {
     onAddProject: vi.fn(),
     onOpen: vi.fn(),
     onDelete: vi.fn(),
+    onSettings: vi.fn(),
   };
   render(<Sidebar {...props} />);
   return props;
@@ -62,9 +63,16 @@ describe("Sidebar busca", () => {
         onAddProject={vi.fn()}
         onOpen={vi.fn()}
         onDelete={vi.fn()}
+        onSettings={vi.fn()}
       />,
     );
 
     expect(screen.queryByLabelText("Buscar conversas")).toBeNull();
+  });
+
+  it("o botão Configurações do rodapé abre a página", () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole("button", { name: /Configurações/ }));
+    expect(props.onSettings).toHaveBeenCalledOnce();
   });
 });

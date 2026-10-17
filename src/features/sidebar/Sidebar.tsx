@@ -21,11 +21,24 @@ interface SidebarProps {
   onAddProject: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  onSettings: () => void;
+  /** Página de configurações aberta: marca o botão do rodapé. */
+  settingsOpen?: boolean;
   error?: string;
 }
 
 /// Barra lateral: conversas agrupadas por projeto (pasta), com os dias dentro de cada um.
-export function Sidebar({ conversations, activeId, onNew, onAddProject, onOpen, onDelete, error }: SidebarProps) {
+export function Sidebar({
+  conversations,
+  activeId,
+  onNew,
+  onAddProject,
+  onOpen,
+  onDelete,
+  onSettings,
+  settingsOpen = false,
+  error,
+}: SidebarProps) {
   const [query, setQuery] = useState("");
   const matching = filterByTitle(conversations, query);
   const projects = groupByProject(matching, new Date());
@@ -105,6 +118,12 @@ export function Sidebar({ conversations, activeId, onNew, onAddProject, onOpen, 
           ))}
         </section>
       ))}
+
+      <footer className="sidebar__foot">
+        <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>
+          <span aria-hidden="true">⚙</span> Configurações
+        </button>
+      </footer>
     </aside>
   );
 }

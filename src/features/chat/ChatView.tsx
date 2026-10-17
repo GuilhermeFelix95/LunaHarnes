@@ -19,6 +19,7 @@ import { loadInstalledPlugins } from "../../plugins/loader";
 import type { AgentSessions, ChatMessage, Conversation, ModelOption, Permission, ProviderKind } from "../../types";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
+import { RightPanel, type SideTab } from "../side/RightPanel";
 import { TerminalPanel } from "../terminal/TerminalPanel";
 import { Composer, PROVIDER_LABELS } from "./Composer";
 import { MessageList } from "./MessageList";
@@ -51,8 +52,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
-  const live = useRef({ provider, cwd, permission, model, effort, planning });
-  live.current = { provider, cwd, permission, model, effort, planning };
+  const live = useRef({ provider, cwd, permission, model, effort, planning, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [notes, setNotes] = useState<string[]>([]);
@@ -68,11 +68,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [loginError, setLoginError] = useState<string | undefined>(undefined);
-  const [showChanges, setShowChanges] = useState(true);
-  const [showTerminal, setShowTerminal] = useState(false);
+  // Painel da direita: aberto ou não, e qual aba.
+  const [sideOpen, setSideOpen] = useState(true);
+  const [sideTab, setSideTab] = useState<SideTab>("changes");
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
   const [terminalOpened, setTerminalOpened] = useState(false);
   const [changesVersion, setChangesVersion] = useState(0);
+  live.current = { provider, cwd, permission, model, effort, planning, sideTab };
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -91,9 +93,15 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /// Abre o painel na aba pedida; se ela já está à mostra, fecha o painel.
+  function toggleSide(tab: SideTab) {
+    if (tab === "terminal") setTerminalOpened(true);
+    setSideOpen((open) => !(open && live.current.sideTab === tab));
+    setSideTab(tab);
+  }
+
   function toggleTerminal() {
-    setTerminalOpened(true);
-    setShowTerminal((on) => !on);
+    toggleSide("terminal");
   }
 
   useEffect(() => {
@@ -300,15 +308,15 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
           <button
             type="button"
             className="chat__tool"
-            aria-pressed={showChanges}
-            onClick={() => setShowChanges((on) => !on)}
+            aria-pressed={sideOpen && sideTab === "changes"}
+            onClick={() => toggleSide("changes")}
           >
             Alterações
           </button>
           <button
             type="button"
             className="chat__tool"
-            aria-pressed={showTerminal}
+            aria-pressed={sideOpen && sideTab === "terminal"}
             title="Terminal (Ctrl+`)"
             onClick={toggleTerminal}
           >
@@ -403,15 +411,18 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist }: C
         />
         {provider === "claude" && <UsageMeter limits={limits} context={context} />}
       </div>
-
-      {terminalOpened && (
-        <div hidden={!showTerminal}>
-          <TerminalPanel key={cwd} cwd={cwd} />
-        </div>
-      )}
       </div>
 
-      {showChanges && cwd && <ChangesPanel cwd={cwd} version={changesVersion} />}
+      <RightPanel
+        open={sideOpen}
+        tab={sideTab}
+        onTab={(tab) => {
+          if (tab === "terminal") setTerminalOpened(true);
+          setSideTab(tab);
+        }}
+        changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
+        terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
+      />
       </div>
     </div>
   );
