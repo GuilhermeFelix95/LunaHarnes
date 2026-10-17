@@ -1,7 +1,7 @@
 use std::process::{Command, Stdio};
 
 use crate::providers::{cli_name, ProviderKind};
-use crate::session::resolve_program;
+use crate::session::{hidden_command, resolve_program};
 
 /// Interpreta a saída de `claude auth status`, que é JSON com o campo `loggedIn`.
 pub fn parse_claude_status(output: &str) -> bool {
@@ -21,7 +21,7 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
         format!("{label} não encontrado no PATH. Instale o CLI antes de entrar na conta.")
     })?;
 
-    let output = Command::new(&program)
+    let output = hidden_command(&program)
         .args(args)
         .stdin(Stdio::null())
         .stderr(Stdio::null())

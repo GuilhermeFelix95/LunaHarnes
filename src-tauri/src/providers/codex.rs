@@ -2,12 +2,41 @@ use serde_json::Value;
 
 use super::ProviderEvent;
 
+use super::{Permission, RunRequest};
+
 /// `codex exec --json -` lê o prompt do stdin e emite JSONL.
-pub fn args() -> Vec<String> {
-    ["exec", "--json", "--skip-git-repo-check", "-"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+/// `exec resume` não aceita `-s`, então a retomada passa o sandbox por `-c sandbox_mode`.
+pub fn args(request: &RunRequest) -> Vec<String> {
+    let sandbox = sandbox_mode(request.permission);
+    let args: Vec<String> = match &request.session_id {
+        None => vec![
+            "exec".into(),
+            "--json".into(),
+            "--skip-git-repo-check".into(),
+            "-s".into(),
+            sandbox.into(),
+            "-".into(),
+        ],
+        Some(id) => vec![
+            "exec".into(),
+            "-c".into(),
+            format!("sandbox_mode=\"{sandbox}\""),
+            "resume".into(),
+            id.clone(),
+            "--json".into(),
+            "--skip-git-repo-check".into(),
+            "-".into(),
+        ],
+    };
+    args
+}
+
+fn sandbox_mode(permission: Permission) -> &'static str {
+    match permission {
+        Permission::ReadOnly => "read-only",
+        Permission::AcceptEdits => "workspace-write",
+        Permission::FullAccess => "danger-full-access",
+    }
 }
 
 /// Eventos `error` de nível superior são avisos de reconexão do próprio Codex,
@@ -31,17 +60,36 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
         },
         Some("item.completed") => {
             let item = &value["item"];
-            if item.get("type").and_then(Value::as_str) == Some("agent_message") {
-                item.get("text")
+            match item.get("type").and_then(Value::as_str) {
+                Some("agent_message") => item
+                    .get("text")
                     .and_then(Value::as_str)
                     .map(|text| {
                         vec![ProviderEvent::TextDelta {
                             text: text.to_string(),
                         }]
                     })
-                    .unwrap_or_default()
-            } else {
-                vec![]
+                    .unwrap_or_default(),
+                Some("command_execution") => vec![ProviderEvent::ToolUse {
+                    name: "Bash".into(),
+                    detail: item["command"].as_str().unwrap_or_default().to_string(),
+                }],
+                Some("file_change") => {
+                    let paths: Vec<&str> = item["changes"]
+                        .as_array()
+                        .map(|changes| {
+                            changes
+                                .iter()
+                                .filter_map(|c| c.get("path").and_then(Value::as_str))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    vec![ProviderEvent::ToolUse {
+                        name: "Editar".into(),
+                        detail: paths.join(", "),
+                    }]
+                }
+                _ => vec![],
             }
         }
         Some("turn.completed") => vec![ProviderEvent::Done { ok: true }],
@@ -85,6 +133,32 @@ mod tests {
         assert_eq!(
             parse_line(line),
             vec![ProviderEvent::TextDelta { text: "ok".into() }]
+        );
+    }
+
+    /// Formato documentado do `codex exec --json`. Ainda não validado com captura real,
+    /// porque o Codex desta máquina não está logado; validar no smoke test.
+    #[test]
+    fn command_execution_becomes_bash_tool_use() {
+        let line = r#"{"type":"item.completed","item":{"id":"item_2","type":"command_execution","command":"dir","status":"completed"}}"#;
+        assert_eq!(
+            parse_line(line),
+            vec![ProviderEvent::ToolUse {
+                name: "Bash".into(),
+                detail: "dir".into()
+            }]
+        );
+    }
+
+    #[test]
+    fn file_change_lists_changed_paths() {
+        let line = r#"{"type":"item.completed","item":{"id":"item_3","type":"file_change","changes":[{"path":"a.ts","kind":"update"},{"path":"b.ts","kind":"add"}]}}"#;
+        assert_eq!(
+            parse_line(line),
+            vec![ProviderEvent::ToolUse {
+                name: "Editar".into(),
+                detail: "a.ts, b.ts".into()
+            }]
         );
     }
 

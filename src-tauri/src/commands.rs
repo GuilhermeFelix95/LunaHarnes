@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::plugins::loader::{self, PluginScan};
-use crate::providers::ProviderKind;
+use crate::providers::{fallback_events, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
 
 /// Nome do evento que o frontend escuta (espelha `PROVIDER_EVENT` em src/api.ts).
@@ -19,25 +19,38 @@ pub struct ActiveRun(pub Mutex<Option<CancelHandle>>);
 pub fn send_prompt(
     app: AppHandle,
     run: State<'_, ActiveRun>,
-    provider: ProviderKind,
-    prompt: String,
+    request: RunRequest,
 ) -> Result<(), String> {
+    let provider = request.provider;
     let mut active = run.0.lock().expect("lock da execução ativa");
     if active.is_some() {
         return Err("já existe uma resposta em andamento; aguarde ou pare antes de enviar outra".into());
     }
 
-    let mut session = Session::start(provider, &prompt)?;
+    let mut session = Session::start(&request)?;
     *active = Some(session.cancel_handle());
     drop(active);
 
     std::thread::spawn(move || {
+        let mut saw_done = false;
         session.pump(provider, |event| {
+            if matches!(event, ProviderEvent::Done { .. }) {
+                saw_done = true;
+            }
             // Falha ao emitir só acontece se a janela já foi fechada; nada a fazer.
             let _ = app.emit(PROVIDER_EVENT, event);
         });
-        if let Err(e) = session.wait() {
-            eprintln!("lunaharness: falha ao aguardar o fim do CLI: {e}");
+
+        let outcome = session.finish();
+        if !saw_done {
+            // O CLI morreu sem fechar o turno: o usuário precisa ver o motivo e o botão destrava.
+            let (code, stderr) = match outcome {
+                Ok((status, stderr)) => (status.code(), stderr),
+                Err(e) => (None, format!("falha ao aguardar o processo: {e}")),
+            };
+            for event in fallback_events(provider, code, &stderr) {
+                let _ = app.emit(PROVIDER_EVENT, event);
+            }
         }
 
         let run = app.state::<ActiveRun>();
@@ -65,6 +78,14 @@ pub fn list_plugins(app: AppHandle) -> Result<PluginScan, String> {
 #[tauri::command]
 pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
     loader::read_entry(&plugins_dir(&app)?, &id)
+}
+
+/// Pasta de trabalho inicial: a pasta de onde o `luna` foi rodado.
+#[tauri::command]
+pub fn get_workspace() -> Result<String, String> {
+    std::env::current_dir()
+        .map(|dir| dir.display().to_string())
+        .map_err(|e| format!("não foi possível ler a pasta atual: {e}"))
 }
 
 /// Verifica se o usuário já entrou na conta do provedor.

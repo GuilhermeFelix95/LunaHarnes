@@ -47,6 +47,16 @@ docs/                stack, contrato de plugins
 - Etapa 5: contrato em `docs/plugins.md` e plugin de referência em `plugins-examples/hello-world`.
 - Login: a app verifica a conta de cada CLI (`check_auth`) e bloqueia o envio até ela estar conectada. O login interativo roda numa janela própria (`open_login`). Só Windows por enquanto.
 - Comando `luna`: `bin/luna.mjs`, registrado com `npm link`. Abre o executável de release (`npm run build:app`).
+- Fase A (funcionamento):
+  - Executável resolvido só com `.exe`, `.cmd` ou `.bat` no Windows (o script sem extensão instalado pelo npm dava erro 193).
+  - Processos sem janela de console (`hidden_command`). stderr capturado; se o CLI sair sem `Done`, a app emite erro com o motivo.
+  - `RunRequest` (provedor, prompt, `sessionId`, `cwd`, permissão) mapeado para os modos de cada CLI (`providers/claude.rs`, `providers/codex.rs`).
+  - Streaming com `--include-partial-messages`; ferramentas viram `toolUse`.
+  - Pasta de trabalho: `get_workspace` e seletor via `@tauri-apps/plugin-dialog`.
+- Testes:
+  - `npm run test:rust`: 33 testes, roda de qualquer terminal (o script carrega o MSVC).
+  - `npm run test:smoke`: CLIs reais. Claude passa nos quatro casos. Codex é pulado enquanto não estiver logado.
+  - `npm test`: 18 testes de frontend.
 - CSP: `script-src 'self' blob:` é necessário para carregar plugins como módulo (ver `docs/plugins.md`, seção de segurança).
 - Toolchain: Rust stable e MSVC Build Tools instalados. Rodar `cargo test` com `vcvars64.bat` carregado, senão o `link.exe` do Git é usado.
 - Os CLIs são resolvidos pelo PATH, com `.cmd` e `.exe` no Windows. O prompt vai pelo stdin.

@@ -8,13 +8,15 @@ pub mod session;
 pub fn run() {
     tauri::Builder::default()
         .manage(commands::ActiveRun::default())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
             commands::cancel_prompt,
             commands::list_plugins,
             commands::read_plugin_entry,
             commands::check_auth,
-            commands::open_login
+            commands::open_login,
+            commands::get_workspace
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaHarness");

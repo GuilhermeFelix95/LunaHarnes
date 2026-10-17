@@ -22,4 +22,18 @@ describe("LoginPrompt", () => {
     const button = screen.getByText("Verificando...") as HTMLButtonElement;
     expect(button.disabled).toBe(true);
   });
+
+  it("mostra o erro de login dentro do próprio aviso", () => {
+    render(
+      <LoginPrompt
+        provider="claude"
+        onLogin={() => {}}
+        onCheck={() => {}}
+        checking={false}
+        error="Claude Code não encontrado no PATH."
+      />,
+    );
+
+    expect(screen.getByRole("alert").textContent).toContain("não encontrado");
+  });
 });

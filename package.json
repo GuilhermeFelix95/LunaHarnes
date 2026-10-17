@@ -11,10 +11,13 @@
     "build": "tsc --noEmit && vite build",
     "build:app": "tauri build --no-bundle",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test:rust": "scripts\\with-msvc.cmd cargo test --manifest-path src-tauri\\Cargo.toml",
+    "test:smoke": "scripts\\with-msvc.cmd cargo test --manifest-path src-tauri\\Cargo.toml --test cli_smoke -- --ignored --nocapture"
   },
   "dependencies": {
     "@tauri-apps/api": "2.12.4",
+    "@tauri-apps/plugin-dialog": "2.8.3",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

@@ -10,10 +10,12 @@ interface LoginPromptProps {
   onLogin: () => void;
   onCheck: () => void;
   checking: boolean;
+  /** Erro da última tentativa de login ou verificação. Fica só aqui, não no chat. */
+  error?: string;
 }
 
 /// Aviso mostrado enquanto a conta do provedor não está conectada.
-export function LoginPrompt({ provider, onLogin, onCheck, checking }: LoginPromptProps) {
+export function LoginPrompt({ provider, onLogin, onCheck, checking, error }: LoginPromptProps) {
   return (
     <section className="login-prompt" role="status">
       <p>
@@ -28,6 +30,7 @@ export function LoginPrompt({ provider, onLogin, onCheck, checking }: LoginPromp
           {checking ? "Verificando..." : "Já entrei, verificar"}
         </button>
       </div>
+      {error && <p role="alert" className="login-prompt__error">{error}</p>}
     </section>
   );
 }
