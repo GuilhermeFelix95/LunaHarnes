@@ -7,6 +7,7 @@ const PERMISSION_KEYS: Record<string, MessageKey> = {
   modes: "permission.modes",
   cache: "permission.cache",
   ui: "permission.ui",
+  theme: "permission.theme",
 };
 
 /// Explica uma permissão para os diálogos de instalação. Permissão desconhecida vira "permissão X".

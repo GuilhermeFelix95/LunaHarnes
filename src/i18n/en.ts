@@ -475,6 +475,7 @@ export const en: Record<MessageKey, string> = {
   "permission.modes": "offers a read-only mode in the composer",
   "permission.cache": "reads the conversation's prompt cache summary (read only) and shows warnings",
   "permission.ui": "can read and change any part of the app screen, including the chat and the sidebar",
+  "permission.theme": "can register color themes and styles for the app",
   "side.label": "Side panel",
   "side.tab.changes": "Changes",
   "side.tab.plan": "Plan",

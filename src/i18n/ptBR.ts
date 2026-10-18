@@ -478,6 +478,7 @@ export const ptBR = {
   "permission.modes": "oferece um modo de somente leitura no composer",
   "permission.cache": "lê o resumo do cache de prompt da conversa (só leitura) e mostra avisos",
   "permission.ui": "pode ler e mudar qualquer parte da tela do app, inclusive o chat e a barra",
+  "permission.theme": "pode registrar temas com cores e estilos para o app",
   "side.label": "Painel lateral",
   "side.tab.changes": "Alterações",
   "side.tab.plan": "Plano",

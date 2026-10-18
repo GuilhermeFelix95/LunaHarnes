@@ -418,3 +418,49 @@ describe("PluginHost: um bloco por plugin e por ponto", () => {
     expect(slot.textContent).toContain("painel");
   });
 });
+
+describe("PluginHost: temas de plugin", () => {
+  const theme = {
+    id: "verde",
+    name: "Verde",
+    dark: true,
+    tokens: { "--bg": "#9bbc0f", "--fg": "#0f380f" },
+    css: ".chat { image-rendering: pixelated; }",
+  };
+
+  it("registra um tema com a permissão theme", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(manifest({ permissions: ["theme"] }), plugin((api) => api.theme.register(theme)));
+
+    expect(ok).toBe(true);
+    expect(host.themeList()).toEqual([{ pluginId: "hello", ...theme }]);
+  });
+
+  it("recusa tema sem a permissão theme", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(manifest({ permissions: ["commands"] }), plugin((api) => api.theme.register(theme)));
+
+    expect(ok).toBe(false);
+    expect(host.errors[0]).toContain('não tem a permissão "theme"');
+    expect(host.themeList()).toEqual([]);
+  });
+
+  it("recusa token que não é variável CSS ou que tenta sair do valor", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(
+      manifest({ permissions: ["theme"] }),
+      plugin((api) => api.theme.register({ ...theme, tokens: { "--bg": "red; background: url(x)" } })),
+    );
+
+    expect(ok).toBe(false);
+    expect(host.themeList()).toEqual([]);
+  });
+
+  it("some com os temas quando o plugin é recarregado", async () => {
+    const host = new PluginHost();
+    await host.load(manifest({ permissions: ["theme"] }), plugin((api) => api.theme.register(theme)));
+    host.reset();
+
+    expect(host.themeList()).toEqual([]);
+  });
+});

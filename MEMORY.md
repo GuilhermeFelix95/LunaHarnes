@@ -122,3 +122,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | i18n: idioma da interface (Sistema, Português (Brasil), English) em Configurações > Geral; dicionários em src/i18n, telas traduzidas, testes focados passando.
 2026-10-18 | Navegador (Etapa 2, continuação): evento browser://opened quando o agente abre página (painel acompanha o endereço); parse_url recusa a devUrl do app (porta 1420).
 2026-10-18 | Navegador (Etapa 2 concluída): webview nasce sem foco; browser_navigate do agente espera a página carregar (readyState, até 15 s).
+2026-10-18 | Temas de plugin (Etapa 3b): permissão theme e api.theme.register com validação de tokens e CSS; aplicação global, tela de Aparência, assets e exemplo Game Boy ainda pendentes.

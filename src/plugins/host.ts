@@ -52,6 +52,24 @@ export interface PluginApi {
   readonly cache: PluginCacheApi;
   /** Requer permissão `ui`. Pode ler e mudar qualquer parte da tela; o que ele monta sai ao desligar. */
   readonly ui: PluginUiApi;
+  /** Requer permissão `theme`. Registra um tema que o usuário pode escolher em Aparência. */
+  readonly theme: PluginThemeApi;
+}
+
+/** Tema de plugin: variáveis CSS do tema e um CSS livre, aplicados enquanto ele estiver escolhido. */
+export interface PluginTheme {
+  /** Id sem barra, como `gameboy`. Escolhido, o tema vira `plugin:<plugin>/<id>`. */
+  id: string;
+  name: string;
+  dark: boolean;
+  /** Variáveis CSS, como `--bg`. O valor não pode conter `;`, `{`, `}`, `<` nem `>`. */
+  tokens: Record<string, string>;
+  /** CSS livre do tema. Limite de 64 KB. */
+  css?: string;
+}
+
+export interface PluginThemeApi {
+  register(theme: PluginTheme): void;
 }
 
 export interface PluginModule {
@@ -66,10 +84,14 @@ export interface CommandResult {
 }
 
 const COMMAND_NAME = /^[a-z][a-z0-9-]*$/;
-const PERMISSIONS = ["commands", "hooks", "modes", "cache", "ui"] as const;
+const PERMISSIONS = ["commands", "hooks", "modes", "cache", "ui", "theme"] as const;
+const TOKEN_NAME = /^--[a-z0-9-]+$/;
+const TOKEN_VALUE_FORBIDDEN = /[;{}<>]/;
+const THEME_CSS_LIMIT = 64 * 1024;
 
 export class PluginHost {
   private commands = new Map<string, { pluginId: string; handler: CommandHandler }>();
+  private themes = new Map<string, { pluginId: string; theme: PluginTheme }>();
   private beforeSendHooks: { pluginId: string; hook: BeforeSendHook }[] = [];
   private afterResponseHooks: { pluginId: string; hook: AfterResponseHook }[] = [];
   /// Resumo do cache de prompt da conversa, atualizado a cada turno pelo ChatView.
@@ -151,6 +173,11 @@ export class PluginHost {
     return [...this.commands.keys()].sort();
   }
 
+  /** Temas dos plugins ativos, na ordem em que foram registrados. */
+  themeList(): (PluginTheme & { pluginId: string })[] {
+    return [...this.themes.values()].map((entry) => ({ pluginId: entry.pluginId, ...entry.theme }));
+  }
+
   /** Modos oferecidos pelos plugins ativos, na ordem em que foram registrados. */
   modeList(): PluginMode[] {
     return [...this.modes.values()].map((entry) => entry.mode);
@@ -174,6 +201,7 @@ export class PluginHost {
   private forget(pluginId: string) {
     for (const [name, entry] of this.commands) if (entry.pluginId === pluginId) this.commands.delete(name);
     for (const [name, entry] of this.modes) if (entry.pluginId === pluginId) this.modes.delete(name);
+    for (const [name, entry] of this.themes) if (entry.pluginId === pluginId) this.themes.delete(name);
     this.beforeSendHooks = this.beforeSendHooks.filter((h) => h.pluginId !== pluginId);
     this.afterResponseHooks = this.afterResponseHooks.filter((h) => h.pluginId !== pluginId);
   }
@@ -182,6 +210,7 @@ export class PluginHost {
   reset() {
     this.generation++;
     this.commands.clear();
+    this.themes.clear();
     this.beforeSendHooks = [];
     this.afterResponseHooks = [];
     this.modes.clear();
@@ -212,11 +241,38 @@ export class PluginHost {
     };
 
     const uiApi = this.ui.api(id);
+    const themeApi: PluginThemeApi = {
+      register: (theme) => {
+        require("theme");
+        if (!COMMAND_NAME.test(theme.id)) {
+          throw new Error(`id de tema inválido "${theme.id}": use letras minúsculas, números e hífen`);
+        }
+        if (!theme.name.trim()) {
+          throw new Error(`tema "${theme.id}" precisa de name`);
+        }
+        for (const [token, value] of Object.entries(theme.tokens)) {
+          if (!TOKEN_NAME.test(token) || TOKEN_VALUE_FORBIDDEN.test(value) || value.length > 200) {
+            throw new Error(`token inválido "${token}" no tema "${theme.id}"`);
+          }
+        }
+        if ((theme.css ?? "").length > THEME_CSS_LIMIT) {
+          throw new Error(`CSS do tema "${theme.id}" passa de 64 KB`);
+        }
+        if (this.themes.has(theme.id)) {
+          throw new Error(`tema "${theme.id}" já existe (registrado por ${this.themes.get(theme.id)!.pluginId})`);
+        }
+        this.themes.set(theme.id, { pluginId: id, theme: { ...theme, tokens: { ...theme.tokens } } });
+      },
+    };
 
     return {
       get ui() {
         require("ui");
         return uiApi;
+      },
+      get theme() {
+        require("theme");
+        return themeApi;
       },
       get cache() {
         require("cache");
