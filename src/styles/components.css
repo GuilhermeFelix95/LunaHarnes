@@ -1332,7 +1332,7 @@ textarea:focus-visible {
   min-height: 0;
 }
 
-/* Gatinho lunar (SVG animado com CSS): anda em ciclo diagonal quando a Luna trabalha; dorme e respira quando para */
+/* Gatinho lunar (SVG animado com CSS): anda no lugar quando a Luna trabalha; dorme de olhos fechados quando para */
 .luna-cat {
   width: 200px;
   margin: 16px auto 0;
@@ -1345,9 +1345,20 @@ textarea:focus-visible {
   overflow: visible;
 }
 
-.luna-cat--working .luna-cat__sleeping,
-.luna-cat--sleeping .luna-cat__walking,
+.luna-cat__eyes-closed,
 .luna-cat__z {
+  display: none;
+}
+
+.luna-cat--sleeping .luna-cat__eyes-open {
+  display: none;
+}
+
+.luna-cat--sleeping .luna-cat__eyes-closed {
+  display: inline;
+}
+
+.luna-cat--sleeping .luna-cat__ground {
   display: none;
 }
 
@@ -1355,7 +1366,7 @@ textarea:focus-visible {
   display: inline;
   fill: #9aa0c4;
   font-family: sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   opacity: 0;
   animation: luna-z 2.8s ease-in infinite;
@@ -1365,31 +1376,40 @@ textarea:focus-visible {
   animation-delay: 1.4s;
 }
 
-.luna-cat__leg,
-.luna-cat__body-walk,
-.luna-cat__breath {
+.luna-cat__body,
+.luna-cat__foot,
+.luna-cat__arm,
+.luna-cat__tail,
+.luna-cat__head {
   transform-box: view-box;
 }
 
 .luna-cat__tail {
-  transform-box: view-box;
-  transform-origin: 86px 100px;
+  transform-origin: 84px 160px;
 }
 
-.luna-cat__breath {
-  transform-origin: 100px 150px;
+.luna-cat__body {
+  transform-origin: 120px 182px;
 }
 
-.luna-cat--working .luna-cat__leg--a {
-  animation: luna-step 0.5s ease-in-out infinite alternate;
-}
-
-.luna-cat--working .luna-cat__leg--b {
-  animation: luna-step 0.5s ease-in-out -0.5s infinite alternate;
-}
-
-.luna-cat--working .luna-cat__body-walk {
+.luna-cat--working .luna-cat__body {
   animation: luna-bob 0.5s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__foot--left {
+  animation: luna-foot 0.5s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__foot--right {
+  animation: luna-foot 0.5s ease-in-out -0.5s infinite alternate;
+}
+
+.luna-cat--working .luna-cat__arm--left {
+  animation: luna-arm 0.5s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__arm--right {
+  animation: luna-arm 0.5s ease-in-out -0.5s infinite alternate;
 }
 
 .luna-cat--working .luna-cat__tail {
@@ -1400,13 +1420,13 @@ textarea:focus-visible {
   animation: luna-ground 0.9s linear infinite;
 }
 
-.luna-cat--sleeping .luna-cat__breath {
+.luna-cat--sleeping .luna-cat__body {
   animation: luna-breathe 3s ease-in-out infinite;
 }
 
-@keyframes luna-step {
-  from { transform: rotate(-22deg); }
-  to { transform: rotate(22deg); }
+.luna-cat--sleeping .luna-cat__head {
+  transform-origin: 120px 150px;
+  transform: rotate(5deg);
 }
 
 @keyframes luna-bob {
@@ -1414,9 +1434,19 @@ textarea:focus-visible {
   to { transform: translateY(-2px); }
 }
 
+@keyframes luna-foot {
+  from { transform: translateY(0); }
+  to { transform: translateY(-5px); }
+}
+
+@keyframes luna-arm {
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(8deg); }
+}
+
 @keyframes luna-tail {
-  from { transform: rotate(-6deg); }
-  to { transform: rotate(6deg); }
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(8deg); }
 }
 
 @keyframes luna-ground {

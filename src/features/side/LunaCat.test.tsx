@@ -9,7 +9,7 @@ describe("LunaCat", () => {
     expect(screen.getByRole("img", { name: "Gatinho lunar andando" })).toBeTruthy();
     expect(container.querySelector(".luna-cat--working")).toBeTruthy();
     expect(container.querySelector(".luna-cat--sleeping")).toBeNull();
-    expect(container.querySelectorAll(".luna-cat__leg")).toHaveLength(4);
+    expect(container.querySelectorAll(".luna-cat__foot")).toHaveLength(2);
   });
 
   it("parado: o gatinho dorme com zZ", () => {

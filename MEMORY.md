@@ -92,3 +92,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Gatinho lunar: three.js e @types/three removidos; LunaCat.tsx virou SVG vetorial animado com CSS (catScene.ts removido), com movimento reduzido respeitado em components.css.
 2026-10-18 | Gatinho lunar: cena nova em LunaCat.tsx (gatinho correndo atrás de um ratinho quando trabalha; dorme enquanto o ratinho come na tigela quando parado); CSS em components.css reescrito com keyframes de corrida, pulo e mastigação.
 2026-10-18 | Gatinho lunar simplificado: sem rato nem tigela; anda em ciclo diagonal quando trabalha e dorme respirando com zZ quando para (LunaCat.tsx, components.css).
+2026-10-18 | Gatinho lunar de frente, no estilo chibi da referência: cabeça grande, olhos com brilho, patas brancas e pelúcia em gradiente; anda no lugar quando trabalha e dorme de olhos fechados quando para (LunaCat.tsx, components.css).
