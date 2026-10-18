@@ -3,7 +3,7 @@
 /// só traz o padrão claro para antes do JavaScript; o resto sai daqui.
 
 export type FontId = "inter" | "segoe" | "calibri" | "arial" | "verdana" | "georgia" | "palatino" | "consolas" | "cascadia";
-export type ShapeId = "square" | "soft" | "round" | "bubbly";
+export type ShapeId = "square" | "soft" | "round" | "bubbly" | "pill" | "leaf" | "diagonal" | "top" | "bubble" | "wave";
 export type TextSizeId = "small" | "medium" | "large";
 
 /// Tudo o que um tema define. O Personalizado é uma paleta salva pelo usuário.
@@ -178,6 +178,12 @@ export const SHAPES: Record<ShapeId, { label: string; sm: string; md: string; lg
   soft: { label: "Suave", sm: "6px", md: "8px", lg: "12px", xl: "16px", pill: "999px" },
   round: { label: "Redondo", sm: "10px", md: "14px", lg: "18px", xl: "24px", pill: "999px" },
   bubbly: { label: "Bem redondo", sm: "14px", md: "18px", lg: "22px", xl: "28px", pill: "999px" },
+  pill: { label: "Pílula", sm: "999px", md: "999px", lg: "28px", xl: "28px", pill: "999px" },
+  leaf: { label: "Folha", sm: "0 8px", md: "0 12px", lg: "0 18px", xl: "0 24px", pill: "999px" },
+  diagonal: { label: "Diagonal", sm: "8px 0", md: "12px 0", lg: "18px 0", xl: "24px 0", pill: "999px" },
+  top: { label: "Aba", sm: "10px 10px 2px 2px", md: "14px 14px 3px 3px", lg: "18px 18px 4px 4px", xl: "24px 24px 6px 6px", pill: "999px" },
+  bubble: { label: "Bolha de conversa", sm: "8px 8px 8px 2px", md: "12px 12px 12px 3px", lg: "16px 16px 16px 4px", xl: "20px 20px 20px 4px", pill: "999px" },
+  wave: { label: "Ondulado", sm: "4px 14px", md: "6px 18px", lg: "8px 22px", xl: "10px 26px", pill: "999px" },
 };
 
 export const TEXT_SIZES: Record<TextSizeId, { label: string; scale: number }> = {

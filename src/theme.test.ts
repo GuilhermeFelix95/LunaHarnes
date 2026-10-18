@@ -9,6 +9,7 @@ import {
   saveCustomPalette,
   saveTheme,
   THEME_KEY,
+  SHAPES,
   THEMES,
   type ThemePalette,
 } from "./theme";
@@ -69,6 +70,12 @@ describe("theme", () => {
     expect(style.getPropertyValue("--chip-radius")).toBe("999px");
     expect(style.getPropertyValue("--item-radius")).toBe("18px");
     expect(style.getPropertyValue("--code-radius")).toBe("14px");
+  });
+
+  it("há dez formatos de componente, e os assimétricos viram cantos diferentes", () => {
+    expect(Object.keys(SHAPES)).toHaveLength(10);
+    applyPalette({ ...DEFAULT_PALETTE, shape: "leaf" });
+    expect(document.documentElement.style.getPropertyValue("--radius-md")).toBe("0 12px");
   });
 
   it("as fontes novas viram a pilha certa", () => {
