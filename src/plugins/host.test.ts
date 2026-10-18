@@ -298,7 +298,9 @@ describe("PluginHost: cache", () => {
     const cache = new ResponseCache();
     const host = new PluginHost(cache);
     let api!: PluginApi;
-    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => (api = a)));
+    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => {
+      api = a;
+    }));
 
     cache.set("pedido", "resposta");
     expect(cache.get("pedido")).toBeUndefined();
@@ -313,7 +315,9 @@ describe("PluginHost: cache", () => {
     const cache = new ResponseCache();
     const host = new PluginHost(cache);
     let api!: PluginApi;
-    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => (api = a)));
+    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => {
+      api = a;
+    }));
     api.cache.setEnabled(true);
     cache.set("pedido", "resposta");
 
