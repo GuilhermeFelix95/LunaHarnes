@@ -427,6 +427,7 @@ ${cliPrompt}`;
         permission: plan || mode ? "readOnly" : permission,
         model: model || undefined,
         effort: effort || undefined,
+        contextWindow: models.find((m) => m.id === model)?.contextWindow,
       }, conversationId);
     } catch (e) {
       setRunning(false);

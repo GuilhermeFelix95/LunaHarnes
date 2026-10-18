@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use super::{ProviderEvent, TodoItem};
 
-use super::{image_media_type, LimitWindow, Permission, RunRequest, LUNA_IDENTITY};
+use super::{identity_for, image_media_type, LimitWindow, Permission, RunRequest};
 
 /// Sem isso, o Claude Code oferece as ferramentas de tarefa só para alguns modelos; com esta variável elas ficam ligadas.
 /// Confirmado numa execução real: com ela, o agente cria e atualiza tarefas (TaskCreate / TaskUpdate).
@@ -35,7 +35,7 @@ pub fn args(request: &RunRequest) -> Vec<String> {
 
     // Acrescenta a identidade ao prompt padrão, que diz que o agente é o Claude Code.
     // Uma linha só: quebra de linha num argumento quebra o .cmd do Windows.
-    args.extend(["--append-system-prompt".to_string(), format!("{LUNA_IDENTITY} {TASK_INSTRUCTION}")]);
+    args.extend(["--append-system-prompt".to_string(), format!("{} {TASK_INSTRUCTION}", identity_for(request))]);
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
     }
@@ -245,7 +245,7 @@ fn tool_detail(input: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::providers::ProviderKind;
+    use crate::providers::{ProviderKind, LUNA_IDENTITY};
 
     /// A identidade vai junto de cada pedido, acrescentada ao prompt padrão (nunca substitui).
     #[test]
@@ -259,6 +259,7 @@ mod tests {
             model: Some("deepseek-flash".into()),
             effort: None,
             profile: Some("p1".into()),
+            context_window: None,
             images: Vec::new(),
         };
 
@@ -373,6 +374,7 @@ mod tests {
             model: None,
             effort: None,
             profile: None,
+            context_window: None,
             images: vec![],
         };
 
@@ -458,6 +460,7 @@ mod tests {
             model: None,
             effort: None,
             profile: None,
+            context_window: None,
             images: vec![path.clone()],
         };
 
@@ -486,6 +489,7 @@ mod tests {
             model: None,
             effort: None,
             profile: None,
+            context_window: None,
             images: Vec::new(),
         };
         assert_eq!(input(&request).unwrap(), "oi");

@@ -16,6 +16,8 @@ export interface RunRequest {
   model?: string;
   /** Nível de esforço com o nome da CLI. Ausente = padrão. */
   effort?: string;
+  /** Janela de contexto do modelo, em tokens. Entra na identidade para a Luna saber responder. */
+  contextWindow?: number;
   /** Perfil de API (id em api-profiles.json). Ausente = login da própria CLI. A chave fica no cofre. */
   profile?: string;
   /** Caminhos das imagens anexadas, salvas pelo app (save_attachment). */

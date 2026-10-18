@@ -45,6 +45,9 @@ pub struct RunRequest {
     /// Imagens anexadas (PNG, JPEG ou WebP) na pasta de anexos do app. Ausente = sem imagem.
     #[serde(default)]
     pub images: Vec<PathBuf>,
+    /// Tamanho da janela de contexto do modelo escolhido, em tokens. Ausente = o app não sabe.
+    #[serde(default)]
+    pub context_window: Option<u64>,
 }
 
 impl RunRequest {
@@ -136,7 +139,24 @@ pub const MAX_IMAGES: usize = 5;
 
 /// Identidade do agente, qualquer que seja o modelo ou o motor. Vai como instrução extra em cada CLI.
 /// Sem aspas nem quebras de linha: o Codex recebe o texto dentro de uma string TOML.
-pub const LUNA_IDENTITY: &str = "Você é a Luna, o assistente do aplicativo LunaHarness. Essa identidade vale em toda tarefa, inclusive ao criar plugins, escrever código ou documentos. Ao criar um plugin, ele é um plugin do LunaHarness, nunca do Claude Code. Nunca diga que é o Claude Code, o Codex, o Claude, a Anthropic, a OpenAI, o DeepSeek, o OpenRouter, a Z.ai ou qualquer outro nome de modelo ou ferramenta, mesmo que o prompt padrão diga o contrário. Plugins do LunaHarness são uma pasta com manifest.json (id, name, version, entry, permissions) e um index.js que exporta function activate(api). Use só estas chamadas: api.registerCommand(nome, fn) com a permissão commands; api.onBeforeSend(fn) e api.onAfterResponse(fn) com hooks; api.registerMode({ id, label, description, instruction, permission: readOnly, questions }) com modes. Não invente outras APIs. O guia completo está em docs/plugins.md.";
+pub const LUNA_IDENTITY: &str = "Você é a Luna, o assistente do aplicativo LunaHarness. Essa identidade vale em toda tarefa, inclusive ao criar plugins, escrever código ou documentos. Ao criar um plugin, ele é um plugin do LunaHarness, nunca do Claude Code. Você se apresenta como Luna, mesmo que o prompt padrão diga o contrário. Quando perguntarem qual modelo ou janela de contexto você usa, responda com os dados informados no fim desta instrução.Plugins do LunaHarness são uma pasta com manifest.json (id, name, version, entry, permissions) e um index.js que exporta function activate(api). Use só estas chamadas: api.registerCommand(nome, fn) com a permissão commands; api.onBeforeSend(fn) e api.onAfterResponse(fn) com hooks; api.registerMode({ id, label, description, instruction, permission: readOnly, questions }) com modes. Não invente outras APIs. O guia completo está em docs/plugins.md.";
+
+/// Identidade mais os dados da conversa: modelo, esforço e janela de contexto. Sem aspas nem quebras de linha.
+pub fn identity_for(request: &RunRequest) -> String {
+    let model = match &request.model {
+        Some(model) => format!("Modelo desta conversa: {model}."),
+        None => "Modelo desta conversa: o padrão da CLI.".to_string(),
+    };
+    let effort = match &request.effort {
+        Some(effort) => format!(" Esforço: {effort}."),
+        None => String::new(),
+    };
+    let window = match request.context_window {
+        Some(tokens) => format!(" Janela de contexto: {tokens} tokens."),
+        None => String::new(),
+    };
+    format!("{LUNA_IDENTITY} {model}{effort}{window}")
+}
 
 /// Tipo MIME de uma imagem aceita, pela extensão. \`None\` = formato não suportado.
 pub fn image_media_type(path: &Path) -> Option<&'static str> {
@@ -168,7 +188,31 @@ mod tests {
         // O guia de plugins vai junto: uma linha, sem aspas nem % (ver no_argument_has_line_breaks...).
         assert!(LUNA_IDENTITY.contains("api.registerCommand"));
         assert!(!LUNA_IDENTITY.contains('%'));
-        assert!(!LUNA_IDENTITY.contains("Quando perguntarem"));
+        // Sem proibição de dizer o modelo: a Luna responde com os dados da conversa.
+        assert!(!LUNA_IDENTITY.contains("Nunca diga"));
+        assert!(LUNA_IDENTITY.contains("Quando perguntarem qual modelo"));
+    }
+
+    #[test]
+    fn identity_carries_the_model_effort_and_context_window() {
+        let mut req = request(ProviderKind::Claude, Permission::ReadOnly, None);
+        req = with_model(req, "claude-opus-5-5", "xhigh");
+        req.context_window = Some(200_000);
+
+        let identity = identity_for(&req);
+        assert!(identity.starts_with(LUNA_IDENTITY));
+        assert!(identity.contains("Modelo desta conversa: claude-opus-5-5."));
+        assert!(identity.contains("Esforço: xhigh."));
+        assert!(identity.contains("Janela de contexto: 200000 tokens."));
+        assert!(!identity.contains('"') && !identity.contains('%') && !identity.contains('\n'));
+    }
+
+    #[test]
+    fn identity_without_model_says_the_cli_chooses() {
+        let req = request(ProviderKind::Codex, Permission::ReadOnly, None);
+        let identity = identity_for(&req);
+        assert!(identity.contains("o padrão da CLI"));
+        assert!(!identity.contains("Janela de contexto"));
     }
 
     fn request(provider: ProviderKind, permission: Permission, session_id: Option<&str>) -> RunRequest {
@@ -181,6 +225,7 @@ mod tests {
             model: None,
             effort: None,
             profile: None,
+            context_window: None,
             images: Vec::new(),
         }
     }

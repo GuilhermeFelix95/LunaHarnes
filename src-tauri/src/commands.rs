@@ -239,6 +239,7 @@ pub async fn test_api_profile(app: AppHandle, id: String) -> Result<String, Stri
             model: profile.default_model.clone(),
             effort: None,
             profile: Some(profile.id.clone()),
+            context_window: None,
             images: Vec::new(),
         };
         let mut session = Session::start_with_env(&request, &env)?;

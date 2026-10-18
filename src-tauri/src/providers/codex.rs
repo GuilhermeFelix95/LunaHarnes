@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use super::{ProviderEvent, TodoItem};
 
-use super::{Permission, RunRequest, LUNA_IDENTITY};
+use super::{identity_for, Permission, RunRequest};
 
 /// `codex exec --json -` lê o prompt do stdin e emite JSONL.
 /// `exec resume` não aceita `-s`, então a retomada passa o sandbox por `-c sandbox_mode`.
@@ -32,7 +32,7 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         args.extend(["-c".to_string(), format!("model_reasoning_effort=\"{effort}\"")]);
     }
     // Identidade da Luna como instrução do desenvolvedor, nos dois casos (novo e retomada).
-    args.extend(["-c".to_string(), format!("developer_instructions=\"{LUNA_IDENTITY}\"")]);
+    args.extend(["-c".to_string(), format!("developer_instructions=\"{}\"", identity_for(request))]);
 
     match &request.session_id {
         None => args.push("-".into()),
@@ -229,7 +229,6 @@ mod tests {
     /// A identidade vai como instrução do desenvolvedor, antes do `-` do stdin, em pedido novo e em retomada.
     #[test]
     fn identity_is_a_developer_instruction_before_the_stdin_marker() {
-        let expected = format!("developer_instructions=\"{LUNA_IDENTITY}\"");
         for session in [None, Some("th-9".to_string())] {
             let request = RunRequest {
                 provider: crate::providers::ProviderKind::Codex,
@@ -240,9 +239,11 @@ mod tests {
                 model: None,
                 effort: None,
                 profile: None,
+                context_window: None,
                 images: Vec::new(),
             };
 
+            let expected = format!("developer_instructions=\"{}\"", identity_for(&request));
             let args = args(&request);
 
             let at = args.iter().position(|a| *a == expected).expect("falta a identidade");
@@ -263,6 +264,7 @@ mod tests {
             model: None,
             effort: None,
             profile: None,
+            context_window: None,
             images: vec![
                 std::path::PathBuf::from("C:\\a\\1.png"),
                 std::path::PathBuf::from("C:\\a\\2.jpg"),
