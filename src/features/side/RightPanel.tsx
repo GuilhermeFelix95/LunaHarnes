@@ -2,7 +2,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode
 import { ListChecks, PanelRightClose, ScrollText } from "lucide-react";
 import { EmptyState } from "../../ui/EmptyState";
 import { Markdown } from "../chat/Markdown";
-import { LunaCat } from "./LunaCat";
+import { LunaAtom } from "./LunaAtom";
 import { ProgressTimeline } from "./ProgressTimeline";
 import type { TodoItem } from "../../types";
 
@@ -174,7 +174,7 @@ export function RightPanel({
         ) : (
           <EmptyState icon={<ListChecks size={18} />}>Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</EmptyState>
         )}
-        <LunaCat working={running} />
+        <LunaAtom working={running} />
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>
         {terminal}

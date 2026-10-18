@@ -28,13 +28,13 @@ function setup() {
 }
 
 describe("Sidebar: marca", () => {
-  it("a marca é o gatinho sorrindo (cat-04), não a lua", () => {
+  it("a marca é o Átomo, não a lua", () => {
     const { container } = render(
       <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} />,
     );
     const img = container.querySelector(".sidebar__brand img");
 
-    expect(img?.getAttribute("src")).toBe("/luna/cat-04.png");
+    expect(img?.getAttribute("src")).toBe("/luna/atom.png");
   });
 });
 

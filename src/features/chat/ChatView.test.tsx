@@ -332,9 +332,9 @@ describe("Progresso de um plano novo", () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
-    // Um plano anterior terminou com a lista de progresso cheia.
+    // Um plano anterior ainda não terminou: a lista de progresso fica cheia depois da resposta.
     await send("primeiro pedido");
-    emit({ kind: "todos", items: [{ content: "Etapa antiga", status: "completed" }] });
+    emit({ kind: "todos", items: [{ content: "Etapa antiga", status: "in_progress" }] });
     emit({ kind: "done", ok: true });
     fireEvent.click(screen.getByRole("tab", { name: "Progresso" }));
     expect(screen.getByText("Etapa antiga")).toBeTruthy();
@@ -353,5 +353,24 @@ describe("Progresso de um plano novo", () => {
     await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(3));
 
     expect(screen.queryByText("Etapa antiga")).toBeNull();
+  });
+
+  it("quando todas as etapas terminam, a lista de progresso fecha", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("plano curto");
+    emit({
+      kind: "todos",
+      items: [
+        { content: "Ler o arquivo", status: "completed" },
+        { content: "Ajustar o texto", status: "completed" },
+      ],
+    });
+    emit({ kind: "done", ok: true });
+    fireEvent.click(screen.getByRole("tab", { name: "Progresso" }));
+
+    expect(screen.queryByText("Ler o arquivo")).toBeNull();
+    expect(screen.getByText(/Quando o agente montar as etapas/)).toBeTruthy();
   });
 });

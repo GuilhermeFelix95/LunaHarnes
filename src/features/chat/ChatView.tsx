@@ -339,6 +339,11 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         const doneKey = turnCacheKey.current;
         turnCacheKey.current = null;
         if (doneKey && event.ok) void rememberIfUnchanged(doneKey, responseText.current);
+        // Plano concluído: a lista de progresso fecha. Um plano novo abre outra (ver approvePlan).
+        if (tasksRef.current.length > 0 && tasksRef.current.every((t) => t.status === "completed")) {
+          tasksRef.current = [];
+          setTasks([]);
+        }
         const firstUser = messagesRef.current.find((m) => m.role === "user");
         const subject = firstUser ? truncate(firstUser.text, 40) : "a conversa";
         void notifyIfUnfocused(
@@ -906,7 +911,7 @@ ${outgoing}`
 
         {messages.length === 0 ? (
           <div className="chat__empty">
-            <img src="/luna/cat-04.png" alt="" className="chat__logo" />
+            <img src="/luna/atom.png" alt="" className="chat__logo" />
             <h1>Como posso ajudar?</h1>
             <p>
               {planning
