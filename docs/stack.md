@@ -41,7 +41,7 @@ docs/                stack, contrato de plugins
 ## Estado atual
 
 - Rodada de tela, plano, compactação e regras (2026-10-18):
-  - Gatinho lunar: SVG vetorial animado com CSS em `src/features/side/LunaCat.tsx` (sem three.js, sem WebGL e sem biblioteca de animação). Os keyframes ficam em `src/styles/components.css`. Conferido numa prévia no navegador; não foi conferido num `tauri dev`.
+  - Gatinho lunar: quadros PNG com fundo transparente em `public/luna/cat-01.png` a `cat-12.png`, extraídos do spritesheet enviado pelo usuário (pés alinhados num canvas 160x170). `src/features/side/LunaCat.tsx` troca de quadro a cada 180 ms enquanto anda e mantém o quadro `cat-04` (olhos fechados) para dormir. Sem three.js, sem WebGL, sem Rive. Os keyframes ficam em `src/styles/components.css`. Conferido numa prévia no navegador; não foi conferido num `tauri dev`.
   - Aviso na tela: `src/ui/toast.ts` (pub/sub) e `src/ui/Toaster.tsx`, montado em `App.tsx`. Liga e desliga em Configurações > Notificações (`luna.toast`). Clicar no aviso ainda não abre a conversa.
   - Seletor de perguntas: opções em coluna (`.qpick__options`) e botões com `.btn`, seguindo o tema.
   - Plano: o bloco `luna-plano` vai para o painel Plano, e o balão mostra só o resumo (`extractPlan` em `src/chat/planning.ts`). Sem bloco, o texto inteiro vai para os dois lugares.
@@ -54,7 +54,7 @@ docs/                stack, contrato de plugins
 - Rodada de progresso, painel e menu (2026-10-18):
   - Progresso ao vivo: as tarefas do agente ficam na conversa (campo `tasks` em `conversations.rs`) e não zeram a cada envio. Sem etapa marcada como `in_progress` durante a resposta, a primeira pendente aparece como atual (`displayTodos` em `src/chat/tasks.ts`). `APPROVAL_PROMPT` pede uma tarefa por etapa do plano.
   - Painel direito fechável pelo X (`RightPanel.tsx`, estado em `luna.rightPanel.open`). Abre sozinho ao enviar, na aba Progresso.
-  - Gatinho lunar abaixo da linha do tempo (`src/features/side/LunaCat.tsx`): anda no lugar, alternando as patas, quando a Luna trabalha e, quando para, dorme de olhos fechados com "zZ". Movimento reduzido é respeitado em `components.css`.
+  - Gatinho lunar abaixo da linha do tempo (`src/features/side/LunaCat.tsx`): anda com ciclo de quadros quando a Luna trabalha e, quando para, dorme de olhos fechados com "zZ". Movimento reduzido para o ciclo de quadros e os "zZ" fica fixo.
   - Meta de contexto do plano na barra esquerda, abaixo de Configurações (`src/features/sidebar/PlanTarget.tsx`). `PlanSection.tsx` saiu de Configurações e foi removido.
   - Sons de resposta (`src/sounds.ts`): Sino (padrão), Gota, Lua, Miau, Pop e Desligado, em `luna.sound`, sintetizados com Web Audio. Toca ao fim de resposta sem erro. Seletor e "Ouvir" em Configurações > Notificações.
   - Menu de `/` no composer (`src/chat/slash.ts`, `Composer.tsx`): comandos da Luna (`/plano`, `/plugin instalar <pasta>`), comandos de plugin e skills/comandos da CLI. Os da CLI vêm de `list_slash_items` (`src-tauri/src/slash.rs`): Claude lê `~/.claude` e `<cwd>/.claude`; Codex lê `~/.codex/prompts` e `~/.codex/skills`. Skill vai como "Use a skill <nome>: <args>"; comando vai como `/nome args`. Não verificado numa execução real se `claude -p` aceita `/skill` e `/comando`.

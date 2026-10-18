@@ -1,22 +1,40 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { LunaCat } from "./LunaCat";
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("LunaCat", () => {
-  it("trabalhando: o gatinho anda", () => {
+  it("trabalhando: mostra o gatinho andando e troca de quadro", () => {
+    vi.useFakeTimers();
     const { container } = render(<LunaCat working />);
 
-    expect(screen.getByRole("img", { name: "Gatinho lunar andando" })).toBeTruthy();
+    const img = screen.getByRole("img", { name: "Gatinho lunar andando" });
     expect(container.querySelector(".luna-cat--working")).toBeTruthy();
-    expect(container.querySelector(".luna-cat--sleeping")).toBeNull();
-    expect(container.querySelectorAll(".luna-cat__foot")).toHaveLength(2);
+    const first = img.getAttribute("src");
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(img.getAttribute("src")).not.toBe(first);
+    expect(img.getAttribute("src")).toMatch(/^\/luna\/cat-\d{2}\.png$/);
   });
 
-  it("parado: o gatinho dorme com zZ", () => {
+  it("parado: mostra o gatinho dormindo com zZ, sem trocar de quadro", () => {
+    vi.useFakeTimers();
     const { container } = render(<LunaCat working={false} />);
 
-    expect(screen.getByRole("img", { name: "Gatinho lunar dormindo" })).toBeTruthy();
-    expect(container.querySelector(".luna-cat--sleeping")).toBeTruthy();
+    const img = screen.getByRole("img", { name: "Gatinho lunar dormindo" });
+    expect(img.getAttribute("src")).toBe("/luna/cat-04.png");
     expect(container.querySelectorAll(".luna-cat__z")).toHaveLength(2);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(img.getAttribute("src")).toBe("/luna/cat-04.png");
   });
 });
