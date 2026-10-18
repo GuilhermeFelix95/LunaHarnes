@@ -41,6 +41,7 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- README (2026-10-18): `README.md` na raiz explica o que é o LunaHarness, recursos, arquitetura, pré-requisitos, execução e estado atual. Atualizar junto com recursos novos.
 - Navegador integrado (2026-10-18):
   - Aba Navegador no painel lateral, com barra de endereço, voltar, avançar e recarregar. A página só aparece quando a aba está à vista (`browser_show`). Não há botão de fechar a página ainda.
   - Ferramentas do agente: `browser_navigate`, `browser_read`, `browser_click` e `browser_type` (`mcp__luna-browser__*`). Como essas chamadas aparecem na conversa ainda não foi conferido.
