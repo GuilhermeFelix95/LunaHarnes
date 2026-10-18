@@ -2,7 +2,24 @@
 /// que `applyTheme` escreve como variáveis CSS inline no <html>. O CSS base (src/styles/themes.css)
 /// só traz o padrão claro para antes do JavaScript; o resto sai daqui.
 
-export type FontId = "inter" | "segoe" | "calibri" | "arial" | "verdana" | "georgia" | "palatino" | "consolas" | "cascadia";
+export type FontId =
+  | "inter"
+  | "segoe"
+  | "calibri"
+  | "arial"
+  | "verdana"
+  | "georgia"
+  | "palatino"
+  | "consolas"
+  | "cascadia"
+  | "outfit"
+  | "space-grotesk"
+  | "fraunces"
+  | "lora"
+  | "jetbrains"
+  | "vt323"
+  | "press"
+  | "silkscreen";
 export type ShapeId = "square" | "soft" | "round" | "bubbly" | "pill" | "leaf" | "diagonal" | "top" | "bubble" | "wave";
 export type TextSizeId = "small" | "medium" | "large";
 
@@ -42,7 +59,20 @@ export interface ThemePalette {
   glass: boolean;
 }
 
-export type ThemeId = "luna" | "claude" | "codex" | "terminal" | "pixel" | "custom";
+export type ThemeId =
+  | "luna"
+  | "claude"
+  | "codex"
+  | "terminal"
+  | "pixel"
+  | "meia-noite"
+  | "floresta"
+  | "por-do-sol"
+  | "cereja"
+  | "neon"
+  | "lavanda"
+  | "areia"
+  | "custom";
 
 export interface ThemeInfo {
   id: ThemeId;
@@ -65,13 +95,14 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
   glass: false,
 };
 
-/// Temas de fábrica. O Luna é o padrão: o gatinho em grafite e âmbar, sem tons pastel.
+/// Temas de fábrica: 12, cada um com identidade própria (cores, balão, composer, formato e fonte).
+/// O Luna é o padrão: o gatinho em grafite e âmbar.
 const PRESETS: ThemeInfo[] = [
   {
     id: "luna",
     label: "Luna",
-    description: "Grafite quente com destaque âmbar, como o gatinho.",
-    palette: { ...BASE, sidebar: "#1a1a1c", chat: "#201e1c", bubble: "#3a3530", bubbleText: "#f3e9d8", accent: "#e8a33d", text: "#ece6dc", terminal: "#161513" },
+    description: "Grafite quente com âmbar, como o gatinho.",
+    palette: { ...BASE, bubbleShape: "bubble", sidebar: "#1a1a1c", chat: "#201e1c", bubble: "#3a3530", bubbleText: "#f3e9d8", accent: "#e8a33d", text: "#ece6dc", terminal: "#161513" },
   },
   {
     id: "claude",
@@ -88,14 +119,56 @@ const PRESETS: ThemeInfo[] = [
   {
     id: "terminal",
     label: "Terminal",
-    description: "Tela de fósforo verde, texto monoespaçado e cantos retos.",
+    description: "Tela de fósforo verde, monoespaçada, com linhas de varredura.",
     palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#031005", chat: "#051407", bubble: "#0c2412", bubbleText: "#63ff8a", accent: "#4dff7a", text: "#4dff7a", terminal: "#020a04" },
   },
   {
     id: "pixel",
     label: "Pixel art",
-    description: "Retrô de arcade: azul-noite, amarelo vivo e bordas duras.",
-    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#16132b", chat: "#1e1a3a", bubble: "#3b2f6b", bubbleText: "#fff3b0", accent: "#ffd23f", text: "#f4f1de", terminal: "#100c22" },
+    description: "Interface de arcade: fonte pixel, bordas em degrau e sem arredondamento.",
+    palette: { ...BASE, font: "vt323", shape: "square", sidebar: "#16132b", chat: "#1e1a3a", bubble: "#3b2f6b", bubbleText: "#fff3b0", accent: "#ffd23f", text: "#f4f1de", terminal: "#100c22" },
+  },
+  {
+    id: "meia-noite",
+    label: "Meia-noite",
+    description: "Azul-marinho com balão azul-céu e painéis de vidro.",
+    palette: { ...BASE, shape: "round", bubbleShape: "round", glass: true, sidebar: "#0b1f33", chat: "#0f2a44", bubble: "#1d4e7a", bubbleText: "#eaf4ff", accent: "#5ec8ff", text: "#e4eef8", terminal: "#09182a" },
+  },
+  {
+    id: "floresta",
+    label: "Floresta",
+    description: "Verde-musgo, com balões em forma de folha.",
+    palette: { ...BASE, shape: "leaf", bubbleShape: "leaf", sidebar: "#13231a", chat: "#182d21", bubble: "#2d5a3f", bubbleText: "#eaf7ee", accent: "#b5e48c", text: "#e1efe5", terminal: "#0f1c14" },
+  },
+  {
+    id: "por-do-sol",
+    label: "Pôr do sol",
+    description: "Vinho escuro, balão laranja e destaque rosa.",
+    palette: { ...BASE, shape: "round", bubbleShape: "bubble", sidebar: "#2a1420", chat: "#33192a", bubble: "#ff7a59", bubbleText: "#2a0f18", accent: "#ff8fb1", text: "#ffe9e1", terminal: "#210d18" },
+  },
+  {
+    id: "cereja",
+    label: "Cereja",
+    description: "Vinho profundo, com balão cereja e fonte com serifa.",
+    palette: { ...BASE, font: "palatino", bubbleShape: "bubble", sidebar: "#1f0d14", chat: "#2a1119", bubble: "#b8325a", bubbleText: "#fff0f4", accent: "#ff6b8b", text: "#f8e6ec", terminal: "#170910" },
+  },
+  {
+    id: "neon",
+    label: "Neon",
+    description: "Preto-violeta com magenta, cantos diagonais e vidro.",
+    palette: { ...BASE, font: "cascadia", shape: "diagonal", bubbleShape: "diagonal", glass: true, sidebar: "#07070d", chat: "#0b0b14", bubble: "#1c1140", bubbleText: "#f0e9ff", accent: "#ff2bd6", text: "#e7e0ff", terminal: "#05050a" },
+  },
+  {
+    id: "lavanda",
+    label: "Lavanda",
+    description: "Claro, com lilás no balão e fonte com serifa.",
+    palette: { ...BASE, font: "palatino", shape: "round", bubbleShape: "round", sidebar: "#ece6f7", chat: "#faf8ff", bubble: "#d9ccf5", bubbleText: "#2b1f4a", accent: "#7c5cd6", text: "#2b1f4a", terminal: "#2b1f4a" },
+  },
+  {
+    id: "areia",
+    label: "Areia",
+    description: "Papel quente, com terracota e balão em aba.",
+    palette: { ...BASE, font: "georgia", bubbleShape: "top", sidebar: "#efe6d6", chat: "#faf5ea", bubble: "#e4d3b3", bubbleText: "#3a2c1a", accent: "#b5652b", text: "#3a2c1a", terminal: "#3a2c1a" },
   },
   {
     id: "custom",
@@ -117,6 +190,14 @@ export const FONTS: Record<FontId, { label: string; stack: string }> = {
   palatino: { label: "Palatino (serifa)", stack: '"Palatino Linotype", Palatino, "Book Antiqua", serif' },
   consolas: { label: "Consolas (mono)", stack: 'Consolas, "Cascadia Mono", ui-monospace, monospace' },
   cascadia: { label: "Cascadia Code (mono)", stack: '"Cascadia Code", "Cascadia Mono", Consolas, monospace' },
+  vt323: { label: "VT323 (pixel, terminal)", stack: '"VT323", Consolas, monospace' },
+  press: { label: "Press Start 2P (pixel)", stack: '"Press Start 2P", "VT323", monospace' },
+  silkscreen: { label: "Silkscreen (pixel)", stack: '"Silkscreen", "VT323", monospace' },
+  outfit: { label: "Outfit (moderna)", stack: '"Outfit", Inter, system-ui, sans-serif' },
+  "space-grotesk": { label: "Space Grotesk (moderna)", stack: '"Space Grotesk", Inter, system-ui, sans-serif' },
+  fraunces: { label: "Fraunces (com personalidade)", stack: '"Fraunces", Georgia, serif' },
+  lora: { label: "Lora (serifa elegante)", stack: '"Lora", Georgia, serif' },
+  jetbrains: { label: "JetBrains Mono (técnica)", stack: '"JetBrains Mono", Consolas, monospace' },
 };
 
 export const SHAPES: Record<ShapeId, { label: string; sm: string; md: string; lg: string; xl: string; pill: string }> = {

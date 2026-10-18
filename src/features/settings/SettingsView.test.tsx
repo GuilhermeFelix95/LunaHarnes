@@ -40,7 +40,7 @@ describe("SettingsView", () => {
     localStorage.setItem(THEME_KEY, "terminal");
     render(<SettingsView onClose={() => {}} />);
 
-    expect(screen.getAllByRole("radio")).toHaveLength(6);
+    expect(screen.getAllByRole("radio")).toHaveLength(13);
     expect(screen.getByRole("radiogroup", { name: "Seus temas" }).textContent).toContain("Personalizado");
     expect(screen.getByRole("radio", { name: /Terminal/ }).getAttribute("aria-checked")).toBe("true");
   });

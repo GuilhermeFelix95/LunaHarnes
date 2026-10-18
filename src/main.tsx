@@ -1,6 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource-variable/inter";
+import "@fontsource/outfit";
+import "@fontsource/space-grotesk";
+import "@fontsource/fraunces";
+import "@fontsource/lora";
+import "@fontsource/jetbrains-mono";
+import "@fontsource/press-start-2p";
+import "@fontsource/vt323";
+import "@fontsource/silkscreen";
 import { App } from "./App";
 import "./styles/tokens.css";
 import "./styles/themes.css";

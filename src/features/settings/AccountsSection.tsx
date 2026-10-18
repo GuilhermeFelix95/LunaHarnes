@@ -59,23 +59,31 @@ export function AccountsSection() {
         ficam em Provedores.
       </p>
       <ul className="settings-list">
-        {(["claude", "codex"] as ProviderKind[]).map((p) => (
-          <li key={p} className="settings-card">
-            <div>
-              <strong>{PROVIDER_LABELS[p]}</strong>
-              <span className="settings-card__meta">{loginLabel(login[p])}</span>
-              {cli[p]?.installed && cli[p]?.path && <span className="settings-card__meta">CLI em {cli[p]?.path}</span>}
-              {errors[p] && (
-                <span className="settings-card__meta" role="alert">
-                  {errors[p]}
-                </span>
+        {(["claude", "codex"] as ProviderKind[]).map((p) => {
+          const installed = cli[p]?.installed;
+          const connected = login[p] === true;
+          // Logada: nada a fazer. Instalada mas sem login: só o login. Sem CLI: baixar e conectar.
+          const action = connected || installed === undefined ? null : installed ? "Conectar" : "Baixar e conectar";
+          return (
+            <li key={p} className="settings-card">
+              <div>
+                <strong>{PROVIDER_LABELS[p]}</strong>
+                <span className="settings-card__meta">{loginLabel(login[p])}</span>
+                {installed && cli[p]?.path && <span className="settings-card__meta">CLI em {cli[p]?.path}</span>}
+                {errors[p] && (
+                  <span className="settings-card__meta" role="alert">
+                    {errors[p]}
+                  </span>
+                )}
+              </div>
+              {action && (
+                <button type="button" className="btn btn--sm" disabled={busy !== null} onClick={() => void connect(p)}>
+                  {busy === p ? "Aguarde…" : action}
+                </button>
               )}
-            </div>
-            <button type="button" className="btn btn--sm" disabled={busy !== null} onClick={() => void connect(p)}>
-              {busy === p ? "Aguarde…" : "Baixar e conectar"}
-            </button>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

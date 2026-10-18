@@ -23,8 +23,10 @@ describe("theme", () => {
     document.documentElement.removeAttribute("style");
   });
 
-  it("tem Luna, Claude, Codex, Terminal, Pixel art e o personalizado, nessa ordem", () => {
-    expect(THEMES.map((t) => t.id)).toEqual(["luna", "claude", "codex", "terminal", "pixel", "custom"]);
+  it("tem 12 temas de fábrica, na ordem, e o personalizado no fim", () => {
+    expect(THEMES.map((t) => t.id)).toEqual([
+      "luna", "claude", "codex", "terminal", "pixel", "meia-noite", "floresta", "por-do-sol", "cereja", "neon", "lavanda", "areia", "custom",
+    ]);
   });
 
   it("o tamanho do texto multiplica a escala de tipo", () => {

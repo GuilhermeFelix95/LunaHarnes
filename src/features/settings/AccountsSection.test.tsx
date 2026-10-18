@@ -12,48 +12,49 @@ vi.mock("../../api", () => ({
   openLogin: vi.fn(async () => {}),
 }));
 
-import { installCli, openLogin } from "../../api";
+import { checkAuth, installCli, openLogin } from "../../api";
 
-describe("Contas: Baixar e conectar", () => {
+describe("Contas: estado de cada CLI", () => {
   beforeEach(() => {
+    vi.mocked(checkAuth).mockImplementation(async () => false);
     vi.mocked(installCli).mockClear();
     vi.mocked(openLogin).mockClear();
   });
 
-  it("mostra um botão por CLI, com o caminho da que já está instalada", async () => {
+  it("instalada e logada: sem botão, mostra conectado", async () => {
+    vi.mocked(checkAuth).mockImplementation(async (p) => p === "claude");
     render(<AccountsSection />);
 
-    expect(await screen.findByText("CLI em C:\claude.exe")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Baixar e conectar" })).toHaveLength(2);
+    expect(await screen.findByText("conectado")).toBeTruthy();
+    expect(screen.getAllByRole("button")).toHaveLength(1); // só o de Codex, que falta
+    expect(screen.queryByRole("button", { name: "Conectar" })).toBeNull();
   });
 
-  it("CLI que falta: instala primeiro e depois abre o login", async () => {
+  it("instalada mas não logada: botão Conectar, sem baixar", async () => {
     render(<AccountsSection />);
-    await screen.findByText("CLI em C:\claude.exe");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Baixar e conectar" })[1]);
+    const button = await screen.findByRole("button", { name: "Conectar" });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(openLogin).toHaveBeenCalledWith("claude"));
+    expect(installCli).not.toHaveBeenCalled();
+  });
+
+  it("CLI que falta: Baixar e conectar instala primeiro e depois abre o login", async () => {
+    render(<AccountsSection />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Baixar e conectar" }));
 
     await waitFor(() => expect(openLogin).toHaveBeenCalledWith("codex"));
     expect(installCli).toHaveBeenCalledWith("codex");
     expect(vi.mocked(installCli).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(openLogin).mock.invocationCallOrder[0]);
   });
 
-  it("CLI já instalada: só abre o login, sem instalar de novo", async () => {
-    render(<AccountsSection />);
-    await screen.findByText("CLI em C:\claude.exe");
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Baixar e conectar" })[0]);
-
-    await waitFor(() => expect(openLogin).toHaveBeenCalledWith("claude"));
-    expect(installCli).not.toHaveBeenCalled();
-  });
-
   it("falha na instalação aparece na conta, sem abrir o login", async () => {
     vi.mocked(installCli).mockRejectedValueOnce("o instalador do Codex falhou: sem rede");
     render(<AccountsSection />);
-    await screen.findByText("CLI em C:\claude.exe");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Baixar e conectar" })[1]);
+    fireEvent.click(await screen.findByRole("button", { name: "Baixar e conectar" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain("o instalador do Codex falhou: sem rede");
     expect(openLogin).not.toHaveBeenCalled();
