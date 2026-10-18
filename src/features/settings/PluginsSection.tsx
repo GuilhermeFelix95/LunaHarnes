@@ -241,7 +241,7 @@ export function PluginsSection() {
         Plugins rodam com as permissões que você aceita na instalação. Instale só de fontes em que você confia.
       </p>
 
-      <div className="tabs" role="tablist" aria-label="Plugins">
+      <div className="segmented" role="tablist" aria-label="Plugins">
         <button type="button" role="tab" aria-selected={tab === "installed"} onClick={() => setTab("installed")}>
           Instalados
         </button>

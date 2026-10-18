@@ -9,11 +9,11 @@
   --surface: #ffffff;
   --fg: #1f1e1d;
   --fg-muted: #6b6a68;
-  --fg-subtle: #8f8d89;
+  --fg-subtle: #72706d;
   --muted: var(--fg-muted);
   --border: #e4e1d8;
   --border-strong: #cfcabd;
-  --accent: #c15f3c;
+  --accent: #b25737;
   --accent-fg: #ffffff;
   --accent-soft: rgb(193 95 60 / 12%);
   --success: #2e7d4f;
@@ -21,7 +21,7 @@
   --error: #b3261e;
   --diff-add: #2e7d4f;
   --diff-del: #b3261e;
-  --focus-ring: #c15f3c;
+  --focus-ring: #b25737;
   --user-bubble: #f0eee6;
   --code-bg: #f4f2ec;
   --hover: #ebe8df;
@@ -41,7 +41,7 @@
     --surface: #30302e;
     --fg: #f0eee6;
     --fg-muted: #a6a39b;
-    --fg-subtle: #7d7a73;
+    --fg-subtle: #928f88;
     --border: #3d3d3a;
     --border-strong: #52514d;
     --accent: #d97757;
@@ -69,7 +69,7 @@
   --surface: #30302e;
   --fg: #f0eee6;
   --fg-muted: #a6a39b;
-  --fg-subtle: #7d7a73;
+  --fg-subtle: #928f88;
   --border: #3d3d3a;
   --border-strong: #52514d;
   --accent: #d97757;
@@ -98,10 +98,10 @@
   --surface: #ffffff;
   --fg: #1f1e1d;
   --fg-muted: #6b6a68;
-  --fg-subtle: #8f8d89;
+  --fg-subtle: #72706d;
   --border: #e4e1d8;
   --border-strong: #cfcabd;
-  --accent: #c15f3c;
+  --accent: #b25737;
   --accent-fg: #ffffff;
   --accent-soft: rgb(193 95 60 / 12%);
   --success: #2e7d4f;
@@ -109,7 +109,7 @@
   --error: #b3261e;
   --diff-add: #2e7d4f;
   --diff-del: #b3261e;
-  --focus-ring: #c15f3c;
+  --focus-ring: #b25737;
   --user-bubble: #f0eee6;
   --code-bg: #f4f2ec;
   --hover: #ebe8df;
@@ -157,7 +157,7 @@
   --surface: #152427;
   --fg: #e3f4ef;
   --fg-muted: #8fb3ab;
-  --fg-subtle: #5f7f78;
+  --fg-subtle: #6a8882;
   --border: #1f3a3d;
   --border-strong: #2c5054;
   --accent: #3ddc97;
@@ -187,10 +187,10 @@
   --surface: #fffaf1;
   --fg: #2b2118;
   --fg-muted: #7a6a58;
-  --fg-subtle: #a09080;
+  --fg-subtle: #76685b;
   --border: #e0d3bc;
   --border-strong: #cdbc9d;
-  --accent: #b5532a;
+  --accent: #ae5028;
   --accent-fg: #fffaf1;
   --accent-soft: rgb(181 83 42 / 12%);
   --success: #3f6b2e;
@@ -198,7 +198,7 @@
   --error: #a8261b;
   --diff-add: #3f6b2e;
   --diff-del: #a8261b;
-  --focus-ring: #b5532a;
+  --focus-ring: #ae5028;
   --user-bubble: #e6d9c2;
   --code-bg: #efe6d6;
   --hover: #e6d9c2;
@@ -215,7 +215,7 @@
   --surface: #252528;
   --fg: #f2f2f2;
   --fg-muted: #a1a1a6;
-  --fg-subtle: #75757b;
+  --fg-subtle: #87878c;
   --border: #38383c;
   --border-strong: #4a4a50;
   --accent: #f2a33a;

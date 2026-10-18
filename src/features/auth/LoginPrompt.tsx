@@ -23,10 +23,10 @@ export function LoginPrompt({ provider, onLogin, onCheck, checking, error }: Log
         própria, no navegador.
       </p>
       <div className="login-prompt__actions">
-        <button type="button" onClick={onLogin}>
+        <button type="button" className="btn btn--primary" onClick={onLogin}>
           Entrar na conta
         </button>
-        <button type="button" onClick={onCheck} disabled={checking}>
+        <button type="button" className="btn" onClick={onCheck} disabled={checking}>
           {checking ? "Verificando..." : "Já entrei, verificar"}
         </button>
       </div>

@@ -31,12 +31,12 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     <div className="settings">
       <header className="settings__head">
         <h1>Configurações</h1>
-        <button type="button" className="settings__close" onClick={onClose}>
+        <button type="button" className="btn btn--sm" onClick={onClose}>
           Voltar ao chat
         </button>
       </header>
 
-      <div className="tabs" role="tablist" aria-label="Seções de configurações">
+      <div className="segmented" role="tablist" aria-label="Seções de configurações">
         {TABS.map(([id, label]) => (
           <button
             key={id}

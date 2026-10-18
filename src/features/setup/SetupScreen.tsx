@@ -49,7 +49,7 @@ export function SetupScreen({ statuses: initial, onSkip }: SetupScreenProps) {
                 </span>
               </div>
               {!status.installed && (
-                <button type="button" onClick={() => void install(status.provider)} disabled={busy !== null}>
+                <button type="button" className="btn btn--primary" onClick={() => void install(status.provider)} disabled={busy !== null}>
                   {busy === status.provider ? "Instalando… pode levar alguns minutos" : "Instalar"}
                 </button>
               )}
@@ -60,7 +60,7 @@ export function SetupScreen({ statuses: initial, onSkip }: SetupScreenProps) {
         {error && <p role="alert" className="setup__error">{error}</p>}
 
         <div className="setup__actions">
-          <button type="button" className="setup__skip" onClick={onSkip} disabled={busy !== null}>
+          <button type="button" className="btn setup__skip" onClick={onSkip} disabled={busy !== null}>
             {allInstalled ? "Continuar" : "Pular por agora"}
           </button>
         </div>

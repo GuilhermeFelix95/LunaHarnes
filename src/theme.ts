@@ -15,13 +15,13 @@ export const THEMES: ThemeInfo[] = [
     id: "system",
     label: "Sistema",
     description: "Claro ou escuro, como o Windows estiver.",
-    preview: { bg: "linear-gradient(135deg, #faf9f5 50%, #262624 50%)", sidebar: "#f0eee6", bubble: "#3a3936", accent: "#c15f3c" },
+    preview: { bg: "linear-gradient(135deg, #faf9f5 50%, #262624 50%)", sidebar: "#f0eee6", bubble: "#3a3936", accent: "#b25737" },
   },
   {
     id: "light",
     label: "Claro",
     description: "Neutro e quente, para o dia.",
-    preview: { bg: "#faf9f5", sidebar: "#f0eee6", bubble: "#f0eee6", accent: "#c15f3c" },
+    preview: { bg: "#faf9f5", sidebar: "#f0eee6", bubble: "#f0eee6", accent: "#b25737" },
   },
   {
     id: "dark",
@@ -45,7 +45,7 @@ export const THEMES: ThemeInfo[] = [
     id: "duna",
     label: "Duna",
     description: "Areia clara com terracota queimada.",
-    preview: { bg: "#f6efe3", sidebar: "#ede3d1", bubble: "#e6d9c2", accent: "#b5532a" },
+    preview: { bg: "#f6efe3", sidebar: "#ede3d1", bubble: "#e6d9c2", accent: "#ae5028" },
   },
   {
     id: "grafite",

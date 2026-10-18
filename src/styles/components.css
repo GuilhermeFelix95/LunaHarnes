@@ -57,14 +57,6 @@
   font-weight: 400;
 }
 
-.settings__close {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  font-size: 13px;
-}
-
 .settings__section {
   max-width: 880px;
   margin: 0 auto;
@@ -703,20 +695,28 @@
   margin-left: auto;
 }
 
+/* Alternadores do composer (Planejar e modos de plugin): mesmo estilo, ligado = acento sólido */
+.composer__mode,
 .composer__plan {
   padding: 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 13px;
-  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: var(--radius-pill);
+  background: var(--glass);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
+.composer__mode:hover:not(:disabled),
+.composer__plan:hover:not(:disabled) {
+  color: var(--fg);
+}
+
+.composer__mode[aria-pressed="true"],
 .composer__plan[aria-pressed="true"] {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
 }
 
 .composer--planning {
@@ -1488,22 +1488,6 @@ textarea:focus-visible {
   color: var(--accent);
 }
 
-.composer__mode {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--glass);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.composer__mode[aria-pressed="true"] {
-  color: var(--accent-fg);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
 .composer__files,
 .composer__attachments {
   list-style: none;
@@ -1577,8 +1561,8 @@ textarea:focus-visible {
   color: var(--fg);
 }
 
+/* Abas de configurações e plugins: o padrão segmentado de base.css, com margem em volta */
 .tabs {
-  display: flex;
   margin: var(--space-2) 0 var(--space-3);
 }
 
