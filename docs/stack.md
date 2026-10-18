@@ -41,7 +41,7 @@ docs/                stack, contrato de plugins
 ## Estado atual
 
 - Rodada de tela, plano, compactação e regras (2026-10-18):
-  - Gatinho 3D: three.js 0.186.1 e @types/three (`package.json`). A cena fica em `src/features/side/catScene.ts`, carregada por import dinâmico em `LunaCat.tsx`. Sem WebGL, cai no SVG (`LunaCatFallback`). Não foi conferido visualmente num `tauri dev`.
+  - Gatinho lunar: SVG vetorial animado com CSS em `src/features/side/LunaCat.tsx` (sem three.js, sem WebGL e sem biblioteca de animação). Os keyframes ficam em `src/styles/components.css`. Conferido numa prévia no navegador; não foi conferido num `tauri dev`.
   - Aviso na tela: `src/ui/toast.ts` (pub/sub) e `src/ui/Toaster.tsx`, montado em `App.tsx`. Liga e desliga em Configurações > Notificações (`luna.toast`). Clicar no aviso ainda não abre a conversa.
   - Seletor de perguntas: opções em coluna (`.qpick__options`) e botões com `.btn`, seguindo o tema.
   - Plano: o bloco `luna-plano` vai para o painel Plano, e o balão mostra só o resumo (`extractPlan` em `src/chat/planning.ts`). Sem bloco, o texto inteiro vai para os dois lugares.

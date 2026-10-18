@@ -1332,22 +1332,10 @@ textarea:focus-visible {
   min-height: 0;
 }
 
-/* Gatinho lunar: digita quando a Luna trabalha; dorme com "zZ" quando para */
+/* Gatinho lunar (SVG animado com CSS): digita quando a Luna trabalha; dorme com "zZ" quando para */
 .luna-cat {
-  width: 160px;
+  width: 180px;
   margin: 16px auto 0;
-  color: var(--fg-muted);
-}
-
-.luna-cat__canvas {
-  width: 100%;
-  aspect-ratio: 16 / 11;
-}
-
-.luna-cat__canvas canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
 }
 
 .luna-cat svg {
@@ -1357,87 +1345,83 @@ textarea:focus-visible {
   overflow: visible;
 }
 
-.luna-cat__body,
+.luna-cat__eye,
+.luna-cat__paw,
+.luna-cat__star,
 .luna-cat__head,
-.luna-cat__ear {
-  fill: var(--bg-sidebar);
-  stroke: currentColor;
-  stroke-width: 1.5;
+.luna-cat__body {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.luna-cat__moon {
-  fill: var(--accent);
-}
-
-.luna-cat__eyes circle {
-  fill: currentColor;
-}
-
-.luna-cat__closed-eyes path,
-.luna-cat__tail,
-.luna-cat__notebook,
-.luna-cat__screen,
-.luna-cat__paw {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-
-.luna-cat__notebook {
-  fill: var(--bg-sidebar);
-}
-
-.luna-cat__screen {
-  fill: var(--accent);
-  fill-opacity: 0.25;
-  stroke: none;
-}
-
-.luna-cat__paw {
-  fill: var(--bg-sidebar);
+.luna-cat__closed-eyes,
+.luna-cat__z {
+  display: none;
 }
 
 .luna-cat__z {
-  fill: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0;
+  fill: #9aa0c4;
+  font-family: sans-serif;
+  font-size: 17px;
+  font-weight: 700;
 }
 
-.luna-cat--working .luna-cat__closed-eyes,
-.luna-cat--working .luna-cat__z,
+.luna-cat--working .luna-cat__eyes {
+  display: inline;
+}
+
+.luna-cat--working .luna-cat__eye {
+  animation: luna-blink 4.2s ease-in-out infinite;
+}
+
 .luna-cat--sleeping .luna-cat__eyes {
   display: none;
 }
 
-.luna-cat--working .luna-cat__paw {
-  transform-box: fill-box;
-  transform-origin: center;
+.luna-cat--sleeping .luna-cat__closed-eyes {
+  display: inline;
+}
+
+.luna-cat--working .luna-cat__paw--left {
   animation: luna-type 0.5s ease-in-out infinite alternate;
 }
 
-.luna-cat--working .luna-cat__paw + .luna-cat__paw {
-  animation-delay: 0.25s;
+.luna-cat--working .luna-cat__paw--right {
+  animation: luna-type 0.5s ease-in-out 0.25s infinite alternate;
 }
 
-.luna-cat--working .luna-cat__screen {
-  animation: luna-screen 1.6s steps(2, end) infinite;
-}
-
-.luna-cat--working .luna-cat__tail {
+.luna-cat--working .luna-cat__code {
   transform-box: fill-box;
-  transform-origin: 0% 100%;
-  animation: luna-tail 2.4s ease-in-out infinite;
+  transform-origin: left center;
+  animation: luna-code 1.6s steps(4, end) infinite;
+}
+
+.luna-cat--sleeping .luna-cat__head {
+  transform: rotate(9deg);
+  transform-origin: 110px 130px;
+  transform-box: view-box;
+  transition: transform 0.4s ease-out;
 }
 
 .luna-cat--sleeping .luna-cat__body {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
+  transform-origin: 110px 186px;
+  transform-box: view-box;
   animation: luna-breathe 3s ease-in-out infinite;
 }
 
+.luna-cat__tail {
+  transform-origin: 150px 170px;
+  transform-box: view-box;
+  animation: luna-tail 2.6s ease-in-out infinite;
+}
+
+.luna-cat__star {
+  animation: luna-twinkle 2.4s ease-in-out infinite;
+}
+
 .luna-cat--sleeping .luna-cat__z {
+  display: inline;
+  opacity: 0;
   animation: luna-z 2.8s ease-in infinite;
 }
 
@@ -1445,24 +1429,34 @@ textarea:focus-visible {
   animation-delay: 1.4s;
 }
 
+@keyframes luna-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
 @keyframes luna-type {
   from { transform: translateY(0); }
   to { transform: translateY(-3px); }
 }
 
-@keyframes luna-screen {
-  from { opacity: 1; }
-  to { opacity: 0.45; }
+@keyframes luna-code {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0.55); }
 }
 
 @keyframes luna-tail {
   0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(10deg); }
+  50% { transform: rotate(7deg); }
 }
 
 @keyframes luna-breathe {
   0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(1.03); }
+  50% { transform: scaleY(1.025); }
+}
+
+@keyframes luna-twinkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.75; }
 }
 
 @keyframes luna-z {
@@ -1474,9 +1468,11 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .luna-cat * {
     animation: none !important;
+    transition: none !important;
   }
 
   .luna-cat--sleeping .luna-cat__z {
+    display: inline;
     opacity: 1;
   }
 }
