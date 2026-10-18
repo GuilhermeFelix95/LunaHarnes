@@ -159,6 +159,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>(loadSection);
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(loadSavedThemes);
   const [activeName, setActiveName] = useState<string | null>(loadActiveName);
+  /// Modo de edição: some a lista de temas de fábrica e fica só Seus temas com o editor.
+  const [editing, setEditing] = useState(false);
 
   function open(id: SettingsSection) {
     setSection(id);
@@ -207,6 +209,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     const created: SavedTheme = { name: `Tema ${index}`, palette };
     storeSaved([...savedThemes, created]);
     applySaved(created);
+    setEditing(true);
   }
 
   function importTheme(imported: SavedTheme) {
@@ -258,27 +261,38 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               className="settings__section"
               aria-labelledby="settings-theme"
             >
-              <h2 id="settings-theme">Tema</h2>
-              <div
-                className="themes"
-                role="radiogroup"
-                aria-labelledby="settings-theme"
-              >
-                {THEMES.filter((t) => t.id !== "custom").map((t) => (
-                  <ThemeCard
-                    key={t.id}
-                    label={t.label}
-                    description={t.description}
-                    palette={t.palette}
-                    checked={theme === t.id}
-                    onChoose={() => choose(t.id)}
-                  />
-                ))}
-              </div>
+              {editing ? (
+                <div className="settings__head">
+                  <h2 id="settings-user-themes">Seus temas</h2>
+                  <button type="button" className="btn btn--sm" onClick={() => setEditing(false)}>
+                    Voltar aos temas
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h2 id="settings-theme">Tema</h2>
+                  <div
+                    className="themes"
+                    role="radiogroup"
+                    aria-labelledby="settings-theme"
+                  >
+                    {THEMES.filter((t) => t.id !== "custom").map((t) => (
+                      <ThemeCard
+                        key={t.id}
+                        label={t.label}
+                        description={t.description}
+                        palette={t.palette}
+                        checked={theme === t.id}
+                        onChoose={() => choose(t.id)}
+                      />
+                    ))}
+                  </div>
 
-              <h3 id="settings-user-themes" className="settings__subhead">
-                Seus temas
-              </h3>
+                  <h3 id="settings-user-themes" className="settings__subhead">
+                    Seus temas
+                  </h3>
+                </>
+              )}
               <div
                 className="themes"
                 role="radiogroup"

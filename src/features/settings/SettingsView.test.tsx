@@ -60,6 +60,21 @@ describe("SettingsView", () => {
     expect(screen.getByLabelText("Fonte")).toBeTruthy();
   });
 
+  it("Novo tema abre o editor só com Seus temas, e Voltar aos temas restaura a lista de fábrica", () => {
+    localStorage.setItem(THEME_KEY, "luna");
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
+
+    expect(screen.queryByRole("radio", { name: /Luna/ })).toBeNull();
+    expect(screen.getByRole("radiogroup", { name: "Seus temas" }).textContent).toContain("Tema 1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Voltar aos temas" }));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(13);
+    expect(screen.queryByRole("button", { name: "Voltar aos temas" })).toBeNull();
+  });
+
   it("o editor do Personalizado troca a fonte e o formato na hora", () => {
     localStorage.setItem(THEME_KEY, "custom");
     render(<SettingsView onClose={() => {}} />);
