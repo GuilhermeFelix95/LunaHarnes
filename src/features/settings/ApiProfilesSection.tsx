@@ -247,7 +247,9 @@ export function ApiProfilesSection() {
               <span className="provider-card__name">{p.label}</span>
               <span className="provider-card__meta">via {PROVIDER_LABELS[p.engine]}</span>
               {p.suggestedModels.length > 0 && (
-                <span className="provider-card__meta">{p.suggestedModels.length} modelos prontos</span>
+                <span className="provider-card__meta">
+                  {p.suggestedModels.length === 1 ? "1 modelo pronto" : `${p.suggestedModels.length} modelos prontos`}
+                </span>
               )}
             </button>
           ))}
