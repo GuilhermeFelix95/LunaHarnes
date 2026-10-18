@@ -14,6 +14,7 @@ import { SetupScreen } from "./features/setup/SetupScreen";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { CliStatus, Conversation, ConversationSummary } from "./types";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { loadLastWorkspace } from "./workspace";
 
 /// Ação pendente de confirmação: o diálogo mostra o texto e roda `run` se o usuário confirmar.
 interface Confirm {
@@ -36,7 +37,8 @@ interface Chat {
 export function App() {
   const [summaries, setSummaries] = useState<ConversationSummary[]>([]);
   const [listError, setListError] = useState<string | undefined>(undefined);
-  const [chats, setChats] = useState<Chat[]>([{ key: 0 }]);
+  // A primeira aba já abre na última pasta de projeto usada, se houver.
+  const [chats, setChats] = useState<Chat[]>(() => [{ key: 0, startCwd: loadLastWorkspace() }]);
   const [activeKey, setActiveKey] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [runningIds, setRunningIds] = useState<string[]>([]);
@@ -79,7 +81,7 @@ export function App() {
   }
 
   function newConversation(cwd?: string) {
-    addChat({ startCwd: cwd });
+    addChat({ startCwd: cwd ?? loadLastWorkspace() });
   }
 
   /// Escolhe uma pasta e começa uma conversa nela. Cancelar o seletor não faz nada.

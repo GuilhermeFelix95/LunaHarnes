@@ -53,6 +53,7 @@ import { QuestionPicker } from "./QuestionPicker";
 import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { saveLastWorkspace } from "../../workspace";
 
 const TITLE_MAX_CHARS = 60;
 
@@ -325,6 +326,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     const title = firstUser ? truncate(firstUser.text, TITLE_MAX_CHARS) : "Nova conversa";
     // Lido da ref: o listener de eventos é registrado uma vez e não vê valores novos pelo closure.
     const latest = live.current;
+    saveLastWorkspace(latest.cwd);
     onPersist({
       id: conversationId,
       title,
@@ -362,6 +364,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   function switchWorkspace(path: string) {
     if (path === cwd) return;
     setCwd(path);
+    saveLastWorkspace(path);
     sessions.current = {};
     commit([]);
   }
