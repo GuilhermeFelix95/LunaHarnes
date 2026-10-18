@@ -1,7 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import {
   addCatalogSource,
+  createPlugin,
   installCatalogPlugin,
+  installLocalPlugin,
+  inspectLocalPlugin,
+  pickPluginFolder,
   listCatalogSources,
   listPlugins,
   loadCatalog,
@@ -55,6 +60,12 @@ export function PluginsSection() {
   const [sourceInput, setSourceInput] = useState("");
   const [catalog, setCatalog] = useState<Catalog | undefined>(undefined);
   const [pending, setPending] = useState<CatalogPlugin | undefined>(undefined);
+  /// Plugin de uma pasta escolhida, à espera de confirmação das permissões.
+  const [pendingLocal, setPendingLocal] = useState<{ folder: string; manifest: PluginManifest } | undefined>(undefined);
+  /// Atualização que pede permissões a mais do que a versão instalada.
+  const [pendingUpdate, setPendingUpdate] = useState<{ plugin: CatalogPlugin; added: string[] } | undefined>(undefined);
+  const [newId, setNewId] = useState("");
+  const [newName, setNewName] = useState("");
 
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -124,16 +135,70 @@ export function PluginsSection() {
     }
   }
 
-  /// Troca o plugin instalado pela versão do catálogo. Sem diálogo: a permissão não muda entre versões.
-  async function update(id: string) {
+  /// Atualiza o plugin. Se a versão nova pede permissões que a instalada não tinha, confirma antes.
+  function update(plugin: CatalogPlugin) {
+    const current = installed.find((p) => p.id === plugin.id);
+    const added = plugin.permissions.filter((perm) => !(current?.permissions ?? []).includes(perm));
+    if (added.length > 0) {
+      setPendingUpdate({ plugin, added });
+      return;
+    }
+    void applyUpdate(plugin.id);
+  }
+
+  async function applyUpdate(id: string) {
     setError(undefined);
     try {
       await installCatalogPlugin(source, id);
+      setPendingUpdate(undefined);
       setStatus("Plugin atualizado. Ele vale no próximo envio.");
       announceChange();
       await reloadInstalled();
     } catch (e) {
       setError(String(e));
+    }
+  }
+
+  /// Escolhe uma pasta do computador e lê o manifesto, para mostrar as permissões antes de copiar.
+  async function chooseLocal() {
+    setError(undefined);
+    try {
+      const folder = await pickPluginFolder();
+      if (!folder) return;
+      const manifest = await inspectLocalPlugin(folder);
+      setPendingLocal({ folder, manifest });
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function installLocal() {
+    if (!pendingLocal) return;
+    setError(undefined);
+    try {
+      await installLocalPlugin(pendingLocal.folder);
+      setStatus(`${pendingLocal.manifest.name} instalado. Ele vale no próximo envio.`);
+      setPendingLocal(undefined);
+      announceChange();
+      await reloadInstalled();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  /// Cria um plugin com o modelo na pasta de plugins. Ele aparece na lista, pronto para editar.
+  async function createNew(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(undefined);
+    try {
+      const folder = await createPlugin(newId.trim(), newName.trim());
+      setNewId("");
+      setNewName("");
+      setStatus(`Plugin criado em ${folder}. Edite o index.js; ele vale no próximo envio.`);
+      announceChange();
+      await reloadInstalled();
+    } catch (err) {
+      setError(String(err));
     }
   }
 
@@ -190,6 +255,26 @@ export function PluginsSection() {
 
       {tab === "installed" && (
         <>
+          <div className="api-form__actions">
+            <button type="button" onClick={() => void chooseLocal()}>
+              Instalar de uma pasta
+            </button>
+          </div>
+          <form className="api-form" onSubmit={(e) => void createNew(e)}>
+            <h3 className="settings__sub">Novo plugin</h3>
+            <p className="settings__hint">Cria uma pasta com manifest.json e index.js, pronta para editar. Guia em docs/plugins.md.</p>
+            <label>
+              Id (letras minúsculas, números e hífen)
+              <input aria-label="Id do novo plugin" value={newId} onChange={(e) => setNewId(e.target.value)} placeholder="meu-plugin" required />
+            </label>
+            <label>
+              Nome
+              <input aria-label="Nome do novo plugin" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Meu plugin" required />
+            </label>
+            <div className="api-form__actions">
+              <button type="submit">Criar plugin</button>
+            </div>
+          </form>
           {installed.length === 0 && <p className="settings__hint">Nenhum plugin instalado.</p>}
           <ul className="profiles">
             {installed.map((p) => {
@@ -263,7 +348,7 @@ export function PluginsSection() {
                 <p className="settings__hint">{p.description}</p>
                 <div className="profile__actions">
                   {isNewerVersion(p.version, installedVersions.get(p.id)) ? (
-                    <button type="button" onClick={() => void update(p.id)}>
+                    <button type="button" onClick={() => update(p)}>
                       Atualizar
                     </button>
                   ) : (
@@ -295,26 +380,61 @@ export function PluginsSection() {
         </>
       )}
 
+      {pendingLocal && (
+        <ConfirmDialog
+          title={`Instalar ${pendingLocal.manifest.name}?`}
+          body={
+            <>
+              <p>Este plugin vai pedir estas permissões:</p>
+              <ul>
+                {pendingLocal.manifest.permissions.map((perm) => (
+                  <li key={perm}>{PERMISSION_TEXT[perm] ?? `permissão "${perm}"`}</li>
+                ))}
+              </ul>
+            </>
+          }
+          confirmLabel="Instalar"
+          onCancel={() => setPendingLocal(undefined)}
+          onConfirm={() => void installLocal()}
+        />
+      )}
+
+      {pendingUpdate && (
+        <ConfirmDialog
+          title={`Atualizar ${pendingUpdate.plugin.name}?`}
+          body={
+            <>
+              <p>A versão {pendingUpdate.plugin.version} pede permissões que a instalada não tinha:</p>
+              <ul>
+                {pendingUpdate.added.map((perm) => (
+                  <li key={perm}>{PERMISSION_TEXT[perm] ?? `permissão "${perm}"`}</li>
+                ))}
+              </ul>
+            </>
+          }
+          confirmLabel="Atualizar"
+          onCancel={() => setPendingUpdate(undefined)}
+          onConfirm={() => void applyUpdate(pendingUpdate.plugin.id)}
+        />
+      )}
+
       {pending && (
-        <div className="dialog-backdrop">
-          <div role="dialog" aria-modal="true" aria-labelledby="install-title" className="dialog">
-            <h3 id="install-title">Instalar {pending.name}?</h3>
-            <p className="settings__hint">Este plugin vai pedir estas permissões:</p>
-            <ul>
-              {pending.permissions.map((perm) => (
-                <li key={perm}>{PERMISSION_TEXT[perm] ?? `permissão "${perm}"`}</li>
-              ))}
-            </ul>
-            <div className="api-form__actions">
-              <button type="button" onClick={() => setPending(undefined)}>
-                Cancelar
-              </button>
-              <button type="button" onClick={() => void install()}>
-                Instalar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={`Instalar ${pending.name}?`}
+          body={
+            <>
+              <p>Este plugin vai pedir estas permissões:</p>
+              <ul>
+                {pending.permissions.map((perm) => (
+                  <li key={perm}>{PERMISSION_TEXT[perm] ?? `permissão "${perm}"`}</li>
+                ))}
+              </ul>
+            </>
+          }
+          confirmLabel="Instalar"
+          onCancel={() => setPending(undefined)}
+          onConfirm={() => void install()}
+        />
       )}
     </section>
   );

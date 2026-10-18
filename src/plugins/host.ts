@@ -13,6 +13,9 @@ export type CommandHandler = (args: string) => string | void | Promise<string | 
 export type BeforeSendHook = (prompt: string) => string | void | Promise<string | void>;
 export type AfterResponseHook = (text: string) => void | Promise<void>;
 
+/// Tempo máximo de um comando ou hook. Passou disso, o resultado é ignorado e o erro fica registrado.
+export const PLUGIN_TIMEOUT_MS = 10_000;
+
 /// Modo que o plugin oferece no composer. Ligado, ele acrescenta `instruction` ao pedido e força a leitura.
 export interface PluginMode {
   id: string;
@@ -21,6 +24,8 @@ export interface PluginMode {
   instruction: string;
   /** Só `readOnly`: um modo restringe, nunca dá mais permissão do que o composer já tem. */
   permission: "readOnly";
+  /** Quando `true`, o modo faz o agente perguntar antes de agir, pelo seletor de perguntas do chat. */
+  questions?: boolean;
 }
 
 export interface PluginApi {
@@ -65,7 +70,9 @@ export class PluginHost {
       this.loaded.push(manifest.id);
       return true;
     } catch (e) {
-      this.errors.push(`${manifest.id}: ${e instanceof Error ? e.message : String(e)}`);
+      // Ativação pela metade: o que o plugin já registrou sai junto, para não ficar ativo sem o resto.
+      this.forget(manifest.id);
+      this.errors.push(`${manifest.id}: ${errorMessage(e)}`);
       return false;
     }
   }
@@ -79,7 +86,7 @@ export class PluginHost {
     if (!entry) return { handled: false };
 
     try {
-      const result = await entry.handler(match[2] ?? "");
+      const result = await withTimeout(entry.handler(match[2] ?? ""), `o comando /${match[1]}`);
       return typeof result === "string" ? { handled: true, prompt: result } : { handled: true };
     } catch (e) {
       this.errors.push(`${entry.pluginId} (/${match[1]}): ${errorMessage(e)}`);
@@ -92,7 +99,7 @@ export class PluginHost {
     let current = prompt;
     for (const { pluginId, hook } of this.beforeSendHooks) {
       try {
-        const next = await hook(current);
+        const next = await withTimeout(hook(current), "o hook antes de enviar");
         if (typeof next === "string") current = next;
       } catch (e) {
         this.errors.push(`${pluginId} (antes de enviar): ${errorMessage(e)}`);
@@ -104,7 +111,7 @@ export class PluginHost {
   async runAfterResponse(text: string): Promise<void> {
     for (const { pluginId, hook } of this.afterResponseHooks) {
       try {
-        await hook(text);
+        await withTimeout(hook(text), "o hook depois da resposta");
       } catch (e) {
         this.errors.push(`${pluginId} (depois da resposta): ${errorMessage(e)}`);
       }
@@ -118,6 +125,14 @@ export class PluginHost {
   /** Modos oferecidos pelos plugins ativos, na ordem em que foram registrados. */
   modeList(): PluginMode[] {
     return [...this.modes.values()].map((entry) => entry.mode);
+  }
+
+  /** Tira do host o que um plugin registrou. */
+  private forget(pluginId: string) {
+    for (const [name, entry] of this.commands) if (entry.pluginId === pluginId) this.commands.delete(name);
+    for (const [name, entry] of this.modes) if (entry.pluginId === pluginId) this.modes.delete(name);
+    this.beforeSendHooks = this.beforeSendHooks.filter((h) => h.pluginId !== pluginId);
+    this.afterResponseHooks = this.afterResponseHooks.filter((h) => h.pluginId !== pluginId);
   }
 
   /** Esvazia tudo, para recarregar os plugins depois de instalar, desinstalar ou ligar/desligar um. */
@@ -179,6 +194,18 @@ export class PluginHost {
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+/// Espera o trabalho do plugin, mas desiste depois de PLUGIN_TIMEOUT_MS para não travar o envio.
+function withTimeout<T>(work: T | Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} passou de ${PLUGIN_TIMEOUT_MS / 1000} s e foi ignorado`)),
+      PLUGIN_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([Promise.resolve(work), limit]).finally(() => clearTimeout(timer));
 }
 
 /// Carrega o código do plugin como módulo ES a partir de um Blob.

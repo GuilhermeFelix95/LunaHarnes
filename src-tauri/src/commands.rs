@@ -11,7 +11,8 @@ use crate::changes::{self, Changes};
 use crate::checkpoints;
 use crate::conversations;
 use crate::models::{self, ModelOption};
-use crate::plugins::loader::{self, PluginScan};
+use crate::plugins::local;
+use crate::plugins::loader::{self, Manifest, PluginScan};
 use crate::plugins::marketplace::{self, Catalog, PluginsState};
 use crate::providers::{claude, fallback_events, image_media_type, Permission, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
@@ -344,7 +345,9 @@ pub async fn install_catalog_plugin(app: AppHandle, source: String, id: String) 
 
 #[tauri::command]
 pub fn uninstall_plugin(app: AppHandle, id: String) -> Result<(), String> {
-    marketplace::uninstall(&plugins_dir(&app)?, &id)
+    marketplace::uninstall(&plugins_dir(&app)?, &id)?;
+    // Sem a pasta, o estado ligado/desligado deste id não serve para mais nada: volta ao padrão (ligado).
+    marketplace::set_enabled(&app_data_dir(&app)?, &id, true).map(|_| ())
 }
 
 #[tauri::command]
@@ -355,6 +358,24 @@ pub fn get_plugins_state(app: AppHandle) -> Result<PluginsState, String> {
 #[tauri::command]
 pub fn set_plugin_enabled(app: AppHandle, id: String, enabled: bool) -> Result<PluginsState, String> {
     marketplace::set_enabled(&app_data_dir(&app)?, &id, enabled)
+}
+
+/// Lê o manifesto de uma pasta escolhida sem instalar, para mostrar as permissões antes.
+#[tauri::command]
+pub fn inspect_local_plugin(folder: String) -> Result<Manifest, String> {
+    local::inspect_folder(Path::new(&folder))
+}
+
+/// Instala um plugin de uma pasta escolhida no computador (manifest.json e entry).
+#[tauri::command]
+pub fn install_local_plugin(app: AppHandle, folder: String) -> Result<Manifest, String> {
+    local::install_from_folder(&plugins_dir(&app)?, Path::new(&folder))
+}
+
+/// Cria um plugin novo com o modelo, na pasta de plugins. Devolve a pasta criada.
+#[tauri::command]
+pub fn create_plugin(app: AppHandle, id: String, name: String) -> Result<String, String> {
+    local::create_plugin(&plugins_dir(&app)?, &id, &name).map(|folder| folder.display().to_string())
 }
 
 /// Pasta de conversas: `<app_data>/conversations`.

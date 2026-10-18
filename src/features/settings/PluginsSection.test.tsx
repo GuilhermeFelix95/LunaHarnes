@@ -15,6 +15,10 @@ vi.mock("../../api", () => ({
   removeCatalogSource: vi.fn(async () => {}),
   setPluginEnabled: vi.fn(async () => ({ disabled: ["ask-mode"] })),
   uninstallPlugin: vi.fn(async () => {}),
+  createPlugin: vi.fn(async () => "C:/plugins/meu-plugin"),
+  pickPluginFolder: vi.fn(async () => null),
+  inspectLocalPlugin: vi.fn(),
+  installLocalPlugin: vi.fn(async () => ({})),
 }));
 
 const ASK_INSTALLED = {
@@ -85,6 +89,33 @@ describe("PluginsSection", () => {
 
     expect(api.installCatalogPlugin).toHaveBeenCalledWith("oficial", "ask-mode");
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("atualização que pede permissão nova só instala depois da confirmação", async () => {
+    const withExtra = { ...ASK_CATALOG.plugins[0], version: "0.2.0", permissions: ["modes", "hooks"] };
+    vi.mocked(api.loadCatalog).mockResolvedValue({ ...ASK_CATALOG, plugins: [withExtra] });
+    render(<PluginsSection />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Marketplace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Atualizar" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/lê e pode alterar o texto antes de enviar/)).toBeTruthy();
+    expect(api.installCatalogPlugin).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Atualizar" }));
+    expect(api.installCatalogPlugin).toHaveBeenCalledWith("oficial", "ask-mode");
+  });
+
+  it("criar plugin manda id e nome para o backend", async () => {
+    render(<PluginsSection />);
+
+    fireEvent.change(await screen.findByLabelText("Id do novo plugin"), { target: { value: "meu-plugin" } });
+    fireEvent.change(screen.getByLabelText("Nome do novo plugin"), { target: { value: "Meu plugin" } });
+    fireEvent.click(screen.getByRole("button", { name: "Criar plugin" }));
+
+    expect(api.createPlugin).toHaveBeenCalledWith("meu-plugin", "Meu plugin");
+    expect(await screen.findByText(/Plugin criado em C:\/plugins\/meu-plugin/)).toBeTruthy();
   });
 
   it("mesma versão continua mostrando Instalado, sem Atualizar", async () => {

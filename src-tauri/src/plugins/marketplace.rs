@@ -116,6 +116,11 @@ pub fn parse_catalog(text: &str) -> Result<Catalog, String> {
     for plugin in &catalog.plugins {
         validate_plugin(plugin)?;
     }
+    let mut ids: Vec<&str> = catalog.plugins.iter().map(|p| p.id.as_str()).collect();
+    ids.sort_unstable();
+    if let Some(dup) = ids.windows(2).find(|pair| pair[0] == pair[1]) {
+        return Err(format!("o catálogo tem o plugin `{}` mais de uma vez", dup[0]));
+    }
     Ok(catalog)
 }
 
@@ -496,6 +501,17 @@ mod tests {
         let plugins = temp_dir("escape").join("plugins");
         assert!(uninstall(&plugins, "../x").is_err());
         assert!(uninstall(&plugins, "").is_err());
+    }
+
+    #[test]
+    fn catalog_refuses_the_same_plugin_id_twice() {
+        let json = serde_json::to_string(&Catalog {
+            name: "t".into(),
+            plugins: vec![plugin("x"), plugin("x")],
+        })
+        .unwrap();
+        let err = parse_catalog(&json).unwrap_err();
+        assert!(err.contains("mais de uma vez"), "{err}");
     }
 
     #[test]

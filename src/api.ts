@@ -287,6 +287,27 @@ export function uninstallPlugin(id: string): Promise<void> {
   return invoke("uninstall_plugin", { id });
 }
 
+/// Abre o seletor de pastas para escolher um plugin no computador. `null` quando cancela.
+export async function pickPluginFolder(): Promise<string | null> {
+  const picked = await open({ directory: true, multiple: false });
+  return typeof picked === "string" ? picked : null;
+}
+
+/// Lê o manifesto de uma pasta escolhida, sem instalar: para mostrar as permissões antes.
+export function inspectLocalPlugin(folder: string): Promise<PluginManifest> {
+  return invoke("inspect_local_plugin", { folder });
+}
+
+/// Instala um plugin de uma pasta escolhida no computador.
+export function installLocalPlugin(folder: string): Promise<PluginManifest> {
+  return invoke("install_local_plugin", { folder });
+}
+
+/// Cria um plugin novo com o modelo na pasta de plugins. Devolve a pasta criada.
+export function createPlugin(id: string, name: string): Promise<string> {
+  return invoke("create_plugin", { id, name });
+}
+
 export function getPluginsState(): Promise<PluginsState> {
   return invoke("get_plugins_state");
 }

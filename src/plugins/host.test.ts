@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { PluginHost, type PluginManifest, type PluginModule } from "./host";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { PLUGIN_TIMEOUT_MS, PluginHost, type PluginManifest, type PluginModule } from "./host";
 
 const manifest = (overrides: Partial<PluginManifest> = {}): PluginManifest => ({
   id: "hello",
@@ -71,7 +71,10 @@ describe("PluginHost", () => {
     );
     expect(host.errors[0]).toContain('nome de comando inválido "Ola"');
 
-    await host.load(manifest({ id: "outro" }), plugin((api) => api.registerCommand("ola", () => "c")));
+    // Ativação que falhou não deixa comandos para trás: "ola" ficou livre para outro plugin.
+    expect(host.commandNames()).toEqual([]);
+    await host.load(manifest({ id: "um" }), plugin((api) => api.registerCommand("ola", () => "c")));
+    await host.load(manifest({ id: "outro" }), plugin((api) => api.registerCommand("ola", () => "d")));
     expect(host.errors[1]).toContain('comando "/ola" já existe');
   });
 
@@ -169,5 +172,78 @@ describe("PluginHost: modos", () => {
     expect(host.modeList()).toEqual([]);
     expect(host.commandNames()).toEqual([]);
     expect(host.errors).toEqual([]);
+  });
+});
+
+describe("PluginHost: limites e ativação parcial", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("um hook que não responde é cortado no tempo limite e o texto segue sem ele", async () => {
+    vi.useFakeTimers();
+    const host = new PluginHost();
+    await host.load(
+      manifest(),
+      plugin((api) => api.onBeforeSend(() => new Promise<string>(() => undefined))),
+    );
+
+    const pending = host.runBeforeSend("oi");
+    await vi.advanceTimersByTimeAsync(PLUGIN_TIMEOUT_MS);
+
+    expect(await pending).toBe("oi");
+    expect(host.errors[0]).toContain("antes de enviar");
+    expect(host.errors[0]).toContain("passou de 10 s");
+  });
+
+  it("um comando que não responde também é cortado", async () => {
+    vi.useFakeTimers();
+    const host = new PluginHost();
+    await host.load(
+      manifest(),
+      plugin((api) => api.registerCommand("trava", () => new Promise<string>(() => undefined))),
+    );
+
+    const pending = host.handleCommand("/trava");
+    await vi.advanceTimersByTimeAsync(PLUGIN_TIMEOUT_MS);
+
+    expect(await pending).toEqual({ handled: true });
+    expect(host.errors[0]).toContain("/trava");
+  });
+
+  it("se activate falha no meio, o que já foi registrado é desfeito", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(
+      manifest(),
+      plugin((api) => {
+        api.registerCommand("meio", () => "x");
+        api.onBeforeSend((p) => p);
+        throw new Error("falhou depois de registrar");
+      }),
+    );
+
+    expect(ok).toBe(false);
+    expect(host.commandNames()).toEqual([]);
+    expect(await host.handleCommand("/meio")).toEqual({ handled: false });
+    expect(host.errors[0]).toContain("falhou depois de registrar");
+  });
+
+  it("modo declara se quer perguntas, sem depender do id", async () => {
+    const host = new PluginHost();
+    await host.load(
+      manifest({ permissions: ["modes"] }),
+      plugin((api) =>
+        api.registerMode({
+          id: "revisao",
+          label: "Revisão",
+          description: "Pergunta antes de agir",
+          instruction: "Pergunte antes de alterar arquivos.",
+          permission: "readOnly",
+          questions: true,
+        }),
+      ),
+    );
+
+    expect(host.modeList()[0].questions).toBe(true);
   });
 });
