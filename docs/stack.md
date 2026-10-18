@@ -55,7 +55,10 @@ docs/                stack, contrato de plugins
 - Conversas: escrita atômica (`.tmp` + rename). Janela padrão 1280×820.
 - OpenRouter: o perfil define `CLAUDE_CODE_MAX_OUTPUT_TOKENS=4096` (`env_for` em `api_profiles.rs`), para o OpenRouter não recusar com 402 por limite de crédito. O seletor mostra só o nome do modelo (`src/chat/models.ts`); o id completo segue para a API.
 - Plugins: carregados uma vez por conversa (`ChatView`), mesmo em StrictMode (que roda efeitos duas vezes em desenvolvimento). Teste: `src/features/chat/ChatView.strict.test.tsx`.
-- Comando `luna`: `bin/luna.mjs`, registrado com `npm link`. Roda `npm run dev:app` (`tauri dev`) no terminal atual: hot reload no front e recompilação do Rust ao salvar. Não usa o executável de release; `npm run build:app` continua disponível para gerar o executável.
+- Comando `luna`: `bin/luna.mjs`, registrado com `npm link`, com as regras testáveis em `bin/luna-lib.mjs`.
+  - `luna` compila a versão estável (`tauri build --debug --no-bundle`, pasta `src-tauri/target/luna`, `beforeBuildCommand` só `vite build` via `src-tauri/tauri.luna.conf.json`), copia o exe para `src-tauri/target/luna-run` e abre a cópia. Sem watcher: a Luna pode editar o próprio LunaHarness sem derrubar a conversa. Compilação com erro abre a última cópia boa.
+  - `luna dev` roda `npm run dev:app` (`tauri dev`): hot reload no front e recompilação do Rust ao salvar. Não serve para a Luna editar o próprio app: recargas do Vite apagam a resposta da tela.
+  - `npm run build:app` continua disponível para gerar o executável de release.
 - Fase B (interface e histórico):
   - Conversas em `<app_data>/conversations/<id>.json` (`src-tauri/src/conversations.rs`). Id só `[a-z0-9-]`.
   - Layout: `App.tsx` (barra lateral + chat). `ChatView` persiste a conversa ao fim de cada turno.
@@ -137,3 +140,4 @@ docs/                stack, contrato de plugins
 - Contexto para o plano (2026-10-18): a meta (50–100%, padrão 80) fica em `luna.planTarget` (`PlanSection.tsx`). O modo plano exige a linha "Contexto entendido: X%" em toda resposta (`planning.ts`, `contextUnderstood`) e a barra de aprovação mostra o valor.
 - Plano e progresso (2026-10-18): a aba Plano recebe a resposta sem perguntas e a que pede a aprovação (`planFromReply` em `src/chat/planning.ts`). Antes, a aprovação, feita como pergunta, deixava a aba vazia. A aba Progresso é uma linha do tempo (`src/features/side/ProgressTimeline.tsx`), com a etapa em andamento girando.
 - App fechando em dev (2026-10-18): `src-tauri/.taurignore` tira `src/`, `target/` e `gen/` do monitor do `tauri dev`. Antes, cada edição em Rust reiniciava o app e derrubava a conversa em andamento. Depois de mudar Rust, reinicie o `luna`.
+- `luna` estável (2026-10-18): o `.taurignore` só vale num `tauri dev` reiniciado, e o modo dev ainda recarrega a tela em mudanças do frontend. Por isso `luna` passou a abrir uma cópia compilada e separada; `luna dev` mantém o hot reload.
