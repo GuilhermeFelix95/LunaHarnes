@@ -1,10 +1,13 @@
 import { useState } from "react";
 import {
+  applyLiquidGlass,
   applyPalette,
   applyTheme,
   FONTS,
   loadCustomPalette,
+  loadLiquidGlass,
   loadTheme,
+  saveLiquidGlass,
   saveCustomPalette,
   saveTheme,
   SHAPES,
@@ -151,6 +154,8 @@ const COMPONENT_SHAPE_FIELDS = [
   ["chipShape", "Chips de ferramenta"],
   ["itemShape", "Itens da barra"],
   ["codeShape", "Blocos de código"],
+  ["cardShape", "Cartões"],
+  ["inputShape", "Campos de texto"],
 ] as const;
 
 /// Página de configurações em abas: uma aba por assunto, para a página não ficar enorme.
@@ -160,12 +165,19 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>(loadSection);
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(loadSavedThemes);
   const [activeName, setActiveName] = useState<string | null>(loadActiveName);
+  const [liquid, setLiquid] = useState<boolean>(loadLiquidGlass);
   /// Modo de edição: some a lista de temas de fábrica e fica só Seus temas com o editor.
   const [editing, setEditing] = useState(false);
 
   function open(id: SettingsSection) {
     setSection(id);
     saveSection(id);
+  }
+
+  function toggleLiquid(on: boolean) {
+    setLiquid(on);
+    saveLiquidGlass(on);
+    applyLiquidGlass(on);
   }
 
   function choose(id: ThemeId) {
@@ -272,6 +284,10 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               ) : (
                 <>
                   <h2 id="settings-theme">Tema</h2>
+                  <label className="custom-palette__item">
+                    <input type="checkbox" checked={liquid} onChange={(e) => toggleLiquid(e.target.checked)} />
+                    <span>Liquid glass: painéis translúcidos com reflexo e desfoque</span>
+                  </label>
                   {[
                     { title: "Claros", dark: false },
                     { title: "Noturnos", dark: true },

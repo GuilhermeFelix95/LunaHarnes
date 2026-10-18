@@ -108,3 +108,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Gatinho de sprites trocado por mascote SVG animado (corpo arredondado, olhos que piscam, braços que acenam, pulinho ao terminar); sprites em public/luna ficaram sem uso.
 2026-10-18 | Temas refeitos em seis claros e seis noturnos, cada um com fonte, formato de balão e cores próprios; Pixel art com fontes menores; Aparência separa Claros e Noturnos.
 2026-10-18 | Mascote da Luna com cara de gato (orelhas, bigodes, rabo), dormindo com boca aberta, piscando, pulando de alegria e fazendo caretas ociosas.
+2026-10-18 | Areia removido; Luna noturno (padrão) e Luna claro; liquid glass opcional em Aparência; cartões e campos de texto com formato próprio por tema.
+2026-10-18 | Mascote Átomo substitui o gato no painel, na marca da barra lateral, no logo do chat e no ícone do app; lista de progresso fecha quando o plano termina.

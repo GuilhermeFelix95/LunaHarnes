@@ -55,6 +55,10 @@ export interface ThemePalette {
   itemShape: ShapeId | null;
   /** Formato só dos blocos de código. Nulo = igual ao geral. */
   codeShape: ShapeId | null;
+  /** Formato só dos cartões (temas, painéis). Nulo = igual ao geral. */
+  cardShape: ShapeId | null;
+  /** Formato só dos campos de texto. Nulo = igual ao geral. */
+  inputShape: ShapeId | null;
   /** Vidro translúcido nos painéis (Luna). Desligado = superfícies planas. */
   glass: boolean;
 }
@@ -71,7 +75,7 @@ export type ThemeId =
   | "cereja"
   | "neon"
   | "lavanda"
-  | "areia"
+  | "luna-claro"
   | "custom";
 
 export interface ThemeInfo {
@@ -92,6 +96,8 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
   chipShape: null,
   itemShape: null,
   codeShape: null,
+  cardShape: null,
+  inputShape: null,
   glass: false,
 };
 
@@ -100,19 +106,19 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
 const TERMINAL_DARK = "#121315";
 
 /// Temas de fábrica: 12, seis noturnos e seis claros. Cada um mexe em cores, fonte e formatos
-/// (barra, conversa, balão, composer, botões, chips, itens e código), para a cara mudar e não só o tom.
+/// (barra, conversa, balão, composer, botões, chips, itens, código, cartões e campos), para a cara mudar e não só o tom.
 const PRESETS: ThemeInfo[] = [
   {
     id: "luna",
     label: "Luna",
-    description: "Madeira escura, grafite quente, balão âmbar e destaque menta.",
-    palette: { ...BASE, bubbleShape: "bubble", sidebar: "#2a2520", chat: "#1b1a18", bubble: "#e0a458", bubbleText: "#1f1608", accent: "#7fd1b9", text: "#ece6dc", terminal: TERMINAL_DARK },
+    description: "Grafite quente com balão discreto e destaque de luar lilás. Feito para ler por horas.",
+    palette: { ...BASE, bubbleShape: "bubble", composerShape: "round", cardShape: "round", inputShape: "round", sidebar: "#1a1918", chat: "#22211f", bubble: "#34312d", bubbleText: "#ecebe6", accent: "#a9b1e6", text: "#e6e2d9", terminal: TERMINAL_DARK },
   },
   {
     id: "codex",
     label: "Codex",
     description: "Verde-noite, balão menta e botões em pílula.",
-    palette: { ...BASE, composerShape: "round", buttonShape: "pill", chipShape: "pill", itemShape: "pill", codeShape: "square", sidebar: "#0f1513", chat: "#161d1a", bubble: "#3fb58f", bubbleText: "#04140e", accent: "#5fd9b0", text: "#e4f0ea", terminal: TERMINAL_DARK },
+    palette: { ...BASE, composerShape: "round", buttonShape: "pill", chipShape: "pill", itemShape: "pill", codeShape: "square", cardShape: "soft", inputShape: "pill", sidebar: "#0f1513", chat: "#161d1a", bubble: "#3fb58f", bubbleText: "#04140e", accent: "#5fd9b0", text: "#e4f0ea", terminal: TERMINAL_DARK },
   },
   {
     id: "terminal",
@@ -130,49 +136,49 @@ const PRESETS: ThemeInfo[] = [
     id: "meia-noite",
     label: "Meia-noite",
     description: "Azul-petróleo com vidro translúcido, balão laranja e destaque aqua.",
-    palette: { ...BASE, font: "outfit", shape: "round", bubbleShape: "round", composerShape: "bubbly", buttonShape: "pill", chipShape: "pill", glass: true, sidebar: "#0e3b4e", chat: "#0c1f2c", bubble: "#f4a261", bubbleText: "#1d1204", accent: "#2ec4b6", text: "#e4eef8", terminal: TERMINAL_DARK },
+    palette: { ...BASE, font: "outfit", shape: "round", bubbleShape: "round", composerShape: "bubbly", buttonShape: "pill", chipShape: "pill", cardShape: "round", inputShape: "pill", glass: true, sidebar: "#0e3b4e", chat: "#0c1f2c", bubble: "#f4a261", bubbleText: "#1d1204", accent: "#2ec4b6", text: "#e4eef8", terminal: TERMINAL_DARK },
   },
   {
     id: "neon",
     label: "Neon",
     description: "Preto-violeta, balão ciano, destaque magenta e formas em diagonal.",
-    palette: { ...BASE, font: "cascadia", shape: "diagonal", bubbleShape: "diagonal", glass: true, sidebar: "#0a0a16", chat: "#12102a", bubble: "#00f5d4", bubbleText: "#001a16", accent: "#ff2bd6", text: "#e7e0ff", terminal: TERMINAL_DARK },
+    palette: { ...BASE, font: "cascadia", shape: "diagonal", bubbleShape: "diagonal", cardShape: "diagonal", inputShape: "diagonal", glass: true, sidebar: "#0a0a16", chat: "#12102a", bubble: "#00f5d4", bubbleText: "#001a16", accent: "#ff2bd6", text: "#e7e0ff", terminal: TERMINAL_DARK },
+  },
+  {
+    id: "luna-claro",
+    label: "Luna claro",
+    description: "Marfim quente com balão lavanda-acinzentado e destaque índigo de luar.",
+    palette: { ...BASE, bubbleShape: "bubble", composerShape: "round", buttonShape: "soft", cardShape: "round", inputShape: "soft", sidebar: "#eeebe3", chat: "#f8f6f1", bubble: "#e4e1f2", bubbleText: "#2a2733", accent: "#5a62b0", text: "#2a2723", terminal: TERMINAL_DARK },
   },
   {
     id: "claude",
     label: "Claude",
     description: "Papel creme e tinta, balão terracota escuro e serifa Lora.",
-    palette: { ...BASE, font: "lora", bubbleShape: "bubble", composerShape: "round", buttonShape: "soft", chipShape: "pill", itemShape: "round", codeShape: "square", sidebar: "#ebe4d6", chat: "#f7f3ea", bubble: "#a4482a", bubbleText: "#fffaf5", accent: "#c2643f", text: "#2b2620", terminal: TERMINAL_DARK },
+    palette: { ...BASE, font: "lora", bubbleShape: "bubble", composerShape: "round", buttonShape: "soft", chipShape: "pill", itemShape: "round", codeShape: "square", cardShape: "bubbly", inputShape: "round", sidebar: "#ebe4d6", chat: "#f7f3ea", bubble: "#a4482a", bubbleText: "#fffaf5", accent: "#c2643f", text: "#2b2620", terminal: TERMINAL_DARK },
   },
   {
     id: "cereja",
     label: "Cereja",
     description: "Blush suave, balão vinho e destaque cereja, em Palatino.",
-    palette: { ...BASE, font: "palatino", shape: "round", bubbleShape: "bubble", composerShape: "pill", buttonShape: "pill", chipShape: "square", itemShape: "round", codeShape: "round", sidebar: "#f0d5d6", chat: "#fcf4f4", bubble: "#8f1d33", bubbleText: "#fff5f7", accent: "#b8243f", text: "#2a1116", terminal: TERMINAL_DARK },
+    palette: { ...BASE, font: "palatino", shape: "round", bubbleShape: "bubble", composerShape: "pill", buttonShape: "pill", chipShape: "square", itemShape: "round", codeShape: "round", cardShape: "round", inputShape: "pill", sidebar: "#f0d5d6", chat: "#fcf4f4", bubble: "#8f1d33", bubbleText: "#fff5f7", accent: "#b8243f", text: "#2a1116", terminal: TERMINAL_DARK },
   },
   {
     id: "por-do-sol",
     label: "Pôr do sol",
     description: "Pêssego e areia quente, balão em onda e destaque laranja.",
-    palette: { ...BASE, font: "fraunces", shape: "round", bubbleShape: "wave", composerShape: "bubbly", buttonShape: "pill", chipShape: "pill", itemShape: "pill", codeShape: "soft", sidebar: "#fbd9c3", chat: "#fff6ef", bubble: "#c04a2c", bubbleText: "#ffffff", accent: "#e0643f", text: "#3a1a10", terminal: TERMINAL_DARK },
+    palette: { ...BASE, font: "fraunces", shape: "round", bubbleShape: "wave", composerShape: "bubbly", buttonShape: "pill", chipShape: "pill", itemShape: "pill", codeShape: "soft", cardShape: "wave", inputShape: "bubbly", sidebar: "#fbd9c3", chat: "#fff6ef", bubble: "#c04a2c", bubbleText: "#ffffff", accent: "#e0643f", text: "#3a1a10", terminal: TERMINAL_DARK },
   },
   {
     id: "lavanda",
     label: "Lavanda",
     description: "Lilás claro, balão índigo e formas arredondadas e quadradas.",
-    palette: { ...BASE, font: "space-grotesk", shape: "round", bubbleShape: "bubble", composerShape: "soft", buttonShape: "pill", chipShape: "square", itemShape: "round", codeShape: "square", sidebar: "#e3dcf2", chat: "#f8f6fc", bubble: "#4d3d8f", bubbleText: "#ffffff", accent: "#7b5fd1", text: "#241a3d", terminal: TERMINAL_DARK },
+    palette: { ...BASE, font: "space-grotesk", shape: "round", bubbleShape: "bubble", composerShape: "soft", buttonShape: "pill", chipShape: "square", itemShape: "round", codeShape: "square", cardShape: "top", inputShape: "round", sidebar: "#e3dcf2", chat: "#f8f6fc", bubble: "#4d3d8f", bubbleText: "#ffffff", accent: "#7b5fd1", text: "#241a3d", terminal: TERMINAL_DARK },
   },
   {
     id: "floresta",
     label: "Floresta",
     description: "Verde-sálvia claro, balão em folha de árvore e botões em pílula.",
-    palette: { ...BASE, shape: "leaf", bubbleShape: "leaf", composerShape: "soft", buttonShape: "pill", chipShape: "pill", codeShape: "soft", sidebar: "#d5e3cc", chat: "#f3f7ef", bubble: "#2f6b45", bubbleText: "#ffffff", accent: "#3c8a57", text: "#17271c", terminal: TERMINAL_DARK },
-  },
-  {
-    id: "areia",
-    label: "Areia",
-    description: "Claro e noturno: areia escura na barra, cinza-névoa na conversa, balão ardósia e destaque argila.",
-    palette: { ...BASE, font: "georgia", bubbleShape: "top", sidebar: "#b9b0a0", chat: "#d9d2c3", bubble: "#2f4858", bubbleText: "#f2f5f7", accent: "#d1603d", text: "#1f2a30", terminal: TERMINAL_DARK },
+    palette: { ...BASE, shape: "leaf", bubbleShape: "leaf", composerShape: "soft", buttonShape: "pill", chipShape: "pill", codeShape: "soft", cardShape: "leaf", inputShape: "pill", sidebar: "#d5e3cc", chat: "#f3f7ef", bubble: "#2f6b45", bubbleText: "#ffffff", accent: "#3c8a57", text: "#17271c", terminal: TERMINAL_DARK },
   },
   {
     id: "custom",
@@ -239,6 +245,30 @@ export const CUSTOM_KEY = "luna.customTheme";
 /** Disparado ao trocar de tema, para quem desenha cores fora do CSS (o terminal). */
 export const THEME_EVENT = "luna:theme";
 
+/// Liquid glass: reflexo e desfoque nos painéis. Desligado por padrão; a escolha fica salva.
+export const LIQUID_KEY = "luna.liquidGlass";
+
+export function loadLiquidGlass(): boolean {
+  try {
+    return localStorage.getItem(LIQUID_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+export function saveLiquidGlass(on: boolean) {
+  try {
+    localStorage.setItem(LIQUID_KEY, on ? "on" : "off");
+  } catch {
+    // Sem armazenamento, o efeito vale só nesta sessão.
+  }
+}
+
+/// Marca o <html> para o CSS do liquid glass (theme-layers.css).
+export function applyLiquidGlass(on: boolean, root: HTMLElement = document.documentElement) {
+  root.dataset.liquid = on ? "on" : "off";
+}
+
 /** Padrão de quem ainda não escolheu. Temas removidos (Noite, Musgo etc.) caem aqui. */
 export const DEFAULT_THEME: ThemeId = "luna";
 export const DEFAULT_PALETTE: ThemePalette = PRESETS.find((t) => t.id === "custom")!.palette;
@@ -298,6 +328,8 @@ export function readPalette(value: unknown): ThemePalette | null {
     chipShape: shapeOrNull(p.chipShape),
     itemShape: shapeOrNull(p.itemShape),
     codeShape: shapeOrNull(p.codeShape),
+    cardShape: shapeOrNull(p.cardShape),
+    inputShape: shapeOrNull(p.inputShape),
     glass: typeof p.glass === "boolean" ? p.glass : BASE.glass,
   };
 }
@@ -381,6 +413,8 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
     "--chip-radius": SHAPES[p.chipShape ?? p.shape].pill,
     "--item-radius": SHAPES[p.itemShape ?? p.shape].md,
     "--code-radius": SHAPES[p.codeShape ?? p.shape].md,
+    "--card-radius": SHAPES[p.cardShape ?? p.shape].lg,
+    "--input-radius": SHAPES[p.inputShape ?? p.shape].md,
     "--success": dark ? "#7fd6a4" : "#2e7d4f",
     "--warning": dark ? "#f2c46d" : "#9a6a10",
     "--error": dark ? "#ff8a9a" : "#b3261e",

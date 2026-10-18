@@ -10,6 +10,10 @@ import {
   saveTheme,
   THEME_KEY,
   isDarkPalette,
+  LIQUID_KEY,
+  loadLiquidGlass,
+  applyLiquidGlass,
+  saveLiquidGlass,
   SHAPES,
   THEMES,
   type ThemePalette,
@@ -26,7 +30,7 @@ describe("theme", () => {
 
   it("tem 12 temas de fábrica, na ordem, e o personalizado no fim", () => {
     expect(THEMES.map((t) => t.id)).toEqual([
-      "luna", "codex", "terminal", "pixel", "meia-noite", "neon", "claude", "cereja", "por-do-sol", "lavanda", "floresta", "areia", "custom",
+      "luna", "codex", "terminal", "pixel", "meia-noite", "neon", "luna-claro", "claude", "cereja", "por-do-sol", "lavanda", "floresta", "custom",
     ]);
   });
 
@@ -94,6 +98,31 @@ describe("theme", () => {
 
   it("sem escolha salva, usa o Luna", () => {
     expect(loadTheme()).toBe("luna");
+  });
+
+  it("Areia, removido, salvo antes cai no Luna", () => {
+    localStorage.setItem(THEME_KEY, "areia");
+    expect(loadTheme()).toBe("luna");
+  });
+
+  it("liquid glass vem desligado e a escolha fica salva", () => {
+    expect(loadLiquidGlass()).toBe(false);
+    saveLiquidGlass(true);
+    expect(localStorage.getItem(LIQUID_KEY)).toBe("on");
+    expect(loadLiquidGlass()).toBe(true);
+  });
+
+  it("liquid glass marca o html para o CSS", () => {
+    applyLiquidGlass(true);
+    expect(document.documentElement.dataset.liquid).toBe("on");
+    applyLiquidGlass(false);
+    expect(document.documentElement.dataset.liquid).toBe("off");
+  });
+
+  it("cartões e campos de texto têm formato próprio nos tokens", () => {
+    applyPalette({ ...DEFAULT_PALETTE, shape: "soft", cardShape: "leaf", inputShape: null });
+    expect(document.documentElement.style.getPropertyValue("--card-radius")).toBe("0 18px");
+    expect(document.documentElement.style.getPropertyValue("--input-radius")).toBe("8px");
   });
 
   it("tema removido salvo antes, como o Noite, volta para o Luna", () => {

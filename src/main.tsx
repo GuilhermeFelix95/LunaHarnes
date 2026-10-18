@@ -15,10 +15,11 @@ import "./styles/themes.css";
 import "./styles/base.css";
 import "./styles/components.css";
 import "./styles/theme-layers.css";
-import { applyTheme, loadTheme } from "./theme";
+import { applyLiquidGlass, applyTheme, loadLiquidGlass, loadTheme } from "./theme";
 
 // Antes do primeiro render, para a tela não piscar no tema errado.
 applyTheme(loadTheme());
+applyLiquidGlass(loadLiquidGlass());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

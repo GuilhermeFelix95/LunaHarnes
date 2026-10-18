@@ -110,3 +110,38 @@
   color: var(--error);
   border-color: var(--error);
 }
+
+/* Cartões e campos de texto: formato próprio de cada tema (tokens --card-radius e --input-radius) */
+.theme-card {
+  border-radius: var(--card-radius);
+}
+
+textarea,
+input[type="text"],
+input[type="search"],
+select {
+  border-radius: var(--input-radius);
+}
+
+/* Liquid glass (ligado em Aparência): painéis translúcidos com reflexo na borda e desfoque por trás */
+:root[data-liquid="on"] .sidebar,
+:root[data-liquid="on"] .side,
+:root[data-liquid="on"] .settings-nav,
+:root[data-liquid="on"] .composer,
+:root[data-liquid="on"] .theme-card {
+  background: color-mix(in srgb, var(--bg-sidebar) 58%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent), 0 8px 28px rgb(0 0 0 / 18%);
+}
+
+/* No Pixel art o liquid glass some: ele é plano por definição */
+:root[data-theme="pixel"][data-liquid="on"] .sidebar,
+:root[data-theme="pixel"][data-liquid="on"] .composer,
+:root[data-theme="pixel"][data-liquid="on"] .theme-card {
+  background: var(--bg-sidebar);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
