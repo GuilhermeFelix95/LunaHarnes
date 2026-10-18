@@ -34,7 +34,8 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     }
 
     // Acrescenta a identidade ao prompt padrão, que diz que o agente é o Claude Code.
-    args.extend(["--append-system-prompt".to_string(), format!("{LUNA_IDENTITY}\n\n{TASK_INSTRUCTION}")]);
+    // Uma linha só: quebra de linha num argumento quebra o .cmd do Windows.
+    args.extend(["--append-system-prompt".to_string(), format!("{LUNA_IDENTITY} {TASK_INSTRUCTION}")]);
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
     }
@@ -244,6 +245,7 @@ fn tool_detail(input: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::providers::ProviderKind;
 
     /// A identidade vai junto de cada pedido, acrescentada ao prompt padrão (nunca substitui).
     #[test]
@@ -356,6 +358,27 @@ mod tests {
             tokens: 44060,
             window_size: Some(1_000_000),
         }));
+    }
+
+    /// No Windows, `claude` é um .cmd: quebra de linha ou aspas em argumento faz o cmd recusar a chamada
+    /// ("batch file arguments are invalid"). Nenhum argumento pode ter esses caracteres.
+    #[test]
+    fn no_argument_has_line_breaks_or_quotes_that_break_the_cmd_shim() {
+        let request = RunRequest {
+            provider: ProviderKind::Claude,
+            prompt: "oi".into(),
+            session_id: None,
+            cwd: ".".into(),
+            permission: Permission::AcceptEdits,
+            model: None,
+            effort: None,
+            profile: None,
+            images: vec![],
+        };
+
+        for arg in args(&request) {
+            assert!(!arg.contains(['\n', '\r', '"', '%']), "argumento inválido para o .cmd: {arg:?}");
+        }
     }
 
     /// O Claude Code atual cria tarefas com TaskCreate e atualiza com TaskUpdate (formato medido numa execução real).
