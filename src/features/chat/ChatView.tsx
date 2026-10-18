@@ -168,8 +168,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     toggleSide("terminal");
   }
 
+  // O StrictMode roda este efeito duas vezes em desenvolvimento: a carga dos plugins acontece uma vez só,
+  // senão o mesmo modo seria registrado duas vezes no host.
+  const pluginsLoad = useRef<Promise<void> | null>(null);
   useEffect(() => {
-    void loadInstalledPlugins(host).then(() => {
+    if (!pluginsLoad.current) pluginsLoad.current = loadInstalledPlugins(host);
+    void pluginsLoad.current.then(() => {
       setModes(host.modeList());
       setNotes([...host.errors]);
     });

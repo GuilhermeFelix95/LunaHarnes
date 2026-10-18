@@ -7,6 +7,6 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// `shell` é preciso no Windows, onde o npm é um .cmd.
-const child = spawn("npm", ["run", "dev:app"], { cwd: root, stdio: "inherit", shell: true });
+// `shell` é preciso no Windows, onde o npm é um .cmd. O comando vai numa string só, sem argumentos soltos.
+const child = spawn("npm run dev:app", { cwd: root, stdio: "inherit", shell: true });
 child.on("exit", (code) => process.exit(code ?? 0));
