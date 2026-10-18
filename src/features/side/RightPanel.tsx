@@ -1,7 +1,20 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { Markdown } from "../chat/Markdown";
+import type { TodoItem } from "../../types";
 
-export type SideTab = "changes" | "plan" | "terminal";
+export type SideTab = "changes" | "plan" | "progress" | "terminal";
+
+const STATUS_ORDER: Record<TodoItem["status"], number> = { pending: 0, in_progress: 1, completed: 2 };
+const STATUS_LABEL: Record<TodoItem["status"], string> = {
+  pending: "Pendente",
+  in_progress: "Em andamento",
+  completed: "Concluída",
+};
+
+/// Ordena o checklist por estado (pendente, em andamento, concluída), mantendo a ordem do agente dentro de cada estado.
+export function sortTodos(items: TodoItem[]): TodoItem[] {
+  return [...items].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+}
 
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 320;
@@ -41,6 +54,8 @@ interface RightPanelProps {
   changes: ReactNode;
   /** Último plano da conversa, em Markdown. Ausente = ainda não há plano. */
   plan?: string;
+  /** Checklist do agente na última resposta. Vazio = nenhuma tarefa em andamento. */
+  todos: TodoItem[];
   onGenerateSpec: () => void;
   canGenerateSpec: boolean;
   terminal: ReactNode;
@@ -49,11 +64,22 @@ interface RightPanelProps {
 const TABS: Array<[SideTab, string]> = [
   ["changes", "Alterações"],
   ["plan", "Plano"],
+  ["progress", "Progresso"],
   ["terminal", "Terminal"],
 ];
 
 /// Painel à direita do chat, com abas e largura ajustável pela alça na borda esquerda.
-export function RightPanel({ open, tab, onTab, changes, plan, onGenerateSpec, canGenerateSpec, terminal }: RightPanelProps) {
+export function RightPanel({
+  open,
+  tab,
+  onTab,
+  changes,
+  plan,
+  todos,
+  onGenerateSpec,
+  canGenerateSpec,
+  terminal,
+}: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
 
@@ -131,6 +157,20 @@ export function RightPanel({ open, tab, onTab, changes, plan, onGenerateSpec, ca
           <p className="side__empty">
             Ao planejar, o plano completo aparece aqui. Use "Gerar spec" para resumir a conversa numa spec.
           </p>
+        )}
+      </div>
+      <div className="side__body" role="tabpanel" hidden={tab !== "progress"}>
+        {todos.length ? (
+          <ol className="side__todos" aria-label="Progresso da tarefa">
+            {sortTodos(todos).map((todo, index) => (
+              <li key={`${index}-${todo.content}`} className={`side__todo side__todo--${todo.status}`}>
+                <span className="side__todo-status">{STATUS_LABEL[todo.status]}</span>
+                <span>{todo.content}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="side__empty">Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</p>
         )}
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>

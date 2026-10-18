@@ -1,7 +1,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde_json::{json, Value};
 
-use super::ProviderEvent;
+use super::{ProviderEvent, TodoItem};
 
 use super::{image_media_type, LimitWindow, Permission, RunRequest, LUNA_IDENTITY};
 
@@ -106,9 +106,14 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 blocks
                     .iter()
                     .filter(|b| b.get("type").and_then(Value::as_str) == Some("tool_use"))
-                    .map(|b| ProviderEvent::ToolUse {
-                        name: b["name"].as_str().unwrap_or("ferramenta").to_string(),
-                        detail: tool_detail(&b["input"]),
+                    .flat_map(|b| {
+                        let name = b["name"].as_str().unwrap_or("ferramenta").to_string();
+                        let mut events = Vec::new();
+                        if name == "TodoWrite" {
+                            events.extend(todos_event(&b["input"]));
+                        }
+                        events.insert(0, ProviderEvent::ToolUse { name, detail: tool_detail(&b["input"]) });
+                        events
                     })
                     .collect()
             })
@@ -156,10 +161,16 @@ fn rate_limit_events(value: &Value) -> Vec<ProviderEvent> {
 /// No fim do turno, `modelUsage` dá o tamanho da janela e `usage` diz quantos tokens entraram.
 /// Os tokens que contam para o contexto são os da última chamada ao modelo.
 fn context_event(value: &Value) -> Option<ProviderEvent> {
-    let (_, model) = value["modelUsage"].as_object()?.iter().next()?;
-    let window_size = model["contextWindow"].as_u64()?;
+    // A janela pode faltar (API de terceiros): o evento sai mesmo assim, com window_size vazio.
+    let window_size = value["modelUsage"]
+        .as_object()
+        .and_then(|models| models.values().next())
+        .and_then(|model| model["contextWindow"].as_u64());
 
     let usage = &value["usage"];
+    if usage.is_null() {
+        return None;
+    }
     let last = usage["iterations"].as_array().and_then(|list| list.last()).unwrap_or(usage);
     let tokens = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"]
         .iter()
@@ -167,6 +178,19 @@ fn context_event(value: &Value) -> Option<ProviderEvent> {
         .sum();
 
     Some(ProviderEvent::Context { tokens, window_size })
+}
+
+/// Lista de etapas da ferramenta TodoWrite. Etapa sem texto ou sem status vira "" ou "pending".
+fn todos_event(input: &Value) -> Option<ProviderEvent> {
+    let items = input["todos"]
+        .as_array()?
+        .iter()
+        .map(|todo| TodoItem {
+            content: todo["content"].as_str().unwrap_or_default().to_string(),
+            status: todo["status"].as_str().unwrap_or("pending").to_string(),
+        })
+        .collect();
+    Some(ProviderEvent::Todos { items })
 }
 
 /// Resumo curto do que a ferramenta fez, para a linha de ferramenta no chat.
@@ -291,8 +315,41 @@ mod tests {
         // input 2 + cache de leitura 26559 + cache de criação 17499.
         assert!(events.contains(&ProviderEvent::Context {
             tokens: 44060,
-            window_size: 1_000_000,
+            window_size: Some(1_000_000),
         }));
+    }
+
+    /// TodoWrite vira o checklist da aba Progresso, na ordem que o agente escreveu.
+    #[test]
+    fn todo_write_becomes_an_ordered_checklist_and_keeps_the_tool_line() {
+        let events = parse_line(
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"TodoWrite","input":{"todos":[{"content":"Criar tela","status":"completed","activeForm":"Criando tela"},{"content":"Ligar a API","status":"in_progress"}]}}]}}"#,
+        );
+
+        assert_eq!(events[0], ProviderEvent::ToolUse { name: "TodoWrite".into(), detail: String::new() });
+        assert_eq!(
+            events[1],
+            ProviderEvent::Todos {
+                items: vec![
+                    TodoItem { content: "Criar tela".into(), status: "completed".into() },
+                    TodoItem { content: "Ligar a API".into(), status: "in_progress".into() },
+                ],
+            }
+        );
+    }
+
+    /// Endpoints de API (OpenRouter) não trazem a janela no resultado: os tokens ainda valem para o medidor.
+    #[test]
+    fn context_is_reported_even_when_the_window_size_is_unknown() {
+        let value = serde_json::json!({
+            "modelUsage": { "nvidia/nemotron-3.5-super-vl": {} },
+            "usage": { "input_tokens": 1200, "cache_read_input_tokens": 300, "cache_creation_input_tokens": 0 }
+        });
+
+        assert_eq!(
+            context_event(&value),
+            Some(ProviderEvent::Context { tokens: 1500, window_size: None })
+        );
     }
 
     #[test]

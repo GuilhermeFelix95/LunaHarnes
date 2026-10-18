@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderEvent } from "../../types";
 import { ChatView } from "./ChatView";
@@ -102,6 +102,45 @@ describe("ChatView: continuidade e envio", () => {
     expect(vi.mocked(api.sendPrompt).mock.calls[0][0].permission).toBe("readOnly");
     expect(screen.getByRole("tab", { name: "Plano" }).getAttribute("aria-selected")).toBe("true");
     expect(document.querySelector(".side__plan")?.textContent).toContain("Passo 1: criar a tela.");
+  });
+
+  it("no modo plano, uma resposta só com perguntas não vira plano", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
+
+    await send("quero um app de tarefas");
+    emit({
+      kind: "textDelta",
+      text: 'Antes de planejar:\n```luna-perguntas\n[{"pergunta": "Qual banco?", "opcoes": ["Postgres", "SQLite"]}]\n```',
+    });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    expect(screen.getByRole("tab", { name: "Plano" }).getAttribute("aria-selected")).toBe("false");
+    expect(document.querySelector(".side__plan")?.textContent ?? "").not.toContain("Antes de planejar");
+  });
+
+  it("no modo plano, responder 'Aprovar e executar' pelo seletor desliga o plano e executa", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
+
+    await send("quero um app de tarefas");
+    emit({
+      kind: "textDelta",
+      text: 'Posso começar?\n```luna-perguntas\n[{"pergunta": "Aprovar o plano?", "opcoes": ["Aprovar e executar", "Ainda não"]}]\n```',
+    });
+    emit({ kind: "done", ok: true });
+    const picker = within(await screen.findByRole("region", { name: "Perguntas do agente" }));
+    fireEvent.click(picker.getByRole("button", { name: "Aprovar e executar" }));
+    fireEvent.click(picker.getByRole("button", { name: "Enviar respostas" }));
+
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
+    const approval = vi.mocked(api.sendPrompt).mock.calls[1][0];
+    expect(approval.prompt).toContain("execute o plano agora");
+    expect(approval.permission).not.toBe("readOnly");
+    expect(screen.getByLabelText("Modo de planejamento").getAttribute("aria-pressed")).toBe("false");
   });
 
   it("fora do modo Conversar, perguntas não viram seletor", async () => {

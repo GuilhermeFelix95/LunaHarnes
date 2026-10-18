@@ -15,6 +15,7 @@ use crate::plugins::loader::{self, PluginScan};
 use crate::plugins::marketplace::{self, Catalog, PluginsState};
 use crate::providers::{fallback_events, image_media_type, Permission, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
+use crate::spec;
 use crate::terminal::{self, Terminals};
 
 /// Nome do evento que o frontend escuta (espelha `PROVIDER_EVENT` em src/api.ts).
@@ -44,10 +45,13 @@ struct RunEvent<'a> {
 pub fn send_prompt(
     app: AppHandle,
     runs: State<'_, ActiveRuns>,
-    request: RunRequest,
+    mut request: RunRequest,
     run_id: String,
 ) -> Result<(), String> {
     request.validate()?;
+    // A spec do projeto (pasta spec/) vai em toda chamada, antes do pedido. Vale para qualquer provedor.
+    let spec = spec::load_spec(&request.cwd)?;
+    request.prompt = spec::with_spec(&spec, &request.prompt);
     if run_id.is_empty() || run_id.len() > 64 || !run_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err("identificador de execução inválido".into());
     }

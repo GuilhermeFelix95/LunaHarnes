@@ -8,6 +8,7 @@ pub mod models;
 pub mod plugins;
 pub mod providers;
 pub mod session;
+pub mod spec;
 pub mod terminal;
 
 /// Ponto de entrada do app Tauri.

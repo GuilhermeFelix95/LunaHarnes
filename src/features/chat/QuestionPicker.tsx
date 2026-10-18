@@ -10,19 +10,25 @@ interface QuestionPickerProps {
   onDismiss: () => void;
 }
 
-/// Seletor de perguntas do agente: opções prontas, uma resposta livre e um envio só.
+/// Seletor de perguntas do agente, uma por vez, como no Claude Desktop: escolha única avança sozinha,
+/// as demais usam "Próxima". Na última, "Enviar respostas" manda todas juntas.
 export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPickerProps) {
+  const [step, setStep] = useState(0);
   const [picked, setPicked] = useState<string[][]>(() => questions.map(() => []));
   const [other, setOther] = useState<string[]>(() => questions.map(() => ""));
+  const isLast = step === questions.length - 1;
 
   function toggle(index: number, option: string, multiple: boolean) {
+    const wasPicked = picked[index].includes(option);
     setPicked((current) =>
       current.map((chosen, i) => {
         if (i !== index) return chosen;
-        if (!multiple) return chosen[0] === option ? [] : [option];
-        return chosen.includes(option) ? chosen.filter((o) => o !== option) : [...chosen, option];
+        if (!multiple) return wasPicked ? [] : [option];
+        return wasPicked ? chosen.filter((o) => o !== option) : [...chosen, option];
       }),
     );
+    // Escolha única já responde: vai para a próxima pergunta.
+    if (!multiple && !wasPicked && !isLast) setStep(index + 1);
   }
 
   function changeOther(index: number, value: string) {
@@ -39,43 +45,60 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
     onAnswer(questions.map((q, i) => `${q.question}: ${answers[i].join(", ")}`).join("\n"));
   }
 
+  const q = questions[step];
   return (
     <section className="qpick" aria-label="Perguntas do agente">
       <header className="qpick__head">
-        <span className="qpick__title">Perguntas do agente</span>
+        <span className="qpick__title">
+          Perguntas do agente <span className="qpick__count">{step + 1} de {questions.length}</span>
+        </span>
         <button type="button" className="qpick__close" aria-label="Fechar perguntas" onClick={onDismiss}>
           <X size={14} aria-hidden="true" />
         </button>
       </header>
-      {questions.map((q, qi) => (
-        <fieldset key={qi} className="qpick__item">
-          <legend className="qpick__question">{q.question}</legend>
-          <div className="qpick__options">
-            {q.options.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className="qpick__option"
-                aria-pressed={picked[qi].includes(option)}
-                onClick={() => toggle(qi, option, q.multiple)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          <input
-            className="qpick__other"
-            aria-label={`Outra resposta: ${q.question}`}
-            placeholder="Outra resposta"
-            value={other[qi]}
-            onChange={(e) => changeOther(qi, e.target.value)}
-          />
-        </fieldset>
-      ))}
+      <fieldset key={step} className="qpick__item">
+        <legend className="qpick__question">{q.question}</legend>
+        <div className="qpick__options">
+          {q.options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className="qpick__option"
+              aria-pressed={picked[step].includes(option)}
+              onClick={() => toggle(step, option, q.multiple)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        <input
+          className="qpick__other"
+          aria-label={`Outra resposta: ${q.question}`}
+          placeholder="Outra resposta"
+          value={other[step]}
+          onChange={(e) => changeOther(step, e.target.value)}
+        />
+      </fieldset>
       <div className="qpick__foot">
-        <button type="button" className="qpick__send" disabled={!ready} onClick={submit}>
-          Enviar respostas
-        </button>
+        {step > 0 && (
+          <button type="button" className="qpick__back" onClick={() => setStep(step - 1)}>
+            Voltar
+          </button>
+        )}
+        {isLast ? (
+          <button type="button" className="qpick__send" disabled={!ready} onClick={submit}>
+            Enviar respostas
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="qpick__send"
+            disabled={answers[step].length === 0}
+            onClick={() => setStep(step + 1)}
+          >
+            Próxima
+          </button>
+        )}
       </div>
     </section>
   );

@@ -22,7 +22,8 @@ describe("modo plano", () => {
   });
 
   it("a aprovação pede execução, sem a instrução de planejamento", () => {
-    expect(APPROVAL_PROMPT).toContain("Execute-o agora");
+    expect(APPROVAL_PROMPT).toContain("execute o plano agora");
+    expect(APPROVAL_PROMPT).toContain("pasta spec/");
     expect(APPROVAL_PROMPT).not.toContain("modo de planejamento");
   });
 });

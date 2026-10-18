@@ -25,7 +25,7 @@ import {
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, QUESTION_PROTOCOL, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, APPROVE_OPTION, QUESTION_PROTOCOL, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
@@ -41,6 +41,7 @@ import type {
   ModelOption,
   Permission,
   ProviderKind,
+  TodoItem,
 } from "../../types";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
@@ -144,6 +145,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   live.current = { provider, profileId, cwd, permission, model, effort, planning, running, sideTab };
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
+  // Checklist do agente (TodoWrite do Claude): a última lista recebida, na ordem dele.
+  const [todos, setTodos] = useState<TodoItem[]>([]);
   const body = useRef<HTMLDivElement>(null);
   const { stuck, scrollToBottom } = useStickToBottom(body, messages);
 
@@ -257,7 +260,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           [event.window]: { utilization: event.utilization, resetsAt: event.resetsAt },
         }));
       }
-      if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize });
+      if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize ?? undefined });
+      if (event.kind === "todos") setTodos(event.items);
       if (event.kind === "cost") {
         costRef.current += event.usd;
         setCostUsd(costRef.current);
@@ -289,7 +293,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           setQuestions(parsed.questions);
           setQuestionsRound((n) => n + 1);
         }
-        if (turnPlanning.current && parsed.text.trim()) {
+        // Só vira plano a resposta sem perguntas: antes disso o agente ainda está entendendo o contexto.
+        if (turnPlanning.current && !parsed.questions && parsed.text.trim()) {
           planRef.current = parsed.text;
           setPlan(parsed.text);
           setSideOpen(true);
@@ -542,6 +547,11 @@ ${outgoing}`
   /// Respostas do seletor: viram a próxima mensagem do turno, no mesmo modo em que estava a conversa.
   async function answerQuestions(text: string) {
     if (running) return;
+    // No modo plano, escolher a opção de aprovação encerra o planejamento e executa, como o botão faz.
+    if (planning && text.split("\n").some((line) => line.endsWith(`: ${APPROVE_OPTION}`) || line === APPROVE_OPTION)) {
+      await approvePlan();
+      return;
+    }
     await run(text, text, planning, modes.find((m) => m.id === modeId));
   }
 
@@ -760,6 +770,7 @@ ${outgoing}`
             limits={profileId ? {} : limits}
             // Com perfil de API, a janela vem do modelo escolhido; sem ela, o medidor mostra só os tokens.
             context={context && { tokens: context.tokens, windowSize: profileId ? modelWindow : context.windowSize }}
+            windowHint={profileId && !modelWindow ? "Atualize a lista de modelos para ver a janela" : undefined}
           />
         )}
       </div>
@@ -774,6 +785,7 @@ ${outgoing}`
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
         plan={plan}
+        todos={todos}
         onGenerateSpec={() => void generateSpec()}
         canGenerateSpec={!running && !blocked && messages.length > 0}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}

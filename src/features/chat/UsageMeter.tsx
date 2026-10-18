@@ -17,10 +17,12 @@ export interface ContextState {
 interface UsageMeterProps {
   limits: LimitState;
   context: ContextState | null;
+  /** Dica mostrada quando a janela é desconhecida (ex.: modelo de API sem janela salva). */
+  windowHint?: string;
 }
 
 /// Uso da conta e do contexto, no rodapé do chat. Só mostra o que a CLI já informou.
-export function UsageMeter({ limits, context }: UsageMeterProps) {
+export function UsageMeter({ limits, context, windowHint }: UsageMeterProps) {
   const windows: Array<[string, "fiveHour" | "sevenDay"]> = [
     ["Sessão de 5 h", "fiveHour"],
     ["Semana", "sevenDay"],
@@ -34,6 +36,7 @@ export function UsageMeter({ limits, context }: UsageMeterProps) {
       {context && context.windowSize === undefined && (
         <div className="usage__item" title="Janela de contexto do último turno">
           <span className="usage__label">Contexto · {formatTokens(context.tokens)} usados</span>
+          {windowHint && <span className="usage__label usage__hint">{windowHint}</span>}
         </div>
       )}
       {context && context.windowSize !== undefined && (

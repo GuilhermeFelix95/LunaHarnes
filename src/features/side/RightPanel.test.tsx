@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clampWidth, RightPanel, WIDTH_KEY } from "./RightPanel";
+import type { TodoItem } from "../../types";
+import { clampWidth, RightPanel, sortTodos, WIDTH_KEY } from "./RightPanel";
 
-function setup(tab: "changes" | "plan" | "terminal" = "changes", plan?: string) {
+function setup(tab: "changes" | "plan" | "progress" | "terminal" = "changes", plan?: string, todos: TodoItem[] = []) {
   const onTab = vi.fn();
   const onGenerateSpec = vi.fn();
   render(
@@ -12,6 +13,7 @@ function setup(tab: "changes" | "plan" | "terminal" = "changes", plan?: string) 
       onTab={onTab}
       changes={<p>lista de alterações</p>}
       plan={plan}
+      todos={todos}
       onGenerateSpec={onGenerateSpec}
       canGenerateSpec
       terminal={<p>shell</p>}
@@ -83,6 +85,37 @@ describe("RightPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Gerar spec" }));
 
     expect(onGenerateSpec).toHaveBeenCalledOnce();
+  });
+
+  it("progresso mostra o checklist: pendente, em andamento, concluída", () => {
+    setup("progress", undefined, [
+      { content: "Concluir a tela", status: "completed" },
+      { content: "Criar o teste", status: "pending" },
+      { content: "Ligar o evento", status: "in_progress" },
+    ]);
+
+    const items = screen.getAllByRole("listitem").map((item) => item.textContent);
+    expect(items).toEqual([
+      "PendenteCriar o teste",
+      "Em andamentoLigar o evento",
+      "ConcluídaConcluir a tela",
+    ]);
+  });
+
+  it("sem checklist, a aba Progresso explica como aparece", () => {
+    setup("progress");
+
+    expect(screen.getByText(/elas aparecem em ordem/)).toBeTruthy();
+  });
+
+  it("sortTodos mantém a ordem do agente dentro de cada estado", () => {
+    const sorted = sortTodos([
+      { content: "b", status: "completed" },
+      { content: "a", status: "pending" },
+      { content: "c", status: "pending" },
+    ]);
+
+    expect(sorted.map((todo) => todo.content)).toEqual(["a", "c", "b"]);
   });
 
   it("largura fica entre 240 px e 60% da janela", () => {

@@ -78,12 +78,19 @@ export interface ModelOption {
   contextWindow?: number;
 }
 
+/// Uma etapa do checklist do agente (espelha TodoItem em providers/mod.rs).
+export interface TodoItem {
+  content: string;
+  status: "pending" | "in_progress" | "completed";
+}
+
 export type ProviderEvent =
   | { kind: "sessionStarted"; sessionId: string }
   | { kind: "textDelta"; text: string }
   | { kind: "toolUse"; name: string; detail: string }
+  | { kind: "todos"; items: TodoItem[] }
   | { kind: "rateLimit"; window: "fiveHour" | "sevenDay"; utilization: number; resetsAt: number }
-  | { kind: "context"; tokens: number; windowSize: number }
+  | { kind: "context"; tokens: number; windowSize: number | null }
   | { kind: "cost"; usd: number }
   | { kind: "error"; message: string }
   | { kind: "done"; ok: boolean };

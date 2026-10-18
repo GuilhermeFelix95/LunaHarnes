@@ -41,7 +41,8 @@ export function applyEvent(
     case "rateLimit":
     case "context":
     case "cost":
-      // Não mudam a conversa: o ChatView usa para o medidor de uso.
+    case "todos":
+      // Não mudam a conversa: o ChatView usa para o medidor de uso e o painel de progresso.
       return messages;
   }
 }

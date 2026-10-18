@@ -97,14 +97,24 @@ pub enum ProviderEvent {
     SessionStarted { session_id: String },
     TextDelta { text: String },
     ToolUse { name: String, detail: String },
+    /// Etapas que o agente escreveu com a ferramenta TodoWrite, na ordem dele. A lista inteira vale a cada evento.
+    Todos { items: Vec<TodoItem> },
     /// Uso de uma janela de limite da conta (sessão de 5 horas ou semana). `utilization` vem de 0 a 1.
     RateLimit { window: LimitWindow, utilization: f64, resets_at: i64 },
     /// Tokens que ocupam a janela de contexto no último turno, e o tamanho dessa janela.
-    Context { tokens: u64, window_size: u64 },
+    Context { tokens: u64, window_size: Option<u64> },
     /// Custo do turno em dólares, quando a CLI informa (uso com API). Com assinatura, a CLI não informa.
     Cost { usd: f64 },
     Error { message: String },
     Done { ok: bool },
+}
+
+/// Uma etapa do checklist. `status` vem como o agente escreveu: pending, in_progress ou completed.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TodoItem {
+    pub content: String,
+    pub status: String,
 }
 
 /// Janelas de limite que o Claude informa. O nome vai para o frontend como está aqui.

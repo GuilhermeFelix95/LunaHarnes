@@ -8,43 +8,62 @@ const QUESTIONS = [
 ];
 
 describe("QuestionPicker", () => {
-  it("só envia quando todas as perguntas têm resposta", () => {
+  it("mostra uma pergunta por vez, e escolha única avança sozinha", () => {
+    render(<QuestionPicker questions={QUESTIONS} onAnswer={vi.fn()} onDismiss={vi.fn()} />);
+
+    expect(screen.getByText("1 de 2")).toBeTruthy();
+    expect(screen.queryByText("Quais recursos?")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Postgres" }));
+
+    expect(screen.getByText("2 de 2")).toBeTruthy();
+    expect(screen.getByText("Quais recursos?")).toBeTruthy();
+    expect(screen.queryByText("Qual banco?")).toBeNull();
+  });
+
+  it("na última pergunta, o envio só libera com resposta", () => {
+    render(<QuestionPicker questions={QUESTIONS} onAnswer={vi.fn()} onDismiss={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Postgres" }));
+
+    const next = screen.getByRole("button", { name: "Enviar respostas" }) as HTMLButtonElement;
+    expect(next.disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
+    expect(next.disabled).toBe(false);
+  });
+
+  it("envia tudo junto só na última pergunta", () => {
     const onAnswer = vi.fn();
     render(<QuestionPicker questions={QUESTIONS} onAnswer={onAnswer} onDismiss={vi.fn()} />);
 
-    const send = screen.getByRole("button", { name: "Enviar respostas" });
-    expect((send as HTMLButtonElement).disabled).toBe(true);
-
     fireEvent.click(screen.getByRole("button", { name: "Postgres" }));
-    expect((send as HTMLButtonElement).disabled).toBe(true);
-
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
     fireEvent.click(screen.getByRole("button", { name: "Busca" }));
-    expect((send as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Enviar respostas" }));
 
-    fireEvent.click(send);
     expect(onAnswer).toHaveBeenCalledWith("Qual banco?: Postgres\nQuais recursos?: Login, Busca");
   });
 
-  it("pergunta de escolha única troca a opção marcada", () => {
-    render(<QuestionPicker questions={QUESTIONS} onAnswer={vi.fn()} onDismiss={vi.fn()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Postgres" }));
-    fireEvent.click(screen.getByRole("button", { name: "SQLite" }));
-
-    expect(screen.getByRole("button", { name: "Postgres" }).getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByRole("button", { name: "SQLite" }).getAttribute("aria-pressed")).toBe("true");
-  });
-
-  it("\"Outra resposta\" conta como resposta e entra no envio", () => {
+  it("\"Outra resposta\" conta como resposta e avança com Próxima", () => {
     const onAnswer = vi.fn();
     render(<QuestionPicker questions={QUESTIONS} onAnswer={onAnswer} onDismiss={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText("Outra resposta: Qual banco?"), { target: { value: " MySQL " } });
+    fireEvent.click(screen.getByRole("button", { name: "Próxima" }));
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar respostas" }));
 
     expect(onAnswer).toHaveBeenCalledWith("Qual banco?: MySQL\nQuais recursos?: Login");
+  });
+
+  it("Voltar retorna à pergunta anterior sem perder a resposta", () => {
+    render(<QuestionPicker questions={QUESTIONS} onAnswer={vi.fn()} onDismiss={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "SQLite" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+
+    expect(screen.getByText("1 de 2")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "SQLite" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("o X fecha o seletor sem enviar nada", () => {

@@ -42,4 +42,10 @@ describe("UsageMeter", () => {
 
     expect(screen.queryByText(/Semana/)).toBeNull();
   });
+
+  it("sem janela, mostra a dica para atualizar a lista de modelos", () => {
+    render(<UsageMeter limits={{}} context={{ tokens: 1500 }} windowHint="Atualize a lista de modelos para ver a janela" />);
+
+    expect(screen.getByText("Atualize a lista de modelos para ver a janela")).toBeTruthy();
+  });
 });
