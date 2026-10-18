@@ -234,16 +234,24 @@ export function ApiProfilesSection() {
           Nome
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={60} />
         </label>
-        <label>
-          Provedor
-          <select aria-label="Preset" value={form.preset} onChange={(e) => choosePreset(e.target.value)}>
-            {presets.map((p) => (
-              <option key={p.preset} value={p.preset}>
-                {p.label} · via {PROVIDER_LABELS[p.engine]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="provider-grid" role="radiogroup" aria-label="Provedor">
+          {presets.map((p) => (
+            <button
+              key={p.preset}
+              type="button"
+              role="radio"
+              aria-checked={form.preset === p.preset}
+              className="provider-card"
+              onClick={() => choosePreset(p.preset)}
+            >
+              <span className="provider-card__name">{p.label}</span>
+              <span className="provider-card__meta">via {PROVIDER_LABELS[p.engine]}</span>
+              {p.suggestedModels.length > 0 && (
+                <span className="provider-card__meta">{p.suggestedModels.length} modelos prontos</span>
+              )}
+            </button>
+          ))}
+        </div>
         <label>
           Endereço da API
           <input

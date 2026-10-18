@@ -35,10 +35,10 @@ describe("ApiProfilesSection", () => {
       defaultModel: null,
     });
     render(<ApiProfilesSection />);
-    await screen.findByRole("option", { name: /OpenRouter/ });
+    await screen.findByRole("radio", { name: /OpenRouter/ });
 
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Minha OR" } });
-    fireEvent.change(screen.getByLabelText("Preset"), { target: { value: "openRouter" } });
+    fireEvent.click(screen.getByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-123" } });
     fireEvent.click(screen.getByRole("button", { name: "Criar perfil" }));
 
@@ -54,9 +54,9 @@ describe("ApiProfilesSection", () => {
       { preset: "deepSeek", label: "DeepSeek", engine: "claude" as const, defaultBaseUrl: "https://api.deepseek.com/anthropic", suggestedModels: ["deepseek-flash", "deepseek-v4-pro"], defaultModel: "deepseek-flash" },
     ]);
     render(<ApiProfilesSection />);
-    await screen.findByRole("option", { name: /DeepSeek/ });
+    await screen.findByRole("radio", { name: /DeepSeek/ });
 
-    fireEvent.change(screen.getByLabelText("Preset"), { target: { value: "deepSeek" } });
+    fireEvent.click(screen.getByRole("radio", { name: /DeepSeek/ }));
 
     expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe("deepseek-flash, deepseek-v4-pro");
     expect((screen.getByLabelText("Modelo padrão") as HTMLInputElement).value).toBe("deepseek-flash");
