@@ -378,6 +378,11 @@ export function createGitWorktree(cwd: string, branch: string, newBranch: boolea
   return invoke<string>("create_git_worktree", { cwd, branch, newBranch });
 }
 
+/// Impressão digital da configuração (MCP, skills e plugins). Muda quando a Luna instala algo pelo chat.
+export function configFingerprint(): Promise<string> {
+  return invoke<string>("config_fingerprint");
+}
+
 export const SKILLS_CHANGED = "luna:skills-changed";
 
 export function listSkills(): Promise<InstalledSkill[]> {

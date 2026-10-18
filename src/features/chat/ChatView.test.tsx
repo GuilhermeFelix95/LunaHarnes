@@ -38,6 +38,9 @@ vi.mock("../../api", () => ({
   readPluginEntry: vi.fn(async () => ""),
   getPluginsState: vi.fn(async () => ({ disabled: [] })),
   PLUGINS_CHANGED: "luna:plugins-changed",
+  MCP_CHANGED: "luna:mcp-changed",
+  SKILLS_CHANGED: "luna:skills-changed",
+  configFingerprint: vi.fn(async () => "igual"),
   onProviderEvent: vi.fn(async (_runId: string, handler: (event: ProviderEvent) => void) => {
     bridge.emit = handler;
     return () => {};
@@ -372,5 +375,40 @@ describe("Progresso de um plano novo", () => {
 
     expect(screen.queryByText("Ler o arquivo")).toBeNull();
     expect(screen.getByText(/Quando o agente montar as etapas/)).toBeTruthy();
+  });
+});
+
+describe("ChatView: recarregar depois de instalar MCP, skill ou plugin", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("quando a configuração muda durante o turno, oferece recarregar e avisa as listas", async () => {
+    vi.mocked(api.configFingerprint).mockResolvedValueOnce("antes").mockResolvedValueOnce("depois");
+    const onMcp = vi.fn();
+    window.addEventListener("luna:mcp-changed", onMcp);
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("instale o mcp de docs");
+    emit({ kind: "textDelta", text: "Instalado." });
+    emit({ kind: "done", ok: true });
+
+    expect(await screen.findByRole("button", { name: "Recarregar" })).toBeTruthy();
+    expect(onMcp).toHaveBeenCalledOnce();
+    window.removeEventListener("luna:mcp-changed", onMcp);
+  });
+
+  it("sem mudança na configuração, não aparece aviso de recarregar", async () => {
+    vi.mocked(api.configFingerprint).mockResolvedValueOnce("igual").mockResolvedValueOnce("igual");
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("oi");
+    emit({ kind: "textDelta", text: "Oi!" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    expect(screen.queryByRole("button", { name: "Recarregar" })).toBeNull();
   });
 });

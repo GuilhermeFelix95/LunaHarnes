@@ -11,6 +11,7 @@ pub mod models;
 pub mod plugins;
 pub mod providers;
 pub mod rules;
+pub mod reload;
 pub mod session;
 pub mod setup;
 pub mod skills;
@@ -48,6 +49,7 @@ pub fn run() {
             commands::get_changes,
             worktrees::list_git_branches,
             worktrees::create_git_worktree,
+            reload::config_fingerprint,
             commands::get_file_diff,
             commands::discard_change,
             commands::checkpoint_take,

@@ -24,6 +24,9 @@ import {
   sendPrompt,
   listGitBranches,
   createGitWorktree,
+  configFingerprint,
+  MCP_CHANGED,
+  SKILLS_CHANGED,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
@@ -149,6 +152,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [questionsRound, setQuestionsRound] = useState(0);
   /// Quanto do contexto o agente diz já ter, lido da última resposta do modo plano ("Contexto entendido: X%").
   const [understood, setUnderstood] = useState<number | null>(null);
+  // MCP, skill ou plugin instalado pela Luna no turno: a tela oferece recarregar. A impressão digital é tirada antes e depois do turno.
+  const configBefore = useRef<string | null>(null);
+  const [configChanged, setConfigChanged] = useState(false);
   // Branches da pasta, para o menu de pasta. Fora de um repositório git a lista fica vazia.
   const [branches, setBranches] = useState<string[]>([]);
   useEffect(() => {
@@ -389,6 +395,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         }
         setRunning(false);
         setChangesVersion((v) => v + 1);
+        checkConfig();
         // O bloco de perguntas sai do texto e vira o seletor; o resto da resposta fica no chat.
         const parsed: ReplyParts = turnAsk.current
           ? extractQuestions(responseText.current)
@@ -512,8 +519,41 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   /// Envia um turno. `shown` aparece na conversa; `cliPrompt` é o que o CLI recebe.
   /// No modo plano, o CLI recebe a instrução de planejamento e roda só com leitura.
   /// Se o agente ainda não viu parte do histórico (troca de agente), o contexto vai antes da mensagem.
+  /// Tira a impressão digital da configuração antes do turno. Falha só fica sem comparação, não trava o envio.
+  function snapshotConfig() {
+    configBefore.current = null;
+    Promise.resolve()
+      .then(() => configFingerprint())
+      .then(
+        (fingerprint) => {
+          configBefore.current = fingerprint;
+        },
+        (e) => setNotes((current) => [...current, `Não foi possível ler a configuração: ${String(e)}`]),
+      );
+  }
+
+  /// Depois do turno: se a configuração mudou, avisa as listas (MCP, skills, plugins) e oferece recarregar o app.
+  function checkConfig() {
+    const before = configBefore.current;
+    configBefore.current = null;
+    if (before === null) return;
+    Promise.resolve()
+      .then(() => configFingerprint())
+      .then(
+        (now) => {
+          if (now === before) return;
+          window.dispatchEvent(new Event(MCP_CHANGED));
+          window.dispatchEvent(new Event(SKILLS_CHANGED));
+          window.dispatchEvent(new Event(PLUGINS_CHANGED));
+          setConfigChanged(true);
+        },
+        (e) => setNotes((current) => [...current, `Não foi possível verificar a configuração: ${String(e)}`]),
+      );
+  }
+
   async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode, images: string[] = []) {
     setRunning(true);
+    snapshotConfig();
     if (rewindNote.current) {
       cliPrompt = `${rewindNote.current}
 
@@ -1002,6 +1042,22 @@ ${outgoing}`
           onAnswer={(text) => void answerQuestions(text)}
           onDismiss={() => setQuestions(null)}
         />
+      )}
+
+      {configChanged && (
+        <section className="plugin-offer" role="status" aria-label="Configuração mudou">
+          <p>
+            <strong>A Luna instalou ou mudou um MCP, skill ou plugin.</strong> Recarregue o app para ele valer em tudo.
+          </p>
+          <div className="api-form__actions">
+            <button type="button" disabled={running} onClick={() => window.location.reload()}>
+              Recarregar
+            </button>
+            <button type="button" onClick={() => setConfigChanged(false)}>
+              Depois
+            </button>
+          </div>
+        </section>
       )}
 
       {pluginOffer && (
