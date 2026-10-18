@@ -8,7 +8,7 @@ use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::OnceLock;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -25,6 +25,8 @@ const DEV_SERVER_PORT: u16 = 1420;
 /// Texto da página devolvido ao agente: o começo basta, e evita estourar o contexto.
 const READ_LIMIT: usize = 20_000;
 const CALLBACK_TIMEOUT: Duration = Duration::from_secs(10);
+/// Quanto o agente espera a página carregar antes de ler o conteúdo.
+const LOAD_TIMEOUT: Duration = Duration::from_secs(15);
 /// Posição e tamanho padrão quando o agente abre o navegador antes da aba: a aba ajusta depois.
 const DEFAULT_BOUNDS: Bounds = Bounds { x: 0.0, y: 0.0, width: 900.0, height: 600.0 };
 const TOOL_NAMES: [&str; 4] = ["browser_navigate", "browser_read", "browser_click", "browser_type"];
@@ -98,7 +100,8 @@ fn open_at(url: Url, bounds: Bounds) -> Result<Webview, String> {
     let window = app.get_window(MAIN_WINDOW).ok_or("janela principal não encontrada")?;
     window
         .add_child(
-            WebviewBuilder::new(LABEL, WebviewUrl::External(url)),
+            // Sem foco: a página não rouba o teclado do chat quando nasce.
+            WebviewBuilder::new(LABEL, WebviewUrl::External(url)).focused(false),
             LogicalPosition::new(bounds.x, bounds.y),
             LogicalSize::new(bounds.width, bounds.height),
         )
@@ -234,7 +237,23 @@ fn tool_navigate(url: &str) -> Result<String, String> {
     }
     // Avisa o painel, para que o endereço apareça mesmo com a aba fechada.
     let _ = app.emit(OPENED_EVENT, url.as_str());
+    wait_until_loaded();
     Ok(format!("Página aberta: {url}"))
+}
+
+/// Espera a página terminar de carregar, para o agente ler o conteúdo certo. Se estourar o prazo, segue assim mesmo.
+fn wait_until_loaded() {
+    let deadline = Instant::now() + LOAD_TIMEOUT;
+    while Instant::now() < deadline {
+        if let Ok(view) = webview() {
+            if let Ok(state) = eval_and_wait(&view, "document.readyState".into()) {
+                if state == "complete" {
+                    return;
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(300));
+    }
 }
 
 fn tool_act(action: &str, selector: &str, text: &str) -> Result<String, String> {
