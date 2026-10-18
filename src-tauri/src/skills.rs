@@ -10,9 +10,13 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::plugins::marketplace::verify;
+use tauri::AppHandle;
+
+use crate::commands::app_data_dir;
 use crate::slash::{frontmatter, home_dir};
 
 pub const OFFICIAL_SKILLS: &str = include_str!("../marketplace/skills.json");
+const SOURCES_FILE: &str = "skills-catalogs.json";
 const MAX_FILES: usize = 20;
 const MAX_FILE_BYTES: usize = 64_000;
 
@@ -183,20 +187,65 @@ pub fn list_skills() -> Result<Vec<InstalledSkill>, String> {
     Ok(list_in(&home()?))
 }
 
-#[tauri::command]
-pub fn load_skill_catalog() -> Result<SkillCatalog, String> {
-    official()
+/// Catálogo de uma URL: o mesmo formato do oficial, com o conteúdo dos arquivos dentro. Cada skill é conferida.
+pub fn parse_catalog(text: &str) -> Result<SkillCatalog, String> {
+    let catalog: SkillCatalog = serde_json::from_str(text).map_err(|e| format!("catálogo de skills inválido: {e}"))?;
+    for entry in &catalog.skills {
+        validate(entry)?;
+    }
+    Ok(catalog)
+}
+
+/// Catálogo oficial quando `source` é vazio; senão o catálogo da URL, que precisa estar na lista de catálogos.
+async fn catalog_for(app: &AppHandle, source: Option<String>) -> Result<SkillCatalog, String> {
+    match source.filter(|s| !s.is_empty()) {
+        None => official(),
+        Some(url) => {
+            let sources = crate::marketplace::load_sources_in(&app_data_dir(app)?, SOURCES_FILE)?;
+            if !sources.urls.contains(&url) {
+                return Err(format!("o catálogo {url} não está na sua lista"));
+            }
+            let bytes = crate::marketplace::fetch_bytes(&url).await?;
+            let text = String::from_utf8(bytes).map_err(|_| format!("{url} não é texto UTF-8"))?;
+            parse_catalog(&text)
+        }
+    }
 }
 
 #[tauri::command]
-pub fn install_skill(id: String) -> Result<Vec<String>, String> {
-    let catalog = official()?;
+pub async fn load_skill_catalog(app: AppHandle, source: Option<String>) -> Result<SkillCatalog, String> {
+    catalog_for(&app, source).await
+}
+
+#[tauri::command]
+pub async fn install_skill(app: AppHandle, id: String, source: Option<String>) -> Result<Vec<String>, String> {
+    let catalog = catalog_for(&app, source).await?;
     let entry = catalog
         .skills
         .iter()
         .find(|s| s.id == id)
         .ok_or_else(|| format!("skill `{id}` não está no catálogo"))?;
     install_in(&home()?, entry)
+}
+
+#[tauri::command]
+pub fn list_skill_sources(app: AppHandle) -> Result<Vec<String>, String> {
+    Ok(crate::marketplace::load_sources_in(&app_data_dir(&app)?, SOURCES_FILE)?.urls)
+}
+
+/// Baixa e confere o catálogo antes de guardar a URL.
+#[tauri::command]
+pub async fn add_skill_source(app: AppHandle, url: String) -> Result<Vec<String>, String> {
+    crate::marketplace::validate_https(&url)?;
+    let bytes = crate::marketplace::fetch_bytes(&url).await?;
+    let text = String::from_utf8(bytes).map_err(|_| format!("{url} não é texto UTF-8"))?;
+    parse_catalog(&text)?;
+    Ok(crate::marketplace::add_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
+}
+
+#[tauri::command]
+pub fn remove_skill_source(app: AppHandle, url: String) -> Result<Vec<String>, String> {
+    Ok(crate::marketplace::remove_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
 }
 
 #[tauri::command]

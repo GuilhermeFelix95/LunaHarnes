@@ -9,18 +9,13 @@
 
 use std::fs;
 use std::path::Path;
-use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use super::loader::{self, Manifest};
 
 /// Catálogo oficial, embutido no binário. O conteúdo de cada arquivo está dentro dele.
 pub const OFFICIAL_CATALOG: &str = include_str!("../../marketplace/official.json");
-/// Limite para o catálogo e para cada arquivo baixado.
-const MAX_BYTES: usize = 1024 * 1024;
-const FETCH_TIMEOUT: Duration = Duration::from_secs(20);
 const SOURCES_FILE: &str = "catalogs.json";
 const STATE_FILE: &str = "plugins-state.json";
 
@@ -68,12 +63,7 @@ pub struct PluginsState {
     pub disabled: Vec<String>,
 }
 
-/// Lista de catálogos por URL que o usuário adicionou (o oficial não entra aqui).
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CatalogSources {
-    #[serde(default)]
-    pub urls: Vec<String>,
-}
+pub use crate::marketplace::{fetch_bytes, sha256_hex, validate_https, verify, CatalogSources};
 
 fn manifest_of(plugin: &CatalogPlugin) -> Manifest {
     Manifest {
@@ -109,7 +99,7 @@ fn validate_plugin(plugin: &CatalogPlugin) -> Result<(), String> {
 
 /// Lê e confere um catálogo. Qualquer plugin inválido recusa o catálogo inteiro.
 pub fn parse_catalog(text: &str) -> Result<Catalog, String> {
-    if text.len() > MAX_BYTES {
+    if text.len() > crate::marketplace::MAX_BYTES {
         return Err("o catálogo passa de 1 MB".into());
     }
     let catalog: Catalog = serde_json::from_str(text).map_err(|e| format!("catálogo inválido: {e}"))?;
@@ -129,57 +119,8 @@ pub fn official() -> Result<Catalog, String> {
     parse_catalog(OFFICIAL_CATALOG)
 }
 
-/// Só HTTPS: catálogos e arquivos baixados não trafegam em texto aberto.
-pub fn validate_https(url: &str) -> Result<(), String> {
-    let url = url.trim();
-    let ok = url.strip_prefix("https://").is_some_and(|rest| rest.len() > 3 && !rest.contains(char::is_whitespace));
-    if ok {
-        Ok(())
-    } else {
-        Err(format!("endereço inválido: {url:?}. Use https://"))
-    }
-}
-
 fn is_sha256(value: &str) -> bool {
     value.len() == 64 && value.chars().all(|c| c.is_ascii_hexdigit())
-}
-
-pub fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
-}
-
-/// Recusa arquivo cujo hash não bate com o declarado no catálogo.
-pub fn verify(path: &str, bytes: &[u8], expected: &str) -> Result<(), String> {
-    if sha256_hex(bytes) == expected.to_ascii_lowercase() {
-        Ok(())
-    } else {
-        Err(format!("o arquivo `{path}` não bate com o sha256 do catálogo; a instalação foi cancelada"))
-    }
-}
-
-/// Baixa um arquivo ou catálogo, com tempo limite e tamanho máximo.
-pub async fn fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
-    validate_https(url)?;
-    let client = reqwest::Client::builder()
-        .timeout(FETCH_TIMEOUT)
-        .build()
-        .map_err(|e| format!("não foi possível preparar a conexão: {e}"))?;
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("falha ao baixar {url}: {e}"))?;
-    if !response.status().is_success() {
-        return Err(format!("{url} respondeu {}", response.status()));
-    }
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("falha ao ler a resposta de {url}: {e}"))?;
-    if bytes.len() > MAX_BYTES {
-        return Err(format!("{url} passa de 1 MB"));
-    }
-    Ok(bytes.to_vec())
 }
 
 /// Baixa e confere um catálogo por URL.
@@ -345,26 +286,16 @@ pub fn ensure_enabled(app_dir: &Path, id: &str) -> Result<(), String> {
 }
 
 pub fn load_sources(app_dir: &Path) -> Result<CatalogSources, String> {
-    read_json(&app_dir.join(SOURCES_FILE))
+    crate::marketplace::load_sources_in(app_dir, SOURCES_FILE)
 }
 
 /// Adiciona um catálogo por URL. A conferência (download e leitura) é feita antes, pelo comando.
 pub fn add_source(app_dir: &Path, url: &str) -> Result<CatalogSources, String> {
-    validate_https(url)?;
-    let mut sources = load_sources(app_dir)?;
-    let url = url.trim().to_string();
-    if !sources.urls.contains(&url) {
-        sources.urls.push(url);
-    }
-    write_json(&app_dir.join(SOURCES_FILE), &sources)?;
-    Ok(sources)
+    crate::marketplace::add_source_in(app_dir, SOURCES_FILE, url)
 }
 
 pub fn remove_source(app_dir: &Path, url: &str) -> Result<CatalogSources, String> {
-    let mut sources = load_sources(app_dir)?;
-    sources.urls.retain(|u| u != url);
-    write_json(&app_dir.join(SOURCES_FILE), &sources)?;
-    Ok(sources)
+    crate::marketplace::remove_source_in(app_dir, SOURCES_FILE, url)
 }
 
 #[cfg(test)]

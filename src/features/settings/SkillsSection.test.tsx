@@ -10,6 +10,9 @@ vi.mock("../../api", () => ({
   })),
   installSkill: vi.fn(async () => []),
   uninstallSkill: vi.fn(async () => {}),
+  listSkillSources: vi.fn(async () => []),
+  addSkillSource: vi.fn(async () => []),
+  removeSkillSource: vi.fn(async () => []),
   SKILLS_CHANGED: "luna:skills-changed",
 }));
 
@@ -21,7 +24,7 @@ describe("SkillsSection", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Marketplace" }));
     fireEvent.click(await screen.findByRole("button", { name: "Instalar" }));
 
-    await waitFor(() => expect(installSkill).toHaveBeenCalledWith("revisar-diff"));
+    await waitFor(() => expect(installSkill).toHaveBeenCalledWith("revisar-diff", undefined));
     expect(listSkills).toHaveBeenCalled();
     expect(loadSkillCatalog).toHaveBeenCalled();
   });

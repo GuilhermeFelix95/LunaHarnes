@@ -85,3 +85,6 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Plano aprovado para marketplace de skills e MCP (etapas: Configurações, skills, MCP), ainda não implementado; depende de aprovação de toml_edit.
 2026-10-18 | Skills: marketplace oficial embutido (src-tauri/marketplace/skills.json), instaladas em ~/.claude/skills e ~/.codex/skills (src-tauri/src/skills.rs, SkillsSection.tsx).
 2026-10-18 | MCP: gravado em ~/.claude.json (mcpServers) e ~/.codex/config.toml (toml_edit), com desligados em mcp-disabled.json (src-tauri/src/mcp.rs, McpSection.tsx). Catálogo oficial em marketplace/mcp.json; luna skills add e luna mcp add ainda não feitos.
+2026-10-18 | Marketplace: catálogos por URL para skills e MCP (src-tauri/src/marketplace/mod.rs, só https; skills-catalogs.json e mcp-catalogs.json), escolhidos em CatalogPicker.tsx.
+2026-10-18 | MCP: adicionar à mão em janela (saveMcpServer), com confirmação; Skills, MCP e Plugins no mesmo layout ExtensionPage.tsx; ApiProfilesSection renomeado para ProvidersSection.tsx.
+2026-10-18 | luna skills add, luna mcp add e luna plugin add (bin/luna.mjs, regras em bin/luna-extensions.mjs, testes em bin/luna-extensions.test.mjs); docs em docs/skills.md e docs/mcp.md.

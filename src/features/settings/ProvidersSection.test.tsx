@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiProfilesSection } from "./ApiProfilesSection";
+import { ProvidersSection } from "./ProvidersSection";
 
 vi.mock("../../api", () => ({
   apiPresets: vi.fn(async () => []),
@@ -20,7 +20,7 @@ import * as api from "../../api";
 
 const openRouter = { preset: "openRouter", label: "OpenRouter", engine: "claude" as const, defaultBaseUrl: "https://openrouter.ai/api", suggestedModels: [], defaultModel: "" };
 
-describe("ApiProfilesSection", () => {
+describe("ProvidersSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.apiPresets).mockResolvedValue([openRouter]);
@@ -35,7 +35,7 @@ describe("ApiProfilesSection", () => {
       models: [],
       defaultModel: null,
     });
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     await screen.findByRole("radio", { name: /OpenRouter/ });
 
@@ -56,7 +56,7 @@ describe("ApiProfilesSection", () => {
     vi.mocked(api.apiPresets).mockResolvedValueOnce([
       { preset: "deepSeek", label: "DeepSeek", engine: "claude" as const, defaultBaseUrl: "https://api.deepseek.com/anthropic", suggestedModels: ["deepseek-flash", "deepseek-v4-pro"], defaultModel: "deepseek-flash" },
     ]);
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     await screen.findByRole("radio", { name: /DeepSeek/ });
 
@@ -67,7 +67,7 @@ describe("ApiProfilesSection", () => {
   });
 
   it("no OpenRouter, escolher só gratuitos vai no perfil salvo", async () => {
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "OpenRouter" } });
@@ -79,7 +79,7 @@ describe("ApiProfilesSection", () => {
   });
 
   it("Atualizar lista usa a chave colada, mesmo antes de salvar o perfil", async () => {
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
@@ -93,7 +93,7 @@ describe("ApiProfilesSection", () => {
 
   it("ao colar a chave, a lista de modelos vem da API e o padrão é o mais barato", async () => {
     vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids: ["a/x:free", "b/y"], cheapest: "a/x:free", contexts: {} });
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
@@ -108,7 +108,7 @@ describe("ApiProfilesSection", () => {
     vi.mocked(api.listApiProfiles).mockResolvedValueOnce([
       { id: "p1", name: "DeepSeek", preset: "openRouter", baseUrl: "", models: ["velho"], defaultModel: null },
     ]);
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     await screen.findByDisplayValue("velho");
 
@@ -124,7 +124,7 @@ describe("ApiProfilesSection", () => {
     vi.mocked(api.listApiProfiles).mockResolvedValueOnce([
       { id: "p1", name: "DeepSeek", preset: "openRouter", baseUrl: "", models: [], defaultModel: null },
     ]);
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Testar conexão" }));
@@ -138,7 +138,7 @@ describe("ApiProfilesSection", () => {
       { id: "p1", name: "Sem chave", preset: "openRouter", baseUrl: "", models: [], defaultModel: null },
     ]);
     vi.mocked(api.apiProfileHasKey).mockResolvedValueOnce(false);
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
 
     const button = await screen.findByRole("button", { name: "Testar conexão" });
@@ -149,7 +149,7 @@ describe("ApiProfilesSection", () => {
   it("com lista grande, a busca filtra e clicar liga ou desliga o modelo no perfil", async () => {
     const ids = Array.from({ length: 12 }, (_, i) => `vendor/modelo-${i}`);
     vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids, cheapest: ids[0], contexts: {} });
-    render(<ApiProfilesSection />);
+    render(<ProvidersSection />);
     fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });

@@ -437,8 +437,13 @@ pub fn entry_to_server(entry: &McpCatalogEntry, values: &BTreeMap<String, String
 }
 
 /// Instala um item do catálogo. Exige todas as variáveis pedidas e nenhuma sobrando.
-pub fn install_from_catalog_in(home: &Path, app_dir: &Path, id: &str, values: &BTreeMap<String, String>) -> Result<(), String> {
-    let catalog = official()?;
+pub fn install_from_catalog_in(
+    home: &Path,
+    app_dir: &Path,
+    catalog: &McpCatalog,
+    id: &str,
+    values: &BTreeMap<String, String>,
+) -> Result<(), String> {
     let entry = catalog.servers.iter().find(|s| s.id == id).ok_or_else(|| format!("`{id}` não está no catálogo"))?;
     for field in &entry.env {
         match values.get(&field.key) {
@@ -474,14 +479,77 @@ pub fn remove_mcp_server(app: AppHandle, name: String) -> Result<(), String> {
     remove_in(&home()?, &app_data_dir(&app)?, &name)
 }
 
-#[tauri::command]
-pub fn load_mcp_catalog() -> Result<McpCatalog, String> {
-    official()
+const SOURCES_FILE: &str = "mcp-catalogs.json";
+
+/// Catálogo oficial quando `source` é vazio; senão o catálogo da URL, que precisa estar na lista de catálogos.
+async fn catalog_for(app: &AppHandle, source: Option<String>) -> Result<McpCatalog, String> {
+    match source.filter(|s| !s.is_empty()) {
+        None => official(),
+        Some(url) => {
+            let sources = crate::marketplace::load_sources_in(&app_data_dir(app)?, SOURCES_FILE)?;
+            if !sources.urls.contains(&url) {
+                return Err(format!("o catálogo {url} não está na sua lista"));
+            }
+            let bytes = crate::marketplace::fetch_bytes(&url).await?;
+            let text = String::from_utf8(bytes).map_err(|_| format!("{url} não é texto UTF-8"))?;
+            parse_catalog(&text)
+        }
+    }
+}
+
+/// Catálogo de uma URL: mesmo formato do oficial. Cada entrada passa pela mesma conferência.
+pub fn parse_catalog(text: &str) -> Result<McpCatalog, String> {
+    let catalog: McpCatalog = serde_json::from_str(text).map_err(|e| format!("catálogo de MCP inválido: {e}"))?;
+    for entry in &catalog.servers {
+        let mut probe = entry_to_server(entry, &BTreeMap::new());
+        for field in &entry.env {
+            probe.env.insert(field.key.clone(), "x".into());
+        }
+        validate(&probe)?;
+    }
+    Ok(catalog)
 }
 
 #[tauri::command]
-pub fn install_mcp_from_catalog(app: AppHandle, id: String, values: BTreeMap<String, String>) -> Result<(), String> {
-    install_from_catalog_in(&home()?, &app_data_dir(&app)?, &id, &values)
+pub async fn load_mcp_catalog(app: AppHandle, source: Option<String>) -> Result<McpCatalog, String> {
+    catalog_for(&app, source).await
+}
+
+#[tauri::command]
+pub async fn install_mcp_from_catalog(
+    app: AppHandle,
+    id: String,
+    values: BTreeMap<String, String>,
+    source: Option<String>,
+) -> Result<(), String> {
+    let catalog = catalog_for(&app, source).await?;
+    install_from_catalog_in(&home()?, &app_data_dir(&app)?, &catalog, &id, &values)
+}
+
+#[tauri::command]
+pub fn list_mcp_sources(app: AppHandle) -> Result<Vec<String>, String> {
+    Ok(crate::marketplace::load_sources_in(&app_data_dir(&app)?, SOURCES_FILE)?.urls)
+}
+
+/// Baixa e confere o catálogo antes de guardar a URL.
+#[tauri::command]
+pub async fn add_mcp_source(app: AppHandle, url: String) -> Result<Vec<String>, String> {
+    crate::marketplace::validate_https(&url)?;
+    let bytes = crate::marketplace::fetch_bytes(&url).await?;
+    let text = String::from_utf8(bytes).map_err(|_| format!("{url} não é texto UTF-8"))?;
+    parse_catalog(&text)?;
+    Ok(crate::marketplace::add_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
+}
+
+#[tauri::command]
+pub fn remove_mcp_source(app: AppHandle, url: String) -> Result<Vec<String>, String> {
+    Ok(crate::marketplace::remove_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
+}
+
+/// Grava um servidor escrito à mão (sem catálogo). Os valores de `env` entram como o usuário digitou.
+#[tauri::command]
+pub fn save_mcp_server(app: AppHandle, server: McpServer) -> Result<(), String> {
+    save_in(&home()?, &app_data_dir(&app)?, &server)
 }
 
 #[cfg(test)]
@@ -569,9 +637,9 @@ mod tests {
         let app = temp("bad-app");
         assert!(save_in(&home, &app, &stdio("../fora")).is_err());
         // github pede um token: sem ele a instalação recusa, com ele grava.
-        assert!(install_from_catalog_in(&home, &app, "github", &BTreeMap::new()).is_err());
+        assert!(install_from_catalog_in(&home, &app, &official().unwrap(), "github", &BTreeMap::new()).is_err());
         let token = BTreeMap::from([("GITHUB_PERSONAL_ACCESS_TOKEN".to_string(), "t".to_string())]);
-        install_from_catalog_in(&home, &app, "github", &token).unwrap();
+        install_from_catalog_in(&home, &app, &official().unwrap(), "github", &token).unwrap();
         assert!(list_in(&home, &app).unwrap().iter().any(|s| s.name == "github"));
     }
 

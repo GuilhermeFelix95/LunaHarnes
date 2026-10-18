@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { installMcpFromCatalog, listMcpServers } from "../../api";
+import { installMcpFromCatalog, listMcpServers, saveMcpServer } from "../../api";
 import { McpSection } from "./McpSection";
 
 vi.mock("../../api", () => ({
@@ -11,8 +11,12 @@ vi.mock("../../api", () => ({
     ],
   })),
   installMcpFromCatalog: vi.fn(async () => {}),
+  saveMcpServer: vi.fn(async () => {}),
   removeMcpServer: vi.fn(async () => {}),
   setMcpEnabled: vi.fn(async () => {}),
+  listMcpSources: vi.fn(async () => []),
+  addMcpSource: vi.fn(async () => []),
+  removeMcpSource: vi.fn(async () => []),
   MCP_CHANGED: "luna:mcp-changed",
 }));
 
@@ -33,7 +37,33 @@ describe("McpSection", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getAllByRole("button", { name: "Instalar" }).at(-1)!);
 
-    await waitFor(() => expect(installMcpFromCatalog).toHaveBeenCalledWith("github", { TOKEN: "ghp_teste" }));
+    await waitFor(() => expect(installMcpFromCatalog).toHaveBeenCalledWith("github", { TOKEN: "ghp_teste" }, undefined));
+  });
+
+  it("adiciona um servidor à mão só depois da confirmação", async () => {
+    render(<McpSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar MCP" }));
+
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "memoria" } });
+    fireEvent.change(screen.getByLabelText("Comando"), { target: { value: "npx" } });
+    fireEvent.change(screen.getByLabelText("Argumentos (separados por espaço)"), { target: { value: "-y servidor" } });
+    const confirm = () => screen.getByRole("button", { name: "Adicionar" }) as HTMLButtonElement;
+    expect(confirm().disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(confirm().disabled).toBe(false);
+    fireEvent.click(confirm());
+
+    await waitFor(() =>
+      expect(saveMcpServer).toHaveBeenCalledWith({
+        name: "memoria",
+        transport: "stdio",
+        command: "npx",
+        args: ["-y", "servidor"],
+        url: undefined,
+        env: {},
+      }),
+    );
   });
 
   it("lista os servidores instalados com o estado e as CLIs", async () => {

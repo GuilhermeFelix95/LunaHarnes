@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
+import { CatalogPicker } from "./CatalogPicker";
+import { ExtensionPage } from "./ExtensionPage";
 import {
+  addMcpSource,
   installMcpFromCatalog,
   listMcpServers,
+  listMcpSources,
   loadMcpCatalog,
   MCP_CHANGED,
   removeMcpServer,
+  removeMcpSource,
+  saveMcpServer,
   setMcpEnabled,
   type McpCatalogEntry,
   type McpServer,
@@ -24,16 +30,44 @@ function launchLine(server: { transport: string; command?: string; args: string[
   return [server.command, ...server.args].filter(Boolean).join(" ");
 }
 
+/// Campos do formulário manual. Argumentos separados por espaço; variáveis, uma por linha (CHAVE=valor).
+interface ManualForm {
+  name: string;
+  transport: "stdio" | "http";
+  command: string;
+  args: string;
+  url: string;
+  env: string;
+}
+
+const EMPTY_FORM: ManualForm = { name: "", transport: "stdio", command: "", args: "", url: "", env: "" };
+
+/// Lê as linhas CHAVE=valor. Linha sem "=" é erro, para não gravar uma variável pela metade.
+function parseEnv(text: string): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const line of text.split("\n").map((l) => l.trim()).filter(Boolean)) {
+    const at = line.indexOf("=");
+    if (at <= 0) throw new Error(`Linha inválida em variáveis: "${line}". Use CHAVE=valor.`);
+    env[line.slice(0, at).trim()] = line.slice(at + 1).trim();
+  }
+  return env;
+}
+
 /// Servidores MCP: ferramentas extras que o Claude Code e o Codex podem usar. Cada um roda um programa
 /// no seu computador (ou fala com um endereço), por isso a instalação mostra o comando antes de gravar.
 export function McpSection() {
   const [tab, setTab] = useState<Tab>("installed");
   const [installed, setInstalled] = useState<McpServer[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
+  /** Catálogo escolhido: "" é o oficial. */
+  const [source, setSource] = useState("");
   const [catalog, setCatalog] = useState<McpCatalogEntry[] | undefined>(undefined);
   const [deleting, setDeleting] = useState<McpServer | undefined>(undefined);
   const [installing, setInstalling] = useState<McpCatalogEntry | undefined>(undefined);
   const [values, setValues] = useState<Record<string, string>>({});
   const [understood, setUnderstood] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<ManualForm>(EMPTY_FORM);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -47,10 +81,17 @@ export function McpSection() {
 
   useEffect(() => {
     void reloadInstalled();
-    loadMcpCatalog()
-      .then((c) => setCatalog(c.servers))
+    listMcpSources()
+      .then(setSources)
       .catch((e) => setError(String(e)));
   }, []);
+
+  useEffect(() => {
+    setCatalog(undefined);
+    loadMcpCatalog(source || undefined)
+      .then((c) => setCatalog(c.servers))
+      .catch((e) => setError(String(e)));
+  }, [source]);
 
   async function toggle(server: McpServer) {
     setError(undefined);
@@ -87,7 +128,7 @@ export function McpSection() {
   async function install(entry: McpCatalogEntry) {
     setError(undefined);
     try {
-      await installMcpFromCatalog(entry.id, values);
+      await installMcpFromCatalog(entry.id, values, source || undefined);
       setInstalling(undefined);
       setStatus(`${entry.name} instalado nas duas CLIs. Vale na próxima conversa.`);
       announceChange();
@@ -97,41 +138,76 @@ export function McpSection() {
     }
   }
 
+  function openManual() {
+    setForm(EMPTY_FORM);
+    setUnderstood(false);
+    setError(undefined);
+    setAdding(true);
+  }
+
+  async function saveManual() {
+    setError(undefined);
+    try {
+      const env = parseEnv(form.env);
+      const args = form.args.split(/\s+/).filter(Boolean);
+      await saveMcpServer({
+        name: form.name.trim(),
+        transport: form.transport,
+        command: form.transport === "stdio" ? form.command.trim() : undefined,
+        args: form.transport === "stdio" ? args : [],
+        url: form.transport === "http" ? form.url.trim() : undefined,
+        env,
+      });
+      setAdding(false);
+      setStatus(`${form.name.trim()} adicionado nas duas CLIs. Vale na próxima conversa.`);
+      announceChange();
+      await reloadInstalled();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function addSource(url: string) {
+    const urls = await addMcpSource(url);
+    setSources(urls);
+    setSource(url);
+    setStatus("Catálogo adicionado e conferido.");
+  }
+
+  async function removeSource(url: string) {
+    try {
+      setSources(await removeMcpSource(url));
+      setStatus("Catálogo removido.");
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   const installedNames = new Set(installed.map((s) => s.name));
   const needsValues = installing?.env.some((f) => !(values[f.key] ?? "").trim()) ?? false;
+  const manualReady =
+    form.name.trim() !== "" &&
+    (form.transport === "stdio" ? form.command.trim() !== "" : form.url.trim() !== "") &&
+    understood;
 
   return (
-    <section className="settings__section" aria-labelledby="settings-mcp">
-      <header className="settings__section-head">
-        <div>
-          <h2 id="settings-mcp">MCP</h2>
-          <p className="settings__hint">
-            Servidores MCP dão ferramentas extras ao agente, como memória ou acesso ao GitHub. Eles são gravados nas
-            configurações do Claude Code e do Codex, então valem em todas as conversas e no terminal.
-          </p>
-        </div>
-      </header>
-
-      <div className="segmented" role="tablist" aria-label="MCP">
-        <button type="button" role="tab" aria-selected={tab === "installed"} onClick={() => setTab("installed")}>
-          Instalados
+    <ExtensionPage
+      title="MCP"
+      description="Servidores MCP dão ferramentas extras ao agente, como memória ou acesso ao GitHub. Eles são gravados nas configurações do Claude Code e do Codex, então valem em todas as conversas e no terminal."
+      actions={
+        <button type="button" className="btn btn--sm" onClick={openManual}>
+          Adicionar MCP
         </button>
-        <button type="button" role="tab" aria-selected={tab === "market"} onClick={() => setTab("market")}>
-          Marketplace
-        </button>
-      </div>
-
-      {status && (
-        <p role="status" className="settings__hint">
-          {status}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="message__error">
-          {error}
-        </p>
-      )}
-
+      }
+      tabs={[
+        { id: "installed", label: "Instalados" },
+        { id: "market", label: "Marketplace" },
+      ]}
+      tab={tab}
+      onTab={(id) => setTab(id as Tab)}
+      status={status}
+      error={error}
+    >
       {tab === "installed" && (
         <>
           {installed.length === 0 && <p className="settings__hint">Nenhum servidor MCP instalado. Veja o Marketplace.</p>}
@@ -161,6 +237,13 @@ export function McpSection() {
 
       {tab === "market" && (
         <>
+          <CatalogPicker
+            sources={sources}
+            value={source}
+            onChange={setSource}
+            onAdd={addSource}
+            onRemove={removeSource}
+          />
           {!catalog && <p className="settings__hint">Carregando catálogo…</p>}
           <ul className="settings-list">
             {catalog?.map((c) => (
@@ -233,6 +316,76 @@ export function McpSection() {
         </Dialog>
       )}
 
+      {adding && (
+        <Dialog
+          title="Adicionar MCP"
+          description="Informe o comando (servidor local) ou o endereço (servidor remoto). Ele é gravado nas duas CLIs."
+          onClose={() => setAdding(false)}
+        >
+          <div className="api-form">
+            <label>
+              Nome
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </label>
+            <label>
+              Tipo
+              <select
+                aria-label="Tipo"
+                value={form.transport}
+                onChange={(e) => setForm({ ...form, transport: e.target.value as "stdio" | "http" })}
+              >
+                <option value="stdio">Local (comando)</option>
+                <option value="http">Remoto (endereço https)</option>
+              </select>
+            </label>
+            {form.transport === "stdio" ? (
+              <>
+                <label>
+                  Comando
+                  <input value={form.command} onChange={(e) => setForm({ ...form, command: e.target.value })} />
+                </label>
+                <label>
+                  Argumentos (separados por espaço)
+                  <input value={form.args} onChange={(e) => setForm({ ...form, args: e.target.value })} />
+                </label>
+              </>
+            ) : (
+              <label>
+                Endereço (https)
+                <input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+              </label>
+            )}
+            <label>
+              Variáveis (uma por linha, CHAVE=valor)
+              <textarea
+                aria-label="Variáveis"
+                rows={3}
+                autoComplete="off"
+                value={form.env}
+                onChange={(e) => setForm({ ...form, env: e.target.value })}
+              />
+            </label>
+            <label className="settings__check">
+              <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
+              Entendo que este servidor roda esse comando no meu computador.
+            </label>
+            {error && (
+              <p role="alert" className="message__error">
+                {error}
+              </p>
+            )}
+            <div className="api-form__actions">
+              <button type="button" className="btn btn--ghost" onClick={() => setAdding(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn--primary" disabled={!manualReady} onClick={() => void saveManual()}>
+                Adicionar
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
+
       {deleting && (
         <ConfirmDialog
           title={`Excluir ${deleting.name}?`}
@@ -243,6 +396,6 @@ export function McpSection() {
           onCancel={() => setDeleting(undefined)}
         />
       )}
-    </section>
+    </ExtensionPage>
   );
 }

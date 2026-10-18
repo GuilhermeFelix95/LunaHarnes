@@ -12,11 +12,23 @@ import { fileURLToPath } from "node:url";
 import * as readline from "node:readline/promises";
 import { homedir } from "node:os";
 import { modeFrom, pickExecutable } from "./luna-lib.mjs";
-import { checkSkill, extensionFrom, installMcp, installSkill, invalidValues, mcpCommands } from "./luna-extensions.mjs";
+import {
+  appDataDir,
+  checkPlugin,
+  checkSkill,
+  extensionFrom,
+  installMcp,
+  installPlugin,
+  installSkill,
+  invalidValues,
+  mcpCommands,
+} from "./luna-extensions.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/// `luna skills add <id>` e `luna mcp add <id>`: instala do marketplace do app e devolve o código de saída.
+const CATALOG_FILES = { skill: "skills.json", mcp: "mcp.json", plugin: "official.json" };
+
+/// `luna skills|mcp|plugin add <id>`: instala do marketplace do app e devolve o código de saída.
 async function runExtension(argv) {
   let parsed;
   try {
@@ -25,7 +37,7 @@ async function runExtension(argv) {
     console.error(error.message);
     return 2;
   }
-  const catalogFile = join(root, "src-tauri", "marketplace", parsed.kind === "skill" ? "skills.json" : "mcp.json");
+  const catalogFile = join(root, "src-tauri", "marketplace", CATALOG_FILES[parsed.kind]);
   const catalog = JSON.parse(fs.readFileSync(catalogFile, "utf8"));
 
   if (parsed.kind === "skill") {
@@ -33,6 +45,41 @@ async function runExtension(argv) {
       const entry = checkSkill({ skills: catalog.skills }, parsed.id);
       const dirs = installSkill({ home: homedir(), entry, fs });
       console.log(`Skill "${entry.name}" instalada em:\n${dirs.join("\n")}\nAparece no menu / na próxima conversa.`);
+      return 0;
+    } catch (error) {
+      console.error(`luna: ${error.message}`);
+      return 1;
+    }
+  }
+
+  if (parsed.kind === "plugin") {
+    let entry;
+    try {
+      entry = checkPlugin(catalog, parsed.id);
+    } catch (error) {
+      console.error(`luna: ${error.message}`);
+      return 1;
+    }
+    // Plugin roda código no app: mostra as permissões e pede confirmação antes de gravar.
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      console.log(`\nPlugin "${entry.name}" v${entry.version} (${entry.files.length} arquivo(s)).`);
+      console.log(`Permissões: ${entry.permissions.join(", ") || "nenhuma"}`);
+      const answer = (await rl.question("Instalar? (s/N) ")).trim().toLowerCase();
+      if (answer !== "s") {
+        console.log("luna: cancelado. Nada foi alterado.");
+        return 0;
+      }
+    } finally {
+      rl.close();
+    }
+    try {
+      const dir = installPlugin({
+        appDir: appDataDir({ platform: process.platform, env: process.env, home: homedir() }),
+        entry,
+        fs,
+      });
+      console.log(`Plugin "${entry.name}" instalado em ${dir}.\nReinicie o app (ou reabra as configurações) para ver o plugin.`);
       return 0;
     } catch (error) {
       console.error(`luna: ${error.message}`);
@@ -81,7 +128,7 @@ async function runExtension(argv) {
   return Object.values(results).every((r) => r === "ok") ? 0 : 1;
 }
 
-if (["skills", "mcp"].includes(process.argv[2])) {
+if (["skills", "mcp", "plugin"].includes(process.argv[2])) {
   process.exit(await runExtension(process.argv.slice(2)));
 }
 

@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { CatalogPicker } from "./CatalogPicker";
+import { ExtensionPage } from "./ExtensionPage";
 import {
+  addSkillSource,
   installSkill,
   listSkills,
+  listSkillSources,
   loadSkillCatalog,
+  removeSkillSource,
   SKILLS_CHANGED,
   uninstallSkill,
   type InstalledSkill,
@@ -21,6 +26,9 @@ function announceChange() {
 export function SkillsSection() {
   const [tab, setTab] = useState<Tab>("installed");
   const [installed, setInstalled] = useState<InstalledSkill[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
+  /** Catálogo escolhido: "" é o oficial. */
+  const [source, setSource] = useState("");
   const [catalog, setCatalog] = useState<SkillCatalogEntry[] | undefined>(undefined);
   const [deleting, setDeleting] = useState<InstalledSkill | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
@@ -36,15 +44,22 @@ export function SkillsSection() {
 
   useEffect(() => {
     void reloadInstalled();
-    loadSkillCatalog()
-      .then((c) => setCatalog(c.skills))
+    listSkillSources()
+      .then(setSources)
       .catch((e) => setError(String(e)));
   }, []);
+
+  useEffect(() => {
+    setCatalog(undefined);
+    loadSkillCatalog(source || undefined)
+      .then((c) => setCatalog(c.skills))
+      .catch((e) => setError(String(e)));
+  }, [source]);
 
   async function install(entry: SkillCatalogEntry) {
     setError(undefined);
     try {
-      await installSkill(entry.id);
+      await installSkill(entry.id, source || undefined);
       setStatus(`${entry.name} instalada. Ela aparece no menu / na próxima conversa.`);
       announceChange();
       await reloadInstalled();
@@ -66,40 +81,37 @@ export function SkillsSection() {
     }
   }
 
+  async function addSource(url: string) {
+    const urls = await addSkillSource(url);
+    setSources(urls);
+    setSource(url);
+    setStatus("Catálogo adicionado e conferido.");
+  }
+
+  async function removeSource(url: string) {
+    try {
+      setSources(await removeSkillSource(url));
+      setStatus("Catálogo removido.");
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   const installedIds = new Set(installed.map((s) => s.id));
 
   return (
-    <section className="settings__section" aria-labelledby="settings-skills">
-      <header className="settings__section-head">
-        <div>
-          <h2 id="settings-skills">Skills</h2>
-          <p className="settings__hint">
-            Skills são instruções reutilizáveis. Instalada aqui, uma skill vale para o Claude Code e para o Codex, em
-            todas as conversas e no terminal.
-          </p>
-        </div>
-      </header>
-
-      <div className="segmented" role="tablist" aria-label="Skills">
-        <button type="button" role="tab" aria-selected={tab === "installed"} onClick={() => setTab("installed")}>
-          Instaladas
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "market"} onClick={() => setTab("market")}>
-          Marketplace
-        </button>
-      </div>
-
-      {status && (
-        <p role="status" className="settings__hint">
-          {status}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="message__error">
-          {error}
-        </p>
-      )}
-
+    <ExtensionPage
+      title="Skills"
+      description="Skills são instruções reutilizáveis. Instalada aqui, uma skill vale para o Claude Code e para o Codex, em todas as conversas e no terminal."
+      tabs={[
+        { id: "installed", label: "Instaladas" },
+        { id: "market", label: "Marketplace" },
+      ]}
+      tab={tab}
+      onTab={(id) => setTab(id as Tab)}
+      status={status}
+      error={error}
+    >
       {tab === "installed" && (
         <>
           {installed.length === 0 && <p className="settings__hint">Nenhuma skill instalada ainda. Veja o Marketplace.</p>}
@@ -126,6 +138,13 @@ export function SkillsSection() {
 
       {tab === "market" && (
         <>
+          <CatalogPicker
+            sources={sources}
+            value={source}
+            onChange={setSource}
+            onAdd={addSource}
+            onRemove={removeSource}
+          />
           {!catalog && <p className="settings__hint">Carregando catálogo…</p>}
           {catalog && catalog.length === 0 && <p className="settings__hint">Nenhuma skill no catálogo.</p>}
           <ul className="settings-list">
@@ -164,6 +183,6 @@ export function SkillsSection() {
           onCancel={() => setDeleting(undefined)}
         />
       )}
-    </section>
+    </ExtensionPage>
   );
 }

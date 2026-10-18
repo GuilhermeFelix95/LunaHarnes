@@ -45,7 +45,7 @@ function announceChange() {
 }
 
 /// Provedores: perfis de API em cartões. Criar e editar abrem numa janela; a chave fica no cofre do Windows.
-export function ApiProfilesSection() {
+export function ProvidersSection() {
   const [profiles, setProfiles] = useState<ApiProfile[]>([]);
   const [presets, setPresets] = useState<ApiPreset[]>([]);
   const [keyed, setKeyed] = useState<Record<string, boolean>>({});

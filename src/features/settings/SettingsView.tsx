@@ -17,7 +17,7 @@ import {
   type ThemePalette,
 } from "../../theme";
 import { AccountsSection } from "./AccountsSection";
-import { ApiProfilesSection } from "./ApiProfilesSection";
+import { ProvidersSection } from "./ProvidersSection";
 import { ConversationSection } from "./ConversationSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { PluginsSection } from "./PluginsSection";
@@ -331,7 +331,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {section === "conversation" && <ConversationSection />}
           {section === "rules" && <RulesSection />}
           {section === "accounts" && <AccountsSection />}
-          {section === "providers" && <ApiProfilesSection />}
+          {section === "providers" && <ProvidersSection />}
           {section === "plugins" && <PluginsSection />}
       {section === "skills" && <SkillsSection />}
       {section === "mcp" && <McpSection />}

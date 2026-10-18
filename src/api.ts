@@ -251,7 +251,7 @@ export function listProviderModels(preset: string, baseUrl: string, apiKey: stri
   return invoke("list_provider_models", { preset, baseUrl, apiKey });
 }
 
-/// Avisa as telas que a lista de perfis mudou (ver ApiProfilesSection e ChatView).
+/// Avisa as telas que a lista de perfis mudou (ver ProvidersSection e ChatView).
 export const PROFILES_CHANGED = "luna:profiles-changed";
 /// Avisa o chat que a lista de plugins mudou (instalar, desinstalar, ligar ou desligar).
 export const PLUGINS_CHANGED = "luna:plugins-changed";
@@ -370,12 +370,25 @@ export function listSkills(): Promise<InstalledSkill[]> {
 }
 
 /// Catálogo oficial de skills. Os arquivos ficam no app e não entram na resposta.
-export function loadSkillCatalog(): Promise<{ skills: SkillCatalogEntry[] }> {
-  return invoke<{ skills: SkillCatalogEntry[] }>("load_skill_catalog");
+/// `source` vazio = catálogo oficial; senão a URL de um catálogo adicionado.
+export function loadSkillCatalog(source?: string): Promise<{ skills: SkillCatalogEntry[] }> {
+  return invoke<{ skills: SkillCatalogEntry[] }>("load_skill_catalog", { source: source ?? null });
 }
 
-export function installSkill(id: string): Promise<string[]> {
-  return invoke<string[]>("install_skill", { id });
+export function installSkill(id: string, source?: string): Promise<string[]> {
+  return invoke<string[]>("install_skill", { id, source: source ?? null });
+}
+
+export function listSkillSources(): Promise<string[]> {
+  return invoke<string[]>("list_skill_sources");
+}
+
+export function addSkillSource(url: string): Promise<string[]> {
+  return invoke<string[]>("add_skill_source", { url });
+}
+
+export function removeSkillSource(url: string): Promise<string[]> {
+  return invoke<string[]>("remove_skill_source", { url });
 }
 
 export function uninstallSkill(id: string): Promise<void> {
@@ -421,10 +434,27 @@ export function removeMcpServer(name: string): Promise<void> {
   return invoke<void>("remove_mcp_server", { name });
 }
 
-export function loadMcpCatalog(): Promise<{ servers: McpCatalogEntry[] }> {
-  return invoke<{ servers: McpCatalogEntry[] }>("load_mcp_catalog");
+export function loadMcpCatalog(source?: string): Promise<{ servers: McpCatalogEntry[] }> {
+  return invoke<{ servers: McpCatalogEntry[] }>("load_mcp_catalog", { source: source ?? null });
 }
 
-export function installMcpFromCatalog(id: string, values: Record<string, string>): Promise<void> {
-  return invoke<void>("install_mcp_from_catalog", { id, values });
+export function installMcpFromCatalog(id: string, values: Record<string, string>, source?: string): Promise<void> {
+  return invoke<void>("install_mcp_from_catalog", { id, values, source: source ?? null });
+}
+
+export function listMcpSources(): Promise<string[]> {
+  return invoke<string[]>("list_mcp_sources");
+}
+
+export function addMcpSource(url: string): Promise<string[]> {
+  return invoke<string[]>("add_mcp_source", { url });
+}
+
+export function removeMcpSource(url: string): Promise<string[]> {
+  return invoke<string[]>("remove_mcp_source", { url });
+}
+
+/// Grava um servidor escrito à mão, nas duas CLIs.
+export function saveMcpServer(server: Omit<McpServer, "engines" | "enabled">): Promise<void> {
+  return invoke<void>("save_mcp_server", { server: { ...server, engines: [], enabled: true } });
 }

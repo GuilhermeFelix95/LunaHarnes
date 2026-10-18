@@ -249,6 +249,8 @@ Antes de instalar um plugin de outra pessoa, leia o `index.js`. Plugins rodam na
 - Ids repetidos recusam o catálogo inteiro.
 - O hash confere o conteúdo, mas não prova quem publicou. Assinatura de catálogo ainda não existe.
 
+**Pelo terminal.** `luna plugin add <id>` instala um plugin do catálogo oficial (`src-tauri/marketplace/official.json`). O comando confere os hashes, mostra as permissões e pede confirmação `(s/N)` antes de gravar em `<pasta de dados do app>/plugins/<id>`. Reinicie o app para ver o plugin. Skills e MCP têm comandos próprios (`luna skills add` e `luna mcp add`), descritos em `docs/skills.md` e `docs/mcp.md`.
+
 ## Boas práticas
 
 - Use nomes de comando em minúsculas, sem espaço.

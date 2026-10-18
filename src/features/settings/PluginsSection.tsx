@@ -25,6 +25,7 @@ import type { PluginManifest } from "../../plugins/host";
 import { PERMISSION_TEXT } from "../../plugins/permissions";
 import { Markdown } from "../chat/Markdown";
 import guide from "../../../docs/plugins.md?raw";
+import { ExtensionPage } from "./ExtensionPage";
 
 type Tab = "installed" | "market";
 
@@ -259,15 +260,11 @@ export function PluginsSection() {
   const installedVersions = new Map(installed.map((p) => [p.id, p.version]));
 
   return (
-    <section className="settings__section" aria-labelledby="settings-plugins">
-      <header className="settings__section-head">
-        <div>
-          <h2 id="settings-plugins">Plugins</h2>
-          <p className="settings__hint">
-            Plugins rodam com as permissões que você aceita na instalação. Instale só de fontes em que você confia.
-          </p>
-        </div>
-        <div className="settings-actions">
+    <ExtensionPage
+      title="Plugins"
+      description="Plugins rodam com as permissões que você aceita na instalação. Instale só de fontes em que você confia."
+      actions={
+        <>
           <button type="button" className="btn btn--sm" onClick={() => void openFolder()}>
             Abrir pasta
           </button>
@@ -277,21 +274,17 @@ export function PluginsSection() {
           <button type="button" className="btn btn--primary btn--sm" onClick={() => setCreating(true)}>
             Criar plugin
           </button>
-        </div>
-      </header>
-
-      <div className="segmented" role="tablist" aria-label="Plugins">
-        <button type="button" role="tab" aria-selected={tab === "installed"} onClick={() => setTab("installed")}>
-          Instalados
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "market"} onClick={() => setTab("market")}>
-          Marketplace
-        </button>
-      </div>
-
-      {status && <p role="status" className="settings__hint">{status}</p>}
-      {error && <p role="alert" className="message__error">{error}</p>}
-
+        </>
+      }
+      tabs={[
+        { id: "installed", label: "Instalados" },
+        { id: "market", label: "Marketplace" },
+      ]}
+      tab={tab}
+      onTab={(id) => setTab(id as Tab)}
+      status={status}
+      error={error}
+    >
       {tab === "installed" && (
         <>
           <p className="settings__hint">
@@ -504,6 +497,6 @@ export function PluginsSection() {
           onConfirm={() => void install()}
         />
       )}
-    </section>
+    </ExtensionPage>
   );
 }
