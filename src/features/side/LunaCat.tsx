@@ -1,126 +1,108 @@
 import { useId } from "react";
 
 interface LunaCatProps {
-  /** Trabalhando: digita no notebook. Parado: dorme enrolado com "zZ". */
+  /** Trabalhando: o gatinho corre atrás do ratinho. Parado: dorme enquanto o ratinho come a ração. */
   working: boolean;
 }
 
-/// Gatinho lunar em SVG vetorial, animado com CSS (piscar, respirar, cauda, digitação e zZ).
-/// Sem WebGL e sem biblioteca de animação: o desenho fica no próprio código e segue o tema pelas cores fixas do gatinho.
+/// Cena do gatinho lunar em SVG vetorial, animada com CSS.
+/// Trabalhando: gatinho correndo atrás de um ratinho. Parado: gatinho dormindo e ratinho comendo na tigela.
+/// Sem WebGL e sem biblioteca de animação; as cores são fixas, então a cena não depende do tema.
 export function LunaCat({ working }: LunaCatProps) {
   const id = useId().replace(/:/g, "");
-  const label = working ? "Gatinho lunar trabalhando" : "Gatinho lunar dormindo";
+  const label = working ? "Gatinho lunar correndo atrás de um ratinho" : "Gatinho lunar dormindo enquanto o ratinho come";
   const fur = `${id}-fur`;
-  const blush = `${id}-blush`;
   const shadow = `${id}-shadow`;
-  const screen = `${id}-screen`;
 
   return (
     <figure className={`luna-cat ${working ? "luna-cat--working" : "luna-cat--sleeping"}`}>
-      <svg viewBox="0 0 220 200" role="img" aria-label={label}>
+      <svg viewBox="0 0 240 170" role="img" aria-label={label}>
         <defs>
           <linearGradient id={fur} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#c4b2ff" />
             <stop offset="1" stopColor="#8b6ef0" />
           </linearGradient>
-          <radialGradient id={blush}>
-            <stop offset="0" stopColor="#ff9fbf" stopOpacity="0.95" />
-            <stop offset="1" stopColor="#ff9fbf" stopOpacity="0" />
-          </radialGradient>
           <radialGradient id={shadow}>
-            <stop offset="0" stopColor="#000" stopOpacity="0.28" />
+            <stop offset="0" stopColor="#000" stopOpacity="0.22" />
             <stop offset="1" stopColor="#000" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id={screen} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2a2746" />
-            <stop offset="1" stopColor="#171629" />
-          </linearGradient>
         </defs>
 
         {/* Sombra no chão */}
-        <ellipse cx="110" cy="186" rx="78" ry="11" fill={`url(#${shadow})`} />
+        <ellipse cx="120" cy="160" rx="110" ry="7" fill={`url(#${shadow})`} />
 
-        {/* Cauda, enrolada para a direita */}
-        <path className="luna-cat__tail" d="M150 168 C 192 172 200 128 180 114" fill="none" stroke="#8b6ef0" strokeWidth="14" strokeLinecap="round" />
+        {/* Cena correndo: gatinho atrás, ratinho na frente */}
+        <g className="luna-cat__running">
+          <ellipse className="luna-cat__dust luna-cat__dust--a" cx="74" cy="156" rx="6" ry="3" fill="#cfc6ea" />
+          <ellipse className="luna-cat__dust luna-cat__dust--b" cx="66" cy="150" rx="4" ry="2.5" fill="#cfc6ea" />
 
-        {/* Corpo sentado e barriga creme */}
-        <g className="luna-cat__body">
-          <ellipse cx="110" cy="140" rx="54" ry="46" fill={`url(#${fur})`} />
-          <ellipse cx="110" cy="150" rx="30" ry="26" fill="#f7f2ff" />
-        </g>
+          <g className="luna-cat__mouse">
+            <path className="luna-cat__mouse-tail" d="M186 146 C 174 146 170 136 178 130" fill="none" stroke="#8e8a9c" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M196 156 L192 162 M206 156 L210 162" stroke="#5a5470" strokeWidth="2.5" strokeLinecap="round" />
+            <ellipse cx="200" cy="146" rx="14" ry="9" fill="#d8d4e2" stroke="#5a5470" strokeWidth="2.5" />
+            <circle cx="213" cy="140" r="8" fill="#d8d4e2" stroke="#5a5470" strokeWidth="2.5" />
+            <circle cx="208" cy="132" r="4.5" fill="#ffb3d1" stroke="#5a5470" strokeWidth="2" />
+            <circle cx="216" cy="138" r="1.6" fill="#2d2350" />
+            <circle cx="221" cy="141" r="1.8" fill="#ff7aa2" />
+          </g>
 
-        {/* Notebook: base, tela e linhas de código */}
-        <g className="luna-cat__laptop">
-          <rect x="48" y="166" width="124" height="12" rx="6" fill="#d9d3f2" />
-          <rect x="66" y="168" width="88" height="6" rx="3" fill="#b9afe0" />
-          <rect x="66" y="124" width="88" height="42" rx="8" fill="#3a3450" />
-          <rect x="72" y="130" width="76" height="32" rx="5" fill={`url(#${screen})`} />
-          <g className="luna-cat__code">
-            <rect x="78" y="136" width="36" height="4" rx="2" fill="#a78bfa" />
-            <rect x="78" y="144" width="52" height="4" rx="2" fill="#7dd3fc" />
-            <rect x="78" y="152" width="28" height="4" rx="2" fill="#86efac" />
+          <g className="luna-cat__chaser">
+            <path className="luna-cat__tail-run" d="M92 118 C 74 110 70 96 80 90" fill="none" stroke="#8b6ef0" strokeWidth="9" strokeLinecap="round" />
+
+            {/* Pernas do fundo (fase oposta) e da frente */}
+            <path className="luna-cat__leg luna-cat__leg--far" style={{ transformOrigin: "104px 134px" }} d="M104 134 L104 156" fill="none" stroke="#7257d6" strokeWidth="10" strokeLinecap="round" />
+            <path className="luna-cat__leg luna-cat__leg--far" style={{ transformOrigin: "132px 134px" }} d="M132 134 L132 156" fill="none" stroke="#7257d6" strokeWidth="10" strokeLinecap="round" />
+            <path className="luna-cat__leg luna-cat__leg--near" style={{ transformOrigin: "98px 134px" }} d="M98 134 L98 156" fill="none" stroke="#8b6ef0" strokeWidth="10" strokeLinecap="round" />
+            <path className="luna-cat__leg luna-cat__leg--near" style={{ transformOrigin: "138px 134px" }} d="M138 134 L138 156" fill="none" stroke="#8b6ef0" strokeWidth="10" strokeLinecap="round" />
+
+            <ellipse cx="118" cy="124" rx="30" ry="18" fill={`url(#${fur})`} />
+
+            <polygon points="138,96 136,76 152,88" fill={`url(#${fur})`} stroke="#8b6ef0" strokeWidth="3" strokeLinejoin="round" />
+            <polygon points="160,88 168,76 168,98" fill={`url(#${fur})`} stroke="#8b6ef0" strokeWidth="3" strokeLinejoin="round" />
+            <circle cx="152" cy="104" r="18" fill={`url(#${fur})`} />
+            <ellipse cx="158" cy="102" rx="3.4" ry="4" fill="#2d2350" />
+            <circle cx="159.2" cy="100.6" r="1.1" fill="#fff" />
+            <circle cx="164" cy="107" r="1.8" fill="#ff7aa2" />
+            <path d="M160 111 q3 2 5 -1" fill="none" stroke="#2d2350" strokeWidth="1.8" strokeLinecap="round" />
           </g>
         </g>
 
-        {/* Patinhas sobre o teclado */}
-        <g className="luna-cat__paws">
-          <ellipse className="luna-cat__paw luna-cat__paw--left" cx="86" cy="172" rx="12" ry="6.5" fill="#c4b2ff" stroke="#8b6ef0" strokeWidth="2.5" />
-          <ellipse className="luna-cat__paw luna-cat__paw--right" cx="134" cy="172" rx="12" ry="6.5" fill="#c4b2ff" stroke="#8b6ef0" strokeWidth="2.5" />
-        </g>
+        {/* Cena dormindo: gatinho enrolado, tigela de ração e ratinho comendo */}
+        <g className="luna-cat__resting">
+          <ellipse cx="194" cy="136" rx="26" ry="5" fill="#3b3a5c" />
+          <path d="M168 136 Q170 158 194 160 Q218 158 220 136 Z" fill="#7d82b8" stroke="#3b3a5c" strokeWidth="2.5" strokeLinejoin="round" />
+          <circle cx="182" cy="133" r="3.2" fill="#d9a066" stroke="#8a5a2b" strokeWidth="1.2" />
+          <circle cx="193" cy="131" r="3.2" fill="#d9a066" stroke="#8a5a2b" strokeWidth="1.2" />
+          <circle cx="204" cy="133" r="3.2" fill="#d9a066" stroke="#8a5a2b" strokeWidth="1.2" />
+          <circle cx="188" cy="136" r="3.2" fill="#d9a066" stroke="#8a5a2b" strokeWidth="1.2" />
+          <circle cx="200" cy="137" r="3.2" fill="#d9a066" stroke="#8a5a2b" strokeWidth="1.2" />
 
-        {/* Cabeça grande, inclinada quando dorme */}
-        <g className="luna-cat__head">
-          {/* Orelhas */}
-          <path d="M70 66 L64 20 Q63 14 70 18 L100 44 Z" fill={`url(#${fur})`} stroke="#8b6ef0" strokeWidth="4" strokeLinejoin="round" />
-          <path d="M150 66 L156 20 Q157 14 150 18 L120 44 Z" fill={`url(#${fur})`} stroke="#8b6ef0" strokeWidth="4" strokeLinejoin="round" />
-          <path d="M74 56 L72 32 L92 46 Z" fill="#ffb3d1" />
-          <path d="M146 56 L148 32 L128 46 Z" fill="#ffb3d1" />
-
-          <circle cx="110" cy="92" r="52" fill={`url(#${fur})`} />
-          <ellipse cx="110" cy="112" rx="26" ry="18" fill="#f7f2ff" />
-
-          {/* Bochechas */}
-          <ellipse cx="70" cy="110" rx="11" ry="7" fill={`url(#${blush})`} />
-          <ellipse cx="150" cy="110" rx="11" ry="7" fill={`url(#${blush})`} />
-
-          {/* Olhos abertos, com brilho, piscando */}
-          <g className="luna-cat__eyes">
-            <g className="luna-cat__eye">
-              <ellipse cx="88" cy="90" rx="13" ry="15" fill="#fff" />
-              <circle cx="90" cy="93" r="9" fill="#2d2350" />
-              <circle cx="93" cy="87" r="4" fill="#fff" />
-              <circle cx="87" cy="96" r="2" fill="#fff" opacity="0.85" />
-            </g>
-            <g className="luna-cat__eye">
-              <ellipse cx="132" cy="90" rx="13" ry="15" fill="#fff" />
-              <circle cx="130" cy="93" r="9" fill="#2d2350" />
-              <circle cx="133" cy="87" r="4" fill="#fff" />
-              <circle cx="127" cy="96" r="2" fill="#fff" opacity="0.85" />
-            </g>
+          <path d="M40 150 C 22 152 22 136 34 136" fill="none" stroke="#8b6ef0" strokeWidth="9" strokeLinecap="round" />
+          <g className="luna-cat__breath">
+            <ellipse cx="88" cy="140" rx="50" ry="20" fill={`url(#${fur})`} />
+          </g>
+          <ellipse cx="62" cy="150" rx="10" ry="5" fill="#c4b2ff" stroke="#8b6ef0" strokeWidth="2" />
+          <g className="luna-cat__rest-head">
+            <polygon points="36,122 34,100 50,114" fill={`url(#${fur})`} stroke="#8b6ef0" strokeWidth="3" strokeLinejoin="round" />
+            <polygon points="58,114 70,100 70,122" fill={`url(#${fur})`} stroke="#8b6ef0" strokeWidth="3" strokeLinejoin="round" />
+            <circle cx="52" cy="132" r="19" fill={`url(#${fur})`} />
+            <path d="M40 131 Q45 136 50 131" fill="none" stroke="#2d2350" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M54 131 Q59 136 64 131" fill="none" stroke="#2d2350" strokeWidth="2.5" strokeLinecap="round" />
+            <ellipse cx="52" cy="139" rx="2.2" ry="1.6" fill="#ff7aa2" />
           </g>
 
-          {/* Olhos fechados, em arco feliz */}
-          <g className="luna-cat__closed-eyes">
-            <path d="M78 94 Q88 82 98 94" fill="none" stroke="#2d2350" strokeWidth="4.5" strokeLinecap="round" />
-            <path d="M122 94 Q132 82 142 94" fill="none" stroke="#2d2350" strokeWidth="4.5" strokeLinecap="round" />
+          <g className="luna-cat__mouse-eat" style={{ transformOrigin: "172px 142px" }}>
+            <path d="M147 152 C 138 156 140 146 146 146" fill="none" stroke="#8e8a9c" strokeWidth="2.5" strokeLinecap="round" />
+            <ellipse cx="160" cy="150" rx="12" ry="9" fill="#d8d4e2" stroke="#5a5470" strokeWidth="2.5" />
+            <circle cx="172" cy="142" r="8" fill="#d8d4e2" stroke="#5a5470" strokeWidth="2.5" />
+            <circle cx="168" cy="134" r="4" fill="#ffb3d1" stroke="#5a5470" strokeWidth="2" />
+            <circle cx="176" cy="140" r="1.4" fill="#2d2350" />
+            <circle cx="180" cy="143" r="1.6" fill="#ff7aa2" />
           </g>
 
-          {/* Focinho e boca */}
-          <path d="M105 106 Q110 102 115 106 Q110 112 105 106 Z" fill="#ff7aa2" stroke="#2d2350" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M102 114 Q106 120 110 115 Q114 120 118 114" fill="none" stroke="#2d2350" strokeWidth="2.8" strokeLinecap="round" />
-
-          {/* Laço no pescoço */}
-          <path d="M110 134 C 100 120 86 124 88 134 C 86 144 100 148 110 134 Z" fill="#ff6b8b" stroke="#e8517a" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M110 134 C 120 120 134 124 132 134 C 134 144 120 148 110 134 Z" fill="#ff6b8b" stroke="#e8517a" strokeWidth="2" strokeLinejoin="round" />
-          <circle cx="110" cy="134" r="4.5" fill="#ff8fa8" />
-
-          {/* Estrela na testa */}
-          <path className="luna-cat__star" transform="translate(166 46)" d="M0 -9 L2.6 -3 L9 -2.6 L4 1.6 L5.6 8 L0 4.6 L-5.6 8 L-4 1.6 L-9 -2.6 L-2.6 -3 Z" fill="#ffd66b" stroke="#e0a526" strokeWidth="1.5" strokeLinejoin="round" />
+          <text className="luna-cat__z luna-cat__z--first" x="78" y="100">z</text>
+          <text className="luna-cat__z luna-cat__z--second" x="92" y="82">z</text>
         </g>
-
-        {/* zZ: só enquanto dorme */}
-        <text className="luna-cat__z luna-cat__z--first" x="166" y="62">z</text>
-        <text className="luna-cat__z luna-cat__z--second" x="178" y="44">z</text>
       </svg>
     </figure>
   );

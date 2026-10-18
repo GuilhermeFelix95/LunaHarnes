@@ -1332,9 +1332,9 @@ textarea:focus-visible {
   min-height: 0;
 }
 
-/* Gatinho lunar (SVG animado com CSS): digita quando a Luna trabalha; dorme com "zZ" quando para */
+/* Gatinho lunar (SVG animado com CSS): corre atrás de um ratinho quando a Luna trabalha; dorme enquanto o ratinho come quando para */
 .luna-cat {
-  width: 180px;
+  width: 200px;
   margin: 16px auto 0;
 }
 
@@ -1345,78 +1345,24 @@ textarea:focus-visible {
   overflow: visible;
 }
 
-.luna-cat__eye,
-.luna-cat__paw,
-.luna-cat__star,
-.luna-cat__head,
-.luna-cat__body {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.luna-cat__closed-eyes,
+.luna-cat__resting,
 .luna-cat__z {
   display: none;
+}
+
+.luna-cat--sleeping .luna-cat__running {
+  display: none;
+}
+
+.luna-cat--sleeping .luna-cat__resting {
+  display: inline;
 }
 
 .luna-cat__z {
   fill: #9aa0c4;
   font-family: sans-serif;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
-}
-
-.luna-cat--working .luna-cat__eyes {
-  display: inline;
-}
-
-.luna-cat--working .luna-cat__eye {
-  animation: luna-blink 4.2s ease-in-out infinite;
-}
-
-.luna-cat--sleeping .luna-cat__eyes {
-  display: none;
-}
-
-.luna-cat--sleeping .luna-cat__closed-eyes {
-  display: inline;
-}
-
-.luna-cat--working .luna-cat__paw--left {
-  animation: luna-type 0.5s ease-in-out infinite;
-}
-
-.luna-cat--working .luna-cat__paw--right {
-  animation: luna-type 0.5s ease-in-out 0.25s infinite;
-}
-
-.luna-cat--working .luna-cat__code {
-  transform-box: fill-box;
-  transform-origin: left center;
-  animation: luna-code 1.6s steps(4, end) infinite;
-}
-
-.luna-cat--sleeping .luna-cat__head {
-  transform: rotate(9deg);
-  transform-origin: 110px 130px;
-  transform-box: view-box;
-  transition: transform 0.4s ease-out;
-}
-
-.luna-cat--sleeping .luna-cat__body {
-  transform-origin: 110px 186px;
-  transform-box: view-box;
-  animation: luna-breathe 3s ease-in-out infinite;
-}
-
-.luna-cat__tail {
-  transform-origin: 150px 170px;
-  transform-box: view-box;
-  animation: luna-tail 2.6s ease-in-out infinite;
-}
-
-.luna-cat__star {
-  animation: luna-twinkle 2.4s ease-in-out infinite;
 }
 
 .luna-cat--sleeping .luna-cat__z {
@@ -1429,24 +1375,94 @@ textarea:focus-visible {
   animation-delay: 1.4s;
 }
 
-@keyframes luna-blink {
-  0%, 92%, 100% { transform: scaleY(1); }
-  95% { transform: scaleY(0.1); }
+.luna-cat__leg,
+.luna-cat__chaser,
+.luna-cat__mouse,
+.luna-cat__tail-run,
+.luna-cat__mouse-tail,
+.luna-cat__breath,
+.luna-cat__rest-head,
+.luna-cat__mouse-eat {
+  transform-box: view-box;
 }
 
-@keyframes luna-type {
-  0%, 100% { transform: translateY(0) scaleY(1); }
-  50% { transform: translateY(3px) scaleY(0.8); }
+.luna-cat__dust {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
 }
 
-@keyframes luna-code {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0.55); }
+.luna-cat--working .luna-cat__leg--near {
+  animation: luna-run 0.36s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__leg--far {
+  animation: luna-run 0.36s ease-in-out infinite alternate-reverse;
+}
+
+.luna-cat--working .luna-cat__chaser {
+  animation: luna-bob 0.36s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__tail-run {
+  transform-origin: 92px 118px;
+  animation: luna-tail 0.36s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__mouse {
+  animation: luna-hop 0.18s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__mouse-tail {
+  transform-origin: 186px 146px;
+  animation: luna-tail 0.18s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__dust--a {
+  animation: luna-dust 0.9s ease-out infinite;
+}
+
+.luna-cat--working .luna-cat__dust--b {
+  animation: luna-dust 0.9s ease-out 0.45s infinite;
+}
+
+.luna-cat--sleeping .luna-cat__breath {
+  transform-origin: 88px 160px;
+  animation: luna-breathe 3s ease-in-out infinite;
+}
+
+.luna-cat--sleeping .luna-cat__rest-head {
+  transform-origin: 52px 132px;
+  transform: rotate(8deg);
+}
+
+.luna-cat--sleeping .luna-cat__mouse-eat {
+  animation: luna-eat 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes luna-run {
+  from { transform: rotate(-24deg); }
+  to { transform: rotate(24deg); }
+}
+
+@keyframes luna-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
 }
 
 @keyframes luna-tail {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(7deg); }
+  from { transform: rotate(-10deg); }
+  to { transform: rotate(10deg); }
+}
+
+@keyframes luna-hop {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+
+@keyframes luna-dust {
+  0% { opacity: 0.7; transform: translate(0, 0) scale(0.8); }
+  100% { opacity: 0; transform: translate(-14px, -4px) scale(1.4); }
 }
 
 @keyframes luna-breathe {
@@ -1454,9 +1470,9 @@ textarea:focus-visible {
   50% { transform: scaleY(1.025); }
 }
 
-@keyframes luna-twinkle {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.18); opacity: 0.75; }
+@keyframes luna-eat {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(4px) rotate(6deg); }
 }
 
 @keyframes luna-z {
