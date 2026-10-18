@@ -102,4 +102,16 @@ describe("SettingsView", () => {
 
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("remover um tema personalizado tira o cartão e a lista salva", () => {
+    localStorage.setItem(THEME_KEY, "custom");
+    localStorage.setItem("luna.savedThemes", JSON.stringify([{ name: "Mar", palette: { ...DEFAULT_PALETTE, accent: "#2a9d8f" } }]));
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remover Mar" }));
+
+    expect(screen.queryByRole("radio", { name: /^Mar / })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remover Mar" })).toBeNull();
+    expect(JSON.parse(localStorage.getItem("luna.savedThemes")!)).toEqual([]);
+  });
 });

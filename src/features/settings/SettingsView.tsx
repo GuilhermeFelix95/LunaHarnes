@@ -214,13 +214,18 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     applySaved(imported);
   }
 
-  /// Exclui o tema ativo e volta para o Luna.
+  /// Remove um tema salvo. Se era o ativo, volta para o Luna.
+  function removeSaved(name: string) {
+    storeSaved(savedThemes.filter((t) => t.name !== name));
+    if (activeName === name) {
+      setActiveName(null);
+      saveActiveName(null);
+      choose(DEFAULT_THEME);
+    }
+  }
+
   function deleteActive() {
-    if (!activeName) return;
-    storeSaved(savedThemes.filter((t) => t.name !== activeName));
-    setActiveName(null);
-    saveActiveName(null);
-    choose(DEFAULT_THEME);
+    if (activeName) removeSaved(activeName);
   }
 
   return (
@@ -280,14 +285,24 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 aria-labelledby="settings-user-themes"
               >
                 {savedThemes.map((t) => (
-                  <ThemeCard
-                    key={t.name}
-                    label={t.name}
-                    description="Seu tema"
-                    palette={t.palette}
-                    checked={theme === "custom" && activeName === t.name}
-                    onChoose={() => applySaved(t)}
-                  />
+                  <div key={t.name} className="theme-card-wrap">
+                    <ThemeCard
+                      label={t.name}
+                      description="Seu tema"
+                      palette={t.palette}
+                      checked={theme === "custom" && activeName === t.name}
+                      onChoose={() => applySaved(t)}
+                    />
+                    <button
+                      type="button"
+                      className="theme-card__remove"
+                      aria-label={`Remover ${t.name}`}
+                      title="Remover este tema"
+                      onClick={() => removeSaved(t.name)}
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
                 <button type="button" className="theme-card theme-card--new" onClick={createTheme}>
                   <span className="theme-card__plus" aria-hidden="true">+</span>

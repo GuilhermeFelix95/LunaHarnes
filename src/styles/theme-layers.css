@@ -16,13 +16,14 @@
 
 /* Pixel art: fonte pixel nos títulos e botões, cantos retos, degraus no lugar de sombra */
 :root[data-theme="pixel"] {
-  --text-xs: 14px !important;
-  --text-sm: 16px !important;
-  --text-base: 19px !important;
-  --text-md: 20px !important;
-  --text-lg: 23px !important;
-  --text-xl: 26px !important;
-  --text-2xl: 32px !important;
+  /* VT323 é fina e pequena: o corpo sobe de tamanho para ficar legível */
+  --text-xs: 16px !important;
+  --text-sm: 18px !important;
+  --text-base: 22px !important;
+  --text-md: 23px !important;
+  --text-lg: 26px !important;
+  --text-xl: 30px !important;
+  --text-2xl: 36px !important;
 }
 
 :root[data-theme="pixel"] *,
@@ -35,11 +36,10 @@
   animation-duration: 0s !important;
 }
 
+/* Fonte pixel só nos títulos e nos rótulos de botão; o texto corrido segue legível */
 :root[data-theme="pixel"] h1,
 :root[data-theme="pixel"] h2,
 :root[data-theme="pixel"] h3,
-:root[data-theme="pixel"] .btn,
-:root[data-theme="pixel"] button,
 :root[data-theme="pixel"] .theme-card__name {
   font-family: var(--font-pixel) !important;
   letter-spacing: 0;
@@ -48,21 +48,11 @@
 
 :root[data-theme="pixel"] h1,
 :root[data-theme="pixel"] h2 {
-  font-size: 13px !important;
+  font-size: 14px !important;
 }
 
 :root[data-theme="pixel"] .btn,
-:root[data-theme="pixel"] button {
-  font-size: 9px !important;
-}
-
-:root[data-theme="pixel"] .btn,
-:root[data-theme="pixel"] button,
-:root[data-theme="pixel"] .theme-card,
-:root[data-theme="pixel"] .composer,
-:root[data-theme="pixel"] input,
-:root[data-theme="pixel"] textarea,
-:root[data-theme="pixel"] select {
+:root[data-theme="pixel"] .theme-card {
   border: 2px solid var(--fg-subtle);
 }
 
@@ -85,4 +75,34 @@
   pointer-events: none;
   background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 22%) 2px 3px);
   z-index: 999;
+}
+
+/* Temas personalizados: cada cartão tem um botão de remover no canto */
+.theme-card-wrap {
+  position: relative;
+  display: flex;
+}
+
+.theme-card-wrap > .theme-card {
+  flex: 1;
+}
+
+.theme-card__remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--fg-muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.theme-card__remove:hover {
+  color: var(--error);
+  border-color: var(--error);
 }

@@ -161,3 +161,32 @@ describe("theme", () => {
     expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#212121");
   });
 });
+
+describe("temas de fábrica: legibilidade", () => {
+  /// Contraste WCAG entre duas cores #rrggbb.
+  const contrast = (a: string, b: string) => {
+    const lum = (hex: string) => {
+      const [r, g, bl] = [1, 3, 5].map((i) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+    };
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+
+  it("texto e balão passam AA (4,5:1) em cada tema de fábrica", () => {
+    for (const t of THEMES.filter((x) => x.id !== "custom")) {
+      const p = t.palette;
+      expect(contrast(p.text, p.chat), `${t.id}: texto na conversa`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(p.bubbleText, p.bubble), `${t.id}: texto do balão`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("o terminal embutido é escuro nos temas de fábrica, exceto o Terminal verde", () => {
+    for (const t of THEMES.filter((x) => x.id !== "custom" && x.id !== "terminal")) {
+      expect(t.palette.terminal, t.id).toBe("#121315");
+    }
+  });
+});

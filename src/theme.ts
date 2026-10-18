@@ -95,26 +95,30 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
   glass: false,
 };
 
-/// Temas de fábrica: 12, cada um com identidade própria (cores, balão, composer, formato e fonte).
-/// O Luna é o padrão: o gatinho em grafite e âmbar.
+/// Terminal embutido dos temas de fábrica: sempre escuro, para o caminho e a saída ficarem legíveis.
+/// Só os temas personalizados mudam essa cor.
+const TERMINAL_DARK = "#121315";
+
+/// Temas de fábrica: 12. Cada um tem quatro cores diferentes (barra, conversa, balão e destaque),
+/// não só tons de uma cor. Claros ou escuros, com fundo de cor e não branco puro.
 const PRESETS: ThemeInfo[] = [
   {
     id: "luna",
     label: "Luna",
-    description: "Grafite quente com âmbar, como o gatinho.",
-    palette: { ...BASE, bubbleShape: "bubble", sidebar: "#1a1a1c", chat: "#201e1c", bubble: "#3a3530", bubbleText: "#f3e9d8", accent: "#e8a33d", text: "#ece6dc", terminal: "#161513" },
+    description: "Marrom de madeira, conversa grafite, balão âmbar e destaque menta.",
+    palette: { ...BASE, bubbleShape: "bubble", sidebar: "#2a2520", chat: "#1b1a18", bubble: "#e0a458", bubbleText: "#1f1608", accent: "#7fd1b9", text: "#ece6dc", terminal: TERMINAL_DARK },
   },
   {
     id: "claude",
     label: "Claude",
-    description: "As cores do Claude desktop, no escuro, com o terracota.",
-    palette: { ...BASE, sidebar: "#1f1e1d", chat: "#262624", bubble: "#3a3936", bubbleText: "#f0eee6", accent: "#d97757", text: "#f0eee6", terminal: "#1f1e1d" },
+    description: "Cinza-carvão com balão creme e destaque terracota.",
+    palette: { ...BASE, sidebar: "#1f1e1d", chat: "#262624", bubble: "#e9e4d8", bubbleText: "#2a2622", accent: "#d97757", text: "#f0eee6", terminal: TERMINAL_DARK },
   },
   {
     id: "codex",
     label: "Codex",
-    description: "Cinza-carvão, sem brilho, com verde-menta no destaque.",
-    palette: { ...BASE, sidebar: "#171717", chat: "#212121", bubble: "#2f2f2f", bubbleText: "#ececec", accent: "#10a37f", text: "#ececec", terminal: "#0d0d0d" },
+    description: "Carvão neutro, balão cinza claro e destaque verde-menta.",
+    palette: { ...BASE, sidebar: "#171717", chat: "#212121", bubble: "#d6d6d6", bubbleText: "#1a1a1a", accent: "#10a37f", text: "#ececec", terminal: TERMINAL_DARK },
   },
   {
     id: "terminal",
@@ -125,50 +129,50 @@ const PRESETS: ThemeInfo[] = [
   {
     id: "pixel",
     label: "Pixel art",
-    description: "Interface de arcade: fonte pixel, bordas em degrau e sem arredondamento.",
-    palette: { ...BASE, font: "vt323", shape: "square", sidebar: "#16132b", chat: "#1e1a3a", bubble: "#3b2f6b", bubbleText: "#fff3b0", accent: "#ffd23f", text: "#f4f1de", terminal: "#100c22" },
+    description: "Arcade: índigo na barra, rosa no balão e amarelo no destaque.",
+    palette: { ...BASE, font: "vt323", shape: "square", sidebar: "#2b1f5c", chat: "#171432", bubble: "#ff6f91", bubbleText: "#1a0712", accent: "#ffd23f", text: "#f4f1de", terminal: TERMINAL_DARK },
   },
   {
     id: "meia-noite",
     label: "Meia-noite",
-    description: "Azul-marinho com balão azul-céu e painéis de vidro.",
-    palette: { ...BASE, shape: "round", bubbleShape: "round", glass: true, sidebar: "#0b1f33", chat: "#0f2a44", bubble: "#1d4e7a", bubbleText: "#eaf4ff", accent: "#5ec8ff", text: "#e4eef8", terminal: "#09182a" },
+    description: "Teal profundo na barra, azul-noite na conversa, balão laranja e destaque aqua.",
+    palette: { ...BASE, shape: "round", bubbleShape: "round", glass: true, sidebar: "#0e3b4e", chat: "#0c1f2c", bubble: "#f4a261", bubbleText: "#1d1204", accent: "#2ec4b6", text: "#e4eef8", terminal: TERMINAL_DARK },
   },
   {
     id: "floresta",
     label: "Floresta",
-    description: "Verde-musgo, com balões em forma de folha.",
-    palette: { ...BASE, shape: "leaf", bubbleShape: "leaf", sidebar: "#13231a", chat: "#182d21", bubble: "#2d5a3f", bubbleText: "#eaf7ee", accent: "#b5e48c", text: "#e1efe5", terminal: "#0f1c14" },
+    description: "Madeira na barra, verde-floresta na conversa, balão ocre e destaque sálvia.",
+    palette: { ...BASE, shape: "leaf", bubbleShape: "leaf", sidebar: "#3b2a1a", chat: "#1a2a1f", bubble: "#e9c46a", bubbleText: "#241b06", accent: "#8ab17d", text: "#e1efe5", terminal: TERMINAL_DARK },
   },
   {
     id: "por-do-sol",
     label: "Pôr do sol",
-    description: "Vinho escuro, balão laranja e destaque rosa.",
-    palette: { ...BASE, shape: "round", bubbleShape: "bubble", sidebar: "#2a1420", chat: "#33192a", bubble: "#ff7a59", bubbleText: "#2a0f18", accent: "#ff8fb1", text: "#ffe9e1", terminal: "#210d18" },
+    description: "Ameixa na barra, vinho na conversa, balão pêssego e destaque rosa.",
+    palette: { ...BASE, shape: "round", bubbleShape: "bubble", sidebar: "#4a1d3d", chat: "#2a1530", bubble: "#ff9e6d", bubbleText: "#2a1006", accent: "#ff5d8f", text: "#ffe9e1", terminal: TERMINAL_DARK },
   },
   {
     id: "cereja",
     label: "Cereja",
-    description: "Vinho profundo, com balão cereja e fonte com serifa.",
-    palette: { ...BASE, font: "palatino", bubbleShape: "bubble", sidebar: "#1f0d14", chat: "#2a1119", bubble: "#b8325a", bubbleText: "#fff0f4", accent: "#ff6b8b", text: "#f8e6ec", terminal: "#170910" },
+    description: "Vinho-escuro na barra, balão creme e destaque cereja.",
+    palette: { ...BASE, font: "palatino", bubbleShape: "bubble", sidebar: "#7a1f3d", chat: "#1d0b12", bubble: "#f7d9c4", bubbleText: "#2a0b14", accent: "#ff4d6d", text: "#f8e6ec", terminal: TERMINAL_DARK },
   },
   {
     id: "neon",
     label: "Neon",
-    description: "Preto-violeta com magenta, cantos diagonais e vidro.",
-    palette: { ...BASE, font: "cascadia", shape: "diagonal", bubbleShape: "diagonal", glass: true, sidebar: "#07070d", chat: "#0b0b14", bubble: "#1c1140", bubbleText: "#f0e9ff", accent: "#ff2bd6", text: "#e7e0ff", terminal: "#05050a" },
+    description: "Preto na barra, roxo-noite na conversa, balão ciano e destaque magenta.",
+    palette: { ...BASE, font: "cascadia", shape: "diagonal", bubbleShape: "diagonal", glass: true, sidebar: "#0a0a16", chat: "#12102a", bubble: "#00f5d4", bubbleText: "#001a16", accent: "#ff2bd6", text: "#e7e0ff", terminal: TERMINAL_DARK },
   },
   {
     id: "lavanda",
     label: "Lavanda",
-    description: "Claro, com lilás no balão e fonte com serifa.",
-    palette: { ...BASE, font: "palatino", shape: "round", bubbleShape: "round", sidebar: "#ece6f7", chat: "#faf8ff", bubble: "#d9ccf5", bubbleText: "#2b1f4a", accent: "#7c5cd6", text: "#2b1f4a", terminal: "#2b1f4a" },
+    description: "Claro e noturno: cinza-lilás na barra, névoa na conversa, balão índigo e destaque cobre.",
+    palette: { ...BASE, font: "palatino", shape: "round", bubbleShape: "round", sidebar: "#cfc6dd", chat: "#e9e4ef", bubble: "#5b4b8a", bubbleText: "#f5f0ff", accent: "#c9703e", text: "#2b1f40", terminal: TERMINAL_DARK },
   },
   {
     id: "areia",
     label: "Areia",
-    description: "Papel quente, com terracota e balão em aba.",
-    palette: { ...BASE, font: "georgia", bubbleShape: "top", sidebar: "#efe6d6", chat: "#faf5ea", bubble: "#e4d3b3", bubbleText: "#3a2c1a", accent: "#b5652b", text: "#3a2c1a", terminal: "#3a2c1a" },
+    description: "Claro e noturno: areia escura na barra, cinza-névoa na conversa, balão ardósia e destaque argila.",
+    palette: { ...BASE, font: "georgia", bubbleShape: "top", sidebar: "#b9b0a0", chat: "#d9d2c3", bubble: "#2f4858", bubbleText: "#f2f5f7", accent: "#d1603d", text: "#1f2a30", terminal: TERMINAL_DARK },
   },
   {
     id: "custom",
@@ -378,7 +382,7 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
     "--diff-add": dark ? "#7fd6a4" : "#2e7d4f",
     "--diff-del": dark ? "#ff8a9a" : "#b3261e",
     "--terminal-bg": p.terminal,
-    "--terminal-fg": p.text,
+    "--terminal-fg": readableInk(p.terminal),
     "--shadow": dark ? "0 10px 40px rgb(0 0 0 / 45%)" : "0 10px 30px rgb(0 0 0 / 10%)",
     "--font-sans": FONTS[p.font].stack,
     "--font-display": FONTS[p.font].stack,
