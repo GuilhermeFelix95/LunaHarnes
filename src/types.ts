@@ -31,6 +31,10 @@ export interface ApiProfile {
   baseUrl: string;
   models: string[];
   defaultModel: string | null;
+  /** Só OpenRouter: "free" mostra no chat apenas os modelos com :free. */
+  modelScope?: "all" | "free";
+  /** Janela de contexto em tokens, por id de modelo, quando a API informou. */
+  contextWindows?: Record<string, number>;
 }
 
 /// Provedor pronto para criar um perfil (ver `api_profiles::presets`).
@@ -38,6 +42,8 @@ export interface ApiProfile {
 export interface RemoteModels {
   ids: string[];
   cheapest: string | null;
+  /** Janela de contexto em tokens, por id, quando a API informa. */
+  contexts: Record<string, number>;
 }
 
 export interface ApiPreset {
@@ -66,6 +72,8 @@ export interface ModelOption {
   efforts: EffortOption[];
   /** Modelo escolhido quando a conversa não tem escolha: o mais barato do provedor. */
   default: boolean;
+  /** Janela de contexto em tokens, quando a API informa. */
+  contextWindow?: number;
 }
 
 export type ProviderEvent =

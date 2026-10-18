@@ -23,10 +23,10 @@ import {
   sendPrompt,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
-import { shortModelName } from "../../chat/models";
+import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { APPROVAL_PROMPT, QUESTION_PROTOCOL, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
-import { extractQuestions, type Question } from "../../chat/questions";
+import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
@@ -92,6 +92,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const planRef = useRef(plan);
   // O turno em andamento é de planejamento? Só a resposta desse turno vira plano.
   const turnPlanning = useRef(false);
+  // Só o turno do modo Conversar mostra perguntas no seletor; nos outros modos, as perguntas ficam como texto.
+  const turnAsk = useRef(false);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
@@ -220,7 +222,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     let active = true;
     // Perfil: os modelos que o usuário listou nele. Sem perfil: a lista que a CLI expõe.
     const profile = profileId ? profiles.find((p) => p.id === profileId) : undefined;
-    const source: Promise<ModelOption[]> = profileId ? Promise.resolve(profileModels(profile)) : listModels(provider);
+    const source: Promise<ModelOption[]> = profileId ? Promise.resolve(profileModelOptions(profile)) : listModels(provider);
     source
       .then((list) => {
         if (!active) return;
@@ -277,7 +279,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         setRunning(false);
         setChangesVersion((v) => v + 1);
         // O bloco de perguntas sai do texto e vira o seletor; o resto da resposta fica no chat.
-        const parsed = extractQuestions(responseText.current);
+        const parsed: ReplyParts = turnAsk.current
+          ? extractQuestions(responseText.current)
+          : { text: responseText.current, questions: null };
         if (parsed.warning) setNotes((current) => [...current, parsed.warning!]);
         if (parsed.questions) {
           const last = messagesRef.current.at(-1);
@@ -371,6 +375,7 @@ ${cliPrompt}`;
     responseText.current = "";
     setQuestions(null);
     turnPlanning.current = plan;
+    turnAsk.current = mode?.id === "ask";
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
@@ -577,6 +582,7 @@ ${outgoing}`
   // Sem conta conectada ou sem pasta de trabalho ainda carregada, não há como enviar.
   const blocked = loggedIn !== true || !cwd;
   const lastIsReply = messages.at(-1)?.role === "assistant";
+  const modelWindow = models.find((m) => m.id === model)?.contextWindow;
 
   return (
     <div className="chat">
@@ -705,6 +711,7 @@ ${outgoing}`
             key={questionsRound}
             questions={questions}
             onAnswer={(text) => void answerQuestions(text)}
+            onDismiss={() => setQuestions(null)}
           />
         )}
       </div>
@@ -745,7 +752,14 @@ ${outgoing}`
           onPick={switchWorkspace}
           onBrowse={() => void browseWorkspace()}
         />
-        {provider === "claude" && !profileId && <UsageMeter limits={limits} context={context} />}
+        {provider === "claude" && (
+          <UsageMeter
+            // Limites de conta são da assinatura da CLI; um perfil de API não tem.
+            limits={profileId ? {} : limits}
+            // Com perfil de API, a janela vem do modelo escolhido; sem ela, o medidor mostra só os tokens.
+            context={context && { tokens: context.tokens, windowSize: profileId ? modelWindow : context.windowSize }}
+          />
+        )}
       </div>
       </div>
 
@@ -774,17 +788,6 @@ function initialSessions(initial?: Conversation): AgentSessions {
     return { [agentKey(initial.provider, initial.profile)]: { id: initial.sessionId, seen: initial.messages.length } };
   }
   return {};
-}
-
-/// Modelos de um perfil de API: os que o usuário listou. A API não informa níveis de esforço.
-function profileModels(profile?: ApiProfile): ModelOption[] {
-  return (profile?.models ?? []).map((id) => ({
-    id,
-    label: shortModelName(id),
-    description: null,
-    efforts: [],
-    default: id === profile?.defaultModel,
-  }));
 }
 
 /// Título da conversa: a primeira mensagem do usuário, já truncada.

@@ -3,7 +3,7 @@
   "plugins": [
     {
       "id": "ask-mode",
-      "name": "Modo Ask",
+      "name": "Modo Conversar",
       "description": "Modo só de conversa: o agente explica e responde, sem alterar arquivos.",
       "author": "LunaHarness",
       "version": "0.1.0",
@@ -14,8 +14,8 @@
       "files": [
         {
           "path": "index.js",
-          "sha256": "d3aa09b3b76380492196049e82fc257f6eddfac3e83802bcd5cfa61c69ae56d9",
-          "content": "// Modo Ask: o agente só conversa e explica. O modo força a leitura (nada é alterado)\n// e acrescenta uma instrução ao pedido. A permissão \"modes\" só restringe, nunca amplia.\nexport function activate(api) {\n  api.registerMode({\n    id: \"ask\",\n    label: \"Perguntar\",\n    description: \"Só conversa: explica e responde, sem editar arquivos nem rodar comandos que alterem algo.\",\n    instruction:\n      \"Modo Perguntar: responda só com explicações e perguntas. Não edite nem crie arquivos e não execute comandos que alterem o projeto ou o sistema. Se for preciso mudar algo, descreva o que faria e pergunte antes.\",\n    permission: \"readOnly\",\n  });\n}\n"
+          "sha256": "ca4b6e813cbe79576f24eb9f6b8e3f0e413e0d304ce4df9fd163cbe97bed105c",
+          "content": "// Modo Ask: o agente só conversa e explica. O modo força a leitura (nada é alterado)\n// e acrescenta uma instrução ao pedido. A permissão \"modes\" só restringe, nunca amplia.\nexport function activate(api) {\n  api.registerMode({\n    id: \"ask\",\n    label: \"Conversar\",\n    description: \"Só conversa: explica e responde, sem editar arquivos nem rodar comandos que alterem algo.\",\n    instruction:\n      \"Modo Conversar: responda só com explicações e perguntas. Não edite nem crie arquivos e não execute comandos que alterem o projeto ou o sistema. Se for preciso mudar algo, descreva o que faria e pergunte antes.\",\n    permission: \"readOnly\",\n  });\n}\n"
         }
       ]
     }

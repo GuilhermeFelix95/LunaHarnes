@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "LunaHarness",
-        "width": 1120,
-        "height": 780,
+        "width": 1280,
+        "height": 820,
         "minWidth": 480,
         "minHeight": 360
       }

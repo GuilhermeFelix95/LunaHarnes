@@ -2,7 +2,7 @@
 /// porque o Codex não tem modo de plano próprio: a regra vai no prompt e a sandbox fica só leitura.
 export const PLAN_INSTRUCTION = [
   "Você está no modo de planejamento. Até o usuário aprovar o plano, siga estas regras:",
-  "1. Entenda o contexto com perguntas em rodadas numeradas, sempre no bloco luna-perguntas. Pergunte só o que não dá para descobrir lendo o código.",
+  "1. Entenda o contexto com perguntas em rodadas numeradas. Pergunte só o que não dá para descobrir lendo o código.",
   "2. Cada pergunta traz a sua resposta recomendada, numa linha separada.",
   "3. Não altere arquivos nem execute comandos que modifiquem algo.",
   "4. Quando tiver contexto suficiente, apresente o plano com os arquivos a alterar e pergunte se pode aprovar.",
@@ -38,5 +38,5 @@ export const QUESTION_PROTOCOL = [
 ].join("\n");
 
 export function withPlanInstruction(prompt: string): string {
-  return `${PLAN_INSTRUCTION}\n\n${QUESTION_PROTOCOL}\n\n${prompt}`;
+  return `${PLAN_INSTRUCTION}\n\n${prompt}`;
 }

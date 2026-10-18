@@ -9,8 +9,8 @@ vi.mock("../../api", () => ({
   deleteApiProfile: vi.fn(async () => {}),
   listApiProfiles: vi.fn(async () => []),
   PROFILES_CHANGED: "luna:profiles-changed",
-  refreshApiModels: vi.fn(async () => ({ ids: ["deepseek-flash", "deepseek-v4-pro"], cheapest: "deepseek-flash" })),
-  listProviderModels: vi.fn(async () => ({ ids: [], cheapest: null })),
+  refreshApiModels: vi.fn(async () => ({ ids: ["deepseek-flash", "deepseek-v4-pro"], cheapest: "deepseek-flash", contexts: {} })),
+  listProviderModels: vi.fn(async () => ({ ids: [], cheapest: null, contexts: {} })),
   saveApiProfile: vi.fn(async () => ({})),
   setApiProfileKey: vi.fn(async () => {}),
   testApiProfile: vi.fn(async () => "ok"),
@@ -63,6 +63,17 @@ describe("ApiProfilesSection", () => {
     expect((screen.getByLabelText("Modelo padrão") as HTMLInputElement).value).toBe("deepseek-flash");
   });
 
+  it("no OpenRouter, escolher só gratuitos vai no perfil salvo", async () => {
+    render(<ApiProfilesSection />);
+    fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "OpenRouter" } });
+    fireEvent.click(screen.getByRole("radio", { name: /Só gratuitos/ }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Criar perfil" }));
+
+    await waitFor(() => expect(api.saveApiProfile).toHaveBeenCalledWith(expect.objectContaining({ modelScope: "free" })));
+  });
+
   it("Atualizar lista usa a chave colada, mesmo antes de salvar o perfil", async () => {
     render(<ApiProfilesSection />);
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
@@ -76,7 +87,7 @@ describe("ApiProfilesSection", () => {
   });
 
   it("ao colar a chave, a lista de modelos vem da API e o padrão é o mais barato", async () => {
-    vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids: ["a/x:free", "b/y"], cheapest: "a/x:free" });
+    vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids: ["a/x:free", "b/y"], cheapest: "a/x:free", contexts: {} });
     render(<ApiProfilesSection />);
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });

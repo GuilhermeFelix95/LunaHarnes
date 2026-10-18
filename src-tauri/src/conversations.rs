@@ -76,7 +76,10 @@ pub fn save(dir: &Path, conversation: &Conversation) -> Result<(), String> {
     fs::create_dir_all(dir).map_err(|e| format!("não foi possível criar a pasta de conversas: {e}"))?;
     let text = serde_json::to_string_pretty(conversation)
         .map_err(|e| format!("não foi possível serializar a conversa: {e}"))?;
-    fs::write(&file, text).map_err(|e| format!("não foi possível salvar a conversa `{}`: {e}", conversation.id))
+    // Temporário e depois troca de nome: queda no meio não deixa a conversa pela metade.
+    let tmp = file.with_extension("json.tmp");
+    fs::write(&tmp, text).map_err(|e| format!("não foi possível salvar a conversa `{}`: {e}", conversation.id))?;
+    fs::rename(&tmp, &file).map_err(|e| format!("não foi possível salvar a conversa `{}`: {e}", conversation.id))
 }
 
 pub fn load(dir: &Path, id: &str) -> Result<Conversation, String> {
@@ -158,6 +161,15 @@ mod tests {
         assert_eq!(loaded.effort, None);
         assert!(!loaded.planning);
         assert_eq!(loaded.sessions, None);
+    }
+
+    #[test]
+    fn save_leaves_no_temporary_file_behind() {
+        let dir = temp_dir("atomic");
+        save(&dir, &conversation("atomica", 3)).unwrap();
+
+        let names: Vec<String> = fs::read_dir(&dir).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        assert_eq!(names, vec!["atomica.json"]);
     }
 
     #[test]

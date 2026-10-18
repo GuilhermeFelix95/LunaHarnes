@@ -10,7 +10,8 @@ export type LimitState = Partial<Record<"fiveHour" | "sevenDay", LimitInfo>>;
 
 export interface ContextState {
   tokens: number;
-  windowSize: number;
+  /** Ausente quando a API não informa a janela do modelo: mostra só os tokens usados. */
+  windowSize?: number;
 }
 
 interface UsageMeterProps {
@@ -30,7 +31,12 @@ export function UsageMeter({ limits, context }: UsageMeterProps) {
 
   return (
     <div className="usage" role="group" aria-label="Uso da conta e do contexto">
-      {context && (
+      {context && context.windowSize === undefined && (
+        <div className="usage__item" title="Janela de contexto do último turno">
+          <span className="usage__label">Contexto · {formatTokens(context.tokens)} usados</span>
+        </div>
+      )}
+      {context && context.windowSize !== undefined && (
         <div className="usage__item" title="Janela de contexto do último turno">
           <span className="usage__label">
             Contexto · {formatTokens(context.tokens)} de {formatTokens(context.windowSize)} (

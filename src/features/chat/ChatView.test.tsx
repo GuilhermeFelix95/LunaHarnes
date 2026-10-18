@@ -93,7 +93,7 @@ describe("ChatView: continuidade e envio", () => {
     expect(document.querySelector(".side__plan")?.textContent).toContain("Passo 1: criar a tela.");
   });
 
-  it("pergunta do agente vira seletor e o bloco sai do texto do chat", async () => {
+  it("fora do modo Conversar, perguntas não viram seletor", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Pular entrevista" }));
@@ -104,10 +104,8 @@ describe("ChatView: continuidade e envio", () => {
     });
     emit({ kind: "done", ok: true });
 
-    expect(await screen.findByLabelText("Perguntas do agente")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Postgres" })).toBeTruthy();
-    expect(screen.getByText("Antes de começar:")).toBeTruthy();
-    expect(document.body.textContent).not.toContain("luna-perguntas");
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+    expect(screen.queryByLabelText("Perguntas do agente")).toBeNull();
   });
 
   it("Gerar spec manda o pedido de spec em modo somente leitura", async () => {

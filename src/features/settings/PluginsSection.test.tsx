@@ -19,7 +19,7 @@ vi.mock("../../api", () => ({
 
 const ASK_INSTALLED = {
   id: "ask-mode",
-  name: "Modo Ask",
+  name: "Modo Conversar",
   version: "0.1.0",
   entry: "index.js",
   permissions: ["modes"],
@@ -30,8 +30,8 @@ const ASK_CATALOG = {
   plugins: [
     {
       id: "ask-mode",
-      name: "Modo Ask",
-      description: "Modo Perguntar",
+      name: "Modo Conversar",
+      description: "Modo Conversar",
       author: "LunaHarness",
       version: "0.1.0",
       entry: "index.js",

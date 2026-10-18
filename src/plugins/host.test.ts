@@ -118,7 +118,7 @@ describe("PluginHost", () => {
 describe("PluginHost: modos", () => {
   const mode = {
     id: "ask",
-    label: "Perguntar",
+    label: "Conversar",
     description: "Só explica",
     instruction: "Só explique.",
     permission: "readOnly" as const,

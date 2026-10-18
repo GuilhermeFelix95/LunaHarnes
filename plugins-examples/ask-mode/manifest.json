@@ -1,6 +1,6 @@
 {
   "id": "ask-mode",
-  "name": "Modo Ask",
+  "name": "Modo Conversar",
   "version": "0.1.0",
   "entry": "index.js",
   "permissions": ["modes"]

@@ -22,9 +22,21 @@ interface FormState {
   baseUrl: string;
   models: string;
   defaultModel: string;
+  /** Só OpenRouter: "free" mostra no chat apenas os modelos com :free. */
+  modelScope: "all" | "free";
+  /** Janela de contexto por modelo, vinda da API. */
+  contexts: Record<string, number>;
 }
 
-const EMPTY_FORM: FormState = { name: "", preset: "anthropic", baseUrl: "", models: "", defaultModel: "" };
+const EMPTY_FORM: FormState = {
+  name: "",
+  preset: "anthropic",
+  baseUrl: "",
+  models: "",
+  defaultModel: "",
+  modelScope: "all",
+  contexts: {},
+};
 
 function loginLabel(state: boolean | null | undefined): string {
   if (state === undefined) return "verificando…";
@@ -80,6 +92,8 @@ export function ApiProfilesSection() {
       baseUrl: profile.baseUrl,
       models: profile.models.join(", "),
       defaultModel: profile.defaultModel ?? "",
+      modelScope: profile.modelScope ?? "all",
+      contexts: profile.contextWindows ?? {},
     });
     setApiKey("");
     setStatus(undefined);
@@ -103,6 +117,8 @@ export function ApiProfilesSection() {
         baseUrl: form.baseUrl.trim(),
         models,
         defaultModel: form.defaultModel.trim() || null,
+        modelScope: form.modelScope,
+        contextWindows: form.contexts,
       });
       if (apiKey.trim()) await setApiProfileKey(saved.id, apiKey);
       setApiKey("");
@@ -160,6 +176,7 @@ export function ApiProfilesSection() {
       ...current,
       models: result.ids.join(", "),
       defaultModel: result.ids.includes(current.defaultModel) ? current.defaultModel : result.cheapest ?? result.ids[0],
+      contexts: result.contexts,
     }));
   }
 
@@ -314,6 +331,29 @@ export function ApiProfilesSection() {
             placeholder="ex.: deepseek-flash, deepseek-v4-pro"
           />
         </label>
+        {form.preset === "openRouter" && (
+          <fieldset className="settings__scope">
+            <legend>Modelos do OpenRouter</legend>
+            <label>
+              <input
+                type="radio"
+                name="model-scope"
+                checked={form.modelScope === "all"}
+                onChange={() => setForm({ ...form, modelScope: "all" })}
+              />
+              Todos os modelos
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="model-scope"
+                checked={form.modelScope === "free"}
+                onChange={() => setForm({ ...form, modelScope: "free" })}
+              />
+              Só gratuitos (:free)
+            </label>
+          </fieldset>
+        )}
         <button
           type="button"
           disabled={(!apiKey.trim() && !form.id) || refreshing}

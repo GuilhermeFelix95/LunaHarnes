@@ -5,6 +5,7 @@
 //! Os metadados ficam em `<app_data>/api-profiles.json`, sem segredo.
 //! A chave fica no Gerenciador de Credenciais do Windows (keyring) e nunca volta para a interface.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -17,7 +18,8 @@ const FILE_NAME: &str = "api-profiles.json";
 /// Serviço no cofre de credenciais. Cada perfil tem o usuário `profile:<id>`.
 pub const KEYRING_SERVICE: &str = "lunaharness";
 const MAX_NAME_CHARS: usize = 60;
-const MAX_MODELS: usize = 50;
+/// Lista de modelos por perfil. O OpenRouter devolve ~470; o limite cobre isso com folga.
+const MAX_MODELS: usize = 1000;
 const MAX_KEY_CHARS: usize = 1024;
 /// Limite do Z.ai para respostas longas (ver a documentação do Claude Code com GLM).
 const ZAI_TIMEOUT_MS: &str = "3000000";
@@ -31,7 +33,7 @@ pub enum Preset {
     DeepSeek,
     Zai,
     Moonshot,
-    OpenCodeZen,
+    OpenCodeGo,
     CustomAnthropic,
     OpenAi,
 }
@@ -83,14 +85,21 @@ impl Preset {
                 "glm-4.7-flash",
             ),
             // Moonshot/Kimi: o endereço e o modelo ainda precisam de confirmação na documentação oficial.
-            Preset::Moonshot => ("Moonshot / Kimi", ProviderKind::Claude, "https://api.moonshot.ai/anthropic", &["kimi-k3"], "kimi-k3"),
-            // Só os modelos que o Zen expõe em /v1/messages: o Claude Code não fala chat/completions.
-            Preset::OpenCodeZen => (
-                "OpenCode Zen",
+            Preset::Moonshot => (
+                "Moonshot / Kimi",
                 ProviderKind::Claude,
-                "https://opencode.ai/inference/anthropic",
-                &["claude-haiku-4-5", "claude-sonnet-4-6", "qwen3.6-plus"],
-                "claude-haiku-4-5",
+                "https://api.moonshot.ai/anthropic",
+                &["kimi-k2.6", "kimi-k2.7-code", "kimi-k3"],
+                "kimi-k2.6",
+            ),
+            // OpenCode Go: só o MiniMax M3 fala /v1/messages (formato Anthropic); os demais usam chat/completions,
+            // que o Claude Code não aceita. Pesquisa de terceiros: confirmar no endpoint /v1/models antes de publicar.
+            Preset::OpenCodeGo => (
+                "OpenCode Go",
+                ProviderKind::Claude,
+                "https://opencode.ai/zen/go",
+                &["minimax-m3"],
+                "minimax-m3",
             ),
             Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, "", &[], ""),
             Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, "", &[], ""),
@@ -114,7 +123,7 @@ pub fn presets() -> Vec<PresetInfo> {
         Preset::DeepSeek,
         Preset::Zai,
         Preset::Moonshot,
-        Preset::OpenCodeZen,
+        Preset::OpenCodeGo,
         Preset::CustomAnthropic,
         Preset::OpenAi,
     ]
@@ -132,6 +141,17 @@ const MODELS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 pub struct RemoteModels {
     pub ids: Vec<String>,
     pub cheapest: Option<String>,
+    /// Janela de contexto em tokens, por id, quando a API informa.
+    pub contexts: BTreeMap<String, u64>,
+}
+
+/// Quais modelos da lista aparecem no chat. `Free` mostra só os `:free` (OpenRouter).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ModelScope {
+    #[default]
+    All,
+    Free,
 }
 
 /// Modelos de `GET /v1/models` (formato da Anthropic e do OpenRouter). Descarta ids que não passam na validação de nome.
@@ -156,9 +176,19 @@ pub fn parse_models(body: &serde_json::Value) -> RemoteModels {
         .filter(|(_, price)| price.is_finite())
         .min_by(|a, b| a.1.total_cmp(&b.1))
         .map(|(id, _)| id.clone());
+    // Janela de contexto de cada modelo, quando a API informa (`context_length` no OpenRouter).
+    let mut contexts = BTreeMap::new();
+    for item in body.get("data").and_then(|data| data.as_array()).into_iter().flatten() {
+        let id = item.get("id").and_then(|id| id.as_str()).filter(|id| is_model_token(id));
+        let size = item.get("context_length").and_then(|size| size.as_u64());
+        if let (Some(id), Some(size)) = (id, size) {
+            contexts.insert(id.to_string(), size);
+        }
+    }
     RemoteModels {
         ids: priced.into_iter().map(|(id, _)| id).collect(),
         cheapest,
+        contexts,
     }
 }
 
@@ -233,6 +263,12 @@ pub struct ApiProfile {
     pub models: Vec<String>,
     #[serde(default)]
     pub default_model: Option<String>,
+    /// Só o OpenRouter usa: `Free` esconde os modelos pagos no chat. A lista guardada continua completa.
+    #[serde(default)]
+    pub model_scope: ModelScope,
+    /// Janela de contexto por modelo, em tokens, quando a API informou.
+    #[serde(default)]
+    pub context_windows: BTreeMap<String, u64>,
 }
 
 impl ApiProfile {
@@ -409,6 +445,8 @@ mod tests {
             base_url: String::new(),
             models: vec![],
             default_model: None,
+            model_scope: ModelScope::All,
+            context_windows: BTreeMap::new(),
         }
     }
 
@@ -556,6 +594,47 @@ mod tests {
         let list = presets();
         assert_eq!(list.len(), 8);
         assert_eq!(list.iter().find(|p| p.preset == Preset::OpenAi).unwrap().engine, ProviderKind::Codex);
+    }
+
+    #[test]
+    fn parse_models_keeps_the_context_window_of_each_model() {
+        let body = serde_json::json!({
+            "data": [
+                {"id": "nvidia/x:free", "context_length": 131072, "pricing": {"prompt": "0"}},
+                {"id": "sem/contexto"}
+            ]
+        });
+
+        let models = parse_models(&body);
+
+        assert_eq!(models.contexts.get("nvidia/x:free"), Some(&131072));
+        assert!(!models.contexts.contains_key("sem/contexto"));
+    }
+
+    #[test]
+    fn a_full_openrouter_list_is_accepted() {
+        let mut profile = profile(Preset::OpenRouter);
+        profile.models = (0..471).map(|i| format!("vendor/model-{i}")).collect();
+
+        assert!(profile.validate().is_ok());
+    }
+
+    #[test]
+    fn opencode_go_uses_its_own_address_and_minimax() {
+        let info = Preset::OpenCodeGo.info();
+
+        assert_eq!(info.default_base_url, "https://opencode.ai/zen/go");
+        assert_eq!(info.default_model, "minimax-m3");
+        assert_eq!(info.engine, ProviderKind::Claude);
+    }
+
+    #[test]
+    fn model_scope_defaults_to_all_models() {
+        let saved = r#"{"id":"p1","name":"OpenRouter","preset":"openRouter"}"#;
+        let parsed: ApiProfile = serde_json::from_str(saved).unwrap();
+
+        assert_eq!(parsed.model_scope, ModelScope::All);
+        assert!(parsed.context_windows.is_empty());
     }
 
     #[test]

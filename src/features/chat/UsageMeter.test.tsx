@@ -15,6 +15,13 @@ describe("UsageMeter", () => {
     expect(screen.getByText(/44k de 1M \(4%\)/)).toBeTruthy();
   });
 
+  it("sem janela conhecida do modelo, mostra só os tokens usados", () => {
+    render(<UsageMeter limits={{}} context={{ tokens: 44060 }} />);
+
+    expect(screen.getByText(/Contexto · 44k usados/)).toBeTruthy();
+    expect(screen.queryByText(/%/)).toBeNull();
+  });
+
   it("mostra a sessão de 5 horas e a semana com porcentagem e reset", () => {
     render(
       <UsageMeter

@@ -3,10 +3,10 @@
 export function activate(api) {
   api.registerMode({
     id: "ask",
-    label: "Perguntar",
+    label: "Conversar",
     description: "Só conversa: explica e responde, sem editar arquivos nem rodar comandos que alterem algo.",
     instruction:
-      "Modo Perguntar: responda só com explicações e perguntas. Não edite nem crie arquivos e não execute comandos que alterem o projeto ou o sistema. Se for preciso mudar algo, descreva o que faria e pergunte antes.",
+      "Modo Conversar: responda só com explicações e perguntas. Não edite nem crie arquivos e não execute comandos que alterem o projeto ou o sistema. Se for preciso mudar algo, descreva o que faria e pergunte antes.",
     permission: "readOnly",
   });
 }

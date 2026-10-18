@@ -165,18 +165,18 @@ describe("Composer", () => {
 });
 
 describe("Composer: modos de plugin", () => {
-  const ASK = { id: "ask", label: "Perguntar", description: "Só explica", instruction: "Só explique.", permission: "readOnly" as const };
+  const ASK = { id: "ask", label: "Conversar", description: "Só explica", instruction: "Só explique.", permission: "readOnly" as const };
 
   it("liga um modo ao clicar no chip", () => {
     const props = setup({ modes: [ASK] });
-    fireEvent.click(screen.getByRole("button", { name: "Perguntar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Conversar" }));
 
     expect(props.onMode).toHaveBeenCalledWith("ask");
   });
 
   it("desliga o modo ativo ao clicar de novo", () => {
     const props = setup({ modes: [ASK], mode: "ask" });
-    const chip = screen.getByRole("button", { name: "Perguntar" });
+    const chip = screen.getByRole("button", { name: "Conversar" });
     expect(chip.getAttribute("aria-pressed")).toBe("true");
 
     fireEvent.click(chip);
