@@ -1,6 +1,8 @@
 // Host de plugins. Cada plugin exporta `activate(api)` e recebe só as APIs
 // liberadas no manifesto. Permissão recusada vira erro registrado, não quebra os outros plugins.
 
+import { responseCache, type CacheStats, type ResponseCache } from "../chat/responseCache";
+
 export interface PluginManifest {
   id: string;
   name: string;
@@ -28,6 +30,18 @@ export interface PluginMode {
   questions?: boolean;
 }
 
+/// Cache de respostas do núcleo, exposto ao plugin com permissão `cache`.
+export interface PluginCacheApi {
+  /** Liga ou desliga o cache. Desligado, nenhuma resposta é devolvida nem guardada. */
+  setEnabled(enabled: boolean): void;
+  /** Esvazia as respostas guardadas. */
+  clear(): void;
+  /** Acertos e respostas guardadas na sessão. */
+  stats(): CacheStats;
+  /** Mostra um aviso local no chat. Não é enviado ao provedor. */
+  notify(text: string): void;
+}
+
 export interface PluginApi {
   /** Requer permissão `commands`. Nome sem barra: `ola` vira `/ola`. */
   registerCommand(name: string, handler: CommandHandler): void;
@@ -37,6 +51,8 @@ export interface PluginApi {
   onAfterResponse(hook: AfterResponseHook): void;
   /** Requer permissão `modes`. Só aceita modos de somente leitura. */
   registerMode(mode: PluginMode): void;
+  /** Requer permissão `cache`. Sem ela, acessar `cache` falha a ativação. */
+  readonly cache: PluginCacheApi;
 }
 
 export interface PluginModule {
@@ -51,17 +67,22 @@ export interface CommandResult {
 }
 
 const COMMAND_NAME = /^[a-z][a-z0-9-]*$/;
-const PERMISSIONS = ["commands", "hooks", "modes"] as const;
+const PERMISSIONS = ["commands", "hooks", "modes", "cache"] as const;
 
 export class PluginHost {
   private commands = new Map<string, { pluginId: string; handler: CommandHandler }>();
   private beforeSendHooks: { pluginId: string; hook: BeforeSendHook }[] = [];
   private afterResponseHooks: { pluginId: string; hook: AfterResponseHook }[] = [];
   private modes = new Map<string, { pluginId: string; mode: PluginMode }>();
+  private notices: string[] = [];
   readonly loaded: string[] = [];
   readonly errors: string[] = [];
+
   /** Sobe a cada reset. Uma carga que começou antes do reset não pode ativar nada depois dele. */
   private generation = 0;
+
+  /// O cache é o da sessão por padrão; testes passam um próprio.
+  constructor(readonly cache: ResponseCache = responseCache) {}
 
   /** Ativa um plugin. Falhas ficam em `errors` e não afetam os demais. */
   async load(manifest: PluginManifest, loadModule: () => Promise<PluginModule>): Promise<boolean> {
@@ -134,6 +155,11 @@ export class PluginHost {
     return [...this.modes.values()].map((entry) => entry.mode);
   }
 
+  /** Mensagens para a lista de avisos do chat: erros e avisos locais dos plugins. */
+  messages(): string[] {
+    return [...this.errors, ...this.notices];
+  }
+
   /** Tira do host o que um plugin registrou. */
   private forget(pluginId: string) {
     for (const [name, entry] of this.commands) if (entry.pluginId === pluginId) this.commands.delete(name);
@@ -151,6 +177,10 @@ export class PluginHost {
     this.modes.clear();
     this.loaded.length = 0;
     this.errors.length = 0;
+    // O cache volta desligado e vazio: quem o quer ligar é um plugin recarregado.
+    this.cache.setEnabled(false);
+    this.cache.clear();
+    this.notices = [];
   }
 
   private createApi(manifest: PluginManifest, generation: number): PluginApi {
@@ -165,7 +195,21 @@ export class PluginHost {
       }
     };
 
+    // Objeto construído uma vez: as funções usam o host por arrow, sem depender de `this` do objeto.
+    const cacheApi: PluginCacheApi = {
+      setEnabled: (enabled) => this.cache.setEnabled(enabled),
+      clear: () => this.cache.clear(),
+      stats: () => this.cache.stats(),
+      notify: (text) => {
+        this.notices.push(text);
+      },
+    };
+
     return {
+      get cache() {
+        require("cache");
+        return cacheApi;
+      },
       registerCommand: (name, handler) => {
         require("commands");
         if (!COMMAND_NAME.test(name)) {

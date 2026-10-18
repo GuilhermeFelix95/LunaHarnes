@@ -1647,6 +1647,16 @@ textarea:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.message__cache {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--muted);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .composer__files,
 .composer__attachments {
   list-style: none;

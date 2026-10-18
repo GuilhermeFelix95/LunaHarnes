@@ -122,6 +122,8 @@ export interface ChatMessage {
   checkpoint?: string;
   /** Hora do envio (usuário) ou da primeira parte da resposta, em ms. Ausente em mensagens antigas. */
   at?: number;
+  /** Resposta vinda do cache de respostas: o provedor não foi chamado para ela. */
+  cached?: true;
 }
 
 /// Sessão nativa de um agente e quantas mensagens do histórico ele já viu (ver src/chat/handoff.ts).

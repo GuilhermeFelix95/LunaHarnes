@@ -28,6 +28,7 @@ import { contextFor, withContext } from "../../chat/handoff";
 import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
+import { cacheKey } from "../../chat/responseCache";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
@@ -97,6 +98,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const turnPlanning = useRef(false);
   // Só turnos de planejamento e do modo Conversar mostram perguntas no seletor; nos outros, ficam como texto.
   const turnAsk = useRef(false);
+  // Chave do cache para o turno que está para começar, e a do turno em andamento (null = não guarda).
+  const nextCacheKey = useRef<string | null>(null);
+  const turnCacheKey = useRef<string | null>(null);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
@@ -187,7 +191,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     if (!pluginsLoad.current) pluginsLoad.current = loadInstalledPlugins(host);
     void pluginsLoad.current.then(() => {
       setModes(host.modeList());
-      setNotes([...host.errors]);
+      setNotes(host.messages());
     });
     if (!cwd) {
       void getWorkspace().then(setCwd).catch((e) => setNotes([String(e)]));
@@ -205,7 +209,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       host.reset();
       void loadInstalledPlugins(host).then(() => {
         setModes(host.modeList());
-        setNotes([...host.errors]);
+        setNotes(host.messages());
       });
     };
     window.addEventListener(PLUGINS_CHANGED, reload);
@@ -279,6 +283,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         void notifyIfUnfocused("Erro na resposta", "Uma resposta falhou. Abra a conversa para ver o motivo.");
       }
       if (event.kind === "done") {
+        const doneKey = turnCacheKey.current;
+        turnCacheKey.current = null;
+        if (doneKey && event.ok) void rememberIfUnchanged(doneKey, responseText.current);
         const firstUser = messagesRef.current.find((m) => m.role === "user");
         const subject = firstUser ? truncate(firstUser.text, 40) : "a conversa";
         void notifyIfUnfocused(
@@ -312,7 +319,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           setSideTab("plan");
         }
         persist(messagesRef.current);
-        void host.runAfterResponse(responseText.current).then(() => setNotes([...host.errors]));
+        void host.runAfterResponse(responseText.current).then(() => setNotes(host.messages()));
       }
     });
     return () => {
@@ -371,6 +378,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     setCwd(path);
     saveLastWorkspace(path);
     sessions.current = {};
+    host.cache.clear();
     commit([]);
   }
 
@@ -398,6 +406,8 @@ ${cliPrompt}`;
     turnPlanning.current = plan;
     // Perguntas: o modo diz se quer perguntas. "ask" continua valendo para o plugin antigo, que não declarava o campo.
     turnAsk.current = plan || (mode?.questions ?? mode?.id === "ask");
+    turnCacheKey.current = nextCacheKey.current;
+    nextCacheKey.current = null;
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
@@ -406,7 +416,7 @@ ${cliPrompt}`;
     commit([...history, userMsg]);
     // Quem envia quer ver a resposta: volta a seguir o fim.
     scrollToBottom();
-    setNotes([...host.errors]);
+    setNotes(host.messages());
 
     try {
       // Checkpoint antes de qualquer alteração do agente: é o ponto para o qual "Voltar até aqui" leva.
@@ -508,7 +518,7 @@ ${cliPrompt}`;
     // Comando de plugin (`/nome args`): se devolver texto, esse texto é o que vai ao provedor.
     const command = await host.handleCommand(prompt);
     if (command.handled && command.prompt === undefined) {
-      setNotes([...host.errors]);
+      setNotes(host.messages());
       return;
     }
     const outgoing = await host.runBeforeSend(command.handled ? command.prompt! : prompt);
@@ -524,9 +534,42 @@ ${outgoing}`
     // Modo de plugin: só leitura e com a instrução do modo na frente do pedido.
     // As imagens vão com este envio; a lista de anexos volta a vazia.
     const imagePaths = attachments.map((a) => a.path);
+    const mode = modes.find((m) => m.id === modeId);
+    // Cache só na primeira mensagem, sem anexo, sem arquivo citado e fora dos modos que planejam ou perguntam.
+    const cacheable =
+      messagesRef.current.length === 0 &&
+      imagePaths.length === 0 &&
+      mentioned.length === 0 &&
+      !planning &&
+      !rewindNote.current &&
+      !(mode?.questions ?? mode?.id === "ask");
+    const key = cacheable
+      ? cacheKey({ cwd, provider, profile: profileId ?? "", model, effort, permission, mode: modeId, text: outgoing })
+      : null;
+    const cached = key ? host.cache.get(key) : undefined;
+    if (cached !== undefined) {
+      answerFromCache(prompt, cached);
+      return;
+    }
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
     setAttachments([]);
-    await run(prompt, withFiles, planning, modes.find((m) => m.id === modeId), imagePaths);
+    nextCacheKey.current = key;
+    await run(prompt, withFiles, planning, mode, imagePaths);
+  }
+
+  /// Resposta guardada: entra na conversa como resposta do agente, sem chamar o provedor.
+  function answerFromCache(shown: string, text: string) {
+    const now = Date.now();
+    commit([...messagesRef.current, { role: "user", text: shown, at: now }, { role: "assistant", text, at: now, cached: true }]);
+    setNotes(host.messages());
+    persist(messagesRef.current);
+    scrollToBottom();
+  }
+
+  /// Guarda a resposta do turno só se ele não alterou arquivos num repositório git.
+  async function rememberIfUnchanged(key: string, text: string) {
+    const changes = await getChanges(live.current.cwd).catch(() => null);
+    if (changes?.isRepo && changes.files.length === 0 && text.trim()) host.cache.set(key, text);
   }
 
   /// Volta os arquivos ao início deste turno e tira a conversa daquele ponto para baixo.

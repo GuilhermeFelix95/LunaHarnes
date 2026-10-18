@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PLUGIN_TIMEOUT_MS, PluginHost, type PluginManifest, type PluginModule } from "./host";
+import { ResponseCache } from "../chat/responseCache";
+import { PLUGIN_TIMEOUT_MS, PluginHost, type PluginApi, type PluginManifest, type PluginModule } from "./host";
 
 const manifest = (overrides: Partial<PluginManifest> = {}): PluginManifest => ({
   id: "hello",
@@ -281,5 +282,68 @@ describe("PluginHost: limites e ativação parcial", () => {
     );
 
     expect(host.modeList()[0].questions).toBe(true);
+  });
+});
+
+describe("PluginHost: cache", () => {
+  it("recusa api.cache sem a permissão cache", async () => {
+    const host = new PluginHost(new ResponseCache());
+    const ok = await host.load(manifest({ permissions: ["commands"] }), plugin((api) => api.cache.setEnabled(true)));
+
+    expect(ok).toBe(false);
+    expect(host.errors[0]).toContain('não tem a permissão "cache"');
+  });
+
+  it("o cache só responde depois que o plugin liga, e conta acertos e entradas", async () => {
+    const cache = new ResponseCache();
+    const host = new PluginHost(cache);
+    let api!: PluginApi;
+    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => (api = a)));
+
+    cache.set("pedido", "resposta");
+    expect(cache.get("pedido")).toBeUndefined();
+
+    api.cache.setEnabled(true);
+    cache.set("pedido", "resposta");
+    expect(cache.get("pedido")).toBe("resposta");
+    expect(api.cache.stats()).toEqual({ hits: 1, stored: 1 });
+  });
+
+  it("clear esvazia as respostas guardadas", async () => {
+    const cache = new ResponseCache();
+    const host = new PluginHost(cache);
+    let api!: PluginApi;
+    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => (api = a)));
+    api.cache.setEnabled(true);
+    cache.set("pedido", "resposta");
+
+    api.cache.clear();
+
+    expect(api.cache.stats().stored).toBe(0);
+    expect(cache.get("pedido")).toBeUndefined();
+  });
+
+  it("notify mostra aviso local, sem virar pedido ao provedor", async () => {
+    const host = new PluginHost(new ResponseCache());
+    await host.load(manifest({ permissions: ["cache"] }), plugin((api) => api.cache.notify("Cache ligado.")));
+
+    expect(host.messages()).toEqual(["Cache ligado."]);
+    expect(await host.runBeforeSend("oi")).toBe("oi");
+  });
+
+  it("reset desliga o cache, esvazia as respostas e limpa os avisos", async () => {
+    const cache = new ResponseCache();
+    const host = new PluginHost(cache);
+    await host.load(manifest({ permissions: ["cache"] }), plugin((api) => {
+      api.cache.setEnabled(true);
+      api.cache.notify("aviso");
+    }));
+    cache.set("pedido", "resposta");
+
+    host.reset();
+
+    expect(cache.enabled).toBe(false);
+    expect(cache.get("pedido")).toBeUndefined();
+    expect(host.messages()).toEqual([]);
   });
 });
