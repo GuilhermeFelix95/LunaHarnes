@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, GitCompare, Terminal } from "lucide-react";
-import lunaLogo from "../../assets/luna.svg";
 import {
   cancelPrompt,
   checkAuth,
@@ -16,6 +15,7 @@ import {
   listModels,
   listSlashItems,
   saveAttachment,
+  saveFileAttachment,
   onProviderEvent,
   PLUGINS_CHANGED,
   PROFILES_CHANGED,
@@ -131,6 +131,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Imagens do próximo envio: o arquivo já está na pasta de anexos; a url é só a miniatura.
   const [attachments, setAttachments] = useState<{ id: number; path: string; url: string }[]>([]);
   const attachmentSeq = useRef(0);
+  // Arquivos gerais (não imagem) do próximo envio: o caminho entra no pedido e o agente lê.
+  const [fileAttachments, setFileAttachments] = useState<{ id: number; name: string; path: string }[]>([]);
   const [running, setRunning] = useState(false);
   // Contexto cheio depois de um turno: compacta antes de o usuário precisar pedir.
   useEffect(() => {
@@ -540,25 +542,27 @@ ${cliPrompt}`;
     }
   }
 
-  /// Anexa uma imagem: confere tipo e tamanho, salva na pasta de anexos e guarda a miniatura.
+  /// Anexa um arquivo: imagens viram miniatura; os demais ficam na lista, com o nome. Ambos vão para a pasta de anexos.
   async function attachFile(file: File) {
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      setNotes([`${file.name}: use PNG, JPEG ou WebP`]);
-      return;
-    }
     if (file.size > 10 * 1024 * 1024) {
-      setNotes([`${file.name}: imagem maior que 10 MB`]);
+      setNotes([`${file.name}: arquivo maior que 10 MB`]);
       return;
     }
+    const image = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       let binary = "";
       for (let i = 0; i < bytes.length; i += 0x8000) {
         binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       }
-      const path = await saveAttachment(file.name, btoa(binary));
       const id = ++attachmentSeq.current;
-      setAttachments((current) => [...current, { id, path, url: URL.createObjectURL(file) }]);
+      if (image) {
+        const path = await saveAttachment(file.name, btoa(binary));
+        setAttachments((current) => [...current, { id, path, url: URL.createObjectURL(file) }]);
+      } else {
+        const path = await saveFileAttachment(file.name, btoa(binary));
+        setFileAttachments((current) => [...current, { id, name: file.name, path }]);
+      }
     } catch (e) {
       setNotes([String(e)]);
     }
@@ -568,6 +572,10 @@ ${cliPrompt}`;
     const gone = attachments.find((a) => a.id === id);
     if (gone) URL.revokeObjectURL(gone.url);
     setAttachments((current) => current.filter((a) => a.id !== id));
+  }
+
+  function removeFileAttachment(id: number) {
+    setFileAttachments((current) => current.filter((f) => f.id !== id));
   }
 
   // Menu de `/`: comandos da Luna, de plugin e as skills/comandos da CLI. As da CLI são lidas quando o menu abre.
@@ -626,8 +634,11 @@ ${cliPrompt}`;
   }
 
   async function send() {
-    const prompt = draft.trim();
-    if (!prompt || running || loggedIn !== true) return;
+    const typed = draft.trim();
+    const hasAnyAttachment = attachments.length > 0 || fileAttachments.length > 0;
+    if ((!typed && !hasAnyAttachment) || running || loggedIn !== true) return;
+    // Só com anexo, o pedido vai com uma frase padrão; os arquivos entram na lista abaixo.
+    const prompt = typed || "Veja os anexos.";
     setDraft("");
 
     // `/plano` liga o modo de planejamento e não vai ao provedor.
@@ -658,9 +669,11 @@ ${cliPrompt}`;
     // Arquivos citados com o "@" entram no pedido por nome, para o agente saber que devem ser lidos.
     const mentioned = [...picked.current].filter((p) => prompt.includes(`@${p}`));
     picked.current.clear();
+    // Arquivos anexados (caminho na pasta de anexos) e citados com "@" entram juntos na lista de leitura.
+    const readPaths = [...mentioned, ...fileAttachments.map((f) => f.path)];
     const withFiles =
-      mentioned.length > 0
-        ? `Arquivos citados no pedido (leia antes de responder): ${mentioned.join(", ")}
+      readPaths.length > 0
+        ? `Arquivos citados no pedido (leia antes de responder): ${readPaths.join(", ")}
 
 ${outgoing}`
         : outgoing;
@@ -672,6 +685,7 @@ ${outgoing}`
     const cacheable =
       messagesRef.current.length === 0 &&
       imagePaths.length === 0 &&
+      fileAttachments.length === 0 &&
       mentioned.length === 0 &&
       !planning &&
       !rewindNote.current &&
@@ -686,6 +700,7 @@ ${outgoing}`
     }
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
     setAttachments([]);
+    setFileAttachments([]);
     nextCacheKey.current = key;
     await run(prompt, withFiles, planning, mode, imagePaths);
   }
@@ -874,7 +889,7 @@ ${outgoing}`
 
         {messages.length === 0 ? (
           <div className="chat__empty">
-            <img src={lunaLogo} alt="" className="chat__logo" />
+            <img src="/luna/cat-04.png" alt="" className="chat__logo" />
             <h1>Como posso ajudar?</h1>
             <p>
               {planning
@@ -958,6 +973,8 @@ ${outgoing}`
         attachments={attachments}
         onAttach={(file) => void attachFile(file)}
         onRemoveAttachment={removeAttachment}
+        fileAttachments={fileAttachments.map(({ id, name }) => ({ id, name }))}
+        onRemoveFileAttachment={removeFileAttachment}
         files={files}
         onPickFile={pickFile}
         onSend={() => void send()}

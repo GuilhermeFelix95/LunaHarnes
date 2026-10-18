@@ -27,6 +27,8 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-pill: 999px;
+  /* Campos e áreas grandes: fixo, para o formato do tema (ex.: Pílula) não estourar o textarea */
+  --radius-field: 10px;
   /* Nomes antigos, mantidos para o que ainda os usa */
   --radius: var(--radius-lg);
 

@@ -68,6 +68,7 @@ pub fn run() {
             mcp::remove_mcp_source,
             mcp::save_mcp_server,
             commands::save_attachment,
+            commands::save_file_attachment,
             commands::checkpoint_preview,
             commands::checkpoint_restore,
             commands::terminal_open,

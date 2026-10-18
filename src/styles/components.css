@@ -1867,6 +1867,52 @@ textarea:focus-visible {
   line-height: 1;
 }
 
+/* Botão Anexar arquivo: ícone discreto ao lado dos alternadores */
+.composer__attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.composer__attach:hover:not(:disabled),
+.composer__attach:focus-visible {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.composer__attach:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Arquivo anexado que não é imagem: ícone e nome, no lugar da miniatura */
+.composer__file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-field);
+  background: var(--glass);
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+
+.composer__file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings__check {
   display: flex;
   gap: 8px;
@@ -2503,7 +2549,7 @@ textarea:focus-visible {
   margin-top: var(--space-3, 12px);
   padding: 12px;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-field);
   background: var(--bg-sidebar);
   color: var(--fg);
   font: inherit;
@@ -2559,7 +2605,7 @@ textarea:focus-visible {
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-field);
   background: var(--bg-sidebar);
 }
 

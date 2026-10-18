@@ -200,6 +200,33 @@ describe("Composer: @arquivo e imagens", () => {
     expect(props.onPickFile).toHaveBeenCalledWith("src/Parser.ts");
   });
 
+  it("o botão Anexar abre o seletor e entrega cada arquivo escolhido ao onAttach", () => {
+    const props = setup({ onAttach: vi.fn() });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    const notas = new File(["# notas"], "notas.md", { type: "text/markdown" });
+
+    expect(screen.getByRole("button", { name: "Anexar arquivo" })).toBeTruthy();
+    fireEvent.change(input!, { target: { files: [notas] } });
+
+    expect(props.onAttach).toHaveBeenCalledWith(notas);
+  });
+
+  it("envia só com anexo, sem texto", () => {
+    const props = setup({ draft: "", attachments: [{ id: 1, url: "blob:foto" }] });
+    fireEvent.keyDown(screen.getByLabelText("Mensagem"), { key: "Enter" });
+
+    expect(props.onSend).toHaveBeenCalled();
+  });
+
+  it("arquivo anexado aparece na lista e tirar devolve o id dele", () => {
+    const props = setup({ fileAttachments: [{ id: 2, name: "notas.md" }], onRemoveFileAttachment: vi.fn() });
+
+    expect(screen.getByText("notas.md")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tirar arquivo" }));
+
+    expect(props.onRemoveFileAttachment).toHaveBeenCalledWith(2);
+  });
+
   it("tirar uma imagem anexada devolve o id dela", () => {
     const props = setup({ attachments: [{ id: 3, url: "blob:foto" }], onRemoveAttachment: vi.fn() });
     fireEvent.click(screen.getByRole("button", { name: "Tirar imagem" }));

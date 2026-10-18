@@ -35,6 +35,7 @@ vi.mock("../../api", () => ({
   listApiProfiles: vi.fn(async () => []),
   listFiles: vi.fn(async () => []),
   saveAttachment: vi.fn(async () => "C:\\anexos\\foto.png"),
+  saveFileAttachment: vi.fn(async () => "C:\\anexos\\notas.md"),
   PROFILES_CHANGED: "luna:profiles-changed",
   getChanges: vi.fn(async () => ({ isRepo: true, files: [] })),
   getFileDiff: vi.fn(async () => ""),

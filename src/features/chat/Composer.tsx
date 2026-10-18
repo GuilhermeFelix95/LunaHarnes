@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, Square, X } from "lucide-react";
+import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 import type { ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
@@ -45,6 +45,9 @@ interface ComposerProps {
   attachments?: { id: number; url: string }[];
   onAttach?: (file: File) => void;
   onRemoveAttachment?: (id: number) => void;
+  /** Arquivos gerais anexados (não imagem): só o nome aparece; o agente lê pelo caminho no envio. */
+  fileAttachments?: { id: number; name: string }[];
+  onRemoveFileAttachment?: (id: number) => void;
   /** Sugestões do @arquivo, já filtradas. Vazio = nenhum @ aberto. */
   files?: string[];
   onPickFile?: (path: string) => void;
@@ -61,7 +64,9 @@ interface ComposerProps {
 export function Composer(props: ComposerProps) {
   const { draft, onDraft, onSend, onStop, running, blocked } = props;
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const canSend = draft.trim().length > 0 && !blocked && !running;
+  const hasAttachments = (props.attachments?.length ?? 0) + (props.fileAttachments?.length ?? 0) > 0;
+  const canSend = (draft.trim().length > 0 || hasAttachments) && !blocked && !running;
+  const fileInput = useRef<HTMLInputElement>(null);
 
   // Altura acompanha o texto até um limite; depois disso a área rola.
   useEffect(() => {
@@ -164,6 +169,24 @@ export function Composer(props: ComposerProps) {
           ))}
         </ul>
       )}
+      {(props.fileAttachments ?? []).length > 0 && (
+        <ul className="composer__attachments composer__attachments--files" aria-label="Arquivos anexados">
+          {(props.fileAttachments ?? []).map((f) => (
+            <li key={f.id} className="composer__file">
+              <Paperclip size={12} aria-hidden="true" />
+              <span>{f.name}</span>
+              <button
+                type="button"
+                aria-label="Tirar arquivo"
+                onClick={() => props.onRemoveFileAttachment?.(f.id)}
+                disabled={running}
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <textarea
         ref={textarea}
         aria-label="Mensagem"
@@ -212,6 +235,26 @@ export function Composer(props: ComposerProps) {
           />
         </div>
         <div className="composer__actions">
+          <button
+            type="button"
+            className="composer__attach"
+            aria-label="Anexar arquivo"
+            title="Anexar arquivo"
+            disabled={running || blocked}
+            onClick={() => fileInput.current?.click()}
+          >
+            <Paperclip size={16} aria-hidden="true" />
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              for (const file of Array.from(e.target.files ?? [])) props.onAttach?.(file);
+              e.target.value = "";
+            }}
+          />
           {props.modes.map((m) => (
             <button
               key={m.id}

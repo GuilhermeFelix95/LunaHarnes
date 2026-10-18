@@ -27,6 +27,17 @@ function setup() {
   return props;
 }
 
+describe("Sidebar: marca", () => {
+  it("a marca é o gatinho sorrindo (cat-04), não a lua", () => {
+    const { container } = render(
+      <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} />,
+    );
+    const img = container.querySelector(".sidebar__brand img");
+
+    expect(img?.getAttribute("src")).toBe("/luna/cat-04.png");
+  });
+});
+
 describe("Sidebar: rolagem e ações", () => {
   it("só a lista de projetos rola; a marca e o rodapé ficam fora dela", () => {
     const { container } = render(

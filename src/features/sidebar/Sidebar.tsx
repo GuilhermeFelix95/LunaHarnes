@@ -1,6 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Pencil, Plus, Settings, Trash2 } from "lucide-react";
-import lunaLogo from "../../assets/luna.svg";
 import type { ConversationSummary } from "../../types";
 import { EmptyState } from "../../ui/EmptyState";
 import { groupByProject } from "./groupByProject";
@@ -148,7 +147,7 @@ export function Sidebar({
         onKeyDown={onKeyDown}
       />
       <div className="sidebar__brand">
-        <img src={lunaLogo} alt="" />
+        <img src="/luna/cat-04.png" alt="" />
         <span>LunaHarness</span>
       </div>
 

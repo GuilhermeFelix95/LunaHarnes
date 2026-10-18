@@ -124,6 +124,11 @@ export function saveAttachment(name: string, data: string): Promise<string> {
   return invoke("save_attachment", { name, data });
 }
 
+/// Salva um arquivo qualquer anexado (base64) na pasta de anexos do app e devolve o caminho. O agente lê pelo caminho.
+export function saveFileAttachment(name: string, data: string): Promise<string> {
+  return invoke("save_file_attachment", { name, data });
+}
+
 /// Arquivos do projeto para o @arquivo, filtrados pelo trecho digitado (até 50).
 export function listFiles(cwd: string, query: string): Promise<string[]> {
   return invoke("list_files", { cwd, query });

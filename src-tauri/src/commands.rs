@@ -530,6 +530,46 @@ pub fn save_attachment(app: AppHandle, name: String, data: String) -> Result<Str
     Ok(file.to_string_lossy().into_owned())
 }
 
+/// Nome seguro para um anexo: só o nome base (sem pasta) e sem símbolos que quebrem caminhos.
+fn safe_attachment_name(name: &str) -> String {
+    let base = name.rsplit(['/', '\\']).next().unwrap_or("");
+    let clean: String = base
+        .chars()
+        .map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' })
+        .take(80)
+        .collect();
+    if clean.trim_matches('.').is_empty() {
+        "arquivo".into()
+    } else {
+        clean
+    }
+}
+
+/// Salva um arquivo qualquer anexado (base64) na pasta de anexos e devolve o caminho.
+/// Quem lê o arquivo é o agente, pelo caminho no pedido; o app não abre nem interpreta o conteúdo.
+#[tauri::command]
+pub fn save_file_attachment(app: AppHandle, name: String, data: String) -> Result<String, String> {
+    let bytes = STANDARD
+        .decode(data)
+        .map_err(|_| "o arquivo não chegou inteiro; tente de novo".to_string())?;
+    if bytes.len() > MAX_ATTACHMENT_BYTES {
+        return Err("arquivo maior que 10 MB".into());
+    }
+    let folder = app_data_dir(&app)?.join("attachments");
+    std::fs::create_dir_all(&folder).map_err(|e| format!("não foi possível criar a pasta de anexos: {e}"))?;
+    let millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let file = folder.join(format!(
+        "{millis}-{}-{}",
+        NEXT_ATTACHMENT.fetch_add(1, Ordering::Relaxed),
+        safe_attachment_name(&name)
+    ));
+    std::fs::write(&file, &bytes).map_err(|e| format!("não foi possível salvar o arquivo: {e}"))?;
+    Ok(file.to_string_lossy().into_owned())
+}
+
 /// Grava um checkpoint do estado atual antes de um turno. `None` fora de repositório git.
 #[tauri::command]
 pub async fn checkpoint_take(cwd: String) -> Result<Option<String>, String> {
@@ -637,5 +677,27 @@ pub fn cancel_prompt(run_id: String, runs: State<'_, ActiveRuns>) -> Result<(), 
             .cancel()
             .map_err(|e| format!("não foi possível parar a execução: {e}")),
         None => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_attachment_name;
+
+    #[test]
+    fn nome_de_anexo_nao_aceita_caminho() {
+        assert_eq!(safe_attachment_name("../../etc/passwd"), "passwd");
+        assert_eq!(safe_attachment_name("C:\\Users\\x\\segredo.txt"), "segredo.txt");
+    }
+
+    #[test]
+    fn nome_de_anexo_troca_espacos_e_simbolos() {
+        assert_eq!(safe_attachment_name("relatório final (v2).pdf"), "relatório_final__v2_.pdf");
+    }
+
+    #[test]
+    fn nome_vazio_vira_arquivo() {
+        assert_eq!(safe_attachment_name(""), "arquivo");
+        assert_eq!(safe_attachment_name("..."), "arquivo");
     }
 }

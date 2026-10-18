@@ -23,6 +23,7 @@ vi.mock("../../api", () => ({
   listApiProfiles: vi.fn(async () => []),
   listFiles: vi.fn(async () => []),
   saveAttachment: vi.fn(async () => "C:\\anexos\\foto.png"),
+  saveFileAttachment: vi.fn(async () => "C:\\anexos\\notas.md"),
   PROFILES_CHANGED: "luna:profiles-changed",
   getChanges: vi.fn(async () => ({ isRepo: false, files: [] })),
   getFileDiff: vi.fn(async () => ""),
@@ -226,6 +227,24 @@ describe("ChatView: continuidade e envio", () => {
     expect(request.profile).toBe("p1");
     expect(request.provider).toBe("claude");
     expect(document.querySelector(".message__author")?.textContent).toContain("DeepSeek · via Claude Code");
+  });
+
+  it("anexar um arquivo que não é imagem e enviar sem texto manda o caminho salvo no pedido", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    fireEvent.change(input!, { target: { files: [new File(["# notas"], "notas.md", { type: "text/markdown" })] } });
+    await screen.findByText("notas.md");
+
+    fireEvent.click(screen.getByLabelText("Enviar"));
+    await waitFor(() => expect(api.sendPrompt).toHaveBeenCalledTimes(1));
+
+    expect(api.saveFileAttachment).toHaveBeenCalledWith("notas.md", expect.any(String));
+    const request = vi.mocked(api.sendPrompt).mock.calls[0][0];
+    expect(request.prompt).toContain("C:\\anexos\\notas.md");
+    expect(request.prompt).toContain("Veja os anexos.");
+    expect(request.images ?? []).toHaveLength(0);
   });
 
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {
