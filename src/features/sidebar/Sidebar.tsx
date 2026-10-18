@@ -4,6 +4,7 @@ import lunaLogo from "../../assets/luna.svg";
 import type { ConversationSummary } from "../../types";
 import { EmptyState } from "../../ui/EmptyState";
 import { groupByProject } from "./groupByProject";
+import { PlanTarget } from "./PlanTarget";
 
 export const SIDEBAR_WIDTH_KEY = "luna.sidebar.width";
 const DEFAULT_WIDTH = 260;
@@ -279,6 +280,7 @@ export function Sidebar({
         <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>
           <Settings size={16} aria-hidden="true" /> Configurações
         </button>
+        <PlanTarget />
       </footer>
     </aside>
   );

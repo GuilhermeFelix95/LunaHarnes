@@ -9,6 +9,7 @@ pub mod plugins;
 pub mod providers;
 pub mod session;
 pub mod setup;
+pub mod slash;
 pub mod spec;
 pub mod terminal;
 
@@ -44,6 +45,7 @@ pub fn run() {
             commands::discard_change,
             commands::checkpoint_take,
             commands::list_files,
+            slash::list_slash_items,
             commands::save_attachment,
             commands::checkpoint_preview,
             commands::checkpoint_restore,

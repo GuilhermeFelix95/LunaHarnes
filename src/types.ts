@@ -88,6 +88,14 @@ export interface CliStatus {
   path: string | null;
 }
 
+/// Tarefa salva na conversa: `key` liga o TaskCreate ao resultado, `id` é o id que o TaskUpdate usa.
+export interface SavedTask {
+  key: string;
+  id?: string;
+  content: string;
+  status: TodoItem["status"];
+}
+
 /// Uma etapa do checklist do agente (espelha TodoItem em providers/mod.rs).
 export interface TodoItem {
   content: string;
@@ -156,6 +164,8 @@ export interface Conversation {
   plan?: string;
   /** Sessões por agente. Ausente em arquivos antigos: vem de sessionId. */
   sessions?: AgentSessions;
+  /** Tarefas do agente, para a aba Progresso voltar ao reabrir a conversa. */
+  tasks?: SavedTask[];
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];

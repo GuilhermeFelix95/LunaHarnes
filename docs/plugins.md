@@ -6,7 +6,7 @@ Este guia vale para a Luna (o agente) e para quem usa o app. Ele vem embutido no
 
 **O que é o LunaHarness.** É um app desktop que controla as CLIs do Claude Code e do Codex. O usuário conversa com o agente numa janela de chat, com seletores de modelo, permissão e projeto. Um plugin acrescenta comportamento a esse chat. Ele não controla o computador.
 
-**Onde criar.** Um plugin é uma pasta chamada `plugins/<id>/` dentro da pasta de dados do app. Essa pasta fica ao lado da pasta `docs` onde este guia está gravado: se o caminho deste arquivo for `...\docs\plugins.md`, a pasta de plugins é `...\plugins\<id>\`. Crie plugins só nessa pasta, a menos que o usuário peça outra.
+**Onde criar.** Um plugin é uma pasta chamada `<id>` dentro da pasta de rascunhos `plugin-drafts`. Ela fica ao lado da pasta `docs` onde este guia está gravado: se o caminho deste arquivo for `...\docs\plugins.md`, o rascunho vai em `...\plugin-drafts\<id>\`. O caminho da pasta de rascunhos também vem na instrução do sistema, como "Pasta de rascunhos de plugin". Crie plugins só nessa pasta, a menos que o usuário peça outra.
 
 **O que entregar.** Dois arquivos, e só esses:
 - `manifest.json`: metadados e permissões.
@@ -14,7 +14,15 @@ Este guia vale para a Luna (o agente) e para quem usa o app. Ele vem embutido no
 
 Não use TypeScript, não use `import` de outros arquivos nem de URLs, não use pacotes npm e não crie subpastas de código. O módulo é carregado como um blob, então qualquer `import` relativo falha.
 
-**Depois de criar.** Diga ao usuário que o plugin aparece em **Configurações > Plugins**, que ele vale a partir de uma nova conversa ou do próximo envio, e que pode ser desligado na mesma tela.
+**Depois de criar.** Não copie o plugin para outra pasta. Termine a resposta com um bloco de código chamado `luna-plugin`, com o caminho absoluto da pasta do rascunho:
+
+````
+```luna-plugin
+{"pasta": "<caminho absoluto da pasta do plugin>"}
+```
+````
+
+O app mostra um cartão com o botão **Instalar**, que abre a tela de permissões. Diga ao usuário que é só clicar em **Instalar**, que o plugin vale no próximo envio e que pode ser desligado em **Configurações > Plugins**.
 
 **Se o pedido estiver fora da API.** Diga isso com clareza e proponha o que é possível. Não invente funções, módulos ou permissões. A lista exata de chamadas está na seção "API" abaixo.
 
@@ -185,7 +193,7 @@ export function activate(api) {
 Hoje um plugin é só uma pasta com `manifest.json` e `index.js`. Para enviar a alguém:
 
 1. Compacte a pasta do plugin em um ZIP e envie.
-2. Quem recebe extrai o ZIP e usa **Configurações > Plugins > Instalar de uma pasta**.
+2. Quem recebe extrai o ZIP e usa **Configurações > Plugins > Instalar de uma pasta**. Esse botão é só para conteúdo compartilhado por outra pessoa; um plugin criado pela Luna se instala pelo cartão no chat.
 
 Antes de instalar um plugin de outra pessoa, leia o `index.js`. Plugins rodam na mesma janela do app e não há sandbox ainda: a lista de permissões controla a API oferecida, não o que o código faz.
 

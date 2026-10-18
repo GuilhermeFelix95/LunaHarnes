@@ -21,6 +21,7 @@ import {
   type CatalogPlugin,
 } from "../../api";
 import type { PluginManifest } from "../../plugins/host";
+import { PERMISSION_TEXT } from "../../plugins/permissions";
 import { Markdown } from "../chat/Markdown";
 import guide from "../../../docs/plugins.md?raw";
 
@@ -38,13 +39,6 @@ function isNewerVersion(catalog: string, installed: string | undefined): boolean
   }
   return false;
 }
-
-/// Explica cada permissão em português, para o diálogo de instalação.
-const PERMISSION_TEXT: Record<string, string> = {
-  commands: "registra comandos com barra, como /nome",
-  hooks: "lê e pode alterar o texto antes de enviar, e lê cada resposta",
-  modes: "oferece um modo de somente leitura no composer",
-};
 
 function announceChange() {
   window.dispatchEvent(new Event(PLUGINS_CHANGED));
@@ -268,6 +262,9 @@ export function PluginsSection() {
 
       {tab === "installed" && (
         <>
+          <p className="settings__hint">
+            Um plugin que a Luna criou se instala pelo cartão no chat. Use &quot;Instalar de uma pasta&quot; só para plugin compartilhado por outra pessoa.
+          </p>
           <div className="api-form__actions">
             <button type="button" onClick={() => void chooseLocal()}>
               Instalar de uma pasta

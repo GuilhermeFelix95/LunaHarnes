@@ -1,7 +1,8 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { ListChecks, ScrollText } from "lucide-react";
+import { ListChecks, PanelRightClose, ScrollText } from "lucide-react";
 import { EmptyState } from "../../ui/EmptyState";
 import { Markdown } from "../chat/Markdown";
+import { LunaCat } from "./LunaCat";
 import { ProgressTimeline } from "./ProgressTimeline";
 import type { TodoItem } from "../../types";
 
@@ -37,16 +38,39 @@ function saveWidth(width: number) {
   }
 }
 
+export const OPEN_KEY = "luna.rightPanel.open";
+
+/// Painel aberto por padrão; "0" guarda o fechado.
+export function loadOpen(): boolean {
+  try {
+    return localStorage.getItem(OPEN_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function saveOpen(open: boolean) {
+  try {
+    localStorage.setItem(OPEN_KEY, open ? "1" : "0");
+  } catch {
+    // Sem armazenamento, o estado vale só nesta sessão.
+  }
+}
+
 interface RightPanelProps {
   /** Fechado, o painel só esconde: o terminal continua vivo. */
   open: boolean;
   tab: SideTab;
   onTab: (tab: SideTab) => void;
+  /** Fecha o painel pelo X. Pode ser fechado; quem decide quando abre é a conversa. */
+  onClose: () => void;
   changes: ReactNode;
   /** Último plano da conversa, em Markdown. Ausente = ainda não há plano. */
   plan?: string;
   /** Checklist do agente na última resposta. Vazio = nenhuma tarefa em andamento. */
   todos: TodoItem[];
+  /** A Luna está respondendo: o gatinho digita; parado, ele dorme. */
+  running: boolean;
   terminal: ReactNode;
 }
 
@@ -62,9 +86,11 @@ export function RightPanel({
   open,
   tab,
   onTab,
+  onClose,
   changes,
   plan,
   todos,
+  running,
   terminal,
 }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
@@ -128,6 +154,9 @@ export function RightPanel({
             {label}
           </button>
         ))}
+        <button type="button" className="side__close" aria-label="Fechar painel lateral" title="Fechar painel" onClick={onClose}>
+          <PanelRightClose size={15} aria-hidden="true" />
+        </button>
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "changes"}>
         {changes}
@@ -145,6 +174,7 @@ export function RightPanel({
         ) : (
           <EmptyState icon={<ListChecks size={18} />}>Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</EmptyState>
         )}
+        <LunaCat working={running} />
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>
         {terminal}

@@ -35,6 +35,53 @@
   background: var(--hover);
 }
 
+/* Meta de contexto do plano, logo abaixo de Configurações */
+.plan-target {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 0 10px;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.plan-target input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* Cartão do plugin que a Luna criou, logo acima do composer */
+.plugin-offer {
+  margin: 0 auto 8px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sidebar);
+  max-width: 760px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.plugin-offer p {
+  margin: 0 0 var(--space-2);
+}
+
+/* Linha de controle com seletor e botão (ex.: som ao responder) */
+.settings__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.settings__row label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 /* Configurações */
 .settings {
   height: 100vh;
@@ -1257,11 +1304,170 @@ textarea:focus-visible {
   font-weight: 600;
 }
 
+/* Fecha o painel; fica à direita das abas, em tom discreto */
+.side__close {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.side__close:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
 .side__body {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+/* Gatinho lunar: digita quando a Luna trabalha; dorme com "zZ" quando para */
+.luna-cat {
+  width: 160px;
+  margin: 16px auto 0;
+  color: var(--fg-muted);
+}
+
+.luna-cat svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.luna-cat__body,
+.luna-cat__head,
+.luna-cat__ear {
+  fill: var(--bg-sidebar);
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.luna-cat__moon {
+  fill: var(--accent);
+}
+
+.luna-cat__eyes circle {
+  fill: currentColor;
+}
+
+.luna-cat__closed-eyes path,
+.luna-cat__tail,
+.luna-cat__notebook,
+.luna-cat__screen,
+.luna-cat__paw {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.luna-cat__notebook {
+  fill: var(--bg-sidebar);
+}
+
+.luna-cat__screen {
+  fill: var(--accent);
+  fill-opacity: 0.25;
+  stroke: none;
+}
+
+.luna-cat__paw {
+  fill: var(--bg-sidebar);
+}
+
+.luna-cat__z {
+  fill: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+}
+
+.luna-cat--working .luna-cat__closed-eyes,
+.luna-cat--working .luna-cat__z,
+.luna-cat--sleeping .luna-cat__eyes {
+  display: none;
+}
+
+.luna-cat--working .luna-cat__paw {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: luna-type 0.5s ease-in-out infinite alternate;
+}
+
+.luna-cat--working .luna-cat__paw + .luna-cat__paw {
+  animation-delay: 0.25s;
+}
+
+.luna-cat--working .luna-cat__screen {
+  animation: luna-screen 1.6s steps(2, end) infinite;
+}
+
+.luna-cat--working .luna-cat__tail {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: luna-tail 2.4s ease-in-out infinite;
+}
+
+.luna-cat--sleeping .luna-cat__body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: luna-breathe 3s ease-in-out infinite;
+}
+
+.luna-cat--sleeping .luna-cat__z {
+  animation: luna-z 2.8s ease-in infinite;
+}
+
+.luna-cat--sleeping .luna-cat__z--second {
+  animation-delay: 1.4s;
+}
+
+@keyframes luna-type {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+
+@keyframes luna-screen {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
+
+@keyframes luna-tail {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@keyframes luna-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.03); }
+}
+
+@keyframes luna-z {
+  0% { opacity: 0; transform: translate(0, 4px); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(6px, -14px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luna-cat * {
+    animation: none !important;
+  }
+
+  .luna-cat--sleeping .luna-cat__z {
+    opacity: 1;
+  }
 }
 
 .side__body[hidden] {

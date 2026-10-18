@@ -40,6 +40,10 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     if let Some(dir) = crate::plugins::guide::dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);
     }
+    // Onde a Luna cria rascunhos de plugin para a pessoa instalar pelo cartão no chat.
+    if let Some(dir) = crate::plugins::guide::drafts_dir() {
+        args.extend(["--add-dir".to_string(), dir.display().to_string()]);
+    }
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
     }

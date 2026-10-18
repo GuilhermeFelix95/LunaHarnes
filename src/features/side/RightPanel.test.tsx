@@ -1,22 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TodoItem } from "../../types";
-import { clampWidth, RightPanel, WIDTH_KEY } from "./RightPanel";
+import { clampWidth, loadOpen, OPEN_KEY, RightPanel, saveOpen, WIDTH_KEY } from "./RightPanel";
 
 function setup(tab: "changes" | "plan" | "progress" | "terminal" = "changes", plan?: string, todos: TodoItem[] = []) {
   const onTab = vi.fn();
+  const onClose = vi.fn();
   render(
     <RightPanel
       open
       tab={tab}
       onTab={onTab}
+      onClose={onClose}
       changes={<p>lista de alterações</p>}
       plan={plan}
       todos={todos}
+      running={false}
       terminal={<p>shell</p>}
     />,
   );
-  return { onTab };
+  return { onTab, onClose };
 }
 
 describe("RightPanel", () => {
@@ -101,6 +104,22 @@ describe("RightPanel", () => {
     setup("progress");
 
     expect(screen.getByText(/elas aparecem em ordem/)).toBeTruthy();
+  });
+
+  it("o X fecha o painel", () => {
+    const { onClose } = setup("changes");
+
+    fireEvent.click(screen.getByRole("button", { name: "Fechar painel lateral" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("o estado aberto ou fechado fica salvo; padrão é aberto", () => {
+    expect(loadOpen()).toBe(true);
+
+    saveOpen(false);
+    expect(localStorage.getItem(OPEN_KEY)).toBe("0");
+    expect(loadOpen()).toBe(false);
   });
 
   it("largura fica entre 240 px e 60% da janela", () => {

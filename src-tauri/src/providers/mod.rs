@@ -160,7 +160,12 @@ pub fn identity_for(request: &RunRequest) -> String {
         Some(dir) => format!(" Guia de plugins: {}.", dir.join("plugins.md").display()),
         None => String::new(),
     };
-    format!("{LUNA_IDENTITY} {model}{effort}{window}{guide}")
+    // Pasta onde criar o plugin: a Luna escreve ali e o app instala pelo cartão no chat (ver plugins/guide.rs).
+    let drafts = match crate::plugins::guide::drafts_dir() {
+        Some(dir) => format!(" Pasta de rascunhos de plugin: {}.", dir.display()),
+        None => String::new(),
+    };
+    format!("{LUNA_IDENTITY} {model}{effort}{window}{guide}{drafts}")
 }
 
 /// Tipo MIME de uma imagem aceita, pela extensão. \`None\` = formato não suportado.

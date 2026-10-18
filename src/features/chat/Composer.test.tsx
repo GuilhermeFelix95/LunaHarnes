@@ -206,4 +206,22 @@ describe("Composer: @arquivo e imagens", () => {
 
     expect(props.onRemoveAttachment).toHaveBeenCalledWith(3);
   });
+
+  it("menu de / mostra os itens com a origem e Enter escolhe o destacado, sem enviar", () => {
+    const slash = [
+      { name: "plano", description: "Liga o planejamento", origin: "luna" as const },
+      { name: "pdf", description: "Lê PDFs", origin: "skill" as const },
+    ];
+    const props = setup({ draft: "/p", slash, onPickSlash: vi.fn() });
+    const list = screen.getByRole("listbox", { name: "Comandos e skills" });
+
+    expect(within(list).getAllByRole("option")).toHaveLength(2);
+    expect(within(list).getByText("Skill")).toBeTruthy();
+
+    fireEvent.keyDown(screen.getByLabelText("Mensagem"), { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByLabelText("Mensagem"), { key: "Enter" });
+
+    expect(props.onPickSlash).toHaveBeenCalledWith(slash[1]);
+    expect(props.onSend).not.toHaveBeenCalled();
+  });
 });

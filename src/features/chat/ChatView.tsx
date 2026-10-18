@@ -14,6 +14,7 @@ import {
   listApiProfiles,
   listFiles,
   listModels,
+  listSlashItems,
   saveAttachment,
   onProviderEvent,
   PLUGINS_CHANGED,
@@ -32,6 +33,10 @@ import { cacheKey } from "../../chat/responseCache";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
+import { cliPrompt, filterSlash, LUNA_COMMANDS, parseLunaCommand, slashQuery, type SlashItem } from "../../chat/slash";
+import { extractPluginOffer } from "../../chat/pluginOffer";
+import { PluginOfferCard } from "./PluginOfferCard";
+import { playReplySound } from "../../sounds";
 import { loadInstalledPlugins } from "../../plugins/loader";
 import type {
   AgentSessions,
@@ -43,10 +48,10 @@ import type {
   Permission,
   ProviderKind,
 } from "../../types";
-import { applyTaskEvent, toTodos, type TaskEntry } from "../../chat/tasks";
+import { applyTaskEvent, displayTodos, toTodos, type TaskEntry } from "../../chat/tasks";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
-import { RightPanel, type SideTab } from "../side/RightPanel";
+import { loadOpen, RightPanel, saveOpen, type SideTab } from "../side/RightPanel";
 import { TerminalPanel } from "../terminal/TerminalPanel";
 import { Composer, PROVIDER_LABELS } from "./Composer";
 import { MessageList } from "./MessageList";
@@ -106,6 +111,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const messagesRef = useRef(messages);
   const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, running: false, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
+  /// Pasta de um plugin à espera de instalação: o cartão aparece acima do composer.
+  const [pluginOffer, setPluginOffer] = useState<string | undefined>(undefined);
   // Sugestões do @arquivo para o trecho digitado depois do último "@".
   const [files, setFiles] = useState<string[]>([]);
   const fileRequest = useRef(0);
@@ -147,8 +154,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [checking, setChecking] = useState(false);
   const [loginError, setLoginError] = useState<string | undefined>(undefined);
   // Painel da direita: aberto ou não, e qual aba.
-  const [sideOpen, setSideOpen] = useState(true);
+  const [sideOpen, setSideOpen] = useState(loadOpen);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
+  useEffect(() => saveOpen(sideOpen), [sideOpen]);
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
   const [terminalOpened, setTerminalOpened] = useState(false);
   const [changesVersion, setChangesVersion] = useState(0);
@@ -156,7 +164,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
   // Tarefas do agente na resposta atual (aba Progresso), na ordem em que foram criadas.
-  const [tasks, setTasks] = useState<TaskEntry[]>([]);
+  const [tasks, setTasks] = useState<TaskEntry[]>(() => initial?.tasks ?? []);
+  // Ref para o listener, que é registrado uma vez: ele lê a lista atual daqui.
+  const tasksRef = useRef<TaskEntry[]>(tasks);
   const body = useRef<HTMLDivElement>(null);
   const { stuck, scrollToBottom } = useStickToBottom(body, messages);
 
@@ -272,7 +282,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       }
       if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize ?? undefined });
       if (event.kind === "todos" || event.kind === "taskCreated" || event.kind === "taskAssigned" || event.kind === "taskUpdated") {
-        setTasks((current) => applyTaskEvent(current, event));
+        tasksRef.current = applyTaskEvent(tasksRef.current, event);
+        setTasks(tasksRef.current);
       }
       if (event.kind === "cost") {
         costRef.current += event.usd;
@@ -292,6 +303,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           live.current.planning ? "Plano pronto para revisar" : "Resposta pronta",
           `"${subject}" terminou.`,
         );
+        if (event.ok) playReplySound();
         const session = sessions.current[turn];
         // O agente viu tudo até o fim deste turno.
         if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
@@ -308,6 +320,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: parsed.text }]);
           setQuestions(parsed.questions);
           setQuestionsRound((n) => n + 1);
+        }
+        // Plugin criado pela Luna: o bloco vira um cartão para instalar, e o texto segue sem o bloco.
+        const offer = extractPluginOffer(parsed.text);
+        if (offer) {
+          const last = messagesRef.current.at(-1);
+          if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: offer.text }]);
+          setPluginOffer(offer.folder);
         }
         // Vira plano a resposta sem perguntas, ou a que pede a aprovação (a aprovação é a última pergunta do plano).
         // Rodadas de perguntas não mexem no plano: o agente ainda está entendendo o contexto.
@@ -353,6 +372,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       profile: latest.profileId ?? undefined,
       costUsd: costRef.current || undefined,
       plan: planRef.current,
+      tasks: tasksRef.current,
       createdAt: createdAt.current,
       updatedAt: Date.now(),
       messages: current,
@@ -400,7 +420,10 @@ ${cliPrompt}`;
     }
     responseText.current = "";
     // Cada resposta monta o próprio checklist; o da resposta anterior não fica na aba.
-    setTasks([]);
+    // As tarefas são da conversa inteira (o Claude Code as mantém na sessão): não zeram a cada envio.
+    // O painel abre no Progresso enquanto a Luna trabalha.
+    setSideOpen(true);
+    setSideTab("progress");
     setQuestions(null);
     setUnderstood(null);
     turnPlanning.current = plan;
@@ -485,6 +508,36 @@ ${cliPrompt}`;
     setAttachments((current) => current.filter((a) => a.id !== id));
   }
 
+  // Menu de `/`: comandos da Luna, de plugin e as skills/comandos da CLI. As da CLI são lidas quando o menu abre.
+  const [cliSlash, setCliSlash] = useState<SlashItem[]>([]);
+  const slashText = slashQuery(draft);
+  const slashOpen = slashText !== null;
+  useEffect(() => {
+    if (!slashOpen) return;
+    let cancelled = false;
+    listSlashItems(cwd, provider)
+      .then((items) => {
+        if (!cancelled) setCliSlash(items);
+      })
+      .catch(() => {
+        if (!cancelled) setCliSlash([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slashOpen, cwd, provider]);
+  const pluginSlash: SlashItem[] = host.commandNames().map((name) => ({
+    name,
+    description: "Comando de plugin",
+    origin: "plugin",
+  }));
+  const slashMatches = slashText === null ? [] : filterSlash([...LUNA_COMMANDS, ...pluginSlash, ...cliSlash], slashText);
+
+  /// Escolher um item põe `/nome ` no campo, para o usuário completar o pedido.
+  function pickSlash(item: SlashItem) {
+    setDraft(`/${item.name} `);
+  }
+
   /// Digitar "@" abre a lista de arquivos do projeto; o trecho depois do "@" filtra.
   function changeDraft(value: string) {
     setDraft(value);
@@ -515,13 +568,26 @@ ${cliPrompt}`;
     if (!prompt || running || loggedIn !== true) return;
     setDraft("");
 
+    // `/plano` liga o modo de planejamento e não vai ao provedor.
+    // `/plugin instalar <pasta>` abre o mesmo cartão de instalação que a Luna mostra depois de criar um plugin.
+    const luna = parseLunaCommand(prompt);
+    if (luna?.id === "plano") {
+      setPlanning(true);
+      return;
+    }
+    if (luna?.id === "plugin") {
+      setPluginOffer(luna.folder);
+      return;
+    }
+
     // Comando de plugin (`/nome args`): se devolver texto, esse texto é o que vai ao provedor.
     const command = await host.handleCommand(prompt);
     if (command.handled && command.prompt === undefined) {
       setNotes(host.messages());
       return;
     }
-    const outgoing = await host.runBeforeSend(command.handled ? command.prompt! : prompt);
+    // Skill ou comando da CLI (`/nome args`) vai como a CLI o entende; o que o usuário vê continua o mesmo.
+    const outgoing = await host.runBeforeSend(command.handled ? command.prompt! : (cliPrompt(prompt, cliSlash) ?? prompt));
     // Arquivos citados com o "@" entram no pedido por nome, para o agente saber que devem ser lidos.
     const mentioned = [...picked.current].filter((p) => prompt.includes(`@${p}`));
     picked.current.clear();
@@ -807,6 +873,17 @@ ${outgoing}`
         />
       )}
 
+      {pluginOffer && (
+        <PluginOfferCard
+          folder={pluginOffer}
+          onInstalled={(message) => {
+            setPluginOffer(undefined);
+            setNotes((current) => [...current, message]);
+          }}
+          onDismiss={() => setPluginOffer(undefined)}
+        />
+      )}
+
       <Composer
         draft={draft}
         onDraft={changeDraft}
@@ -834,6 +911,8 @@ ${outgoing}`
         onMode={setModeId}
         planning={planning}
         onTogglePlanning={() => setPlanning((on) => !on)}
+        slash={slashMatches}
+        onPickSlash={pickSlash}
       />
       <div className="chat__foot">
         <WorkspaceChip
@@ -857,6 +936,7 @@ ${outgoing}`
 
       <RightPanel
         open={sideOpen}
+        onClose={() => setSideOpen(false)}
         tab={sideTab}
         onTab={(tab) => {
           if (tab === "terminal") setTerminalOpened(true);
@@ -864,7 +944,8 @@ ${outgoing}`
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
         plan={plan}
-        todos={toTodos(tasks)}
+        todos={displayTodos(toTodos(tasks), running)}
+        running={running}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
       />
       </div>

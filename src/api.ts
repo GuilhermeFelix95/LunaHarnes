@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { PluginManifest } from "./plugins/host";
+import type { SlashItem } from "./chat/slash";
 import type {
   ApiPreset,
   ApiProfile,
@@ -126,6 +127,15 @@ export function saveAttachment(name: string, data: string): Promise<string> {
 /// Arquivos do projeto para o @arquivo, filtrados pelo trecho digitado (até 50).
 export function listFiles(cwd: string, query: string): Promise<string[]> {
   return invoke("list_files", { cwd, query });
+}
+
+/// Skills e comandos que a CLI conhece, para o menu de `/`. Lê as pastas do usuário e, no Claude, a do projeto.
+export async function listSlashItems(cwd: string, provider: ProviderKind): Promise<SlashItem[]> {
+  const items = await invoke<{ name: string; description: string; kind: "skill" | "command" }[]>("list_slash_items", {
+    cwd,
+    provider,
+  });
+  return items.map((item) => ({ name: item.name, description: item.description, origin: item.kind }));
 }
 
 /// Grava o estado dos arquivos antes de um turno. `null` fora de repositório git.

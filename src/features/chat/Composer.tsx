@@ -1,9 +1,10 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowUp, Square, X } from "lucide-react";
 import type { ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
 import { PROVIDER_LABELS } from "../../chat/providers";
+import { ORIGIN_LABELS, type SlashItem } from "../../chat/slash";
 import { ModelMenu } from "./ModelMenu";
 import { Select } from "./Select";
 
@@ -51,6 +52,9 @@ interface ComposerProps {
   modes: PluginMode[];
   mode: string;
   onMode: (id: string) => void;
+  /** Itens do menu de `/` já filtrados. Vazio = menu fechado. */
+  slash?: SlashItem[];
+  onPickSlash?: (item: SlashItem) => void;
 }
 
 /// Caixa de mensagem com Enter para enviar, Shift+Enter para quebrar linha e os seletores embaixo.
@@ -67,8 +71,28 @@ export function Composer(props: ComposerProps) {
     el.style.height = `${Math.min(el.scrollHeight, MAX_HEIGHT_PX)}px`;
   }, [draft]);
 
+  // Item destacado do menu de `/`; volta ao primeiro quando a lista muda.
+  const [slashIndex, setSlashIndex] = useState(0);
+  const slash = props.slash ?? [];
+  const active = Math.min(slashIndex, Math.max(slash.length - 1, 0));
+  useEffect(() => setSlashIndex(0), [draft]);
+
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+    if (e.nativeEvent.isComposing) return;
+    if (slash.length > 0) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        setSlashIndex((active + step + slash.length) % slash.length);
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        props.onPickSlash?.(slash[active]);
+        return;
+      }
+    }
+    if (e.key !== "Enter" || e.shiftKey) return;
     e.preventDefault();
     if (canSend) onSend();
   }
@@ -93,6 +117,24 @@ export function Composer(props: ComposerProps) {
         else if (canSend) onSend();
       }}
     >
+      {slash.length > 0 && (
+        <ul className="composer__files" role="listbox" aria-label="Comandos e skills">
+          {slash.map((item, index) => (
+            <li key={`${item.origin}-${item.name}`}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={index === active}
+                onMouseEnter={() => setSlashIndex(index)}
+                onClick={() => props.onPickSlash?.(item)}
+              >
+                <strong>/{item.name}</strong> {item.description}{" "}
+                <span className="qpick__badge">{ORIGIN_LABELS[item.origin]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {(props.files ?? []).length > 0 && (
         <ul className="composer__files" role="listbox" aria-label="Arquivos do projeto">
           {(props.files ?? []).map((path) => (

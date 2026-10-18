@@ -40,6 +40,15 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Rodada de progresso, painel e menu (2026-10-18):
+  - Progresso ao vivo: as tarefas do agente ficam na conversa (campo `tasks` em `conversations.rs`) e não zeram a cada envio. Sem etapa marcada como `in_progress` durante a resposta, a primeira pendente aparece como atual (`displayTodos` em `src/chat/tasks.ts`). `APPROVAL_PROMPT` pede uma tarefa por etapa do plano.
+  - Painel direito fechável pelo X (`RightPanel.tsx`, estado em `luna.rightPanel.open`). Abre sozinho ao enviar, na aba Progresso.
+  - Gatinho lunar abaixo da linha do tempo (`src/features/side/LunaCat.tsx`): digita quando a Luna trabalha e dorme com "zZ" quando para. Movimento reduzido é respeitado em `components.css`.
+  - Meta de contexto do plano na barra esquerda, abaixo de Configurações (`src/features/sidebar/PlanTarget.tsx`). `PlanSection.tsx` saiu de Configurações e foi removido.
+  - Sons de resposta (`src/sounds.ts`): Sino (padrão), Gota, Lua, Miau, Pop e Desligado, em `luna.sound`, sintetizados com Web Audio. Toca ao fim de resposta sem erro. Seletor e "Ouvir" em Configurações > Notificações.
+  - Menu de `/` no composer (`src/chat/slash.ts`, `Composer.tsx`): comandos da Luna (`/plano`, `/plugin instalar <pasta>`), comandos de plugin e skills/comandos da CLI. Os da CLI vêm de `list_slash_items` (`src-tauri/src/slash.rs`): Claude lê `~/.claude` e `<cwd>/.claude`; Codex lê `~/.codex/prompts` e `~/.codex/skills`. Skill vai como "Use a skill <nome>: <args>"; comando vai como `/nome args`. Não verificado numa execução real se `claude -p` aceita `/skill` e `/comando`.
+  - Plugin criado pela Luna: rascunhos em `<app_data>/plugin-drafts` (passada com `--add-dir` no Claude e no Codex). A Luna termina com um bloco ```` ```luna-plugin ```` com `{"pasta": ...}` (`src/chat/pluginOffer.ts`), e o chat mostra o cartão "Instalar" (`src/features/chat/PluginOfferCard.tsx`), que abre as permissões antes de copiar. `/plugin instalar <pasta>` abre o mesmo cartão. "Instalar de uma pasta" fica para conteúdo compartilhado. Pendente: o app ainda não confere que a pasta está em `plugin-drafts`; o cartão aceita a pasta que o bloco indicar, e a tela de permissões continua obrigatória.
+  - Teste do guia de plugins: `guide::write_files` grava sem guardar o estado global, para que os testes de `providers` não dependam da ordem.
 - Cache de respostas para economizar tokens (2026-10-18): permissão `cache`, `api.cache` e plugin oficial de exemplo `plugins-examples/cache-tokens/`. Testes escritos antes da mudança; execução de testes pendente de liberação do ambiente.
 - Etapa 1 (repositório e documentação): concluída.
 - Etapa 2 (providers e sessão em Rust): código e testes passando. Fixture de sucesso do Codex pendente (`codex login`).

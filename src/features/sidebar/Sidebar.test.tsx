@@ -39,6 +39,20 @@ describe("Sidebar: rolagem e ações", () => {
     expect(container.querySelector(".sidebar__foot")).toBeTruthy();
   });
 
+  it("a meta do plano fica no rodapé, logo abaixo de Configurações", () => {
+    localStorage.clear();
+    const { container } = render(
+      <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} />,
+    );
+    const foot = container.querySelector(".sidebar__foot") as HTMLElement;
+    const slider = screen.getByRole("slider", { name: "Contexto do plano" });
+
+    expect(foot.contains(slider)).toBe(true);
+    expect(foot.children[0].className).toBe("sidebar__settings");
+    fireEvent.change(slider, { target: { value: "70" } });
+    expect(localStorage.getItem("luna.planTarget")).toBe("70");
+  });
+
   it("renomear troca o título pelo campo em linha e confirma com Enter", () => {
     const onRename = vi.fn();
     render(<Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} onRename={onRename} />);

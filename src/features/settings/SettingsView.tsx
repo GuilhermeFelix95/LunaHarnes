@@ -18,7 +18,6 @@ import {
 } from "../../theme";
 import { ApiProfilesSection } from "./ApiProfilesSection";
 import { NotificationsSection } from "./NotificationsSection";
-import { PlanSection } from "./PlanSection";
 import { PluginsSection } from "./PluginsSection";
 import { SavedThemes } from "./SavedThemes";
 
@@ -239,8 +238,6 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               </div>
             )}
           </section>
-
-          <PlanSection />
 
           <NotificationsSection />
         </>

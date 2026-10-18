@@ -67,6 +67,7 @@ export const APPROVAL_PROMPT = [
   "## Out of Scope",
   "## Further Notes",
   "Regras da spec: descreva decisões técnicas fixas do projeto (ex.: 'frontend em React', sem outro framework que não foi escolhido). Em Implementation Decisions, não coloque caminhos de arquivo nem trechos de código. Em Testing Decisions, só comportamento externo. Não copie o plano passo a passo.",
+  "Antes de editar, crie uma tarefa (TaskCreate) para cada etapa do plano, na ordem. Ao começar uma etapa, marque-a como in_progress (TaskUpdate); ao terminar, marque-a como completed.",
   "Depois, execute o plano agora, editando os arquivos necessários, e resuma o que foi feito ao final.",
 ].join("\n");
 

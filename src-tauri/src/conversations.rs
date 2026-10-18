@@ -38,6 +38,9 @@ pub struct Conversation {
     /// Último plano gerado nesta conversa (resposta do modo plano ou da spec). Ausente = nenhum.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plan: Option<String>,
+    /// Tarefas do agente (aba Progresso). Ficam na conversa porque o Claude Code as mantém na sessão inteira.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tasks: Option<Value>,
     /// Sessão nativa de cada agente e quanto do histórico ele já viu (ver src/chat/handoff.ts).
     /// Ausente em arquivos antigos: o frontend usa `session_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -175,6 +178,7 @@ mod tests {
             profile: None,
             cost_usd: None,
             plan: None,
+            tasks: None,
             sessions: Some(json!({"claude": {"id": "sess-1", "seen": 1}, "codex": {"id": "th-9", "seen": 3}})),
             messages: vec![json!({"role": "user", "text": "oi"})],
         }

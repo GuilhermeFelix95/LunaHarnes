@@ -37,6 +37,9 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     if let Some(dir) = crate::plugins::guide::dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);
     }
+    if let Some(dir) = crate::plugins::guide::drafts_dir() {
+        args.extend(["--add-dir".to_string(), dir.display().to_string()]);
+    }
 
     match &request.session_id {
         None => args.push("-".into()),

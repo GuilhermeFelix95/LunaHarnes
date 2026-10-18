@@ -43,3 +43,12 @@ export function applyTaskEvent(list: TaskEntry[], event: TaskEvent): TaskEntry[]
 export function toTodos(list: TaskEntry[]): TodoItem[] {
   return list.map(({ content, status }) => ({ content, status }));
 }
+
+/// Etapas como a aba mostra. O agente nem sempre marca `in_progress`: com a resposta em andamento e nenhuma
+/// etapa marcada, a primeira pendente aparece como a atual. Fora da resposta, a lista vale como está.
+export function displayTodos(todos: TodoItem[], running: boolean): TodoItem[] {
+  if (!running || todos.some((t) => t.status === "in_progress")) return todos;
+  const next = todos.findIndex((t) => t.status === "pending");
+  if (next === -1) return todos;
+  return todos.map((t, i) => (i === next ? { ...t, status: "in_progress" } : t));
+}
