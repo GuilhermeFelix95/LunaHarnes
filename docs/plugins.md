@@ -113,7 +113,7 @@ Acessar `api.cache` sem a permissão `cache` recusa o plugin. O objeto tem quatr
 
 - `api.cache.setEnabled(true | false)`: liga ou desliga o cache. Começa desligado.
 - `api.cache.clear()`: esvazia as respostas guardadas.
-- `api.cache.stats()`: devolve `{ hits, stored }`, com os acertos e as respostas guardadas na sessão.
+- `api.cache.stats()`: devolve `{ hits, lookups, stored }`, com os acertos, as consultas com o cache ligado e as respostas guardadas na sessão. A taxa de acerto é `hits / lookups`. Esvaziar o cache não zera os contadores.
 - `api.cache.notify(texto)`: mostra um aviso local no chat. O texto **não** vai ao agente.
 
 Regras que o núcleo aplica (não dá para mudar pelo plugin):

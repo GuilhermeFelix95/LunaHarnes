@@ -17,7 +17,8 @@ export interface PluginMode {
 export interface PluginCacheApi {
   setEnabled(enabled: boolean): void;
   clear(): void;
-  stats(): { hits: number; stored: number };
+  /** Acertos, consultas com o cache ligado e respostas guardadas, desde o início da sessão. */
+  stats(): { hits: number; lookups: number; stored: number };
   /** Aviso local no chat. Não é enviado ao agente. */
   notify(text: string): void;
 }

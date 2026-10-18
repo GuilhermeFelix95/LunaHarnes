@@ -4,6 +4,8 @@
 export interface CacheStats {
   /** Pedidos atendidos pelo cache (envios que não foram ao provedor). */
   hits: number;
+  /** Consultas ao cache com ele ligado, acertos e erros. */
+  lookups: number;
   /** Respostas guardadas agora. */
   stored: number;
 }
@@ -28,6 +30,7 @@ export class ResponseCache {
   enabled = false;
   private entries = new Map<string, string>();
   private hits = 0;
+  private lookups = 0;
 
   setEnabled(on: boolean) {
     this.enabled = on;
@@ -35,6 +38,7 @@ export class ResponseCache {
 
   get(key: string): string | undefined {
     if (!this.enabled) return undefined;
+    this.lookups++;
     const text = this.entries.get(key);
     if (text !== undefined) this.hits++;
     return text;
@@ -50,7 +54,7 @@ export class ResponseCache {
   }
 
   stats(): CacheStats {
-    return { hits: this.hits, stored: this.entries.size };
+    return { hits: this.hits, lookups: this.lookups, stored: this.entries.size };
   }
 }
 

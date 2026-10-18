@@ -33,7 +33,7 @@ Um plugin oficial, chamado Cache de Tokens, liga e desliga o cache e oferece doi
 - Só é guardada a resposta de um turno que terminou sem erro, dentro de um repositório git, e sem nenhuma alteração de arquivos no repositório. Em pasta que não é repositório, o cache não guarda nada, porque não há como confirmar que nenhum arquivo mudou.
 - Ao trocar de pasta, o cache é esvaziado.
 - A resposta devolvida pelo cache aparece com uma marca visível de que veio do cache.
-- As estatísticas contam acertos e envios evitados. Não contam tokens economizados, porque o app não tem a contagem exata de tokens por turno no frontend.
+- As estatísticas contam acertos, consultas com o cache ligado e envios evitados. A taxa de acerto é acertos divididos por consultas. Não contam tokens economizados, porque o app não tem a contagem exata de tokens por turno no frontend. Detalhes da taxa em spec/taxa-de-acerto-cache.md.
 - Os comandos do plugin de cache não devolvem texto para o provedor; mostram o resultado como aviso local.
 - O plugin de exemplo fica na pasta de exemplos do repositório, como o plugin de modo Conversar. Não entra no catálogo oficial nesta entrega.
 - A lista de permissões conhecidas, do lado Rust, passa a aceitar a nova permissão.

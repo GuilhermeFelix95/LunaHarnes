@@ -19,7 +19,7 @@ Harness desktop leve que controla os CLIs oficiais do Claude Code e do Codex e a
   - Claude Code: `claude -p --output-format stream-json`
   - Codex: `codex exec --json`
 - **Plugins:** pasta com `manifest.json` e um módulo JavaScript de um arquivo (TypeScript fica para depois). A API exposta ao plugin é filtrada pelas permissões do manifesto. O manifesto é controle de API, não fronteira de segurança.
-- **Cache de respostas:** em memória, compartilhado pelas conversas da sessão (`src/chat/responseCache.ts`). O envio consulta o cache em `ChatView.send`; a permissão `cache` e o objeto `api.cache` ficam no host de plugins. Sem gravação em disco.
+- **Cache de respostas:** em memória, compartilhado pelas conversas da sessão (`src/chat/responseCache.ts`). O envio consulta o cache em `ChatView.send`; a permissão `cache` e o objeto `api.cache` ficam no host de plugins. O núcleo conta consultas com o cache ligado, e o plugin de exemplo mostra a taxa de acerto na barra lateral (permissão `ui`). Contadores só na sessão. Sem gravação em disco.
 
 ## Pastas
 

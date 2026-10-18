@@ -308,7 +308,7 @@ describe("PluginHost: cache", () => {
     api.cache.setEnabled(true);
     cache.set("pedido", "resposta");
     expect(cache.get("pedido")).toBe("resposta");
-    expect(api.cache.stats()).toEqual({ hits: 1, stored: 1 });
+    expect(api.cache.stats()).toEqual({ hits: 1, lookups: 1, stored: 1 });
   });
 
   it("clear esvazia as respostas guardadas", async () => {
