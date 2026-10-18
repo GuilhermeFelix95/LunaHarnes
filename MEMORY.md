@@ -58,3 +58,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Indicador "Pensando…" com três pontos animados entre o envio e o primeiro pedaço da resposta, com o avatar do agente (MessageList, prop pending); some quando a resposta começa.
 2026-10-18 | Temas de Claude (escuro e claro), Codex e três de terminal (verde, âmbar e clássico). Personalizado ganha cor do terminal, tamanho do texto, formato próprio para o balão e para o composer, e vidro translúcido ligado ou desligado (ThemePalette em src/theme.ts).
 2026-10-18 | Temas Claude escuro e claro voltam às cores do Claude desktop, com destaque terracota (#d97757 no escuro, #b25737 no claro). Os demais temas seguem sem laranja.
+2026-10-18 | App reabre na última pasta de projeto usada (luna.lastWorkspace, src/workspace.ts), na primeira aba e em Nova conversa, em vez da pasta de onde o luna foi rodado.
+2026-10-18 | Personalizado ganha mais fontes (Calibri, Arial, Verdana, Palatino, Cascadia Code) e formato próprio para botões, chips de ferramenta, itens da barra e blocos de código, além do balão e do composer.

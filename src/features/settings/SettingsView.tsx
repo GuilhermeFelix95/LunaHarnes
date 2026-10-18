@@ -46,6 +46,16 @@ const COLOR_FIELDS: Array<[keyof ThemePalette, string]> = [
 /// Opções de formato: "" = igual ao geral (balão e composer).
 const SHAPE_OPTIONS = (Object.keys(SHAPES) as ShapeId[]).map((id) => ({ value: id, label: SHAPES[id].label }));
 
+/// Tipos de componente com formato próprio, cada um com a sua opção.
+const COMPONENT_SHAPE_FIELDS = [
+  ["bubbleShape", "Balão"],
+  ["composerShape", "Composer"],
+  ["buttonShape", "Botões"],
+  ["chipShape", "Chips de ferramenta"],
+  ["itemShape", "Itens da barra"],
+  ["codeShape", "Blocos de código"],
+] as const;
+
 /// Página de configurações em abas: uma aba por assunto, para a página não ficar enorme.
 export function SettingsView({ onClose }: SettingsViewProps) {
   const [theme, setTheme] = useState<ThemeId>(loadTheme);
@@ -182,36 +192,23 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                       ))}
                     </select>
                   </label>
-                  <label className="custom-palette__item">
-                    <span>Balão</span>
-                    <select
-                      className="custom-palette__select"
-                      value={palette.bubbleShape ?? ""}
-                      onChange={(e) => changeField("bubbleShape", (e.target.value || null) as ShapeId | null)}
-                    >
-                      <option value="">Igual ao geral</option>
-                      {SHAPE_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="custom-palette__item">
-                    <span>Composer</span>
-                    <select
-                      className="custom-palette__select"
-                      value={palette.composerShape ?? ""}
-                      onChange={(e) => changeField("composerShape", (e.target.value || null) as ShapeId | null)}
-                    >
-                      <option value="">Igual ao geral</option>
-                      {SHAPE_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {COMPONENT_SHAPE_FIELDS.map(([field, label]) => (
+                    <label key={field} className="custom-palette__item">
+                      <span>{label}</span>
+                      <select
+                        className="custom-palette__select"
+                        value={palette[field] ?? ""}
+                        onChange={(e) => changeField(field, (e.target.value || null) as ShapeId | null)}
+                      >
+                        <option value="">Igual ao geral</option>
+                        {SHAPE_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
                 </fieldset>
 
                 <fieldset>

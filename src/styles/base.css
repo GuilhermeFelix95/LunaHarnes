@@ -55,7 +55,7 @@ button:disabled {
   min-height: 32px;
   padding: 6px 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--button-radius);
   background: var(--surface);
   color: var(--fg);
   font-size: var(--text-base);

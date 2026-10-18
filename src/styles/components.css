@@ -369,7 +369,7 @@
 .sidebar li {
   display: flex;
   align-items: center;
-  border-radius: var(--radius-md);
+  border-radius: var(--item-radius);
 }
 
 .sidebar li.is-active {
@@ -599,7 +599,7 @@
   max-width: 100%;
   padding: 3px 10px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--chip-radius);
   background: var(--bg-sidebar);
   cursor: pointer;
   overflow: hidden;
@@ -707,7 +707,7 @@
   margin: var(--space-3) 0;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--code-radius);
   background: var(--code-bg);
 }
 

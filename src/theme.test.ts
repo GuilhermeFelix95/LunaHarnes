@@ -62,6 +62,20 @@ describe("theme", () => {
     expect(document.documentElement.style.getPropertyValue("--composer-radius")).toBe("6px");
   });
 
+  it("botões, chips, itens e código têm formato próprio, ou seguem o geral", () => {
+    applyPalette({ ...DEFAULT_PALETTE, shape: "soft", buttonShape: "square", chipShape: null, itemShape: "bubbly", codeShape: "round" });
+    const style = document.documentElement.style;
+    expect(style.getPropertyValue("--button-radius")).toBe("3px");
+    expect(style.getPropertyValue("--chip-radius")).toBe("999px");
+    expect(style.getPropertyValue("--item-radius")).toBe("18px");
+    expect(style.getPropertyValue("--code-radius")).toBe("14px");
+  });
+
+  it("as fontes novas viram a pilha certa", () => {
+    applyPalette({ ...DEFAULT_PALETTE, font: "cascadia" });
+    expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Cascadia Code");
+  });
+
   it("a cor do terminal vira o fundo do terminal embutido", () => {
     applyPalette({ ...DEFAULT_PALETTE, terminal: "#123456" });
     expect(document.documentElement.style.getPropertyValue("--terminal-bg")).toBe("#123456");

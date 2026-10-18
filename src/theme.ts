@@ -2,7 +2,7 @@
 /// que `applyTheme` escreve como variáveis CSS inline no <html>. O CSS base (src/styles/themes.css)
 /// só traz o padrão claro para antes do JavaScript; o resto sai daqui.
 
-export type FontId = "inter" | "segoe" | "georgia" | "consolas";
+export type FontId = "inter" | "segoe" | "calibri" | "arial" | "verdana" | "georgia" | "palatino" | "consolas" | "cascadia";
 export type ShapeId = "square" | "soft" | "round" | "bubbly";
 export type TextSizeId = "small" | "medium" | "large";
 
@@ -30,6 +30,14 @@ export interface ThemePalette {
   bubbleShape: ShapeId | null;
   /** Formato só do composer. Nulo = igual ao geral. */
   composerShape: ShapeId | null;
+  /** Formato só dos botões. Nulo = igual ao geral. */
+  buttonShape: ShapeId | null;
+  /** Formato só dos chips de ferramenta. Nulo = igual ao geral. */
+  chipShape: ShapeId | null;
+  /** Formato só dos itens da barra lateral. Nulo = igual ao geral. */
+  itemShape: ShapeId | null;
+  /** Formato só dos blocos de código. Nulo = igual ao geral. */
+  codeShape: ShapeId | null;
   /** Vidro translúcido nos painéis (Luna). Desligado = superfícies planas. */
   glass: boolean;
 }
@@ -63,6 +71,10 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
   shape: "soft",
   bubbleShape: null,
   composerShape: null,
+  buttonShape: null,
+  chipShape: null,
+  itemShape: null,
+  codeShape: null,
   glass: false,
 };
 
@@ -152,8 +164,13 @@ export const THEMES: ThemeInfo[] = PRESETS;
 export const FONTS: Record<FontId, { label: string; stack: string }> = {
   inter: { label: "Inter", stack: '"Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif' },
   segoe: { label: "Segoe UI", stack: '"Segoe UI", system-ui, -apple-system, sans-serif' },
+  calibri: { label: "Calibri", stack: 'Calibri, Carlito, "Segoe UI", sans-serif' },
+  arial: { label: "Arial", stack: 'Arial, Helvetica, sans-serif' },
+  verdana: { label: "Verdana", stack: 'Verdana, Geneva, sans-serif' },
   georgia: { label: "Georgia (serifa)", stack: 'Georgia, "Times New Roman", serif' },
+  palatino: { label: "Palatino (serifa)", stack: '"Palatino Linotype", Palatino, "Book Antiqua", serif' },
   consolas: { label: "Consolas (mono)", stack: 'Consolas, "Cascadia Mono", ui-monospace, monospace' },
+  cascadia: { label: "Cascadia Code (mono)", stack: '"Cascadia Code", "Cascadia Mono", Consolas, monospace' },
 };
 
 export const SHAPES: Record<ShapeId, { label: string; sm: string; md: string; lg: string; xl: string; pill: string }> = {
@@ -240,6 +257,10 @@ function readPalette(value: unknown): ThemePalette | null {
     shape: Object.keys(SHAPES).includes(p.shape as string) ? (p.shape as ShapeId) : BASE.shape,
     bubbleShape: shapeOrNull(p.bubbleShape),
     composerShape: shapeOrNull(p.composerShape),
+    buttonShape: shapeOrNull(p.buttonShape),
+    chipShape: shapeOrNull(p.chipShape),
+    itemShape: shapeOrNull(p.itemShape),
+    codeShape: shapeOrNull(p.codeShape),
     glass: typeof p.glass === "boolean" ? p.glass : BASE.glass,
   };
 }
@@ -314,6 +335,10 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
     "--user-fg": p.bubbleText,
     "--bubble-radius": SHAPES[p.bubbleShape ?? p.shape].lg,
     "--composer-radius": SHAPES[p.composerShape ?? p.shape].xl,
+    "--button-radius": SHAPES[p.buttonShape ?? p.shape].md,
+    "--chip-radius": SHAPES[p.chipShape ?? p.shape].pill,
+    "--item-radius": SHAPES[p.itemShape ?? p.shape].md,
+    "--code-radius": SHAPES[p.codeShape ?? p.shape].md,
     "--success": dark ? "#7fd6a4" : "#2e7d4f",
     "--warning": dark ? "#f2c46d" : "#9a6a10",
     "--error": dark ? "#ff8a9a" : "#b3261e",
