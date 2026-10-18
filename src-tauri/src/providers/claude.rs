@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use super::ProviderEvent;
 
-use super::{image_media_type, LimitWindow, Permission, RunRequest};
+use super::{image_media_type, LimitWindow, Permission, RunRequest, LUNA_IDENTITY};
 
 /// `claude -p` lê o prompt do stdin e emite JSON por linha.
 /// `--include-partial-messages` manda os deltas de texto conforme chegam.
@@ -24,6 +24,8 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         args.extend(["--input-format".to_string(), "stream-json".to_string()]);
     }
 
+    // Acrescenta a identidade ao prompt padrão, que diz que o agente é o Claude Code.
+    args.extend(["--append-system-prompt".to_string(), LUNA_IDENTITY.to_string()]);
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
     }
@@ -179,6 +181,27 @@ fn tool_detail(input: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A identidade vai junto de cada pedido, acrescentada ao prompt padrão (nunca substitui).
+    #[test]
+    fn identity_is_appended_to_the_default_prompt_on_every_run() {
+        let request = RunRequest {
+            provider: crate::providers::ProviderKind::Claude,
+            prompt: "x".into(),
+            session_id: Some("sess-1".into()),
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::AcceptEdits,
+            model: Some("deepseek-flash".into()),
+            effort: None,
+            profile: Some("p1".into()),
+            images: Vec::new(),
+        };
+
+        let args = args(&request);
+
+        assert!(args.windows(2).any(|w| w[0] == "--append-system-prompt" && w[1] == LUNA_IDENTITY));
+        assert!(!args.iter().any(|a| a == "--system-prompt"));
+    }
 
     const PARTIAL: &str = include_str!("../../tests/fixtures/claude_partial.jsonl");
     const TOOL: &str = include_str!("../../tests/fixtures/claude_tool.jsonl");

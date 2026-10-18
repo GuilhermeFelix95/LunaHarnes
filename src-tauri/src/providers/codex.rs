@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use super::ProviderEvent;
 
-use super::{Permission, RunRequest};
+use super::{Permission, RunRequest, LUNA_IDENTITY};
 
 /// `codex exec --json -` lê o prompt do stdin e emite JSONL.
 /// `exec resume` não aceita `-s`, então a retomada passa o sandbox por `-c sandbox_mode`.
@@ -31,6 +31,8 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     if let Some(effort) = &request.effort {
         args.extend(["-c".to_string(), format!("model_reasoning_effort=\"{effort}\"")]);
     }
+    // Identidade da Luna como instrução do desenvolvedor, nos dois casos (novo e retomada).
+    args.extend(["-c".to_string(), format!("developer_instructions=\"{LUNA_IDENTITY}\"")]);
 
     match &request.session_id {
         None => args.push("-".into()),
@@ -180,6 +182,31 @@ mod tests {
             parse_line(r#"{"type":"turn.completed","usage":{}}"#),
             vec![ProviderEvent::Done { ok: true }]
         );
+    }
+
+    /// A identidade vai como instrução do desenvolvedor, antes do `-` do stdin, em pedido novo e em retomada.
+    #[test]
+    fn identity_is_a_developer_instruction_before_the_stdin_marker() {
+        let expected = format!("developer_instructions=\"{LUNA_IDENTITY}\"");
+        for session in [None, Some("th-9".to_string())] {
+            let request = RunRequest {
+                provider: crate::providers::ProviderKind::Codex,
+                prompt: "x".into(),
+                session_id: session,
+                cwd: std::path::PathBuf::from("C:\\projeto"),
+                permission: Permission::ReadOnly,
+                model: None,
+                effort: None,
+                profile: None,
+                images: Vec::new(),
+            };
+
+            let args = args(&request);
+
+            let at = args.iter().position(|a| *a == expected).expect("falta a identidade");
+            assert_eq!(args[at - 1], "-c");
+            assert_eq!(args.last().map(String::as_str), Some("-"));
+        }
     }
 
     /// Cada imagem ganha a sua flag \`-i\`, antes de \`--json\`; o \`-\` do stdin fica por último.

@@ -118,6 +118,10 @@ pub enum LimitWindow {
 /// Máximo de imagens por pedido.
 pub const MAX_IMAGES: usize = 5;
 
+/// Identidade do agente, qualquer que seja o modelo ou o motor. Vai como instrução extra em cada CLI.
+/// Sem aspas nem quebras de linha: o Codex recebe o texto dentro de uma string TOML.
+pub const LUNA_IDENTITY: &str = "Seu nome é Luna, o assistente do aplicativo LunaHarness. Quando perguntarem quem você é, qual modelo ou ferramenta está por trás, responda que é a Luna. Nunca diga que é o Claude Code, o Codex, o Claude, a Anthropic, a OpenAI, o DeepSeek, o OpenRouter, a Z.ai ou qualquer outro nome de modelo ou ferramenta.";
+
 /// Tipo MIME de uma imagem aceita, pela extensão. \`None\` = formato não suportado.
 pub fn image_media_type(path: &Path) -> Option<&'static str> {
     match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
@@ -189,9 +193,20 @@ mod tests {
         assert!(with_model(request(ProviderKind::Claude, Permission::ReadOnly, None), "a&b", "high").validate().is_err());
     }
 
+    /// Tira a instrução da identidade, para estes testes cobrirem só modo, sandbox e modelo.
+    fn without_identity(mut args: Vec<String>) -> Vec<String> {
+        if let Some(at) = args.iter().position(|a| a == "--append-system-prompt") {
+            args.drain(at..at + 2);
+        }
+        if let Some(at) = args.iter().position(|a| a.starts_with("developer_instructions=")) {
+            args.drain(at - 1..at + 1);
+        }
+        args
+    }
+
     #[test]
     fn claude_new_conversation_args_use_stream_and_permission_mode() {
-        let args = cli_args(&request(ProviderKind::Claude, Permission::ReadOnly, None));
+        let args = without_identity(cli_args(&request(ProviderKind::Claude, Permission::ReadOnly, None)));
 
         assert_eq!(
             args,
@@ -229,7 +244,7 @@ mod tests {
 
     #[test]
     fn codex_new_conversation_uses_sandbox_flag_and_stdin_prompt() {
-        let args = cli_args(&request(ProviderKind::Codex, Permission::AcceptEdits, None));
+        let args = without_identity(cli_args(&request(ProviderKind::Codex, Permission::AcceptEdits, None)));
 
         assert_eq!(
             args,
@@ -239,7 +254,7 @@ mod tests {
 
     #[test]
     fn codex_resume_passes_sandbox_as_config_override() {
-        let args = cli_args(&request(ProviderKind::Codex, Permission::ReadOnly, Some("t-1")));
+        let args = without_identity(cli_args(&request(ProviderKind::Codex, Permission::ReadOnly, Some("t-1"))));
 
         assert_eq!(
             args,
@@ -280,7 +295,7 @@ mod tests {
         let req = with_model(request(ProviderKind::Codex, Permission::AcceptEdits, None), "gpt-5.5", "xhigh");
 
         assert_eq!(
-            cli_args(&req),
+            without_identity(cli_args(&req)),
             [
                 "exec",
                 "--json",
@@ -301,7 +316,7 @@ mod tests {
         let req = with_model(request(ProviderKind::Codex, Permission::ReadOnly, Some("t-1")), "gpt-5.5", "low");
 
         assert_eq!(
-            cli_args(&req),
+            without_identity(cli_args(&req)),
             [
                 "exec",
                 "-c",

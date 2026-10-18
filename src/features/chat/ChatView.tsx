@@ -24,7 +24,8 @@ import {
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, QUESTION_PROTOCOL, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
+import { extractQuestions, type Question } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
@@ -46,6 +47,7 @@ import { RightPanel, type SideTab } from "../side/RightPanel";
 import { TerminalPanel } from "../terminal/TerminalPanel";
 import { Composer, PROVIDER_LABELS } from "./Composer";
 import { MessageList } from "./MessageList";
+import { QuestionPicker } from "./QuestionPicker";
 import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
 
@@ -103,6 +105,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [attachments, setAttachments] = useState<{ id: number; path: string; url: string }[]>([]);
   const attachmentSeq = useRef(0);
   const [running, setRunning] = useState(false);
+  // Perguntas do agente, mostradas no seletor. `questionsRound` muda a cada conjunto novo e recria o seletor.
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  const [questionsRound, setQuestionsRound] = useState(0);
   useEffect(() => {
     onRunning?.(conversationId, running);
   }, [running]);
@@ -266,9 +271,18 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
         setRunning(false);
         setChangesVersion((v) => v + 1);
-        if (turnPlanning.current && responseText.current.trim()) {
-          planRef.current = responseText.current;
-          setPlan(responseText.current);
+        // O bloco de perguntas sai do texto e vira o seletor; o resto da resposta fica no chat.
+        const parsed = extractQuestions(responseText.current);
+        if (parsed.warning) setNotes((current) => [...current, parsed.warning!]);
+        if (parsed.questions) {
+          const last = messagesRef.current.at(-1);
+          if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: parsed.text }]);
+          setQuestions(parsed.questions);
+          setQuestionsRound((n) => n + 1);
+        }
+        if (turnPlanning.current && parsed.text.trim()) {
+          planRef.current = parsed.text;
+          setPlan(parsed.text);
           setSideOpen(true);
           setSideTab("plan");
         }
@@ -350,6 +364,7 @@ ${cliPrompt}`;
       rewindNote.current = null;
     }
     responseText.current = "";
+    setQuestions(null);
     turnPlanning.current = plan;
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
@@ -380,7 +395,10 @@ ${cliPrompt}`;
         provider,
         profile: profileId ?? undefined,
         images,
-        prompt: withContext(preamble, plan ? withPlanInstruction(cliPrompt) : mode ? mode.instruction + "\n\n" + cliPrompt : cliPrompt),
+        prompt: withContext(
+          preamble,
+          plan ? withPlanInstruction(cliPrompt) : mode ? mode.instruction + "\n\n" + QUESTION_PROTOCOL + "\n\n" + cliPrompt : cliPrompt,
+        ),
         sessionId,
         cwd,
         permission: plan || mode ? "readOnly" : permission,
@@ -509,6 +527,12 @@ ${outgoing}`
     setDraft(text);
     persist(kept);
     setChangesVersion((n) => n + 1);
+  }
+
+  /// Respostas do seletor: viram a próxima mensagem do turno, no mesmo modo em que estava a conversa.
+  async function answerQuestions(text: string) {
+    if (running) return;
+    await run(text, text, planning, modes.find((m) => m.id === modeId));
   }
 
   /// Gera a spec da conversa (estilo to-spec): um turno de planejamento que só lê, e a resposta vira o plano.
@@ -669,6 +693,14 @@ ${outgoing}`
               Aprovar e executar
             </button>
           </div>
+        )}
+
+        {questions && !running && (
+          <QuestionPicker
+            key={questionsRound}
+            questions={questions}
+            onAnswer={(text) => void answerQuestions(text)}
+          />
         )}
       </div>
 

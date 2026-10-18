@@ -46,6 +46,8 @@ docs/                stack, contrato de plugins
 - Etapa 4 (plugins): loader em Rust (`src-tauri/src/plugins/loader.rs`) com validação de manifesto e travessia bloqueada. Host em TS (`src/plugins/host.ts`) com permissões `commands` e `hooks`. Painéis (`registerPanel`) ficaram fora do MVP.
 - Etapa 5: contrato em `docs/plugins.md` e plugin de referência em `plugins-examples/hello-world`.
 - Fase F, etapa 4 (marketplace): `src-tauri/src/plugins/marketplace.rs` (catálogo oficial embutido em `src-tauri/marketplace/official.json`, catálogos por URL https, sha256 obrigatório, instalação em pasta temporária). Permissão `modes` (`registerMode`, só `readOnly`) com chips no composer. Plugin oficial `plugins-examples/ask-mode` (modo Perguntar). Configurações > Plugins (Instalados e Marketplace). Crates novos: `sha2` e `reqwest` (rustls).
+- Identidade: `LUNA_IDENTITY` (`src-tauri/src/providers/mod.rs`) vai em toda chamada. Claude: `--append-system-prompt` (acrescenta ao prompt padrão). Codex: `-c developer_instructions="..."`. Teste real com modelo não-Anthropic pendente.
+- Perguntas do agente: bloco ```` ```luna-perguntas ```` com JSON (`src/chat/questions.ts`), protocolo em `QUESTION_PROTOCOL` (`src/chat/planning.ts`). Ao fim do turno o `ChatView` tira o bloco do chat e mostra o seletor `QuestionPicker` (`src/features/chat/QuestionPicker.tsx`). A escolha vai como próxima mensagem do mesmo turno.
 - Login: a app verifica a conta de cada CLI (`check_auth`) e bloqueia o envio até ela estar conectada. O login interativo roda numa janela própria (`open_login`). Só Windows por enquanto.
 - Comando `luna`: `bin/luna.mjs`, registrado com `npm link`. Abre o executável de release (`npm run build:app`).
 - Fase B (interface e histórico):
