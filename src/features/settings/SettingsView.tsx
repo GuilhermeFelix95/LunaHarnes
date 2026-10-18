@@ -8,9 +8,11 @@ import {
   saveCustomPalette,
   saveTheme,
   SHAPES,
+  TEXT_SIZES,
   THEMES,
   type FontId,
   type ShapeId,
+  type TextSizeId,
   type ThemeId,
   type ThemePalette,
 } from "../../theme";
@@ -38,7 +40,11 @@ const COLOR_FIELDS: Array<[keyof ThemePalette, string]> = [
   ["bubbleText", "Texto do balão"],
   ["accent", "Destaque"],
   ["text", "Texto"],
+  ["terminal", "Terminal"],
 ];
+
+/// Opções de formato: "" = igual ao geral (balão e composer).
+const SHAPE_OPTIONS = (Object.keys(SHAPES) as ShapeId[]).map((id) => ({ value: id, label: SHAPES[id].label }));
 
 /// Página de configurações em abas: uma aba por assunto, para a página não ficar enorme.
 export function SettingsView({ onClose }: SettingsViewProps) {
@@ -53,7 +59,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   }
 
   // Cada mudança no editor vale na hora: salva e aplica no mesmo gesto.
-  function changeField(field: keyof ThemePalette, value: string) {
+  function changeField(field: keyof ThemePalette, value: ThemePalette[keyof ThemePalette]) {
     const next = { ...palette, [field]: value } as ThemePalette;
     setPalette(next);
     saveCustomPalette(next);
@@ -129,7 +135,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 </fieldset>
 
                 <fieldset>
-                  <legend>Fonte e formato</legend>
+                  <legend>Texto</legend>
                   <label className="custom-palette__item">
                     <span>Fonte</span>
                     <select
@@ -145,18 +151,78 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                     </select>
                   </label>
                   <label className="custom-palette__item">
-                    <span>Componentes</span>
+                    <span>Tamanho</span>
+                    <select
+                      className="custom-palette__select"
+                      value={palette.textSize}
+                      onChange={(e) => changeField("textSize", e.target.value as TextSizeId)}
+                    >
+                      {(Object.keys(TEXT_SIZES) as TextSizeId[]).map((id) => (
+                        <option key={id} value={id}>
+                          {TEXT_SIZES[id].label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Formato</legend>
+                  <label className="custom-palette__item">
+                    <span>Geral</span>
                     <select
                       className="custom-palette__select"
                       value={palette.shape}
                       onChange={(e) => changeField("shape", e.target.value as ShapeId)}
                     >
-                      {(Object.keys(SHAPES) as ShapeId[]).map((id) => (
-                        <option key={id} value={id}>
-                          {SHAPES[id].label}
+                      {SHAPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
                         </option>
                       ))}
                     </select>
+                  </label>
+                  <label className="custom-palette__item">
+                    <span>Balão</span>
+                    <select
+                      className="custom-palette__select"
+                      value={palette.bubbleShape ?? ""}
+                      onChange={(e) => changeField("bubbleShape", (e.target.value || null) as ShapeId | null)}
+                    >
+                      <option value="">Igual ao geral</option>
+                      {SHAPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="custom-palette__item">
+                    <span>Composer</span>
+                    <select
+                      className="custom-palette__select"
+                      value={palette.composerShape ?? ""}
+                      onChange={(e) => changeField("composerShape", (e.target.value || null) as ShapeId | null)}
+                    >
+                      <option value="">Igual ao geral</option>
+                      {SHAPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Efeitos</legend>
+                  <label className="custom-palette__item">
+                    <input
+                      type="checkbox"
+                      checked={palette.glass}
+                      onChange={(e) => changeField("glass", e.target.checked)}
+                    />
+                    <span>Vidro translúcido</span>
                   </label>
                 </fieldset>
               </div>

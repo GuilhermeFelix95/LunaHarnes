@@ -553,7 +553,7 @@
   max-width: 80%;
   padding: 9px 13px;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--bubble-radius);
   background: var(--user-bubble);
   color: var(--user-fg);
   white-space: pre-wrap;
@@ -773,7 +773,7 @@
   flex-direction: column;
   gap: 8px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
+  border-radius: var(--composer-radius);
   background: var(--glass);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow);

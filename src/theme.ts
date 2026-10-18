@@ -1,9 +1,10 @@
-/// Temas do app. Cada tema é uma paleta completa (cores, fonte e formato dos componentes) que
-/// `applyTheme` escreve como variáveis CSS inline no <html>. O CSS base (src/styles/themes.css)
+/// Temas do app. Cada tema é uma paleta completa (cores, fonte, tamanho e formato dos componentes)
+/// que `applyTheme` escreve como variáveis CSS inline no <html>. O CSS base (src/styles/themes.css)
 /// só traz o padrão claro para antes do JavaScript; o resto sai daqui.
 
 export type FontId = "inter" | "segoe" | "georgia" | "consolas";
 export type ShapeId = "square" | "soft" | "round" | "bubbly";
+export type TextSizeId = "small" | "medium" | "large";
 
 /// Tudo o que um tema define. O Personalizado é uma paleta salva pelo usuário.
 export interface ThemePalette {
@@ -19,11 +20,34 @@ export interface ThemePalette {
   accent: string;
   /** Texto principal. */
   text: string;
+  /** Fundo do terminal embutido. */
+  terminal: string;
   font: FontId;
+  textSize: TextSizeId;
+  /** Formato geral dos componentes. */
   shape: ShapeId;
+  /** Formato só do balão do usuário. Nulo = igual ao geral. */
+  bubbleShape: ShapeId | null;
+  /** Formato só do composer. Nulo = igual ao geral. */
+  composerShape: ShapeId | null;
+  /** Vidro translúcido nos painéis (Luna). Desligado = superfícies planas. */
+  glass: boolean;
 }
 
-export type ThemeId = "noite" | "musgo" | "ametista" | "papel" | "oceano" | "grafite" | "custom";
+export type ThemeId =
+  | "noite"
+  | "musgo"
+  | "ametista"
+  | "papel"
+  | "oceano"
+  | "grafite"
+  | "claude"
+  | "claude-claro"
+  | "codex"
+  | "terminal-verde"
+  | "terminal-ambar"
+  | "terminal-classico"
+  | "custom";
 
 export interface ThemeInfo {
   id: ThemeId;
@@ -32,48 +56,94 @@ export interface ThemeInfo {
   palette: ThemePalette;
 }
 
+/// Base de todo tema: os campos que quase nunca mudam, para cada tema só dizer o que é diferente.
+const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "accent" | "text" | "terminal"> = {
+  font: "inter",
+  textSize: "medium",
+  shape: "soft",
+  bubbleShape: null,
+  composerShape: null,
+  glass: false,
+};
+
 const PRESETS: ThemeInfo[] = [
   {
     id: "noite",
     label: "Noite",
     description: "Azul-marinho profundo com destaque prateado.",
-    palette: { sidebar: "#0b111b", chat: "#0f1622", bubble: "#1f2d40", bubbleText: "#e6eef8", accent: "#8cc4e8", text: "#e6eef8", font: "inter", shape: "soft" },
+    palette: { ...BASE, glass: true, sidebar: "#0b111b", chat: "#0f1622", bubble: "#1f2d40", bubbleText: "#e6eef8", accent: "#8cc4e8", text: "#e6eef8", terminal: "#0a1018" },
   },
   {
     id: "musgo",
     label: "Musgo",
     description: "Verde-floresta escuro, calmo para leituras longas.",
-    palette: { sidebar: "#0c140f", chat: "#111a15", bubble: "#1f3026", bubbleText: "#e4f2e8", accent: "#9fd8a9", text: "#e4f2e8", font: "inter", shape: "soft" },
+    palette: { ...BASE, sidebar: "#0c140f", chat: "#111a15", bubble: "#1f3026", bubbleText: "#e4f2e8", accent: "#9fd8a9", text: "#e4f2e8", terminal: "#0a110d" },
   },
   {
     id: "ametista",
     label: "Ametista",
     description: "Violeta noturno, com cantos mais redondos.",
-    palette: { sidebar: "#0f0c17", chat: "#15121f", bubble: "#2b2342", bubbleText: "#efeaff", accent: "#b9a6ff", text: "#efeaff", font: "inter", shape: "round" },
+    palette: { ...BASE, shape: "round", sidebar: "#0f0c17", chat: "#15121f", bubble: "#2b2342", bubbleText: "#efeaff", accent: "#b9a6ff", text: "#efeaff", terminal: "#0c0a13" },
   },
   {
     id: "papel",
     label: "Papel",
     description: "Claro e com serifa, para ler como em papel.",
-    palette: { sidebar: "#f1ebdd", chat: "#fbf8f1", bubble: "#e7dfcb", bubbleText: "#2a2620", accent: "#1f7a72", text: "#2a2620", font: "georgia", shape: "soft" },
+    palette: { ...BASE, font: "georgia", sidebar: "#f1ebdd", chat: "#fbf8f1", bubble: "#e7dfcb", bubbleText: "#2a2620", accent: "#1f7a72", text: "#2a2620", terminal: "#2a2620" },
   },
   {
     id: "oceano",
     label: "Oceano",
     description: "Azul claro e limpo, com a fonte do Windows.",
-    palette: { sidebar: "#e6eef6", chat: "#f6f9fc", bubble: "#d7e5f2", bubbleText: "#13263a", accent: "#2563a8", text: "#13263a", font: "segoe", shape: "soft" },
+    palette: { ...BASE, font: "segoe", sidebar: "#e6eef6", chat: "#f6f9fc", bubble: "#d7e5f2", bubbleText: "#13263a", accent: "#2563a8", text: "#13263a", terminal: "#13263a" },
   },
   {
     id: "grafite",
     label: "Grafite",
     description: "Monocromático, com cantos retos.",
-    palette: { sidebar: "#141416", chat: "#1b1b1d", bubble: "#2a2a2e", bubbleText: "#f0f0f0", accent: "#e4e4e4", text: "#f0f0f0", font: "inter", shape: "square" },
+    palette: { ...BASE, shape: "square", sidebar: "#141416", chat: "#1b1b1d", bubble: "#2a2a2e", bubbleText: "#f0f0f0", accent: "#e4e4e4", text: "#f0f0f0", terminal: "#111113" },
+  },
+  {
+    id: "claude",
+    label: "Claude",
+    description: "Neutro e quente, como o Claude desktop, no escuro.",
+    palette: { ...BASE, sidebar: "#1f1e1d", chat: "#262624", bubble: "#3a3936", bubbleText: "#f0eee6", accent: "#8cc4e8", text: "#f0eee6", terminal: "#1f1e1d" },
+  },
+  {
+    id: "claude-claro",
+    label: "Claude claro",
+    description: "Neutro e quente, como o Claude desktop, no claro.",
+    palette: { ...BASE, sidebar: "#f0eee6", chat: "#faf9f5", bubble: "#f0eee6", bubbleText: "#1f1e1d", accent: "#2a6f97", text: "#1f1e1d", terminal: "#1f1e1d" },
+  },
+  {
+    id: "codex",
+    label: "Codex",
+    description: "Cinza-carvão, sem brilho, com verde-menta no destaque.",
+    palette: { ...BASE, sidebar: "#171717", chat: "#212121", bubble: "#2f2f2f", bubbleText: "#ececec", accent: "#10a37f", text: "#ececec", terminal: "#0d0d0d" },
+  },
+  {
+    id: "terminal-verde",
+    label: "Terminal verde",
+    description: "Fósforo verde sobre preto, em fonte monoespaçada.",
+    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#050805", chat: "#0a0f0a", bubble: "#13231a", bubbleText: "#7dff9a", accent: "#7dff9a", text: "#7dff9a", terminal: "#050805" },
+  },
+  {
+    id: "terminal-ambar",
+    label: "Terminal âmbar",
+    description: "Monitor de âmbar, em fonte monoespaçada.",
+    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#100b04", chat: "#140e05", bubble: "#2a1d08", bubbleText: "#ffb000", accent: "#ffb000", text: "#ffb000", terminal: "#0c0802" },
+  },
+  {
+    id: "terminal-classico",
+    label: "Terminal clássico",
+    description: "Cinza sobre preto, como um shell antigo.",
+    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#000000", chat: "#0c0c0c", bubble: "#1a1a1a", bubbleText: "#cccccc", accent: "#e0e0e0", text: "#cccccc", terminal: "#000000" },
   },
   {
     id: "custom",
     label: "Personalizado",
-    description: "Suas cores, sua fonte e o formato dos componentes.",
-    palette: { sidebar: "#111a24", chat: "#0f1620", bubble: "#223347", bubbleText: "#e2ecf7", accent: "#8cc4e8", text: "#e2ecf7", font: "inter", shape: "soft" },
+    description: "Suas cores, fonte, tamanho e formatos.",
+    palette: { ...BASE, sidebar: "#111a24", chat: "#0f1620", bubble: "#223347", bubbleText: "#e2ecf7", accent: "#8cc4e8", text: "#e2ecf7", terminal: "#0a1018", glass: true },
   },
 ];
 
@@ -91,6 +161,23 @@ export const SHAPES: Record<ShapeId, { label: string; sm: string; md: string; lg
   soft: { label: "Suave", sm: "6px", md: "8px", lg: "12px", xl: "16px", pill: "999px" },
   round: { label: "Redondo", sm: "10px", md: "14px", lg: "18px", xl: "24px", pill: "999px" },
   bubbly: { label: "Bem redondo", sm: "14px", md: "18px", lg: "22px", xl: "28px", pill: "999px" },
+};
+
+export const TEXT_SIZES: Record<TextSizeId, { label: string; scale: number }> = {
+  small: { label: "Pequeno", scale: 0.92 },
+  medium: { label: "Médio", scale: 1 },
+  large: { label: "Grande", scale: 1.12 },
+};
+
+/// Escala de tipo do tokens.css, em px. O tamanho escolhido multiplica todos.
+const TYPE_SCALE_PX: Record<string, number> = {
+  "--text-xs": 11,
+  "--text-sm": 12,
+  "--text-base": 13,
+  "--text-md": 14,
+  "--text-lg": 16,
+  "--text-xl": 20,
+  "--text-2xl": 28,
 };
 
 export const THEME_KEY = "luna.theme";
@@ -127,7 +214,10 @@ export function saveTheme(id: ThemeId) {
   }
 }
 
-/// Lê a paleta salva. Paletas antigas (só as quatro cores) ganham texto e fonte padrão.
+const shapeOrNull = (value: unknown): ShapeId | null =>
+  Object.keys(SHAPES).includes(value as string) ? (value as ShapeId) : null;
+
+/// Lê a paleta salva. Paletas antigas ganham os campos novos com valores que mantêm o visual de antes.
 function readPalette(value: unknown): ThemePalette | null {
   if (!value || typeof value !== "object") return null;
   const p = value as Record<string, unknown>;
@@ -136,11 +226,22 @@ function readPalette(value: unknown): ThemePalette | null {
   const chat = p.chat as string;
   const bubble = p.bubble as string;
   const accent = p.accent as string;
-  const bubbleText = typeof p.bubbleText === "string" && HEX.test(p.bubbleText) ? p.bubbleText : readableInk(bubble);
-  const text = typeof p.text === "string" && HEX.test(p.text) ? p.text : readableInk(chat);
-  const font = Object.keys(FONTS).includes(p.font as string) ? (p.font as FontId) : "inter";
-  const shape = Object.keys(SHAPES).includes(p.shape as string) ? (p.shape as ShapeId) : "soft";
-  return { sidebar, chat, bubble, bubbleText, accent, text, font, shape };
+  const hexOr = (value: unknown, fallback: string) => (typeof value === "string" && HEX.test(value) ? value : fallback);
+  return {
+    sidebar,
+    chat,
+    bubble,
+    accent,
+    bubbleText: hexOr(p.bubbleText, readableInk(bubble)),
+    text: hexOr(p.text, readableInk(chat)),
+    terminal: hexOr(p.terminal, sidebar),
+    font: Object.keys(FONTS).includes(p.font as string) ? (p.font as FontId) : BASE.font,
+    textSize: Object.keys(TEXT_SIZES).includes(p.textSize as string) ? (p.textSize as TextSizeId) : BASE.textSize,
+    shape: Object.keys(SHAPES).includes(p.shape as string) ? (p.shape as ShapeId) : BASE.shape,
+    bubbleShape: shapeOrNull(p.bubbleShape),
+    composerShape: shapeOrNull(p.composerShape),
+    glass: typeof p.glass === "boolean" ? p.glass : BASE.glass,
+  };
 }
 
 export function loadCustomPalette(): ThemePalette {
@@ -186,12 +287,17 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
   const dark = luminance(p.chat) < 0.18;
   const mix = (amount: number, base: string) => `color-mix(in srgb, ${p.text} ${amount}%, ${base})`;
   const shape = SHAPES[p.shape];
+  const scale = TEXT_SIZES[p.textSize].scale;
+  const typeTokens = Object.fromEntries(
+    Object.entries(TYPE_SCALE_PX).map(([name, px]) => [name, `${Math.round(px * scale * 10) / 10}px`]),
+  );
   return {
+    ...typeTokens,
     "--bg": p.chat,
     "--bg-sidebar": p.sidebar,
     "--surface": mix(4, p.chat),
-    "--glass": "var(--surface)",
-    "--glass-border": "var(--border)",
+    "--glass": p.glass ? `color-mix(in srgb, ${p.chat} 72%, transparent)` : "var(--surface)",
+    "--glass-border": p.glass ? `color-mix(in srgb, ${p.text} 12%, transparent)` : "var(--border)",
     "--fg": p.text,
     "--fg-muted": mix(72, p.chat),
     "--fg-subtle": mix(62, p.chat),
@@ -206,12 +312,14 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
     "--glow": `color-mix(in srgb, ${p.accent} 18%, transparent)`,
     "--user-bubble": p.bubble,
     "--user-fg": p.bubbleText,
+    "--bubble-radius": SHAPES[p.bubbleShape ?? p.shape].lg,
+    "--composer-radius": SHAPES[p.composerShape ?? p.shape].xl,
     "--success": dark ? "#7fd6a4" : "#2e7d4f",
     "--warning": dark ? "#f2c46d" : "#9a6a10",
     "--error": dark ? "#ff8a9a" : "#b3261e",
     "--diff-add": dark ? "#7fd6a4" : "#2e7d4f",
     "--diff-del": dark ? "#ff8a9a" : "#b3261e",
-    "--terminal-bg": p.sidebar,
+    "--terminal-bg": p.terminal,
     "--terminal-fg": p.text,
     "--shadow": dark ? "0 10px 40px rgb(0 0 0 / 45%)" : "0 10px 30px rgb(0 0 0 / 10%)",
     "--font-sans": FONTS[p.font].stack,

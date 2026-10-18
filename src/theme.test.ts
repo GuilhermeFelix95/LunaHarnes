@@ -22,8 +22,49 @@ describe("theme", () => {
     document.documentElement.removeAttribute("style");
   });
 
-  it("tem seis temas novos e o personalizado, e nenhum dos antigos", () => {
-    expect(THEMES.map((t) => t.id)).toEqual(["noite", "musgo", "ametista", "papel", "oceano", "grafite", "custom"]);
+  it("tem os temas de cor, os de Claude e Codex, os de terminal e o personalizado", () => {
+    expect(THEMES.map((t) => t.id)).toEqual([
+      "noite",
+      "musgo",
+      "ametista",
+      "papel",
+      "oceano",
+      "grafite",
+      "claude",
+      "claude-claro",
+      "codex",
+      "terminal-verde",
+      "terminal-ambar",
+      "terminal-classico",
+      "custom",
+    ]);
+  });
+
+  it("o tamanho do texto multiplica a escala de tipo", () => {
+    applyPalette({ ...DEFAULT_PALETTE, textSize: "large" });
+    expect(document.documentElement.style.getPropertyValue("--text-md")).toBe("15.7px");
+
+    applyPalette({ ...DEFAULT_PALETTE, textSize: "small" });
+    expect(document.documentElement.style.getPropertyValue("--text-md")).toBe("12.9px");
+  });
+
+  it("sem vidro, os painéis usam a superfície plana", () => {
+    applyPalette({ ...DEFAULT_PALETTE, glass: false });
+    expect(document.documentElement.style.getPropertyValue("--glass")).toBe("var(--surface)");
+
+    applyPalette({ ...DEFAULT_PALETTE, glass: true });
+    expect(document.documentElement.style.getPropertyValue("--glass")).toContain("transparent");
+  });
+
+  it("balão e composer podem ter formato próprio, ou seguir o geral", () => {
+    applyPalette({ ...DEFAULT_PALETTE, shape: "square", bubbleShape: "round", composerShape: null });
+    expect(document.documentElement.style.getPropertyValue("--bubble-radius")).toBe("18px");
+    expect(document.documentElement.style.getPropertyValue("--composer-radius")).toBe("6px");
+  });
+
+  it("a cor do terminal vira o fundo do terminal embutido", () => {
+    applyPalette({ ...DEFAULT_PALETTE, terminal: "#123456" });
+    expect(document.documentElement.style.getPropertyValue("--terminal-bg")).toBe("#123456");
   });
 
   it("nenhum tema usa laranja como destaque", () => {

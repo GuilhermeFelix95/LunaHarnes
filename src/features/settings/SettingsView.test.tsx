@@ -33,11 +33,11 @@ describe("SettingsView", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("lista os seis temas, o Personalizado e marca o atual", () => {
+  it("lista os temas, o Personalizado e marca o atual", () => {
     localStorage.setItem(THEME_KEY, "papel");
     render(<SettingsView onClose={() => {}} />);
 
-    expect(screen.getAllByRole("radio")).toHaveLength(7);
+    expect(screen.getAllByRole("radio")).toHaveLength(13);
     expect(screen.getByRole("radio", { name: /Personalizado/ })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /Papel/ }).getAttribute("aria-checked")).toBe("true");
   });
@@ -47,7 +47,7 @@ describe("SettingsView", () => {
     render(<SettingsView onClose={() => {}} />);
 
     fireEvent.change(screen.getByLabelText("Fonte"), { target: { value: "consolas" } });
-    fireEvent.change(screen.getByLabelText("Componentes"), { target: { value: "square" } });
+    fireEvent.change(screen.getByLabelText("Geral"), { target: { value: "square" } });
 
     expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Consolas");
     expect(document.documentElement.style.getPropertyValue("--radius-lg")).toBe("4px");
