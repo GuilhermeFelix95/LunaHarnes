@@ -19,6 +19,7 @@ Harness desktop leve que controla os CLIs oficiais do Claude Code e do Codex e a
   - Claude Code: `claude -p --output-format stream-json`
   - Codex: `codex exec --json`
 - **Plugins:** pasta com `manifest.json` e um módulo JavaScript de um arquivo (TypeScript fica para depois). A API exposta ao plugin é filtrada pelas permissões do manifesto. O manifesto é controle de API, não fronteira de segurança.
+- **Cache de respostas:** em memória, compartilhado pelas conversas da sessão (`src/chat/responseCache.ts`). O envio consulta o cache em `ChatView.send`; a permissão `cache` e o objeto `api.cache` ficam no host de plugins. Sem gravação em disco.
 
 ## Pastas
 
@@ -39,6 +40,7 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Cache de respostas para economizar tokens (2026-10-18): permissão `cache`, `api.cache` e plugin oficial de exemplo `plugins-examples/cache-tokens/`. Testes escritos antes da mudança; execução de testes pendente de liberação do ambiente.
 - Etapa 1 (repositório e documentação): concluída.
 - Etapa 2 (providers e sessão em Rust): código e testes passando. Fixture de sucesso do Codex pendente (`codex login`).
 - Etapa 3 (Tauri + UI de chat): comandos `send_prompt` e `cancel_prompt` (`src-tauri/src/commands.rs`), evento `provider-event`, `ChatView` com streaming e troca de provedor. Ícone da Luna (lua e órbita) em `src-tauri/icons`, gerado a partir de `src-tauri/icons/source.svg` com `npx tauri icon`. O `tauri.conf.json` declara os ícones do bundle, senão a janela usa o ícone padrão do Tauri.

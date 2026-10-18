@@ -38,7 +38,7 @@ Não use TypeScript, não use `import` de outros arquivos nem de URLs, não use 
 | `name` | Obrigatório, não pode ser vazio. |
 | `version` | Texto livre; recomenda-se semver (`0.1.0`). |
 | `entry` | Caminho relativo dentro da pasta. Não pode sair dela (`../` é recusado). Use `index.js`. |
-| `permissions` | Lista com `commands`, `hooks` e/ou `modes`. Qualquer outro valor recusa o plugin. |
+| `permissions` | Lista com `commands`, `hooks`, `modes` e/ou `cache`. Qualquer outro valor recusa o plugin. |
 
 Um plugin com manifesto inválido aparece na lista de avisos e não impede os outros de carregar. O arquivo de entrada precisa caber em 512 KB.
 
@@ -96,6 +96,27 @@ api.registerMode({
 - `questions: true` faz o agente perguntar antes de agir, pelo seletor de perguntas. Sem o campo, o modo não pergunta. (O id `ask` é exceção por compatibilidade com a versão antiga do plugin oficial.)
 - Só um modo fica ligado por vez: ligar um desliga o anterior.
 - `id` e `label` são obrigatórios; `id` segue a regra dos comandos (começa com letra), e não pode repetir um modo já existente.
+
+### `api.cache`: permissão `cache`
+
+Controla o cache de respostas da sessão. Quando ligado, um pedido repetido recebe a resposta guardada, sem chamar o provedor, e a resposta aparece no chat marcada como "do cache".
+
+Acessar `api.cache` sem a permissão `cache` recusa o plugin. O objeto tem quatro operações:
+
+- `api.cache.setEnabled(true | false)`: liga ou desliga o cache. Começa desligado.
+- `api.cache.clear()`: esvazia as respostas guardadas.
+- `api.cache.stats()`: devolve `{ hits, stored }`, com os acertos e as respostas guardadas na sessão.
+- `api.cache.notify(texto)`: mostra um aviso local no chat. O texto **não** vai ao agente.
+
+Regras que o núcleo aplica (não dá para mudar pelo plugin):
+
+- Só a primeira mensagem de uma conversa usa o cache. Com histórico, a mesma pergunta pode pedir resposta diferente.
+- Não usa o cache com anexos, imagens, arquivos citados com `@`, nem nos modos que planejam ou perguntam.
+- O pedido só acerta se o texto final, o agente, o perfil de API, o modelo, o esforço, a permissão, o modo e a pasta forem os mesmos.
+- Só guarda a resposta de um turno que terminou sem erro, numa pasta que é repositório git, e sem alterar arquivos. Trocar de pasta esvazia o cache.
+- Recarregar os plugins desliga e esvazia o cache.
+
+O cache conta acertos, não tokens economizados: o app não tem a contagem exata de tokens por turno.
 
 ## Limites
 

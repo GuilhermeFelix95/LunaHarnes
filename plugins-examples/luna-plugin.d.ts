@@ -13,6 +13,15 @@ export interface PluginMode {
   questions?: boolean;
 }
 
+/** Cache de respostas da sessão. Requer `cache`. Começa desligado. */
+export interface PluginCacheApi {
+  setEnabled(enabled: boolean): void;
+  clear(): void;
+  stats(): { hits: number; stored: number };
+  /** Aviso local no chat. Não é enviado ao agente. */
+  notify(text: string): void;
+}
+
 export interface LunaPluginApi {
   /** Requer `commands`. O nome vira `/nome` no chat. Devolver texto envia esse texto como pedido. */
   registerCommand(name: string, handler: (args: string) => string | void | Promise<string | void>): void;
@@ -22,6 +31,8 @@ export interface LunaPluginApi {
   onAfterResponse(hook: (text: string) => void | Promise<void>): void;
   /** Requer `modes`. */
   registerMode(mode: PluginMode): void;
+  /** Requer `cache`. Sem essa permissão, acessar `cache` recusa o plugin. */
+  readonly cache: PluginCacheApi;
 }
 
 /** Todo plugin exporta `activate`, chamado uma vez quando o plugin é ligado ou o app abre. */
