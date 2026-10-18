@@ -92,40 +92,48 @@ describe("Composer", () => {
 
   it("o provedor pode ser trocado no meio da conversa, só não durante uma resposta", () => {
     setup();
-    expect((screen.getByLabelText("Provedor") as HTMLSelectElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Provedor" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("o seletor lista os CLIs e os perfis de API, e avisa a escolha", () => {
     const onAgent = vi.fn();
     setup({ onAgent });
 
-    const select = screen.getByLabelText("Provedor") as HTMLSelectElement;
-    expect([...select.options].map((o) => o.textContent)).toEqual([
+    fireEvent.click(screen.getByRole("button", { name: "Provedor" }));
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
       "Claude Code",
       "DeepSeek · via Claude Code",
     ]);
-    fireEvent.change(select, { target: { value: "api:p1" } });
+    fireEvent.click(screen.getByRole("option", { name: "DeepSeek · via Claude Code" }));
     expect(onAgent).toHaveBeenCalledWith("api:p1");
   });
 
   it("o seletor de esforço fica desligado enquanto nenhum modelo está escolhido", () => {
     setup({ model: "" });
 
-    expect((screen.getByLabelText("Esforço") as HTMLSelectElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Esforço" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("mostra só os níveis que o modelo escolhido aceita", () => {
     setup({ model: "claude-sonnet-5-5" });
-    const levels = Array.from((screen.getByLabelText("Esforço") as HTMLSelectElement).options).map((o) => o.value);
+    fireEvent.click(screen.getByRole("button", { name: "Esforço" }));
 
-    expect(levels).toEqual(["", "low", "medium"]);
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Padrão", "Low", "Medium (recomendado)"]);
   });
 
   it("marca o nível recomendado com o nome que o Desktop usa", () => {
     setup({ model: "claude-opus-5-5" });
-    const options = Array.from((screen.getByLabelText("Esforço") as HTMLSelectElement).options).map((o) => o.textContent);
+    fireEvent.click(screen.getByRole("button", { name: "Esforço" }));
 
-    expect(options).toContain("Medium (recomendado)");
+    expect(screen.getByRole("option", { name: "Medium (recomendado)" })).toBeTruthy();
+  });
+
+  it("escolher a permissão avisa o novo modo", () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Permissão" }));
+    fireEvent.click(screen.getByRole("option", { name: "Só leitura" }));
+
+    expect(props.onPermission).toHaveBeenCalledWith("readOnly");
   });
 
   it("o seletor de modelo mostra o nome e a descrição de cada modelo", () => {

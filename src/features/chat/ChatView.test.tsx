@@ -55,6 +55,12 @@ async function send(text: string) {
   await waitFor(() => expect(screen.getByLabelText("Parar")).toBeTruthy());
 }
 
+/// Abre o seletor de provedor e escolhe o agente pelo nome que ele mostra.
+async function pickAgent(name: string) {
+  fireEvent.click(screen.getByRole("button", { name: "Provedor" }));
+  fireEvent.click(await screen.findByRole("option", { name }));
+}
+
 describe("ChatView: continuidade e envio", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -143,8 +149,8 @@ describe("ChatView: continuidade e envio", () => {
     ]);
     render(<ChatView onPersist={() => {}} />);
 
-    await screen.findByRole("option", { name: "DeepSeek · via Claude Code" });
-    fireEvent.change(screen.getByLabelText("Provedor"), { target: { value: "api:p1" } });
+    await screen.findByRole("button", { name: "Provedor" });
+    await pickAgent("DeepSeek · via Claude Code");
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("olá");
@@ -191,7 +197,7 @@ describe("ChatView: continuidade e envio", () => {
     await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
 
     // Claude → Codex: sessão nova com o histórico inteiro antes da mensagem.
-    fireEvent.change(screen.getByLabelText("Provedor"), { target: { value: "codex" } });
+    await pickAgent("Codex");
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
     await send("agora ajuste o CSS");
     const toCodex = vi.mocked(api.sendPrompt).mock.calls[1][0];
@@ -208,7 +214,7 @@ describe("ChatView: continuidade e envio", () => {
     await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
 
     // Codex → Claude: retoma a sessão antiga e recebe só o que perdeu.
-    fireEvent.change(screen.getByLabelText("Provedor"), { target: { value: "claude" } });
+    await pickAgent("Claude Code");
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
     await send("revise tudo");
     const back = vi.mocked(api.sendPrompt).mock.calls[2][0];

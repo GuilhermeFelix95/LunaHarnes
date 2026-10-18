@@ -5,6 +5,7 @@ import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { ModelMenu } from "./ModelMenu";
+import { Select } from "./Select";
 
 export { PROVIDER_LABELS };
 
@@ -138,44 +139,34 @@ export function Composer(props: ComposerProps) {
       />
       <div className="composer__footer">
         <div className="composer__selectors">
-          <select
-            aria-label="Provedor"
+          <Select
+            label="Provedor"
             value={props.agent}
+            options={props.agents.map((a) => ({ value: a.key, label: a.label }))}
+            onChange={props.onAgent}
             disabled={running}
-            onChange={(e) => props.onAgent(e.target.value)}
-          >
-            {props.agents.map((a) => (
-              <option key={a.key} value={a.key}>
-                {a.label}
-              </option>
-            ))}
-          </select>
+          />
           <ModelMenu models={props.models} value={props.model} onChange={props.onModel} disabled={running} />
-          <select
-            aria-label="Esforço"
+          <Select
+            label="Esforço"
             value={props.effort}
+            options={[
+              { value: "", label: "Padrão" },
+              ...efforts.map((level) => ({
+                value: level.id,
+                label: level.recommended ? `${level.label} (recomendado)` : level.label,
+              })),
+            ]}
+            onChange={props.onEffort}
             disabled={running || efforts.length === 0}
-            onChange={(e) => props.onEffort(e.target.value)}
-          >
-            <option value="">Padrão</option>
-            {efforts.map((level) => (
-              <option key={level.id} value={level.id}>
-                {level.recommended ? `${level.label} (recomendado)` : level.label}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Permissão"
+          />
+          <Select
+            label="Permissão"
             value={props.permission}
+            options={(Object.keys(PERMISSION_LABELS) as Permission[]).map((p) => ({ value: p, label: PERMISSION_LABELS[p] }))}
+            onChange={(value) => props.onPermission(value as Permission)}
             disabled={running}
-            onChange={(e) => props.onPermission(e.target.value as Permission)}
-          >
-            {(Object.keys(PERMISSION_LABELS) as Permission[]).map((p) => (
-              <option key={p} value={p}>
-                {PERMISSION_LABELS[p]}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <div className="composer__actions">
           {props.modes.map((m) => (
