@@ -330,6 +330,10 @@ pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(S
             if profile.preset == Preset::Zai {
                 env.push(("API_TIMEOUT_MS".into(), ZAI_TIMEOUT_MS.into()));
             }
+            if profile.preset == Preset::OpenRouter {
+                // Saída pequena: o OpenRouter só libera a resposta se a conta cobrir o limite pedido.
+                env.push(("CLAUDE_CODE_MAX_OUTPUT_TOKENS".into(), "4096".into()));
+            }
         }
         ProviderKind::Codex => env.push(("OPENAI_API_KEY".into(), api_key.into())),
     }
@@ -480,6 +484,8 @@ mod tests {
         assert_eq!(map["ANTHROPIC_BASE_URL"], "https://openrouter.ai/api");
         assert_eq!(map["CLAUDE_CONFIG_DIR"], "C:\\app\\claude-api\\p1");
         assert!(!map.contains_key("API_TIMEOUT_MS"));
+        // O Claude Code pede até 32000 tokens de saída; o OpenRouter reserva crédito por esse valor e recusa com 402.
+        assert_eq!(map["CLAUDE_CODE_MAX_OUTPUT_TOKENS"], "4096");
     }
 
     #[test]

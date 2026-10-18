@@ -23,6 +23,7 @@ import {
   sendPrompt,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
+import { shortModelName } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { APPROVAL_PROMPT, QUESTION_PROTOCOL, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question } from "../../chat/questions";
@@ -779,7 +780,7 @@ function initialSessions(initial?: Conversation): AgentSessions {
 function profileModels(profile?: ApiProfile): ModelOption[] {
   return (profile?.models ?? []).map((id) => ({
     id,
-    label: id,
+    label: shortModelName(id),
     description: null,
     efforts: [],
     default: id === profile?.defaultModel,
