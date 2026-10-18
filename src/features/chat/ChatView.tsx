@@ -87,9 +87,11 @@ interface ChatViewProps {
   onPersist: (conversation: Conversation) => void;
   /** Avisa a barra lateral quando esta conversa começa ou termina uma resposta. */
   onRunning?: (conversationId: string, running: boolean) => void;
+  /** Esta conversa é a que está na tela. Conversas ocultas não mostram a página do navegador. */
+  visible?: boolean;
 }
 
-export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning }: ChatViewProps) {
+export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning, visible = true }: ChatViewProps) {
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
   const createdAt = useRef(initial?.createdAt ?? Date.now());
 
@@ -1148,7 +1150,7 @@ ${outgoing}`
         todos={displayTodos(toTodos(tasks), running)}
         running={running}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
-        browser={<BrowserPanel active={sideOpen && sideTab === "browser"} />}
+        browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} />}
       />
       </div>
     </div>

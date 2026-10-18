@@ -430,3 +430,22 @@ describe("ChatView: recarregar depois de instalar MCP, skill ou plugin", () => {
     expect(api.cancelPrompt).toHaveBeenCalled();
   });
 });
+
+describe("ChatView: navegador só mostra a página na conversa visível", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+
+  it("conversa oculta não mostra a página do navegador ao abrir a aba", async () => {
+    render(<ChatView onPersist={() => {}} visible={false} />);
+    fireEvent.click(screen.getByTitle("Navegador"));
+    await act(async () => {});
+    expect(api.browserShow).not.toHaveBeenCalledWith(true);
+  });
+});

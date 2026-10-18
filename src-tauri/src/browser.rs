@@ -134,12 +134,17 @@ fn act_script(action: &str, selector: &str, text: &str) -> Result<String, String
 
 // ---- Comandos do painel (a aba do navegador) ----
 
+/// Assíncrono de propósito: criar a webview num comando síncrono trava no Windows (ver `add_child`).
 #[tauri::command]
-pub fn browser_open(url: String, bounds: Bounds) -> Result<(), String> {
-    let url = parse_url(&url)?;
-    let view = open_at(url, bounds)?;
-    view.set_bounds(rect(bounds)?).map_err(|e| e.to_string())?;
-    view.show().map_err(|e| e.to_string())
+pub async fn browser_open(url: String, bounds: Bounds) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let url = parse_url(&url)?;
+        let view = open_at(url, bounds)?;
+        view.set_bounds(rect(bounds)?).map_err(|e| e.to_string())?;
+        view.show().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -185,11 +190,13 @@ pub fn browser_reload() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn browser_close() -> Result<(), String> {
-    match webview() {
+pub async fn browser_close() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(|| match webview() {
         Ok(view) => view.close().map_err(|e| e.to_string()),
         Err(_) => Ok(()),
-    }
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Endereço atual e título da página, como o agente os lê.

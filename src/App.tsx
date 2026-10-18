@@ -235,6 +235,7 @@ export function App() {
             recentFolders={recentFolders}
             onPersist={(conversation) => onPersist(chat.key, conversation)}
             onRunning={onRunning}
+            visible={view === "chat" && chat.key === activeKey}
           />
         </div>
       ))}

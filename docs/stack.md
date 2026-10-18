@@ -46,6 +46,8 @@ docs/                stack, contrato de plugins
 - Navegador integrado (2026-10-18):
   - Aba Navegador no painel lateral, com barra de endereço, voltar, avançar e recarregar. A página só aparece quando a aba está à vista (`browser_show`). Não há botão de fechar a página ainda.
   - Ferramentas do agente: `browser_navigate`, `browser_read`, `browser_click` e `browser_type` (`mcp__luna-browser__*`). Como essas chamadas aparecem na conversa ainda não foi conferido.
+  - `browser_open` e `browser_close` são assíncronos (`spawn_blocking`), porque criar a webview num comando síncrono trava no Windows. A página só aparece na conversa que está na tela (prop `visible` do `ChatView`, passada pelo `App`).
+  - Pendente da Etapa 2: evento `browser://opened`, `.focused(false)`, espera de carregamento no `browser_navigate` do agente e recusa da devUrl.
   - Limitações: a webview fica por cima da interface, então um diálogo do app que cruze a área do navegador é coberto. A barra de endereço não acompanha cliques dentro da página. Não verificado com o Claude CLI real nem com `tauri dev` nesta rodada.
   - Testes do módulo `browser::` precisam do manifesto do comctl32 v6 nos binários de teste (`src-tauri/build.rs`); sem ele, o binário de teste não inicia no Windows.
 - Rodada de tela, plano, compactação e regras (2026-10-18):
