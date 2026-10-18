@@ -42,7 +42,7 @@ docs/                stack, contrato de plugins
 ## Estado atual
 
 - Travamento ao enviar (2026-10-18): `session.rs` para o pump no evento `result`, escreve o prompt em thread própria, lê o stderr desde o início e limita o `finish` (5 s para o processo sair, depois encerra a árvore). `commands.rs` libera a execução antes de esperar o processo. Parar em `ChatView.tsx` destrava a tela sem depender do `done`. Testes em `session::tests` e no ChatView. Causa original do bloqueio: deadlock com prompt grande e pipe preso.
-- README (2026-10-18): `README.md` na raiz explica o que é o LunaHarness, recursos, arquitetura, pré-requisitos, execução e estado atual. Atualizar junto com recursos novos.
+- README (2026-10-18): `README.md` na raiz explica o que é o LunaHarness, recursos, arquitetura, pré-requisitos, execução e estado atual. Há versões em 21 outros idiomas (`README.<código>.md`, por exemplo `README.en.md`, `README.zh-CN.md`), todas com a mesma barra de seleção no topo. Atualizar todas junto com recursos novos. Árabe e hebraico usam `<div dir="rtl">`.
 - Navegador integrado (2026-10-18):
   - Aba Navegador no painel lateral, com barra de endereço, voltar, avançar e recarregar. A página só aparece quando a aba está à vista (`browser_show`). Não há botão de fechar a página ainda.
   - Ferramentas do agente: `browser_navigate`, `browser_read`, `browser_click` e `browser_type` (`mcp__luna-browser__*`). Como essas chamadas aparecem na conversa ainda não foi conferido.
