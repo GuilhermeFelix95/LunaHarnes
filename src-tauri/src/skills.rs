@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::plugins::marketplace::{sha256_hex, verify};
+use crate::plugins::marketplace::verify;
 use crate::slash::{frontmatter, home_dir};
 
 pub const OFFICIAL_SKILLS: &str = include_str!("../marketplace/skills.json");
@@ -207,6 +207,7 @@ pub fn uninstall_skill(id: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::plugins::marketplace::sha256_hex;
 
     fn temp(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("lunaharness-skills-{name}-{}", std::process::id()));
