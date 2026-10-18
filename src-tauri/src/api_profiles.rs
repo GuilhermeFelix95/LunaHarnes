@@ -50,7 +50,50 @@ pub struct PresetInfo {
     pub suggested_models: &'static [&'static str],
     /// Modelo escolhido por padrão entre os sugeridos. Vazio = nenhum.
     pub default_model: &'static str,
+    /// Modelos listados pelo provedor que o Claude Code não usa (outro formato de API). Só aparecem marcados.
+    pub unsupported_models: &'static [&'static str],
 }
+
+/// OpenCode Go, lista pública de /v1/models. Só o MiniMax M3 tem indício de /v1/messages (formato Anthropic);
+/// os demais são marcados como não compatíveis até um teste com chave confirmar.
+const OPENCODE_GO_UNSUPPORTED: &[&str] = &[
+    "deepseek-v4.1-flash",
+    "deepseek-v4-pro",
+    "glm-5.1",
+    "glm-5.2",
+    "glm-5.3",
+    "grok-4.6",
+    "grok-4.7",
+    "muse-spark-1.2-contributor",
+    "muse-spark-1.3-contributor",
+    "glm-5.3-flash",
+    "omen-alpha",
+    "gpt-5.6-luna",
+    "gpt-6-luna",
+    "claude-haiku-5-5",
+    "hy3",
+    "hy4-preview",
+    "kimi-k2.6",
+    "kimi-k2.7-code",
+    "kimi-k3",
+    "mimo-v2.5",
+    "mimo-v2.6-flash",
+    "mimo-v2.5-pro",
+    "mimo-v2.6-pro",
+    "minimax-m2.5",
+    "minimax-m2.7",
+    "gemini-4-argon-contributor",
+    "space-bunny",
+    "longcat-2.0",
+    "longcat-2.5-preview-free",
+    "step-5-preview",
+    "beam-free",
+    "qwen3.6-plus",
+    "qwen3.7-max",
+    "qwen3.8-max",
+    "qwen3.8-flash",
+    "qwen3.7-plus",
+];
 
 impl Preset {
     pub fn info(self) -> PresetInfo {
@@ -92,8 +135,6 @@ impl Preset {
                 &["kimi-k2.6", "kimi-k2.7-code", "kimi-k3"],
                 "kimi-k2.6",
             ),
-            // OpenCode Go: só o MiniMax M3 fala /v1/messages (formato Anthropic); os demais usam chat/completions,
-            // que o Claude Code não aceita. Pesquisa de terceiros: confirmar no endpoint /v1/models antes de publicar.
             Preset::OpenCodeGo => (
                 "OpenCode Go",
                 ProviderKind::Claude,
@@ -104,6 +145,10 @@ impl Preset {
             Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, "", &[], ""),
             Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, "", &[], ""),
         };
+        let unsupported_models: &'static [&'static str] = match self {
+            Preset::OpenCodeGo => OPENCODE_GO_UNSUPPORTED,
+            _ => &[],
+        };
         PresetInfo {
             preset: self,
             label,
@@ -111,6 +156,7 @@ impl Preset {
             default_base_url,
             suggested_models,
             default_model,
+            unsupported_models,
         }
     }
 }
@@ -626,6 +672,16 @@ mod tests {
         assert_eq!(info.default_base_url, "https://opencode.ai/zen/go");
         assert_eq!(info.default_model, "minimax-m3");
         assert_eq!(info.engine, ProviderKind::Claude);
+    }
+
+    #[test]
+    fn opencode_go_marks_every_listed_model_except_minimax() {
+        let info = Preset::OpenCodeGo.info();
+
+        assert_eq!(info.unsupported_models.len(), 36);
+        assert!(!info.unsupported_models.contains(&"minimax-m3"));
+        assert!(info.unsupported_models.contains(&"kimi-k3"));
+        assert!(info.suggested_models.iter().all(|m| !info.unsupported_models.contains(m)));
     }
 
     #[test]

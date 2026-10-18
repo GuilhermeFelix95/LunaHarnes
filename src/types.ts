@@ -55,6 +55,8 @@ export interface ApiPreset {
   suggestedModels: string[];
   /** Modelo padrão entre os sugeridos. Vazio = nenhum. */
   defaultModel: string;
+  /** Modelos do provedor que o Claude Code não usa: aparecem marcados, não entram na lista. */
+  unsupportedModels?: string[];
 }
 
 /// Nível de esforço de um modelo (ver src-tauri/src/models.rs). `id` é o valor enviado à CLI.

@@ -301,6 +301,9 @@ export function ApiProfilesSection() {
                   {p.suggestedModels.length === 1 ? "1 modelo pronto" : `${p.suggestedModels.length} modelos prontos`}
                 </span>
               )}
+              {(p.unsupportedModels?.length ?? 0) > 0 && (
+                <span className="provider-card__meta">{p.unsupportedModels?.length} não compatíveis com Claude Code</span>
+              )}
             </button>
           ))}
         </div>
@@ -363,6 +366,11 @@ export function ApiProfilesSection() {
         </button>
         {!apiKey.trim() && !form.id && (
           <p className="settings__hint">Cole a chave: a lista de modelos vem da API sozinha.</p>
+        )}
+        {(selectedPreset?.unsupportedModels?.length ?? 0) > 0 && (
+          <p className="settings__hint">
+            Não compatíveis com Claude Code (outro formato de API), por isso não entram sozinhos: {selectedPreset?.unsupportedModels?.join(", ")}
+          </p>
         )}
         <label>
           Modelo padrão
