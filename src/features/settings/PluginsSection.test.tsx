@@ -121,17 +121,18 @@ describe("PluginsSection", () => {
   it("abrir a pasta de plugins chama o backend", async () => {
     render(<PluginsSection />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir pasta de plugins" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir pasta" }));
 
     expect(api.openPluginsFolder).toHaveBeenCalled();
   });
 
   it("criar plugin manda id e nome para o backend", async () => {
     render(<PluginsSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Criar plugin" }));
 
-    fireEvent.change(await screen.findByLabelText("Id do novo plugin"), { target: { value: "meu-plugin" } });
+    fireEvent.change(screen.getByLabelText("Id do novo plugin"), { target: { value: "meu-plugin" } });
     fireEvent.change(screen.getByLabelText("Nome do novo plugin"), { target: { value: "Meu plugin" } });
-    fireEvent.click(screen.getByRole("button", { name: "Criar plugin" }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar" }));
 
     expect(api.createPlugin).toHaveBeenCalledWith("meu-plugin", "Meu plugin");
     expect(await screen.findByText(/Plugin criado em C:\/plugins\/meu-plugin/)).toBeTruthy();

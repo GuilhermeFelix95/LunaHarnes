@@ -16,6 +16,7 @@ import {
   type ThemeId,
   type ThemePalette,
 } from "../../theme";
+import { AccountsSection } from "./AccountsSection";
 import { ApiProfilesSection } from "./ApiProfilesSection";
 import { ConversationSection } from "./ConversationSection";
 import { NotificationsSection } from "./NotificationsSection";
@@ -32,7 +33,8 @@ type SettingsSection =
   | "notifications"
   | "conversation"
   | "rules"
-  | "models"
+  | "accounts"
+  | "providers"
   | "plugins";
 
 const SECTIONS: Array<[SettingsSection, string]> = [
@@ -40,7 +42,8 @@ const SECTIONS: Array<[SettingsSection, string]> = [
   ["notifications", "Notificações"],
   ["conversation", "Conversa"],
   ["rules", "Regras globais"],
-  ["models", "Contas e modelos"],
+  ["accounts", "Contas"],
+  ["providers", "Provedores"],
   ["plugins", "Plugins"],
 ];
 
@@ -49,8 +52,11 @@ const SECTION_KEY = "luna.settings.section";
 /// Última seção aberta. Sem valor salvo (ou inválido), abre em Aparência.
 function loadSection(): SettingsSection {
   try {
-    const saved = localStorage.getItem(SECTION_KEY) as SettingsSection | null;
-    if (saved && SECTIONS.some(([id]) => id === saved)) return saved;
+    const saved = localStorage.getItem(SECTION_KEY);
+    // "models" era a antiga "Contas e modelos", que agora é Provedores.
+    if (saved === "models") return "providers";
+    const known = SECTIONS.find(([id]) => id === saved);
+    if (known) return known[0];
   } catch {
     // Sem armazenamento local, abre na primeira seção.
   }
@@ -318,7 +324,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {section === "notifications" && <NotificationsSection />}
           {section === "conversation" && <ConversationSection />}
           {section === "rules" && <RulesSection />}
-          {section === "models" && <ApiProfilesSection />}
+          {section === "accounts" && <AccountsSection />}
+          {section === "providers" && <ApiProfilesSection />}
           {section === "plugins" && <PluginsSection />}
         </div>
       </div>

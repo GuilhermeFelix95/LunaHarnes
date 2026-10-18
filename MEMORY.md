@@ -81,3 +81,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Compactação de conversa: botão, /compactar e automática acima de 90%, com resumo no próximo envio (src/chat/compact.ts).
 2026-10-18 | Regras globais: src-tauri/src/rules.rs grava o bloco da Luna em ~/.claude/CLAUDE.md e ~/.codex/AGENTS.md; perfis de API recebem o texto no pedido.
 2026-10-18 | Configurações em menu lateral (Aparência, Notificações, Conversa, Regras globais, Contas e modelos, Plugins); Contas e APIs virou Contas e modelos.
+2026-10-18 | Configurações: Contas e Provedores separados (AccountsSection.tsx, ApiProfilesSection.tsx com cartões e janela de formulário); Plugins com cartões e criação em janela (src/ui/Dialog.tsx).
+2026-10-18 | Plano aprovado para marketplace de skills e MCP (etapas: Configurações, skills, MCP), ainda não implementado; depende de aprovação de toml_edit.

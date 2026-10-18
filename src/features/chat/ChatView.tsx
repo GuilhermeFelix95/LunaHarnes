@@ -849,7 +849,7 @@ ${outgoing}`
       <div className="chat__body" ref={body}>
         {loggedIn === false && profileId && (
           <p role="alert" className="chat__notes">
-            Este perfil ainda não tem chave. Cole a chave em Configurações &gt; Contas e modelos.
+            Este perfil ainda não tem chave. Cole a chave em Configurações &gt; Provedores.
           </p>
         )}
         {loggedIn === false && !profileId && (

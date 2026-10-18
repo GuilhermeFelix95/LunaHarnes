@@ -26,7 +26,7 @@ describe("ApiProfilesSection", () => {
     vi.mocked(api.apiPresets).mockResolvedValue([openRouter]);
   });
 
-  it("salva o perfil sem a chave e manda a chave só para o cofre", async () => {
+  it("salva o provedor sem a chave e manda a chave só para o cofre", async () => {
     vi.mocked(api.saveApiProfile).mockResolvedValueOnce({
       id: "p9",
       name: "Minha OR",
@@ -36,18 +36,20 @@ describe("ApiProfilesSection", () => {
       defaultModel: null,
     });
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     await screen.findByRole("radio", { name: /OpenRouter/ });
 
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Minha OR" } });
     fireEvent.click(screen.getByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Criar perfil" }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar provedor" }));
 
     await waitFor(() => expect(api.setApiProfileKey).toHaveBeenCalledWith("p9", "sk-or-123"));
     const sent = vi.mocked(api.saveApiProfile).mock.calls[0][0];
     expect(sent).toMatchObject({ name: "Minha OR", preset: "openRouter" });
     expect(JSON.stringify(sent)).not.toContain("sk-or-123");
-    expect((screen.getByLabelText("Chave da API") as HTMLInputElement).value).toBe("");
+    expect(screen.queryByLabelText("Chave da API")).toBeNull();
+    expect(await screen.findByText("Provedor salvo e chave guardada no cofre do Windows.")).toBeTruthy();
   });
 
   it("escolher o provedor já preenche os modelos prontos, e só falta a chave", async () => {
@@ -55,6 +57,7 @@ describe("ApiProfilesSection", () => {
       { preset: "deepSeek", label: "DeepSeek", engine: "claude" as const, defaultBaseUrl: "https://api.deepseek.com/anthropic", suggestedModels: ["deepseek-flash", "deepseek-v4-pro"], defaultModel: "deepseek-flash" },
     ]);
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     await screen.findByRole("radio", { name: /DeepSeek/ });
 
     fireEvent.click(screen.getByRole("radio", { name: /DeepSeek/ }));
@@ -65,21 +68,23 @@ describe("ApiProfilesSection", () => {
 
   it("no OpenRouter, escolher só gratuitos vai no perfil salvo", async () => {
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "OpenRouter" } });
     fireEvent.click(screen.getByRole("radio", { name: /Só gratuitos/ }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Criar perfil" }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar provedor" }));
 
     await waitFor(() => expect(api.saveApiProfile).toHaveBeenCalledWith(expect.objectContaining({ modelScope: "free" })));
   });
 
   it("Atualizar lista usa a chave colada, mesmo antes de salvar o perfil", async () => {
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
 
-    fireEvent.click(screen.getByRole("button", { name: "Atualizar lista de modelos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Buscar lista na API" }));
 
     await waitFor(() =>
       expect(api.listProviderModels).toHaveBeenCalledWith("openRouter", "", "sk-or-teste-123"),
@@ -89,6 +94,7 @@ describe("ApiProfilesSection", () => {
   it("ao colar a chave, a lista de modelos vem da API e o padrão é o mais barato", async () => {
     vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids: ["a/x:free", "b/y"], cheapest: "a/x:free", contexts: {} });
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
 
@@ -106,7 +112,7 @@ describe("ApiProfilesSection", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
     await screen.findByDisplayValue("velho");
 
-    fireEvent.click(screen.getByRole("button", { name: "Atualizar lista de modelos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Buscar lista na API" }));
 
     await waitFor(() => expect(api.refreshApiModels).toHaveBeenCalledWith("p1"));
     expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe(
@@ -119,6 +125,7 @@ describe("ApiProfilesSection", () => {
       { id: "p1", name: "DeepSeek", preset: "openRouter", baseUrl: "", models: [], defaultModel: null },
     ]);
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Testar conexão" }));
 
@@ -132,6 +139,7 @@ describe("ApiProfilesSection", () => {
     ]);
     vi.mocked(api.apiProfileHasKey).mockResolvedValueOnce(false);
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
 
     const button = await screen.findByRole("button", { name: "Testar conexão" });
     expect((button as HTMLButtonElement).disabled).toBe(true);
@@ -142,6 +150,7 @@ describe("ApiProfilesSection", () => {
     const ids = Array.from({ length: 12 }, (_, i) => `vendor/modelo-${i}`);
     vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids, cheapest: ids[0], contexts: {} });
     render(<ApiProfilesSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Novo provedor" }));
     fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
     fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
     await waitFor(() => expect(screen.getByLabelText("Buscar na lista de modelos")).toBeTruthy());
