@@ -67,8 +67,12 @@ describe("theme", () => {
     expect(document.documentElement.style.getPropertyValue("--terminal-bg")).toBe("#123456");
   });
 
-  it("nenhum tema usa laranja como destaque", () => {
-    for (const t of THEMES) expect(t.palette.accent).not.toMatch(/^#(d9|b2|ae|f2)/i);
+  it("só os temas Claude usam o terracota; os demais não têm laranja", () => {
+    for (const t of THEMES) {
+      if (t.id.startsWith("claude")) continue;
+      expect(t.palette.accent).not.toMatch(/^#(d9|b2|ae|f2)/i);
+    }
+    expect(THEMES.find((t) => t.id === "claude")?.palette.accent).toBe("#d97757");
   });
 
   it("sem escolha salva, usa o Noite", () => {

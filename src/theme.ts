@@ -106,14 +106,14 @@ const PRESETS: ThemeInfo[] = [
   {
     id: "claude",
     label: "Claude",
-    description: "Neutro e quente, como o Claude desktop, no escuro.",
-    palette: { ...BASE, sidebar: "#1f1e1d", chat: "#262624", bubble: "#3a3936", bubbleText: "#f0eee6", accent: "#8cc4e8", text: "#f0eee6", terminal: "#1f1e1d" },
+    description: "As cores do Claude desktop, no escuro, com o terracota.",
+    palette: { ...BASE, sidebar: "#1f1e1d", chat: "#262624", bubble: "#3a3936", bubbleText: "#f0eee6", accent: "#d97757", text: "#f0eee6", terminal: "#1f1e1d" },
   },
   {
     id: "claude-claro",
     label: "Claude claro",
-    description: "Neutro e quente, como o Claude desktop, no claro.",
-    palette: { ...BASE, sidebar: "#f0eee6", chat: "#faf9f5", bubble: "#f0eee6", bubbleText: "#1f1e1d", accent: "#2a6f97", text: "#1f1e1d", terminal: "#1f1e1d" },
+    description: "As cores do Claude desktop, no claro, com o terracota.",
+    palette: { ...BASE, sidebar: "#f0eee6", chat: "#faf9f5", bubble: "#f0eee6", bubbleText: "#1f1e1d", accent: "#b25737", text: "#1f1e1d", terminal: "#1f1e1d" },
   },
   {
     id: "codex",

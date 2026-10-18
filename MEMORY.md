@@ -57,3 +57,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Identidade Luna sem a proibição de dizer o modelo: a Luna responde qual modelo usa com os dados da conversa, incluindo esforço e janela de contexto (RunRequest.context_window, enviado pelo ChatView; identity_for em providers/mod.rs).
 2026-10-18 | Indicador "Pensando…" com três pontos animados entre o envio e o primeiro pedaço da resposta, com o avatar do agente (MessageList, prop pending); some quando a resposta começa.
 2026-10-18 | Temas de Claude (escuro e claro), Codex e três de terminal (verde, âmbar e clássico). Personalizado ganha cor do terminal, tamanho do texto, formato próprio para o balão e para o composer, e vidro translúcido ligado ou desligado (ThemePalette em src/theme.ts).
+2026-10-18 | Temas Claude escuro e claro voltam às cores do Claude desktop, com destaque terracota (#d97757 no escuro, #b25737 no claro). Os demais temas seguem sem laranja.
