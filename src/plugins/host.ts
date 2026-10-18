@@ -2,6 +2,7 @@
 // liberadas no manifesto. Permissão recusada vira erro registrado, não quebra os outros plugins.
 
 import { responseCache, type CacheStats, type ResponseCache } from "../chat/responseCache";
+import type { CacheSummary } from "../chat/promptCache";
 import { PluginUi, type PluginUiApi } from "./ui";
 
 export interface PluginManifest {
@@ -76,6 +77,8 @@ export class PluginHost {
   private commands = new Map<string, { pluginId: string; handler: CommandHandler }>();
   private beforeSendHooks: { pluginId: string; hook: BeforeSendHook }[] = [];
   private afterResponseHooks: { pluginId: string; hook: AfterResponseHook }[] = [];
+  /// Resumo do cache de prompt da conversa, atualizado a cada turno pelo ChatView.
+  private cacheSummary: CacheSummary | null = null;
   private modes = new Map<string, { pluginId: string; mode: PluginMode }>();
   private ui = new PluginUi();
   private notices: string[] = [];
@@ -160,6 +163,15 @@ export class PluginHost {
   }
 
   /** Mensagens para a lista de avisos do chat: erros e avisos locais dos plugins. */
+  /** Guarda o resumo do cache de prompt (null = conversa sem turnos com medição). */
+  setCacheSummary(summary: CacheSummary | null): void {
+    this.cacheSummary = summary;
+  }
+
+  getCacheSummary(): CacheSummary | null {
+    return this.cacheSummary;
+  }
+
   messages(): string[] {
     return [...this.errors, ...this.notices];
   }

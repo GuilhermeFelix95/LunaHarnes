@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateRate, diagnose, hitRate, type TurnRecord } from "./promptCache";
+import { aggregateRate, diagnose, hitRate, summarize, type TurnRecord } from "./promptCache";
 
 const turn = (over: Partial<TurnRecord> = {}): TurnRecord => ({
   usage: { fresh: 100, read: 900, write: 0 },
@@ -54,5 +54,44 @@ describe("diagnóstico de acerto baixo", () => {
     const later = turn({ usage: low, at: 1_000_000 + 6 * 60_000 });
     expect(diagnose(turn(), later, false)).toBe("pausa");
     expect(diagnose(turn(), later, true)).toBe("desconhecido");
+  });
+});
+
+describe("resumo do cache da conversa", () => {
+  const at = (minutes: number) => 1_000_000 + minutes * 60_000;
+  const warm = { fresh: 100, read: 900, write: 0 };
+  const cold = { fresh: 900, read: 10, write: 0 };
+
+  it("traz a taxa da sessão, o total lido e o histórico dos últimos 12 turnos", () => {
+    const turns = Array.from({ length: 14 }, (_, i) => turn({ usage: warm, at: at(i), sessionId: "s1" }));
+    const s = summarize(turns, { provider: "claude", longTtl: false, now: at(14) });
+    expect(s.session).toBeCloseTo(0.9);
+    expect(s.readTotal).toBe(900 * 14);
+    expect(s.history).toHaveLength(12);
+    expect(s.last?.rate).toBeCloseTo(0.9);
+  });
+
+  it("Claude: quente pelo tempo que falta para o TTL, e frio depois dele", () => {
+    const turns = [turn({ usage: warm, at: at(0) })];
+    expect(summarize(turns, { provider: "claude", longTtl: false, now: at(2) }).warm).toEqual({
+      state: "quente",
+      remainingMs: 3 * 60_000,
+    });
+    expect(summarize(turns, { provider: "claude", longTtl: false, now: at(6) }).warm).toEqual({ state: "frio" });
+  });
+
+  it("Codex não informa o TTL do cache, e sem leitura o estado é sem dados", () => {
+    expect(summarize([turn({ usage: warm })], { provider: "codex", longTtl: false, now: at(1) }).warm).toEqual({ state: "sem-ttl" });
+    expect(summarize([turn({ usage: { fresh: 5, read: null, write: null } })], { provider: "claude", longTtl: false, now: at(1) }).warm).toEqual({ state: "sem-dados" });
+  });
+
+  it("sugere o cache de 1 h quando pausas apagam o cache, e só sem ele ligado", () => {
+    const turns = [
+      turn({ usage: warm, at: at(0) }),
+      turn({ usage: cold, at: at(10) }),
+      turn({ usage: cold, at: at(20) }),
+    ];
+    expect(summarize(turns, { provider: "claude", longTtl: false, now: at(21) }).tip).toMatch(/1 h/);
+    expect(summarize(turns, { provider: "claude", longTtl: true, now: at(21) }).tip).toBeNull();
   });
 });

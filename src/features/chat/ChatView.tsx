@@ -35,7 +35,7 @@ import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, s
 import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
-import { cacheKey } from "../../chat/responseCache";
+import { summarize, type CacheUsage, type TurnRecord } from "../../chat/promptCache";
 import { longCacheEnabled } from "../../chat/cacheSettings";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
@@ -113,8 +113,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Só turnos de planejamento e do modo Conversar mostram perguntas no seletor; nos outros, ficam como texto.
   const turnAsk = useRef(false);
   // Chave do cache para o turno que está para começar, e a do turno em andamento (null = não guarda).
-  const nextCacheKey = useRef<string | null>(null);
-  const turnCacheKey = useRef<string | null>(null);
+  // Cache de prompt: o uso do turno chega antes do done; o livro guarda os turnos da conversa.
+  const turnUsage = useRef<CacheUsage | null>(null);
+  const turnMeta = useRef({ provider: "claude" as ProviderKind, model: "", systemKey: "" });
+  const cacheTurns = useRef<TurnRecord[]>([]);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
@@ -354,14 +356,17 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       } else {
         commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
       }
+      if (event.kind === "cacheUsage") {
+        turnUsage.current = { fresh: event.fresh, read: event.read, write: event.write };
+      }
       if (event.kind === "error") {
         void notifyIfUnfocused("Erro na resposta", "Uma resposta falhou. Abra a conversa para ver o motivo.");
         showToast({ kind: "error", title: "Erro na resposta", body: "Abra a conversa para ver o motivo." });
       }
       if (event.kind === "done") {
-        const doneKey = turnCacheKey.current;
-        turnCacheKey.current = null;
-        if (doneKey && event.ok) void rememberIfUnchanged(doneKey, responseText.current);
+        const usage = turnUsage.current;
+        turnUsage.current = null;
+        if (usage) recordTurn(usage, sessions.current[turn]?.id ?? null);
         // Plano concluído: a lista de progresso fecha. Um plano novo abre outra (ver approvePlan).
         if (tasksRef.current.length > 0 && tasksRef.current.every((t) => t.status === "completed")) {
           tasksRef.current = [];
@@ -499,6 +504,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     saveLastWorkspace(path);
     sessions.current = {};
     host.cache.clear();
+    cacheTurns.current = [];
+    host.setCacheSummary(null);
     commit([]);
   }
 
@@ -572,8 +579,8 @@ ${cliPrompt}`;
     turnPlanning.current = plan;
     // Perguntas: o modo diz se quer perguntas. "ask" continua valendo para o plugin antigo, que não declarava o campo.
     turnAsk.current = plan || (mode?.questions ?? mode?.id === "ask");
-    turnCacheKey.current = nextCacheKey.current;
-    nextCacheKey.current = null;
+    turnUsage.current = null;
+    turnMeta.current = { provider, model: model ?? "", systemKey: [provider, profileId ?? "", model ?? "", effort ?? ""].join("|") };
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
@@ -768,43 +775,18 @@ ${outgoing}`
     // As imagens vão com este envio; a lista de anexos volta a vazia.
     const imagePaths = attachments.map((a) => a.path);
     const mode = modes.find((m) => m.id === modeId);
-    // Cache só na primeira mensagem, sem anexo, sem arquivo citado e fora dos modos que planejam ou perguntam.
-    const cacheable =
-      messagesRef.current.length === 0 &&
-      imagePaths.length === 0 &&
-      fileAttachments.length === 0 &&
-      mentioned.length === 0 &&
-      !planning &&
-      !rewindNote.current &&
-      !(mode?.questions ?? mode?.id === "ask");
-    const key = cacheable
-      ? cacheKey({ cwd, provider, profile: profileId ?? "", model, effort, permission, mode: modeId, text: outgoing })
-      : null;
-    const cached = key ? host.cache.get(key) : undefined;
-    if (cached !== undefined) {
-      answerFromCache(prompt, cached);
-      return;
-    }
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
     setAttachments([]);
     setFileAttachments([]);
-    nextCacheKey.current = key;
     await run(prompt, withFiles, planning, mode, imagePaths);
   }
 
-  /// Resposta guardada: entra na conversa como resposta do agente, sem chamar o provedor.
-  function answerFromCache(shown: string, text: string) {
+  /// Guarda o uso de cache do turno e atualiza o resumo que o painel de cache lê (via host).
+  function recordTurn(usage: CacheUsage, sessionId: string | null) {
+    const meta = turnMeta.current;
     const now = Date.now();
-    commit([...messagesRef.current, { role: "user", text: shown, at: now }, { role: "assistant", text, at: now, cached: true }]);
-    setNotes(host.messages());
-    persist(messagesRef.current);
-    scrollToBottom();
-  }
-
-  /// Guarda a resposta do turno só se ele não alterou arquivos num repositório git.
-  async function rememberIfUnchanged(key: string, text: string) {
-    const changes = await getChanges(live.current.cwd).catch(() => null);
-    if (changes?.isRepo && changes.files.length === 0 && text.trim()) host.cache.set(key, text);
+    cacheTurns.current = [...cacheTurns.current, { usage, at: now, model: meta.model, systemKey: meta.systemKey, sessionId }];
+    host.setCacheSummary(summarize(cacheTurns.current, { provider: meta.provider, longTtl: longCacheEnabled(), now }));
   }
 
   /// Volta os arquivos ao início deste turno e tira a conversa daquele ponto para baixo.
