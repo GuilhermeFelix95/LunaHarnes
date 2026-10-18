@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { t } from "../../i18n";
 
 interface LunaAtomProps {
   /** Trabalhando: os elétrons correm rápido e o Átomo acena. Parado: dorme com os elétrons lentos. */
@@ -72,7 +73,7 @@ export function LunaAtom({ working }: LunaAtomProps) {
 
   return (
     <figure className={className}>
-      <svg viewBox="0 0 1024 1024" role="img" aria-label={working ? "Mascote da Luna trabalhando" : "Mascote da Luna dormindo"}>
+      <svg viewBox="0 0 1024 1024" role="img" aria-label={working ? t("luna.working") : t("luna.sleeping")}>
         <defs>
           {/* Luz vinda do canto superior esquerdo: o corpo ganha volume com degradê, aro escuro e brilho. */}
           <radialGradient id="luna-atom-body" cx="0.36" cy="0.3" r="0.85">

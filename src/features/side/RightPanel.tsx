@@ -5,6 +5,7 @@ import { Markdown } from "../chat/Markdown";
 import { LunaAtom } from "./LunaAtom";
 import { ProgressTimeline } from "./ProgressTimeline";
 import type { TodoItem } from "../../types";
+import { t, type MessageKey } from "../../i18n";
 
 export type SideTab = "changes" | "plan" | "progress" | "terminal" | "browser";
 
@@ -75,12 +76,12 @@ interface RightPanelProps {
   browser: ReactNode;
 }
 
-const TABS: Array<[SideTab, string]> = [
-  ["changes", "Alterações"],
-  ["plan", "Plano"],
-  ["progress", "Progresso"],
-  ["terminal", "Terminal"],
-  ["browser", "Navegador"],
+const TABS: Array<[SideTab, MessageKey]> = [
+  ["changes", "side.tab.changes"],
+  ["plan", "side.tab.plan"],
+  ["progress", "side.tab.progress"],
+  ["terminal", "side.tab.terminal"],
+  ["browser", "side.tab.browser"],
 ];
 
 /// Painel à direita do chat, com abas e largura ajustável pela alça na borda esquerda.
@@ -131,12 +132,12 @@ export function RightPanel({
   }
 
   return (
-    <aside className="side" aria-label="Painel lateral" hidden={!open} style={{ width: `${width}px` }}>
+    <aside className="side" aria-label={t("side.label")} hidden={!open} style={{ width: `${width}px` }}>
       <div
         className="side__resize"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Ajustar largura do painel"
+        aria-label={t("side.resize")}
         aria-valuenow={width}
         tabIndex={0}
         onPointerDown={onPointerDown}
@@ -144,7 +145,7 @@ export function RightPanel({
         onPointerUp={onPointerUp}
         onKeyDown={onKeyDown}
       />
-      <div className="side__tabs" role="tablist" aria-label="Painel lateral">
+      <div className="side__tabs" role="tablist" aria-label={t("side.label")}>
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -154,10 +155,10 @@ export function RightPanel({
             className="side__tab"
             onClick={() => onTab(id)}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
-        <button type="button" className="side__close" aria-label="Fechar painel lateral" title="Fechar painel" onClick={onClose}>
+        <button type="button" className="side__close" aria-label={t("side.close")} title={t("side.closeTitle")} onClick={onClose}>
           <PanelRightClose size={15} aria-hidden="true" />
         </button>
       </div>
@@ -168,14 +169,14 @@ export function RightPanel({
         {plan ? (
           <Markdown text={plan} />
         ) : (
-          <EmptyState icon={<ScrollText size={18} />}>Ao planejar, o plano completo aparece aqui.</EmptyState>
+          <EmptyState icon={<ScrollText size={18} />}>{t("side.planEmpty")}</EmptyState>
         )}
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "progress"}>
         {todos.length ? (
           <ProgressTimeline todos={todos} />
         ) : (
-          <EmptyState icon={<ListChecks size={18} />}>Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</EmptyState>
+          <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>
         )}
         <LunaAtom working={running} />
       </div>

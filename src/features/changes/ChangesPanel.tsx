@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { discardChange, getChanges, getFileDiff } from "../../api";
 import type { ChangedFile, Changes } from "../../types";
 import { EmptyState } from "../../ui/EmptyState";
+import { t, type MessageKey } from "../../i18n";
 
 interface ChangesPanelProps {
   cwd: string;
@@ -9,12 +10,12 @@ interface ChangesPanelProps {
   version: number;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  added: "Novo",
-  modified: "Alterado",
-  deleted: "Removido",
-  renamed: "Renomeado",
-  untracked: "Novo (não rastreado)",
+const STATUS_KEYS: Record<string, MessageKey> = {
+  added: "changes.status.added",
+  modified: "changes.status.modified",
+  deleted: "changes.status.deleted",
+  renamed: "changes.status.renamed",
+  untracked: "changes.status.untracked",
 };
 
 /// Painel à direita com os arquivos que o agente mexeu, pelo git. Clicar num arquivo mostra o diff.
@@ -81,32 +82,30 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
 
   if (error) {
     return (
-      <aside className="changes" aria-label="Alterações">
+      <aside className="changes" aria-label={t("changes.title")}>
         <p role="alert" className="changes__note">{error}</p>
       </aside>
     );
   }
 
-  if (!changes) return <aside className="changes" aria-label="Alterações" />;
+  if (!changes) return <aside className="changes" aria-label={t("changes.title")} />;
 
   if (!changes.isRepo) {
     return (
-      <aside className="changes" aria-label="Alterações">
-        <p className="changes__note">
-          Esta pasta não é um repositório git, então não dá para listar as alterações.
-        </p>
+      <aside className="changes" aria-label={t("changes.title")}>
+        <p className="changes__note">{t("changes.notRepo")}</p>
       </aside>
     );
   }
 
   return (
-    <aside className="changes" aria-label="Alterações">
+    <aside className="changes" aria-label={t("changes.title")}>
       <header className="changes__head">
-        <h2>Alterações</h2>
+        <h2>{t("changes.title")}</h2>
         <span className="changes__count">{changes.files.length}</span>
       </header>
 
-      {changes.files.length === 0 && <EmptyState>Nenhum arquivo alterado.</EmptyState>}
+      {changes.files.length === 0 && <EmptyState>{t("changes.empty")}</EmptyState>}
 
       <ul className="changes__list">
         {changes.files.map((file) => (
@@ -116,7 +115,7 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
               className={`changes__item${selected === file.path ? " is-selected" : ""}`}
               aria-pressed={selected === file.path}
               onClick={() => void open(file.path)}
-              title={`${file.path} · ${STATUS_LABEL[file.status]}`}
+              title={`${file.path} · ${t(STATUS_KEYS[file.status])}`}
             >
               <span className="changes__path">{file.path}</span>
               <span className="changes__stat">
@@ -127,19 +126,19 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
             <button
               type="button"
               className={`changes__undo${undoing === file.path ? " is-confirming" : ""}`}
-              aria-label={`Desfazer ${file.path}`}
+              aria-label={t("changes.undoAria", { path: file.path })}
               disabled={file.status === "renamed"}
-              title={file.status === "renamed" ? "Renomeação: desfaça pelo git" : "Desfazer esta alteração"}
+              title={file.status === "renamed" ? t("changes.renameTitle") : t("changes.undoTitle")}
               onClick={() => void undo(file)}
             >
-              {undoing === file.path ? "Confirmar" : "Desfazer"}
+              {undoing === file.path ? t("changes.confirm") : t("changes.undo")}
             </button>
           </li>
         ))}
       </ul>
 
       {selected && (
-        <pre className="changes__diff" aria-label={`Diff de ${selected}`}>
+        <pre className="changes__diff" aria-label={t("changes.diffAria", { path: selected })}>
           {diff.split("\n").map((line, i) => (
             <span key={i} className={lineClass(line)}>
               {line}

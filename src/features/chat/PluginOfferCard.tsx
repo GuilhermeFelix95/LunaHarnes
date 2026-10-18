@@ -2,8 +2,9 @@ import { useState } from "react";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { installLocalPlugin, inspectLocalPlugin, PLUGINS_CHANGED } from "../../api";
 import { folderName } from "../../chat/pluginOffer";
-import { PERMISSION_TEXT } from "../../plugins/permissions";
+import { permissionText } from "../../plugins/permissions";
 import type { PluginManifest } from "../../plugins/host";
+import { t } from "../../i18n";
 
 interface PluginOfferCardProps {
   /** Pasta do rascunho que a Luna criou (ou que foi digitada em `/plugin instalar`). */
@@ -34,41 +35,41 @@ export function PluginOfferCard({ folder, onInstalled, onDismiss }: PluginOfferC
       await installLocalPlugin(folder);
       window.dispatchEvent(new Event(PLUGINS_CHANGED));
       setManifest(undefined);
-      onInstalled(`${manifest.name} instalado. Ele vale no próximo envio.`);
+      onInstalled(t("plugins.installed", { name: manifest.name }));
     } catch (e) {
       setError(String(e));
     }
   }
 
   return (
-    <section className="plugin-offer" aria-label="Plugin pronto para instalar">
+    <section className="plugin-offer" aria-label={t("offer.aria")}>
       <p>
-        <strong>A Luna criou o plugin {folderName(folder)}.</strong>
+        <strong>{t("offer.created", { name: folderName(folder) })}</strong>
       </p>
       {error && <p role="alert" className="message__error">{error}</p>}
       <div className="api-form__actions">
         <button type="button" onClick={() => void review()}>
-          Instalar
+          {t("common.install")}
         </button>
         <button type="button" onClick={onDismiss}>
-          Agora não
+          {t("offer.later")}
         </button>
       </div>
 
       {manifest && (
         <ConfirmDialog
-          title={`Instalar ${manifest.name}?`}
+          title={t("plugins.installTitle", { name: manifest.name })}
           body={
             <>
-              <p>Este plugin vai pedir estas permissões:</p>
+              <p>{t("plugins.permissionsIntro")}</p>
               <ul>
                 {manifest.permissions.map((perm) => (
-                  <li key={perm}>{PERMISSION_TEXT[perm] ?? `permissão "${perm}"`}</li>
+                  <li key={perm}>{permissionText(perm)}</li>
                 ))}
               </ul>
             </>
           }
-          confirmLabel="Instalar"
+          confirmLabel={t("common.install")}
           onCancel={() => setManifest(undefined)}
           onConfirm={() => void install()}
         />

@@ -14,6 +14,7 @@ import {
   type InstalledSkill,
   type SkillCatalogEntry,
 } from "../../api";
+import { t } from "../../i18n";
 
 type Tab = "installed" | "market";
 
@@ -60,7 +61,7 @@ export function SkillsSection() {
     setError(undefined);
     try {
       await installSkill(entry.id, source || undefined);
-      setStatus(`${entry.name} instalada. Ela aparece no menu / na próxima conversa.`);
+      setStatus(t("skills.installed", { name: entry.name }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -73,7 +74,7 @@ export function SkillsSection() {
     try {
       await uninstallSkill(skill.id);
       setDeleting(undefined);
-      setStatus(`${skill.name} excluída.`);
+      setStatus(t("skills.deleted", { name: skill.name }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -85,13 +86,13 @@ export function SkillsSection() {
     const urls = await addSkillSource(url);
     setSources(urls);
     setSource(url);
-    setStatus("Catálogo adicionado e conferido.");
+    setStatus(t("common.catalogAdded"));
   }
 
   async function removeSource(url: string) {
     try {
       setSources(await removeSkillSource(url));
-      setStatus("Catálogo removido.");
+      setStatus(t("common.catalogRemoved"));
     } catch (e) {
       setError(String(e));
     }
@@ -102,10 +103,10 @@ export function SkillsSection() {
   return (
     <ExtensionPage
       title="Skills"
-      description="Skills são instruções reutilizáveis. Instalada aqui, uma skill vale para o Claude Code e para o Codex, em todas as conversas e no terminal."
+      description={t("skills.description")}
       tabs={[
-        { id: "installed", label: "Instaladas" },
-        { id: "market", label: "Marketplace" },
+        { id: "installed", label: t("skills.tab.installed") },
+        { id: "market", label: t("skills.tab.market") },
       ]}
       tab={tab}
       onTab={(id) => setTab(id as Tab)}
@@ -114,20 +115,20 @@ export function SkillsSection() {
     >
       {tab === "installed" && (
         <>
-          {installed.length === 0 && <p className="settings__hint">Nenhuma skill instalada ainda. Veja o Marketplace.</p>}
+          {installed.length === 0 && <p className="settings__hint">{t("skills.noneInstalled")}</p>}
           <ul className="settings-list">
             {installed.map((s) => (
               <li key={s.id} className="settings-card">
                 <div className="settings-card__head">
                   <strong>{s.name}</strong>
                   <span className="settings-card__meta">
-                    /{s.id} · {s.engines.join(" e ")}
+                    /{s.id} · {s.engines.join(t("common.and"))}
                   </span>
                 </div>
                 <p className="settings-card__text">{s.description}</p>
                 <div className="settings-actions">
                   <button type="button" className="btn btn--danger btn--sm" onClick={() => setDeleting(s)}>
-                    Excluir
+                    {t("common.delete")}
                   </button>
                 </div>
               </li>
@@ -145,8 +146,8 @@ export function SkillsSection() {
             onAdd={addSource}
             onRemove={removeSource}
           />
-          {!catalog && <p className="settings__hint">Carregando catálogo…</p>}
-          {catalog && catalog.length === 0 && <p className="settings__hint">Nenhuma skill no catálogo.</p>}
+          {!catalog && <p className="settings__hint">{t("common.loadingCatalog")}</p>}
+          {catalog && catalog.length === 0 && <p className="settings__hint">{t("skills.emptyCatalog")}</p>}
           <ul className="settings-list">
             {catalog?.map((c) => (
               <li key={c.id} className="settings-card">
@@ -164,7 +165,7 @@ export function SkillsSection() {
                     disabled={installedIds.has(c.id)}
                     onClick={() => void install(c)}
                   >
-                    {installedIds.has(c.id) ? "Instalada" : "Instalar"}
+                    {installedIds.has(c.id) ? t("common.installed") : t("common.install")}
                   </button>
                 </div>
               </li>
@@ -175,9 +176,9 @@ export function SkillsSection() {
 
       {deleting && (
         <ConfirmDialog
-          title={`Excluir ${deleting.name}?`}
-          body="A pasta da skill sai das duas CLIs (Claude Code e Codex)."
-          confirmLabel="Excluir skill"
+          title={t("skills.deleteTitle", { name: deleting.name })}
+          body={t("skills.deleteBody")}
+          confirmLabel={t("skills.deleteConfirm")}
           danger
           onConfirm={() => void remove(deleting)}
           onCancel={() => setDeleting(undefined)}

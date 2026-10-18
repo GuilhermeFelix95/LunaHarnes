@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Globe, RotateCw } from "lucide-react";
 import { browserHistory, browserNavigate, browserOpen, browserReload, browserSetBounds, browserShow, type BrowserBounds } from "../../api";
 import { EmptyState } from "../../ui/EmptyState";
+import { t } from "../../i18n";
 
 interface BrowserPanelProps {
   /** Aba do navegador à mostra. Fora dela, a página sai de cena para não cobrir o chat. */
@@ -81,19 +82,19 @@ export function BrowserPanel({ active }: BrowserPanelProps) {
   return (
     <div className="browser">
       <form className="browser__bar" onSubmit={go}>
-        <button type="button" className="browser__btn" aria-label="Voltar" title="Voltar" disabled={!opened} onClick={() => history("back")}>
+        <button type="button" className="browser__btn" aria-label={t("browser.back")} title={t("browser.back")} disabled={!opened} onClick={() => history("back")}>
           <ArrowLeft size={14} aria-hidden="true" />
         </button>
-        <button type="button" className="browser__btn" aria-label="Avançar" title="Avançar" disabled={!opened} onClick={() => history("forward")}>
+        <button type="button" className="browser__btn" aria-label={t("browser.forward")} title={t("browser.forward")} disabled={!opened} onClick={() => history("forward")}>
           <ArrowRight size={14} aria-hidden="true" />
         </button>
-        <button type="button" className="browser__btn" aria-label="Recarregar" title="Recarregar" disabled={!opened} onClick={reload}>
+        <button type="button" className="browser__btn" aria-label={t("browser.reload")} title={t("browser.reload")} disabled={!opened} onClick={reload}>
           <RotateCw size={14} aria-hidden="true" />
         </button>
         <input
           className="browser__address"
-          aria-label="Endereço"
-          placeholder="Digite um endereço, como exemplo.com"
+          aria-label={t("browser.addressAria")}
+          placeholder={t("browser.addressPlaceholder")}
           value={address}
           spellCheck={false}
           onChange={(e) => setAddress(e.target.value)}
@@ -105,7 +106,7 @@ export function BrowserPanel({ active }: BrowserPanelProps) {
         </p>
       )}
       <div className="browser__view" ref={area}>
-        {!opened && <EmptyState icon={<Globe size={18} />}>Digite um endereço acima. O agente também pode abrir páginas aqui.</EmptyState>}
+        {!opened && <EmptyState icon={<Globe size={18} />}>{t("browser.empty")}</EmptyState>}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Folder } from "lucide-react";
 import { folderName } from "../sidebar/groupByProject";
 import { usePopover } from "../../ui/usePopover";
+import { t } from "../../i18n";
 
 interface WorkspaceChipProps {
   cwd: string;
@@ -34,11 +35,11 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
         onClick={() => setOpen((on) => !on)}
       >
         <Folder size={13} aria-hidden="true" />
-        {folderName(cwd) || "Escolher pasta"}
+        {folderName(cwd) || t("workspace.pick")}
       </button>
 
       {open && (
-        <div className="workspace-chip__menu" role="menu" aria-label="Pasta de trabalho">
+        <div className="workspace-chip__menu" role="menu" aria-label={t("workspace.menuAria")}>
           <p className="workspace-chip__path" title={cwd}>{cwd}</p>
           <button
             type="button"
@@ -49,11 +50,11 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
               onBrowse();
             }}
           >
-            Trocar pasta…
+            {t("workspace.switch")}
           </button>
           {branches.length > 0 && onPickBranch && (
             <>
-              <p className="workspace-chip__label">Trabalhar numa branch</p>
+              <p className="workspace-chip__label">{t("workspace.branchLabel")}</p>
               {branches.map((branch) => (
                 <button
                   key={branch}
@@ -80,18 +81,18 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
                 }}
               >
                 <input
-                  aria-label="Nova branch"
+                  aria-label={t("workspace.newBranchAria")}
                   placeholder="nova-branch"
                   value={newBranch}
                   onChange={(e) => setNewBranch(e.target.value)}
                 />
                 <button type="submit" disabled={!newBranch.trim()}>
-                  Criar
+                  {t("workspace.create")}
                 </button>
               </form>
             </>
           )}
-          {others.length > 0 && <p className="workspace-chip__label">Recentes</p>}
+          {others.length > 0 && <p className="workspace-chip__label">{t("workspace.recent")}</p>}
           {others.map((path) => (
             <button
               key={path}

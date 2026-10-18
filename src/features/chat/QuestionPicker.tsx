@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import type { Question } from "../../chat/questions";
+import { t } from "../../i18n";
 
 interface QuestionPickerProps {
   questions: Question[];
@@ -47,12 +48,12 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
 
   const q = questions[step];
   return (
-    <section className="qpick" aria-label="Perguntas do agente">
+    <section className="qpick" aria-label={t("question.title")}>
       <header className="qpick__head">
         <span className="qpick__title">
-          Perguntas do agente <span className="qpick__count">{step + 1} de {questions.length}</span>
+          {t("question.title")} <span className="qpick__count">{t("question.count", { step: step + 1, total: questions.length })}</span>
         </span>
-        <button type="button" className="qpick__close" aria-label="Fechar perguntas" onClick={onDismiss}>
+        <button type="button" className="qpick__close" aria-label={t("question.closeAria")} onClick={onDismiss}>
           <X size={14} aria-hidden="true" />
         </button>
       </header>
@@ -68,14 +69,14 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
               onClick={() => toggle(step, option, q.multiple)}
             >
               {option}
-              {option === q.recommended && <span className="qpick__badge">Recomendada</span>}
+              {option === q.recommended && <span className="qpick__badge">{t("question.recommended")}</span>}
             </button>
           ))}
         </div>
         <input
           className="qpick__other"
-          aria-label={`Outra resposta: ${q.question}`}
-          placeholder="Outra resposta"
+          aria-label={t("question.otherAria", { question: q.question })}
+          placeholder={t("question.other")}
           value={other[step]}
           onChange={(e) => changeOther(step, e.target.value)}
         />
@@ -83,12 +84,12 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
       <div className="qpick__foot">
         {step > 0 && (
           <button type="button" className="btn btn--ghost btn--sm qpick__back" onClick={() => setStep(step - 1)}>
-            Voltar
+            {t("question.back")}
           </button>
         )}
         {isLast ? (
           <button type="button" className="btn btn--primary btn--sm qpick__send" disabled={!ready} onClick={submit}>
-            Enviar respostas
+            {t("question.sendAnswers")}
           </button>
         ) : (
           <button
@@ -97,7 +98,7 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
             disabled={answers[step].length === 0}
             onClick={() => setStep(step + 1)}
           >
-            Próxima
+            {t("question.next")}
           </button>
         )}
       </div>

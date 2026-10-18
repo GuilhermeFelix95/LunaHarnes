@@ -21,9 +21,11 @@ import {
   type ThemeId,
   type ThemePalette,
 } from "../../theme";
+import { t, useLocale, type MessageKey } from "../../i18n";
 import { AccountsSection } from "./AccountsSection";
 import { ProvidersSection } from "./ProvidersSection";
 import { ConversationSection } from "./ConversationSection";
+import { GeneralSection } from "./GeneralSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { PluginsSection } from "./PluginsSection";
 import { RulesSection } from "./RulesSection";
@@ -38,6 +40,7 @@ interface SettingsViewProps {
 
 type SettingsSection =
   | "appearance"
+  | "general"
   | "notifications"
   | "conversation"
   | "rules"
@@ -47,16 +50,17 @@ type SettingsSection =
   | "skills"
   | "mcp";
 
-const SECTIONS: Array<[SettingsSection, string]> = [
-  ["appearance", "Aparência"],
-  ["notifications", "Notificações"],
-  ["conversation", "Conversa"],
-  ["rules", "Regras globais"],
-  ["accounts", "Contas"],
-  ["providers", "Provedores"],
-  ["plugins", "Plugins"],
-  ["skills", "Skills"],
-  ["mcp", "MCP"],
+const SECTIONS: Array<[SettingsSection, MessageKey]> = [
+  ["appearance", "settings.nav.appearance"],
+  ["general", "settings.nav.general"],
+  ["notifications", "settings.nav.notifications"],
+  ["conversation", "settings.nav.conversation"],
+  ["rules", "settings.nav.rules"],
+  ["accounts", "settings.nav.accounts"],
+  ["providers", "settings.nav.providers"],
+  ["plugins", "settings.nav.plugins"],
+  ["skills", "settings.nav.skills"],
+  ["mcp", "settings.nav.mcp"],
 ];
 
 const SECTION_KEY = "luna.settings.section";
@@ -129,37 +133,91 @@ function ThemeCard({
   );
 }
 
+/// Nome e descrição de cada tema de fábrica, traduzidos pela chave.
+const THEME_TEXT: Record<ThemeId, { name: MessageKey; desc: MessageKey }> = {
+  luna: { name: "settings.theme.luna.name", desc: "settings.theme.luna.desc" },
+  codex: { name: "settings.theme.codex.name", desc: "settings.theme.codex.desc" },
+  terminal: { name: "settings.theme.terminal.name", desc: "settings.theme.terminal.desc" },
+  pixel: { name: "settings.theme.pixel.name", desc: "settings.theme.pixel.desc" },
+  "meia-noite": { name: "settings.theme.meiaNoite.name", desc: "settings.theme.meiaNoite.desc" },
+  neon: { name: "settings.theme.neon.name", desc: "settings.theme.neon.desc" },
+  "luna-claro": { name: "settings.theme.lunaClaro.name", desc: "settings.theme.lunaClaro.desc" },
+  claude: { name: "settings.theme.claude.name", desc: "settings.theme.claude.desc" },
+  cereja: { name: "settings.theme.cereja.name", desc: "settings.theme.cereja.desc" },
+  "por-do-sol": { name: "settings.theme.porDoSol.name", desc: "settings.theme.porDoSol.desc" },
+  lavanda: { name: "settings.theme.lavanda.name", desc: "settings.theme.lavanda.desc" },
+  floresta: { name: "settings.theme.floresta.name", desc: "settings.theme.floresta.desc" },
+  custom: { name: "settings.theme.custom.name", desc: "settings.theme.custom.desc" },
+};
+
+const FONT_KEYS: Record<FontId, MessageKey> = {
+  inter: "settings.font.inter",
+  segoe: "settings.font.segoe",
+  calibri: "settings.font.calibri",
+  arial: "settings.font.arial",
+  verdana: "settings.font.verdana",
+  georgia: "settings.font.georgia",
+  palatino: "settings.font.palatino",
+  consolas: "settings.font.consolas",
+  cascadia: "settings.font.cascadia",
+  vt323: "settings.font.vt323",
+  press: "settings.font.press",
+  silkscreen: "settings.font.silkscreen",
+  outfit: "settings.font.outfit",
+  "space-grotesk": "settings.font.spaceGrotesk",
+  fraunces: "settings.font.fraunces",
+  lora: "settings.font.lora",
+  jetbrains: "settings.font.jetbrains",
+};
+
+const SHAPE_KEYS: Record<ShapeId, MessageKey> = {
+  square: "settings.shape.square",
+  soft: "settings.shape.soft",
+  round: "settings.shape.round",
+  bubbly: "settings.shape.bubbly",
+  pill: "settings.shape.pill",
+  leaf: "settings.shape.leaf",
+  diagonal: "settings.shape.diagonal",
+  top: "settings.shape.top",
+  bubble: "settings.shape.bubble",
+  wave: "settings.shape.wave",
+};
+
+const SIZE_KEYS: Record<TextSizeId, MessageKey> = {
+  small: "settings.size.small",
+  medium: "settings.size.medium",
+  large: "settings.size.large",
+};
+
 /// Cores do editor do Personalizado, na ordem em que aparecem.
-const COLOR_FIELDS: Array<[keyof ThemePalette, string]> = [
-  ["sidebar", "Barra lateral"],
-  ["chat", "Conversa"],
-  ["bubble", "Balão do usuário"],
-  ["bubbleText", "Texto do balão"],
-  ["accent", "Destaque"],
-  ["text", "Texto"],
-  ["terminal", "Terminal"],
+const COLOR_FIELDS: Array<[keyof ThemePalette, MessageKey]> = [
+  ["sidebar", "settings.color.sidebar"],
+  ["chat", "settings.color.chat"],
+  ["bubble", "settings.color.bubble"],
+  ["bubbleText", "settings.color.bubbleText"],
+  ["accent", "settings.color.accent"],
+  ["text", "settings.appearance.text"],
+  ["terminal", "settings.color.terminal"],
 ];
 
-/// Opções de formato: "" = igual ao geral (balão e composer).
-const SHAPE_OPTIONS = (Object.keys(SHAPES) as ShapeId[]).map((id) => ({
-  value: id,
-  label: SHAPES[id].label,
-}));
+/// Formatos disponíveis, na ordem do seletor.
+const SHAPE_IDS = Object.keys(SHAPES) as ShapeId[];
 
 /// Tipos de componente com formato próprio, cada um com a sua opção.
 const COMPONENT_SHAPE_FIELDS = [
-  ["bubbleShape", "Balão"],
-  ["composerShape", "Composer"],
-  ["buttonShape", "Botões"],
-  ["chipShape", "Chips de ferramenta"],
-  ["itemShape", "Itens da barra"],
-  ["codeShape", "Blocos de código"],
-  ["cardShape", "Cartões"],
-  ["inputShape", "Campos de texto"],
+  ["bubbleShape", "settings.shapeField.bubble"],
+  ["composerShape", "settings.shapeField.composer"],
+  ["buttonShape", "settings.shapeField.button"],
+  ["chipShape", "settings.shapeField.chip"],
+  ["itemShape", "settings.shapeField.item"],
+  ["codeShape", "settings.shapeField.code"],
+  ["cardShape", "settings.shapeField.card"],
+  ["inputShape", "settings.shapeField.input"],
 ] as const;
 
 /// Página de configurações em abas: uma aba por assunto, para a página não ficar enorme.
 export function SettingsView({ onClose }: SettingsViewProps) {
+  useLocale();
   const [theme, setTheme] = useState<ThemeId>(loadTheme);
   const [palette, setPalette] = useState<ThemePalette>(loadCustomPalette);
   const [section, setSection] = useState<SettingsSection>(loadSection);
@@ -196,7 +254,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     saveCustomPalette(next);
     applyPalette(next);
     // O tema ativo acompanha a edição, então o cartão dele mostra as cores novas.
-    if (activeName) storeSaved(savedThemes.map((t) => (t.name === activeName ? { ...t, palette: next } : t)));
+    if (activeName) storeSaved(savedThemes.map((saved) => (saved.name === activeName ? { ...saved, palette: next } : saved)));
   }
 
   function storeSaved(next: SavedTheme[]) {
@@ -218,21 +276,21 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   /// Novo tema: começa com as cores atuais e já vira o tema ativo, com cartão na lista.
   function createTheme() {
     let index = savedThemes.length + 1;
-    while (savedThemes.some((t) => t.name === `Tema ${index}`)) index++;
-    const created: SavedTheme = { name: `Tema ${index}`, palette };
+    while (savedThemes.some((saved) => saved.name === t("settings.appearance.defaultThemeName", { index }))) index++;
+    const created: SavedTheme = { name: t("settings.appearance.defaultThemeName", { index }), palette };
     storeSaved([...savedThemes, created]);
     applySaved(created);
     setEditing(true);
   }
 
   function importTheme(imported: SavedTheme) {
-    storeSaved([...savedThemes.filter((t) => t.name !== imported.name), imported]);
+    storeSaved([...savedThemes.filter((saved) => saved.name !== imported.name), imported]);
     applySaved(imported);
   }
 
   /// Remove um tema salvo. Se era o ativo, volta para o Luna.
   function removeSaved(name: string) {
-    storeSaved(savedThemes.filter((t) => t.name !== name));
+    storeSaved(savedThemes.filter((saved) => saved.name !== name));
     if (activeName === name) {
       setActiveName(null);
       saveActiveName(null);
@@ -247,14 +305,14 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   return (
     <div className="settings">
       <header className="settings__head">
-        <h1>Configurações</h1>
+        <h1>{t("settings.title")}</h1>
         <button type="button" className="btn btn--sm" onClick={onClose}>
-          Voltar ao chat
+          {t("settings.back")}
         </button>
       </header>
 
       <div className="settings__layout">
-        <nav className="settings-nav" aria-label="Seções de configurações">
+        <nav className="settings-nav" aria-label={t("settings.sectionsNav")}>
           {SECTIONS.map(([id, label]) => (
             <button
               key={id}
@@ -263,7 +321,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               aria-current={section === id ? "page" : undefined}
               onClick={() => open(id)}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </nav>
@@ -276,35 +334,35 @@ export function SettingsView({ onClose }: SettingsViewProps) {
             >
               {editing ? (
                 <div className="settings__head">
-                  <h2 id="settings-user-themes">Seus temas</h2>
+                  <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
                   <button type="button" className="btn btn--sm" onClick={() => setEditing(false)}>
-                    Voltar aos temas
+                    {t("settings.appearance.backToThemes")}
                   </button>
                 </div>
               ) : (
                 <>
-                  <h2 id="settings-theme">Tema</h2>
+                  <h2 id="settings-theme">{t("settings.appearance.theme")}</h2>
                   <label className="custom-palette__item">
                     <input type="checkbox" checked={liquid} onChange={(e) => toggleLiquid(e.target.checked)} />
-                    <span>Liquid glass: painéis translúcidos com reflexo e desfoque</span>
+                    <span>{t("settings.appearance.liquidGlass")}</span>
                   </label>
                   {[
-                    { title: "Claros", dark: false },
-                    { title: "Noturnos", dark: true },
+                    { title: t("settings.appearance.light"), dark: false },
+                    { title: t("settings.appearance.dark"), dark: true },
                   ].map(({ title, dark }) => (
                     <div key={title}>
                       <h3 id={`settings-${dark ? "dark" : "light"}`} className="settings__subhead">
                         {title}
                       </h3>
                       <div className="themes" role="radiogroup" aria-labelledby={`settings-${dark ? "dark" : "light"}`}>
-                        {THEMES.filter((t) => t.id !== "custom" && isDarkPalette(t.palette) === dark).map((t) => (
+                        {THEMES.filter((th) => th.id !== "custom" && isDarkPalette(th.palette) === dark).map((th) => (
                           <ThemeCard
-                            key={t.id}
-                            label={t.label}
-                            description={t.description}
-                            palette={t.palette}
-                            checked={theme === t.id}
-                            onChoose={() => choose(t.id)}
+                            key={th.id}
+                            label={t(THEME_TEXT[th.id].name)}
+                            description={t(THEME_TEXT[th.id].desc)}
+                            palette={th.palette}
+                            checked={theme === th.id}
+                            onChoose={() => choose(th.id)}
                           />
                         ))}
                       </div>
@@ -312,7 +370,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                   ))}
 
                   <h3 id="settings-user-themes" className="settings__subhead">
-                    Seus temas
+                    {t("settings.appearance.yourThemes")}
                   </h3>
                 </>
               )}
@@ -321,21 +379,21 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 role="radiogroup"
                 aria-labelledby="settings-user-themes"
               >
-                {savedThemes.map((t) => (
-                  <div key={t.name} className="theme-card-wrap">
+                {savedThemes.map((saved) => (
+                  <div key={saved.name} className="theme-card-wrap">
                     <ThemeCard
-                      label={t.name}
-                      description="Seu tema"
-                      palette={t.palette}
-                      checked={theme === "custom" && activeName === t.name}
-                      onChoose={() => applySaved(t)}
+                      label={saved.name}
+                      description={t("settings.appearance.yourThemeDesc")}
+                      palette={saved.palette}
+                      checked={theme === "custom" && activeName === saved.name}
+                      onChoose={() => applySaved(saved)}
                     />
                     <button
                       type="button"
                       className="theme-card__remove"
-                      aria-label={`Remover ${t.name}`}
-                      title="Remover este tema"
-                      onClick={() => removeSaved(t.name)}
+                      aria-label={t("settings.appearance.removeTheme", { name: saved.name })}
+                      title={t("settings.appearance.removeThemeTitle")}
+                      onClick={() => removeSaved(saved.name)}
                     >
                       ×
                     </button>
@@ -343,15 +401,15 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 ))}
                 <button type="button" className="theme-card theme-card--new" onClick={createTheme}>
                   <span className="theme-card__plus" aria-hidden="true">+</span>
-                  <span className="theme-card__name">Novo tema</span>
-                  <span className="theme-card__desc">Começa com as cores atuais do editor</span>
+                  <span className="theme-card__name">{t("settings.appearance.newTheme")}</span>
+                  <span className="theme-card__desc">{t("settings.appearance.newThemeDesc")}</span>
                 </button>
               </div>
 
               {theme === "custom" && (
                 <div className="custom-palette">
                   <fieldset>
-                    <legend>Cores</legend>
+                    <legend>{t("settings.appearance.colors")}</legend>
                     {COLOR_FIELDS.map(([field, label]) => (
                       <label key={field} className="custom-palette__item">
                         <input
@@ -359,15 +417,15 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                           value={palette[field] as string}
                           onChange={(e) => changeField(field, e.target.value)}
                         />
-                        <span>{label}</span>
+                        <span>{t(label)}</span>
                       </label>
                     ))}
                   </fieldset>
 
                   <fieldset>
-                    <legend>Texto</legend>
+                    <legend>{t("settings.appearance.text")}</legend>
                     <label className="custom-palette__item">
-                      <span>Fonte</span>
+                      <span>{t("settings.appearance.font")}</span>
                       <select
                         className="custom-palette__select"
                         value={palette.font}
@@ -377,13 +435,13 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                       >
                         {(Object.keys(FONTS) as FontId[]).map((id) => (
                           <option key={id} value={id}>
-                            {FONTS[id].label}
+                            {t(FONT_KEYS[id])}
                           </option>
                         ))}
                       </select>
                     </label>
                     <label className="custom-palette__item">
-                      <span>Tamanho</span>
+                      <span>{t("settings.appearance.size")}</span>
                       <select
                         className="custom-palette__select"
                         value={palette.textSize}
@@ -393,7 +451,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                       >
                         {(Object.keys(TEXT_SIZES) as TextSizeId[]).map((id) => (
                           <option key={id} value={id}>
-                            {TEXT_SIZES[id].label}
+                            {t(SIZE_KEYS[id])}
                           </option>
                         ))}
                       </select>
@@ -401,9 +459,9 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                   </fieldset>
 
                   <fieldset>
-                    <legend>Formato</legend>
+                    <legend>{t("settings.appearance.format")}</legend>
                     <label className="custom-palette__item">
-                      <span>Geral</span>
+                      <span>{t("settings.appearance.general")}</span>
                       <select
                         className="custom-palette__select"
                         value={palette.shape}
@@ -411,16 +469,16 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                           changeField("shape", e.target.value as ShapeId)
                         }
                       >
-                        {SHAPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
+                        {SHAPE_IDS.map((id) => (
+                          <option key={id} value={id}>
+                            {t(SHAPE_KEYS[id])}
                           </option>
                         ))}
                       </select>
                     </label>
                     {COMPONENT_SHAPE_FIELDS.map(([field, label]) => (
                       <label key={field} className="custom-palette__item">
-                        <span>{label}</span>
+                        <span>{t(label)}</span>
                         <select
                           className="custom-palette__select"
                           value={palette[field] ?? ""}
@@ -431,10 +489,10 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                             )
                           }
                         >
-                          <option value="">Igual ao geral</option>
-                          {SHAPE_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
+                          <option value="">{t("settings.appearance.sameAsGeneral")}</option>
+                          {SHAPE_IDS.map((id) => (
+                            <option key={id} value={id}>
+                              {t(SHAPE_KEYS[id])}
                             </option>
                           ))}
                         </select>
@@ -443,21 +501,21 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                   </fieldset>
 
                   <fieldset>
-                    <legend>Efeitos</legend>
+                    <legend>{t("settings.appearance.effects")}</legend>
                     <label className="custom-palette__item">
                       <input
                         type="checkbox"
                         checked={palette.glass}
                         onChange={(e) => changeField("glass", e.target.checked)}
                       />
-                      <span>Vidro translúcido</span>
+                      <span>{t("settings.appearance.glass")}</span>
                     </label>
                   </fieldset>
 
                   {activeName && (
                     <div className="api-form__actions">
                       <button type="button" className="btn btn--danger" onClick={deleteActive}>
-                        Excluir "{activeName}"
+                        {t("settings.appearance.delete", { name: activeName })}
                       </button>
                     </div>
                   )}
@@ -470,6 +528,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
             </section>
           )}
 
+          {section === "general" && <GeneralSection />}
           {section === "notifications" && <NotificationsSection />}
           {section === "conversation" && <ConversationSection />}
           {section === "rules" && <RulesSection />}

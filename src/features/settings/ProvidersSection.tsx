@@ -15,6 +15,7 @@ import type { ApiPreset, ApiProfile, RemoteModels } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
+import { t } from "../../i18n";
 
 interface FormState {
   id?: string;
@@ -134,7 +135,7 @@ export function ProvidersSection() {
         contextWindows: form.contexts,
       });
       if (apiKey.trim()) await setApiProfileKey(saved.id, apiKey);
-      setStatus(apiKey.trim() ? "Provedor salvo e chave guardada no cofre do Windows." : "Provedor salvo.");
+      setStatus(apiKey.trim() ? t("provider.savedWithKey") : t("provider.saved"));
       setEditing(false);
       setForm(EMPTY_FORM);
       setApiKey("");
@@ -163,9 +164,9 @@ export function ProvidersSection() {
     setTestResult((current) => ({ ...current, [id]: "" }));
     try {
       const answer = await testApiProfile(id);
-      setTestResult((current) => ({ ...current, [id]: `Resposta: ${answer || "(vazia)"}` }));
+      setTestResult((current) => ({ ...current, [id]: t("provider.answer", { answer: answer || t("provider.answerEmpty") }) }));
     } catch (err) {
-      setTestResult((current) => ({ ...current, [id]: `Falhou: ${String(err)}` }));
+      setTestResult((current) => ({ ...current, [id]: t("provider.failed", { error: String(err) }) }));
     } finally {
       setTesting(undefined);
     }
@@ -217,7 +218,7 @@ export function ProvidersSection() {
         ? await listProviderModels(form.preset, form.baseUrl, typedKey)
         : await refreshApiModels(form.id ?? "");
       applyModels(result);
-      setStatus(`${result.ids.length} modelo(s) encontrados na API. Salve para guardar a lista.`);
+      setStatus(t("provider.modelsFound", { count: result.ids.length }));
     } catch (err) {
       setError(String(err));
     } finally {
@@ -253,14 +254,11 @@ export function ProvidersSection() {
     <section className="settings__section" aria-labelledby="settings-providers">
       <header className="settings__section-head">
         <div>
-          <h2 id="settings-providers">Provedores</h2>
-          <p className="settings__hint">
-            Use uma chave própria (OpenRouter, DeepSeek, Z.ai, OpenCode e outras). A chave fica no cofre de credenciais do
-            Windows e não aparece nesta tela.
-          </p>
+          <h2 id="settings-providers">{t("settings.nav.providers")}</h2>
+          <p className="settings__hint">{t("provider.help")}</p>
         </div>
         <button type="button" className="btn btn--primary" onClick={openNew}>
-          Novo provedor
+          {t("provider.new")}
         </button>
       </header>
 
@@ -271,7 +269,7 @@ export function ProvidersSection() {
       )}
 
       {profiles.length === 0 ? (
-        <p className="settings__hint">Nenhum provedor ainda. Crie um para usar chaves de API nas conversas.</p>
+        <p className="settings__hint">{t("provider.none")}</p>
       ) : (
         <ul className="settings-list">
           {profiles.map((p) => (
@@ -279,25 +277,25 @@ export function ProvidersSection() {
               <div className="settings-card__head">
                 <strong>{p.name}</strong>
                 <span className="settings-card__meta">
-                  {presetLabel(p.preset)} · {p.defaultModel ?? "sem modelo padrão"} ·{" "}
-                  {keyed[p.id] ? "com chave" : "sem chave"}
+                  {presetLabel(p.preset)} · {p.defaultModel ?? t("provider.noDefaultModel")} ·{" "}
+                  {keyed[p.id] ? t("provider.withKey") : t("provider.noKey")}
                 </span>
               </div>
               <div className="settings-actions">
                 <button type="button" className="btn btn--ghost btn--sm" onClick={() => edit(p)}>
-                  Editar
+                  {t("provider.edit")}
                 </button>
                 <button
                   type="button"
                   className="btn btn--sm"
                   onClick={() => void test(p.id)}
                   disabled={testing !== undefined || !keyed[p.id]}
-                  title={keyed[p.id] ? undefined : "Cole a chave antes de testar"}
+                  title={keyed[p.id] ? undefined : t("provider.pasteKeyFirst")}
                 >
-                  {testing === p.id ? "Testando…" : "Testar conexão"}
+                  {testing === p.id ? t("provider.testing") : t("provider.test")}
                 </button>
                 <button type="button" className="btn btn--danger btn--sm" onClick={() => setDeleting(p)}>
-                  Excluir
+                  {t("common.delete")}
                 </button>
               </div>
               {testResult[p.id] && <p className="settings-card__result">{testResult[p.id]}</p>}
@@ -308,16 +306,16 @@ export function ProvidersSection() {
 
       {editing && (
         <Dialog
-          title={form.id ? "Editar provedor" : "Novo provedor"}
-          description="Escolha o provedor, cole a chave e confira os modelos."
+          title={form.id ? t("provider.editTitle") : t("provider.newTitle")}
+          description={t("provider.dialogHelp")}
           onClose={closeForm}
         >
           <form className="api-form" onSubmit={(e) => void submit(e)}>
             <label>
-              Nome
+              {t("common.name")}
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={60} />
             </label>
-            <div className="provider-grid" role="radiogroup" aria-label="Provedor">
+            <div className="provider-grid" role="radiogroup" aria-label={t("provider.label")}>
               {presets.map((p) => (
                 <button
                   key={p.preset}
@@ -328,37 +326,39 @@ export function ProvidersSection() {
                   onClick={() => choosePreset(p.preset)}
                 >
                   <span className="provider-card__name">{p.label}</span>
-                  <span className="provider-card__meta">via {PROVIDER_LABELS[p.engine]}</span>
+                  <span className="provider-card__meta">{t("provider.via", { engine: PROVIDER_LABELS[p.engine] })}</span>
                   {p.suggestedModels.length > 0 && (
                     <span className="provider-card__meta">
-                      {p.suggestedModels.length === 1 ? "1 modelo pronto" : `${p.suggestedModels.length} modelos prontos`}
+                      {p.suggestedModels.length === 1
+                        ? t("provider.readyOne")
+                        : t("provider.readyMany", { count: p.suggestedModels.length })}
                     </span>
                   )}
                 </button>
               ))}
             </div>
             <label>
-              Endereço da API
+              {t("provider.apiAddress")}
               <input
                 value={form.baseUrl}
                 onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
-                placeholder={selectedPreset?.defaultBaseUrl || "padrão do provedor"}
+                placeholder={selectedPreset?.defaultBaseUrl || t("provider.providerDefault")}
               />
             </label>
             <label>
-              Chave da API
+              {t("provider.apiKey")}
               <input
                 type="password"
-                aria-label="Chave da API"
+                aria-label={t("provider.apiKey")}
                 autoComplete="off"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder={form.id && keyed[form.id] ? "•••• já guardada (deixe em branco para manter)" : "cole a chave"}
+                placeholder={form.id && keyed[form.id] ? t("provider.keyStoredPlaceholder") : t("provider.pasteKeyPlaceholder")}
               />
             </label>
 
             <fieldset className="settings__scope">
-              <legend>Modelos</legend>
+              <legend>{t("provider.models")}</legend>
               <div className="settings-actions">
                 <button
                   type="button"
@@ -366,16 +366,16 @@ export function ProvidersSection() {
                   disabled={(!apiKey.trim() && !form.id) || refreshing}
                   onClick={() => void refreshModels()}
                 >
-                  {refreshing ? "Atualizando…" : "Buscar lista na API"}
+                  {refreshing ? t("provider.updating") : t("provider.fetchList")}
                 </button>
-                {!apiKey.trim() && !form.id && <span className="settings__hint">Cole a chave para buscar a lista.</span>}
+                {!apiKey.trim() && !form.id && <span className="settings__hint">{t("provider.pasteKeyToFetch")}</span>}
               </div>
               {catalog.length > 0 && (
                 <div className="model-picker">
                   <input
                     type="search"
-                    aria-label="Buscar na lista de modelos"
-                    placeholder="Buscar modelo"
+                    aria-label={t("provider.searchAria")}
+                    placeholder={t("provider.searchPlaceholder")}
                     value={modelQuery}
                     onChange={(e) => setModelQuery(e.target.value)}
                   />
@@ -396,25 +396,25 @@ export function ProvidersSection() {
                       ))}
                   </div>
                   <p className="settings__hint">
-                    {form.models.split(",").filter((m) => m.trim()).length} de {catalog.length} modelos no provedor.
+                    {t("provider.selectedCount", { selected: form.models.split(",").filter((m) => m.trim()).length, total: catalog.length })}
                   </p>
                 </div>
               )}
               <label>
-                Modelos (separados por vírgula)
+                {t("provider.modelsList")}
                 <input
                   value={form.models}
                   onChange={(e) => setForm({ ...form, models: e.target.value })}
-                  placeholder="ex.: deepseek-flash, deepseek-v4-pro"
+                  placeholder={t("provider.modelsPlaceholder")}
                 />
               </label>
               <label>
-                Modelo padrão
+                {t("provider.defaultModel")}
                 <input value={form.defaultModel} onChange={(e) => setForm({ ...form, defaultModel: e.target.value })} />
               </label>
               {(selectedPreset?.unsupportedModels?.length ?? 0) > 0 && (
                 <p className="settings__hint">
-                  Não compatíveis com Claude Code (outro formato de API), por isso não entram sozinhos:{" "}
+                  {t("provider.unsupported")}{" "}
                   {selectedPreset?.unsupportedModels?.join(", ")}
                 </p>
               )}
@@ -422,7 +422,7 @@ export function ProvidersSection() {
 
             {form.preset === "openRouter" && (
               <fieldset className="settings__scope">
-                <legend>Modelos do OpenRouter</legend>
+                <legend>{t("provider.openRouterModels")}</legend>
                 <label>
                   <input
                     type="radio"
@@ -430,7 +430,7 @@ export function ProvidersSection() {
                     checked={form.modelScope === "all"}
                     onChange={() => setForm({ ...form, modelScope: "all" })}
                   />
-                  Todos os modelos
+                  {t("provider.allModels")}
                 </label>
                 <label>
                   <input
@@ -439,7 +439,7 @@ export function ProvidersSection() {
                     checked={form.modelScope === "free"}
                     onChange={() => setForm({ ...form, modelScope: "free" })}
                   />
-                  Só gratuitos (:free)
+                  {t("provider.freeOnly")}
                 </label>
               </fieldset>
             )}
@@ -451,10 +451,10 @@ export function ProvidersSection() {
             )}
             <div className="api-form__actions">
               <button type="button" className="btn btn--ghost" onClick={closeForm}>
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button type="submit" className="btn btn--primary">
-                {form.id ? "Salvar alterações" : "Criar provedor"}
+                {form.id ? t("provider.saveChanges") : t("provider.create")}
               </button>
             </div>
           </form>
@@ -463,9 +463,9 @@ export function ProvidersSection() {
 
       {deleting && (
         <ConfirmDialog
-          title={`Excluir "${deleting.name}"?`}
-          body="A chave guardada no cofre também sai. Conversas antigas continuam, mas não podem mais usar este provedor."
-          confirmLabel="Excluir provedor"
+          title={t("provider.deleteTitle", { name: deleting.name })}
+          body={t("provider.deleteBody")}
+          confirmLabel={t("provider.deleteConfirm")}
           danger
           onConfirm={() => void remove(deleting.id)}
           onCancel={() => setDeleting(undefined)}

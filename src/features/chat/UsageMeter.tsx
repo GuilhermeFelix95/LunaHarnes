@@ -1,4 +1,5 @@
 import { contextPercent, formatReset, formatTokens, utilizationPercent } from "../../chat/usage";
+import { t } from "../../i18n";
 
 export interface LimitInfo {
   /** Fração de 0 a 1, como a CLI envia. */
@@ -25,27 +26,29 @@ interface UsageMeterProps {
 export function UsageMeter({ limits, context, windowHint }: UsageMeterProps) {
   // Rótulos curtos para caber numa linha; o texto completo (com o reset) fica no title.
   const windows: Array<[string, string, "fiveHour" | "sevenDay"]> = [
-    ["5 h", "Sessão de 5 h", "fiveHour"],
-    ["Semana", "Semana", "sevenDay"],
+    ["5 h", t("usage.session"), "fiveHour"],
+    [t("usage.week"), t("usage.week"), "sevenDay"],
   ];
   const known = windows.filter(([, , key]) => limits[key]);
 
   if (!context && known.length === 0) return null;
 
   return (
-    <div className="usage" role="group" aria-label="Uso da conta e do contexto">
+    <div className="usage" role="group" aria-label={t("usage.group")}>
       {context && context.windowSize === undefined && (
-        <div className="usage__item" title="Janela de contexto do último turno">
-          <span className="usage__label">Contexto · {formatTokens(context.tokens)} usados</span>
+        <div className="usage__item" title={t("usage.contextLast")}>
+          <span className="usage__label">{t("usage.contextUsed", { tokens: formatTokens(context.tokens) })}</span>
           {windowHint && <span className="usage__label usage__hint">{windowHint}</span>}
         </div>
       )}
       {context && context.windowSize !== undefined && (
         <div
           className="usage__item"
-          title={`Janela de contexto do último turno: ${formatTokens(context.tokens)} de ${formatTokens(context.windowSize)}`}
+          title={t("usage.contextTitle", { tokens: formatTokens(context.tokens), size: formatTokens(context.windowSize) })}
         >
-          <span className="usage__label">Contexto · {contextPercent(context.tokens, context.windowSize)}%</span>
+          <span className="usage__label">
+            {t("usage.contextPercent", { percent: contextPercent(context.tokens, context.windowSize) })}
+          </span>
           <Bar percent={contextPercent(context.tokens, context.windowSize)} />
         </div>
       )}
@@ -54,7 +57,11 @@ export function UsageMeter({ limits, context, windowHint }: UsageMeterProps) {
         const info = limits[key]!;
         const percent = utilizationPercent(info.utilization);
         return (
-          <div className="usage__item" key={key} title={`${label} · ${percent}% · reseta ${formatReset(info.resetsAt, key)}`}>
+          <div
+            className="usage__item"
+            key={key}
+            title={t("usage.resetTitle", { label, percent, reset: formatReset(info.resetsAt, key) })}
+          >
             <span className="usage__label">
               {short} · {percent}%
             </span>

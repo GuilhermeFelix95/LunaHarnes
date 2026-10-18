@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ModelOption } from "../../types";
 import { usePopover } from "../../ui/usePopover";
+import { t } from "../../i18n";
 
 interface ModelMenuProps {
   models: ModelOption[];
@@ -34,23 +35,23 @@ export function ModelMenu({ models, value, onChange, disabled }: ModelMenuProps)
       <button
         type="button"
         className="model-menu__trigger"
-        aria-label="Modelo"
+        aria-label={t("model.trigger")}
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={disabled || models.length === 0}
         onClick={() => setOpen((on) => !on)}
       >
-        {current?.label ?? "Sem modelos"}
+        {current?.label ?? t("model.none")}
       </button>
 
       {open && (
-        <div className="model-menu__panel" role="listbox" aria-label="Modelos">
+        <div className="model-menu__panel" role="listbox" aria-label={t("model.listAria")}>
           {models.length > SEARCH_FROM && (
             <input
               type="search"
               className="model-menu__search"
-              aria-label="Buscar modelo"
-              placeholder="Buscar modelo"
+              aria-label={t("model.searchAria")}
+              placeholder={t("model.searchAria")}
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -70,13 +71,13 @@ export function ModelMenu({ models, value, onChange, disabled }: ModelMenuProps)
               >
                 <span className="model-menu__name">{m.label}</span>
                 {m.contextWindow ? (
-                  <span className="model-menu__desc">{formatContext(m.contextWindow)} de contexto</span>
+                  <span className="model-menu__desc">{t("model.context", { size: formatContext(m.contextWindow) })}</span>
                 ) : (
                   m.description && <span className="model-menu__desc">{m.description}</span>
                 )}
               </button>
             ))}
-            {shown.length === 0 && <p className="model-menu__empty">Nenhum modelo com “{query.trim()}”.</p>}
+            {shown.length === 0 && <p className="model-menu__empty">{t("model.noneMatch", { query: query.trim() })}</p>}
           </div>
         </div>
       )}

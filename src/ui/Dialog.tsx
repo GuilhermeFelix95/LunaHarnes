@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { t } from "../i18n";
 
 interface DialogProps {
   title: string;
@@ -29,7 +30,7 @@ export function Dialog({ title, description, onClose, children }: DialogProps) {
             </h3>
             {description && <p className="dialog__desc">{description}</p>}
           </div>
-          <button type="button" className="btn btn--ghost btn--sm" aria-label="Fechar" onClick={onClose}>
+          <button type="button" className="btn btn--ghost btn--sm" aria-label={t("common.close")} onClick={onClose}>
             ×
           </button>
         </header>

@@ -1,4 +1,5 @@
 import type { ProviderKind } from "../../types";
+import { t } from "../../i18n";
 
 const LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
@@ -18,16 +19,13 @@ interface LoginPromptProps {
 export function LoginPrompt({ provider, onLogin, onCheck, checking, error }: LoginPromptProps) {
   return (
     <section className="login-prompt" role="status">
-      <p>
-        Entre na sua conta do {LABELS[provider]} para começar. O login abre numa janela
-        própria, no navegador.
-      </p>
+      <p>{t("login.body", { provider: LABELS[provider] })}</p>
       <div className="login-prompt__actions">
         <button type="button" className="btn btn--primary" onClick={onLogin}>
-          Entrar na conta
+          {t("login.signIn")}
         </button>
         <button type="button" className="btn" onClick={onCheck} disabled={checking}>
-          {checking ? "Verificando..." : "Já entrei, verificar"}
+          {checking ? t("login.checking") : t("login.checked")}
         </button>
       </div>
       {error && <p role="alert" className="login-prompt__error">{error}</p>}

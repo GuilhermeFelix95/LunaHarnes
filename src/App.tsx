@@ -13,6 +13,7 @@ import { SettingsView } from "./features/settings/SettingsView";
 import { SetupScreen } from "./features/setup/SetupScreen";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { CliStatus, Conversation, ConversationSummary } from "./types";
+import { t, useLocale } from "./i18n";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { Toaster } from "./ui/Toaster";
 import { loadLastWorkspace } from "./workspace";
@@ -36,6 +37,7 @@ interface Chat {
 }
 
 export function App() {
+  const locale = useLocale();
   const [summaries, setSummaries] = useState<ConversationSummary[]>([]);
   const [listError, setListError] = useState<string | undefined>(undefined);
   // A primeira aba já abre na última pasta de projeto usada, se houver.
@@ -52,6 +54,11 @@ export function App() {
   // CLIs que faltam no computador: abre a tela de instalação por cima do app (só na abertura).
   const [missingCli, setMissingCli] = useState<CliStatus[] | null>(null);
   const [confirming, setConfirming] = useState<Confirm | null>(null);
+
+  // O idioma da página acompanha a escolha, para leitores de tela e corretor ortográfico.
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   useEffect(() => {
     void refreshList();
@@ -114,15 +121,15 @@ export function App() {
   }
 
   async function removeConversation(id: string) {
-    const title = summaries.find((s) => s.id === id)?.title ?? "esta conversa";
+    const title = summaries.find((s) => s.id === id)?.title ?? t("app.thisConversation");
     if (runningIds.includes(id)) {
-      setListError(`"${title}" ainda está respondendo. Espere a resposta terminar para excluir.`);
+      setListError(t("app.stillReplying", { title }));
       return;
     }
     setConfirming({
-      title: `Excluir "${title}"?`,
-      body: "Essa ação não pode ser desfeita.",
-      label: "Excluir",
+      title: t("app.deleteTitle", { title }),
+      body: t("app.cannotUndo"),
+      label: t("common.delete"),
       danger: true,
       run: async () => {
         try {
@@ -152,13 +159,13 @@ export function App() {
     const name = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
     const ids = summaries.filter((s) => s.cwd === cwd).map((s) => s.id);
     if (ids.some((id) => runningIds.includes(id))) {
-      setListError(`Espere as respostas de "${name}" terminarem para remover o projeto.`);
+      setListError(t("app.waitProjectReplies", { name }));
       return;
     }
     setConfirming({
-      title: `Remover o projeto "${name}"?`,
-      body: `Isso apaga ${ids.length} conversa(s) deste projeto. Essa ação não pode ser desfeita.`,
-      label: "Remover",
+      title: t("app.removeProjectTitle", { name }),
+      body: t("app.removeProjectBody", { count: ids.length }),
+      label: t("common.remove"),
       danger: true,
       run: async () => {
         try {

@@ -3,6 +3,7 @@ import { AlertCircle, Bot, Check, Copy, FilePen, FileText, Search, Sparkles, Squ
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
+import { resolveLocale, t } from "../../i18n";
 
 /// Avatar de cada agente: o ícone aparece ao lado do nome em cada resposta.
 const PROVIDER_ICONS: Record<ProviderKind, LucideIcon> = { claude: Sparkles, codex: Bot };
@@ -82,14 +83,14 @@ function toolSummary(tools: Tool[]): string {
     return only.detail ? `${only.name} · ${only.detail}` : only.name;
   }
   const counts = new Map<string, number>();
-  for (const t of tools) counts.set(t.name, (counts.get(t.name) ?? 0) + 1);
+  for (const tool of tools) counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1);
   const names = [...counts].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name)).join(", ");
-  return `${tools.length} ações · ${names}`;
+  return t("message.toolActions", { count: tools.length, names });
 }
 
-/// Hora curta no formato do usuário, ex.: 14:32.
+/// Hora curta no formato do idioma da interface, ex.: 14:32.
 function formatTime(at: number): string {
-  return new Date(at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(at).toLocaleTimeString(resolveLocale(), { hour: "2-digit", minute: "2-digit" });
 }
 
 /// Barra de ações sob a mensagem: voltar (quando há checkpoint), copiar e a hora.
@@ -105,11 +106,11 @@ function MessageActions({ text, at, onRewind, disabled }: { text: string; at?: n
   return (
     <div className="message__actions">
       {onRewind && (
-        <button type="button" className="message__action" aria-label="Voltar até aqui" title="Voltar até aqui" disabled={disabled} onClick={onRewind}>
+        <button type="button" className="message__action" aria-label={t("message.backToHere")} title={t("message.backToHere")} disabled={disabled} onClick={onRewind}>
           <Undo2 size={14} aria-hidden="true" />
         </button>
       )}
-      <button type="button" className="message__action" aria-label="Copiar mensagem" title="Copiar" onClick={copy}>
+      <button type="button" className="message__action" aria-label={t("message.copyAria")} title={t("message.copy")} onClick={copy}>
         {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
       </button>
       {at !== undefined && (
@@ -156,7 +157,7 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                   <ProviderIcon provider={item.provider} />
                 </span>
                 {item.label ?? PROVIDER_LABELS[item.provider]}
-                {item.cached && <span className="message__cache">do cache</span>}
+                {item.cached && <span className="message__cache">{t("message.cached")}</span>}
               </span>
               {item.parts.map((part, j) => {
                 if (part.kind === "tools") {
@@ -164,19 +165,19 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                   return (
                     <details key={j} className="tool-line">
                       <summary>
-                        {working && <span className="tool-line__working">Trabalhando… </span>}
+                        {working && <span className="tool-line__working">{t("message.working")}</span>}
                         <span className="tool-line__preview">{toolSummary(part.tools)}</span>
                       </summary>
                       <ul className="tool-line__list">
-                        {part.tools.map((t, k) => {
-                          const Icon = toolIcon(t.name);
+                        {part.tools.map((tool, k) => {
+                          const Icon = toolIcon(tool.name);
                           return (
                             <li key={k}>
                               <span className="tool-line__name">
                                 <Icon size={13} aria-hidden="true" />
-                                {t.name}
+                                {tool.name}
                               </span>
-                              {t.detail && <code>{t.detail}</code>}
+                              {tool.detail && <code>{tool.detail}</code>}
                             </li>
                           );
                         })}
@@ -218,7 +219,7 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                 <span />
                 <span />
               </span>
-              Pensando…
+              {t("message.thinking")}
             </p>
           </div>
         </li>

@@ -18,6 +18,7 @@ import {
   type McpCatalogEntry,
   type McpServer,
 } from "../../api";
+import { t } from "../../i18n";
 
 type Tab = "installed" | "market";
 
@@ -35,7 +36,7 @@ function launchLine(server: { transport: string; command?: string; args: string[
 function parseNames(text: string): string[] {
   const names = text.split(/[\s,]+/).filter(Boolean);
   for (const name of names) {
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`Nome de variável inválido: "${name}". Use letras, números e _.`);
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(t("mcp.invalidVarName", { name }));
   }
   return names;
 }
@@ -98,7 +99,7 @@ export function McpSection() {
     setError(undefined);
     try {
       await setMcpEnabled(server.name, !server.enabled);
-      setStatus(server.enabled ? `${server.name} desligado.` : `${server.name} ligado.`);
+      setStatus(server.enabled ? t("mcp.turnedOff", { name: server.name }) : t("mcp.turnedOn", { name: server.name }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -110,7 +111,7 @@ export function McpSection() {
     setError(undefined);
     try {
       await reconfigureMcpServer(server.name);
-      setStatus(`${server.name} reconfigurado: agora lê ${server.literalEnv.join(", ")} do ambiente, sem valor gravado.`);
+      setStatus(t("mcp.reconfigured", { name: server.name, vars: server.literalEnv.join(", ") }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -123,7 +124,7 @@ export function McpSection() {
     try {
       await removeMcpServer(server.name);
       setDeleting(undefined);
-      setStatus(`${server.name} excluído.`);
+      setStatus(t("mcp.deleted", { name: server.name }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -142,7 +143,7 @@ export function McpSection() {
     try {
       await installMcpFromCatalog(entry.id, source || undefined);
       setInstalling(undefined);
-      setStatus(`${entry.name} instalado nas duas CLIs. Defina as variáveis no ambiente e reinicie o app.`);
+      setStatus(t("mcp.installed", { name: entry.name }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -171,7 +172,7 @@ export function McpSection() {
         envVars,
       });
       setAdding(false);
-      setStatus(`${form.name.trim()} adicionado nas duas CLIs. Vale na próxima conversa.`);
+      setStatus(t("mcp.added", { name: form.name.trim() }));
       announceChange();
       await reloadInstalled();
     } catch (e) {
@@ -183,13 +184,13 @@ export function McpSection() {
     const urls = await addMcpSource(url);
     setSources(urls);
     setSource(url);
-    setStatus("Catálogo adicionado e conferido.");
+    setStatus(t("common.catalogAdded"));
   }
 
   async function removeSource(url: string) {
     try {
       setSources(await removeMcpSource(url));
-      setStatus("Catálogo removido.");
+      setStatus(t("common.catalogRemoved"));
     } catch (e) {
       setError(String(e));
     }
@@ -204,15 +205,15 @@ export function McpSection() {
   return (
     <ExtensionPage
       title="MCP"
-      description="Servidores MCP dão ferramentas extras ao agente, como memória ou acesso ao GitHub. Eles são gravados nas configurações do Claude Code e do Codex, então valem em todas as conversas e no terminal."
+      description={t("mcp.description")}
       actions={
         <button type="button" className="btn btn--sm" onClick={openManual}>
-          Adicionar MCP
+          {t("mcp.add")}
         </button>
       }
       tabs={[
-        { id: "installed", label: "Instalados" },
-        { id: "market", label: "Marketplace" },
+        { id: "installed", label: t("mcp.tab.installed") },
+        { id: "market", label: t("mcp.tab.market") },
       ]}
       tab={tab}
       onTab={(id) => setTab(id as Tab)}
@@ -221,38 +222,38 @@ export function McpSection() {
     >
       {tab === "installed" && (
         <>
-          {installed.length === 0 && <p className="settings__hint">Nenhum servidor MCP instalado. Veja o Marketplace.</p>}
+          {installed.length === 0 && <p className="settings__hint">{t("mcp.noneInstalled")}</p>}
           <ul className="settings-list">
             {installed.map((s) => (
               <li key={s.name} className="settings-card">
                 <div className="settings-card__head">
                   <strong>{s.name}</strong>
                   <span className="settings-card__meta">
-                    {s.enabled ? `ligado · ${s.engines.join(" e ")}` : "desligado"} · {s.transport === "http" ? "remoto" : "local"}
+                    {s.enabled ? t("mcp.onWith", { engines: s.engines.join(t("common.and")) }) : t("mcp.off")} ·{" "}
+                    {s.transport === "http" ? t("mcp.remote") : t("mcp.local")}
                   </span>
                 </div>
                 <code className="settings-card__text">{launchLine(s)}</code>
                 {s.envVars.length > 0 && (
-                  <p className="settings-card__meta">Variáveis lidas do ambiente: {s.envVars.join(", ")}</p>
+                  <p className="settings-card__meta">{t("mcp.envVarsRead", { vars: s.envVars.join(", ") })}</p>
                 )}
                 {s.literalEnv.length > 0 && (
                   <p role="alert" className="message__error">
-                    Segredo gravado em texto nas configurações: {s.literalEnv.join(", ")}. Defina a variável no ambiente e clique em
-                    Reconfigurar. Desligar e ligar ficam bloqueados até lá.
+                    {t("mcp.secretInPlainText", { vars: s.literalEnv.join(", ") })}
                   </p>
                 )}
                 <div className="settings-actions">
                   {s.literalEnv.length > 0 ? (
                     <button type="button" className="btn btn--primary btn--sm" onClick={() => void reconfigure(s)}>
-                      Reconfigurar
+                      {t("mcp.reconfigure")}
                     </button>
                   ) : (
                     <button type="button" className="btn btn--sm" onClick={() => void toggle(s)}>
-                      {s.enabled ? "Desligar" : "Ligar"}
+                      {s.enabled ? t("mcp.turnOff") : t("mcp.turnOn")}
                     </button>
                   )}
                   <button type="button" className="btn btn--danger btn--sm" onClick={() => setDeleting(s)}>
-                    Excluir
+                    {t("common.delete")}
                   </button>
                 </div>
               </li>
@@ -270,7 +271,7 @@ export function McpSection() {
             onAdd={addSource}
             onRemove={removeSource}
           />
-          {!catalog && <p className="settings__hint">Carregando catálogo…</p>}
+          {!catalog && <p className="settings__hint">{t("common.loadingCatalog")}</p>}
           <ul className="settings-list">
             {catalog?.map((c) => (
               <li key={c.id} className="settings-card">
@@ -287,7 +288,7 @@ export function McpSection() {
                     disabled={installedNames.has(c.id)}
                     onClick={() => openInstall(c)}
                   >
-                    {installedNames.has(c.id) ? "Instalado" : "Instalar"}
+                    {installedNames.has(c.id) ? t("common.installed") : t("common.install")}
                   </button>
                 </div>
               </li>
@@ -298,19 +299,16 @@ export function McpSection() {
 
       {installing && (
         <Dialog
-          title={`Instalar ${installing.name}?`}
-          description="Confira o comando exato antes de instalar. Um servidor MCP roda este comando no seu computador."
+          title={t("mcp.installTitle", { name: installing.name })}
+          description={t("mcp.installDescription")}
           onClose={() => setInstalling(undefined)}
         >
           <div className="api-form">
-            <p className="settings__hint">Comando que será gravado nas duas CLIs:</p>
+            <p className="settings__hint">{t("mcp.commandWillBeWritten")}</p>
             <code className="settings-card__text">{launchLine(installing)}</code>
             {installing.env.length > 0 && (
               <>
-                <p className="settings__hint">
-                  O servidor lê estas variáveis do seu ambiente. Defina-as nas variáveis de ambiente do usuário no Windows e
-                  reinicie o app. O LunaHarness não pede nem guarda o valor.
-                </p>
+                <p className="settings__hint">{t("mcp.envHelp")}</p>
                 <ul>
                   {installing.env.map((field) => (
                     <li key={field.key}>
@@ -322,7 +320,7 @@ export function McpSection() {
             )}
             <label className="settings__check">
               <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
-              Entendo que este servidor roda esse comando no meu computador.
+              {t("mcp.understood")}
             </label>
             {dialogError && (
               <p role="alert" className="message__error">
@@ -331,7 +329,7 @@ export function McpSection() {
             )}
             <div className="api-form__actions">
               <button type="button" className="btn btn--ghost" onClick={() => setInstalling(undefined)}>
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -339,7 +337,7 @@ export function McpSection() {
                 disabled={!understood}
                 onClick={() => void install(installing)}
               >
-                Instalar
+                {t("common.install")}
               </button>
             </div>
           </div>
@@ -348,48 +346,48 @@ export function McpSection() {
 
       {adding && (
         <Dialog
-          title="Adicionar MCP"
-          description="Informe o comando (servidor local) ou o endereço (servidor remoto). Ele é gravado nas duas CLIs."
+          title={t("mcp.add")}
+          description={t("mcp.addDescription")}
           onClose={() => setAdding(false)}
         >
           <div className="api-form">
             <label>
-              Nome
+              {t("mcp.field.name")}
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </label>
             <label>
-              Tipo
+              {t("mcp.field.type")}
               <select
-                aria-label="Tipo"
+                aria-label={t("mcp.field.type")}
                 value={form.transport}
                 onChange={(e) => setForm({ ...form, transport: e.target.value as "stdio" | "http" })}
               >
-                <option value="stdio">Local (comando)</option>
-                <option value="http">Remoto (endereço https)</option>
+                <option value="stdio">{t("mcp.type.local")}</option>
+                <option value="http">{t("mcp.type.remote")}</option>
               </select>
             </label>
             {form.transport === "stdio" ? (
               <>
                 <label>
-                  Comando
+                  {t("mcp.field.command")}
                   <input value={form.command} onChange={(e) => setForm({ ...form, command: e.target.value })} />
                 </label>
                 <label>
-                  Argumentos (separados por espaço)
+                  {t("mcp.field.args")}
                   <input value={form.args} onChange={(e) => setForm({ ...form, args: e.target.value })} />
                 </label>
               </>
             ) : (
               <label>
-                Endereço (https)
+                {t("mcp.field.url")}
                 <input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
               </label>
             )}
             {form.transport === "stdio" && (
               <label>
-                Variáveis lidas do ambiente (só os nomes, separados por vírgula)
+                {t("mcp.field.envVars")}
                 <input
-                  aria-label="Variáveis do ambiente"
+                  aria-label={t("mcp.field.envVarsAria")}
                   placeholder="TOKEN_X, OUTRA_VAR"
                   value={form.envVars}
                   onChange={(e) => setForm({ ...form, envVars: e.target.value })}
@@ -398,7 +396,7 @@ export function McpSection() {
             )}
             <label className="settings__check">
               <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
-              Entendo que este servidor roda esse comando no meu computador.
+              {t("mcp.understood")}
             </label>
             {dialogError && (
               <p role="alert" className="message__error">
@@ -407,10 +405,10 @@ export function McpSection() {
             )}
             <div className="api-form__actions">
               <button type="button" className="btn btn--ghost" onClick={() => setAdding(false)}>
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button type="button" className="btn btn--primary" disabled={!manualReady} onClick={() => void saveManual()}>
-                Adicionar
+                {t("mcp.addButton")}
               </button>
             </div>
           </div>
@@ -419,9 +417,9 @@ export function McpSection() {
 
       {deleting && (
         <ConfirmDialog
-          title={`Excluir ${deleting.name}?`}
-          body="O servidor sai das duas CLIs e a configuração guardada para ligar depois também é apagada."
-          confirmLabel="Excluir servidor"
+          title={t("mcp.deleteTitle", { name: deleting.name })}
+          body={t("mcp.deleteBody")}
+          confirmLabel={t("mcp.deleteConfirm")}
           danger
           onConfirm={() => void remove(deleting)}
           onCancel={() => setDeleting(undefined)}

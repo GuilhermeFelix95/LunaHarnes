@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { checkAuth, cliStatus, installCli, openLogin } from "../../api";
 import type { CliStatus, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
+import { t } from "../../i18n";
 
 function loginLabel(state: boolean | null | undefined): string {
-  if (state === undefined) return "verificando…";
-  if (state === null) return "não foi possível verificar";
-  return state ? "conectado" : "não conectado";
+  if (state === undefined) return t("accounts.checking");
+  if (state === null) return t("accounts.checkFailed");
+  return state ? t("accounts.connected") : t("accounts.notConnected");
 }
 
 /// Contas: o login de cada CLI. Quem entra aqui é o próprio Claude Code e o Codex, não as chaves de API.
@@ -53,23 +54,20 @@ export function AccountsSection() {
 
   return (
     <section className="settings__section" aria-labelledby="settings-accounts">
-      <h2 id="settings-accounts">Contas</h2>
-      <p className="settings__hint">
-        Cada CLI usa a própria conta. "Baixar e conectar" instala a CLI se ela faltar e abre o login dela. As chaves de API
-        ficam em Provedores.
-      </p>
+      <h2 id="settings-accounts">{t("settings.nav.accounts")}</h2>
+      <p className="settings__hint">{t("accounts.help")}</p>
       <ul className="settings-list">
         {(["claude", "codex"] as ProviderKind[]).map((p) => {
           const installed = cli[p]?.installed;
           const connected = login[p] === true;
           // Logada: nada a fazer. Instalada mas sem login: só o login. Sem CLI: baixar e conectar.
-          const action = connected || installed === undefined ? null : installed ? "Conectar" : "Baixar e conectar";
+          const action = connected || installed === undefined ? null : installed ? t("accounts.connect") : t("accounts.downloadConnect");
           return (
             <li key={p} className="settings-card">
               <div>
                 <strong>{PROVIDER_LABELS[p]}</strong>
                 <span className="settings-card__meta">{loginLabel(login[p])}</span>
-                {installed && cli[p]?.path && <span className="settings-card__meta">CLI em {cli[p]?.path}</span>}
+                {installed && cli[p]?.path && <span className="settings-card__meta">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</span>}
                 {errors[p] && (
                   <span className="settings-card__meta" role="alert">
                     {errors[p]}
@@ -78,7 +76,7 @@ export function AccountsSection() {
               </div>
               {action && (
                 <button type="button" className="btn btn--sm" disabled={busy !== null} onClick={() => void connect(p)}>
-                  {busy === p ? "Aguarde…" : action}
+                  {busy === p ? t("accounts.wait") : action}
                 </button>
               )}
             </li>

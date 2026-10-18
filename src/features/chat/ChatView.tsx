@@ -70,11 +70,12 @@ import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { saveLastWorkspace } from "../../workspace";
+import { resolveLocale, t, useLocale, type MessageKey } from "../../i18n";
 
 const TITLE_MAX_CHARS = 60;
 
 /// Sugestões da tela vazia: preenchem a caixa de mensagem, sem enviar sozinhas.
-const SUGGESTIONS = ["Explique este projeto", "Encontre bugs", "Escreva testes"];
+const SUGGESTIONS: MessageKey[] = ["chat.suggestion.explain", "chat.suggestion.bugs", "chat.suggestion.tests"];
 
 interface ChatViewProps {
   /** Conversa aberta do histórico. Ausente = conversa nova. */
@@ -92,6 +93,7 @@ interface ChatViewProps {
 }
 
 export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning, visible = true }: ChatViewProps) {
+  useLocale();
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
   const createdAt = useRef(initial?.createdAt ?? Date.now());
 
@@ -129,7 +131,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   function compact() {
     if (running || messagesRef.current.length === 0) return;
     compactPending.current = true;
-    void run("Compactar conversa", COMPACT_PROMPT, false);
+    void run(t("chat.compactShown"), COMPACT_PROMPT, false);
   }
 
   /// Pasta de um plugin à espera de instalação: o cartão aparece acima do composer.
@@ -252,7 +254,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   function stopRun() {
     setRunning(false);
     cancelPrompt(conversationId).catch((err) => {
-      setNotes((current) => [...current, `Não foi possível parar a execução: ${String(err)}`]);
+      setNotes((current) => [...current, t("chat.stopFailed", { error: String(err) })]);
     });
   }
 
@@ -371,8 +373,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         turnUsage.current = { fresh: event.fresh, read: event.read, write: event.write };
       }
       if (event.kind === "error") {
-        void notifyIfUnfocused("Erro na resposta", "Uma resposta falhou. Abra a conversa para ver o motivo.");
-        showToast({ kind: "error", title: "Erro na resposta", body: "Abra a conversa para ver o motivo." });
+        void notifyIfUnfocused(t("chat.errorTitle"), t("chat.errorBody"));
+        showToast({ kind: "error", title: t("chat.errorTitle"), body: t("chat.errorToastBody") });
       }
       if (event.kind === "done") {
         const usage = turnUsage.current;
@@ -384,17 +386,17 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           setTasks([]);
         }
         const firstUser = messagesRef.current.find((m) => m.role === "user");
-        const subject = firstUser ? truncate(firstUser.text, 40) : "a conversa";
+        const subject = firstUser ? truncate(firstUser.text, 40) : t("chat.theConversation");
         void notifyIfUnfocused(
-          live.current.planning ? "Plano pronto para revisar" : "Resposta pronta",
-          `"${subject}" terminou.`,
+          live.current.planning ? t("chat.planReady") : t("chat.replyReady"),
+          t("chat.finished", { subject }),
         );
         if (event.ok) playReplySound();
         if (event.ok) {
           showToast({
             kind: "success",
-            title: live.current.planning ? "Plano pronto para revisar" : "Resposta pronta",
-            body: `"${subject}" terminou.`,
+            title: live.current.planning ? t("chat.planReady") : t("chat.replyReady"),
+            body: t("chat.finished", { subject }),
           });
         }
         const session = sessions.current[turn];
@@ -407,7 +409,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
             compactionsRef.current = [...compactionsRef.current, { at: messagesRef.current.length, summary: responseText.current }];
             setCompactions(compactionsRef.current);
             sessions.current = {};
-            setNotes((current) => [...current, "Conversa compactada: a próxima mensagem começa com o resumo."]);
+            setNotes((current) => [...current, t("chat.compacted")]);
           }
         }
         setRunning(false);
@@ -469,7 +471,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   function persist(current: ChatMessage[]) {
     if (current.length === 0) return;
     const firstUser = current.find((m) => m.role === "user");
-    const title = firstUser ? truncate(firstUser.text, TITLE_MAX_CHARS) : "Nova conversa";
+    const title = firstUser ? truncate(firstUser.text, TITLE_MAX_CHARS) : t("sidebar.newConversation");
     // Lido da ref: o listener de eventos é registrado uma vez e não vê valores novos pelo closure.
     const latest = live.current;
     saveLastWorkspace(latest.cwd);
@@ -530,7 +532,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       const path = await createGitWorktree(cwd, branch, isNew);
       switchWorkspace(path);
     } catch (e) {
-      showToast({ kind: "error", title: "Worktree não criada", body: String(e) });
+      showToast({ kind: "error", title: t("chat.worktreeFailed"), body: String(e) });
     }
   }
 
@@ -546,7 +548,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         (fingerprint) => {
           configBefore.current = fingerprint;
         },
-        (e) => setNotes((current) => [...current, `Não foi possível ler a configuração: ${String(e)}`]),
+        (e) => setNotes((current) => [...current, t("chat.configReadFailed", { error: String(e) })]),
       );
   }
 
@@ -565,7 +567,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           window.dispatchEvent(new Event(PLUGINS_CHANGED));
           setConfigChanged(true);
         },
-        (e) => setNotes((current) => [...current, `Não foi possível verificar a configuração: ${String(e)}`]),
+        (e) => setNotes((current) => [...current, t("chat.configCheckFailed", { error: String(e) })]),
       );
   }
 
@@ -649,7 +651,7 @@ ${cliPrompt}`;
   /// Anexa um arquivo: imagens viram miniatura; os demais ficam na lista, com o nome. Ambos vão para a pasta de anexos.
   async function attachFile(file: File) {
     if (file.size > 10 * 1024 * 1024) {
-      setNotes([`${file.name}: arquivo maior que 10 MB`]);
+      setNotes([t("chat.fileTooBig", { name: file.name })]);
       return;
     }
     const image = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
@@ -702,7 +704,7 @@ ${cliPrompt}`;
   }, [slashOpen, cwd, provider]);
   const pluginSlash: SlashItem[] = host.commandNames().map((name) => ({
     name,
-    description: "Comando de plugin",
+    description: t("chat.pluginCommand"),
     origin: "plugin",
   }));
   const slashMatches = slashText === null ? [] : filterSlash([...LUNA_COMMANDS, ...pluginSlash, ...cliSlash], slashText);
@@ -742,7 +744,7 @@ ${cliPrompt}`;
     const hasAnyAttachment = attachments.length > 0 || fileAttachments.length > 0;
     if ((!typed && !hasAnyAttachment) || running || loggedIn !== true) return;
     // Só com anexo, o pedido vai com uma frase padrão; os arquivos entram na lista abaixo.
-    const prompt = typed || "Veja os anexos.";
+    const prompt = typed || t("chat.seeAttachments");
     setDraft("");
 
     // `/plano` liga o modo de planejamento e não vai ao provedor.
@@ -812,8 +814,8 @@ ${outgoing}`
     }
     const text =
       plan.removed.length + plan.restored.length === 0
-        ? "Nenhum arquivo muda; a conversa volta a este ponto."
-        : `${plan.restored.length} arquivo(s) voltam ao que eram e ${plan.removed.length} criado(s) depois serão apagados. As mensagens a partir daqui saem da conversa.`;
+        ? t("chat.rewind.none")
+        : t("chat.rewind.summary", { restored: plan.restored.length, removed: plan.removed.length });
     setPendingRewind({ index, checkpoint, text });
   }
 
@@ -854,7 +856,7 @@ ${outgoing}`
     // Execução nova: a lista de progresso começa do zero, sem as etapas de um plano anterior.
     tasksRef.current = [];
     setTasks([]);
-    await run("Plano aprovado.", APPROVAL_PROMPT, false);
+    await run(t("chat.planApproved"), APPROVAL_PROMPT, false);
   }
 
   function changeModel(next: string) {
@@ -888,9 +890,9 @@ ${outgoing}`
       <div data-plugin-slot="chat" />
       {pendingRewind && (
         <ConfirmDialog
-          title="Voltar até aqui?"
+          title={t("chat.rewindTitle")}
           body={pendingRewind.text}
-          confirmLabel="Voltar"
+          confirmLabel={t("chat.rewindConfirm")}
           danger
           onCancel={() => setPendingRewind(null)}
           onConfirm={() => {
@@ -901,15 +903,17 @@ ${outgoing}`
         />
       )}
       <header className="chat__header">
-        <h2 className="chat__title">{messages.length > 0 ? titleOf(messages) : "Nova conversa"}</h2>
+        <h2 className="chat__title">{messages.length > 0 ? titleOf(messages) : t("sidebar.newConversation")}</h2>
         {host.commandNames().length > 0 && (
           <span className="chat__commands">
-            Comandos: {host.commandNames().map((c) => `/${c}`).join(", ")}
+            {t("chat.commands", { list: host.commandNames().map((c) => `/${c}`).join(", ") })}
           </span>
         )}
         {costUsd > 0 && (
           <span className="chat__cost">
-            {costUsd.toLocaleString("pt-BR", { style: "currency", currency: "USD" })} nesta conversa
+            {t("chat.costThisConversation", {
+              cost: costUsd.toLocaleString(resolveLocale(), { style: "currency", currency: "USD" }),
+            })}
           </span>
         )}
         <div className="chat__tools">
@@ -919,7 +923,7 @@ ${outgoing}`
             aria-pressed={sideOpen && sideTab === "changes"}
             onClick={() => toggleSide("changes")}
           >
-            <GitCompare size={14} aria-hidden="true" /> Alterações
+            <GitCompare size={14} aria-hidden="true" /> {t("chat.tool.changes")}
           </button>
           <button
             type="button"
@@ -927,25 +931,25 @@ ${outgoing}`
             aria-pressed={sideOpen && sideTab === "plan"}
             onClick={() => toggleSide("plan")}
           >
-            Plano
+            {t("chat.tool.plan")}
           </button>
           <button
             type="button"
             className="chat__tool"
             aria-pressed={sideOpen && sideTab === "terminal"}
-            title="Terminal (Ctrl+`)"
+            title={t("chat.tool.terminalTitle")}
             onClick={toggleTerminal}
           >
-            <Terminal size={14} aria-hidden="true" /> Terminal
+            <Terminal size={14} aria-hidden="true" /> {t("chat.tool.terminal")}
           </button>
           <button
             type="button"
             className="chat__tool"
             aria-pressed={sideOpen && sideTab === "browser"}
-            title="Navegador"
+            title={t("chat.tool.browser")}
             onClick={() => toggleSide("browser")}
           >
-            <Globe size={14} aria-hidden="true" /> Navegador
+            <Globe size={14} aria-hidden="true" /> {t("chat.tool.browser")}
           </button>
         </div>
       </header>
@@ -955,7 +959,7 @@ ${outgoing}`
       <div className="chat__body" ref={body}>
         {loggedIn === false && profileId && (
           <p role="alert" className="chat__notes">
-            Este perfil ainda não tem chave. Cole a chave em Configurações &gt; Provedores.
+            {t("chat.profileNoKey")}
           </p>
         )}
         {loggedIn === false && !profileId && (
@@ -971,7 +975,7 @@ ${outgoing}`
         )}
 
         {notes.length > 0 && (
-          <ul className="chat__notes" aria-label="Avisos">
+          <ul className="chat__notes" aria-label={t("chat.notesAria")}>
             {notes.map((note, i) => (
               <li key={i}>{note}</li>
             ))}
@@ -981,22 +985,18 @@ ${outgoing}`
         {messages.length === 0 ? (
           <div className="chat__empty">
             <img src="/luna/atom.png" alt="" className="chat__logo" />
-            <h1>Como posso ajudar?</h1>
-            <p>
-              {planning
-                ? "Modo de planejamento: o agente pergunta antes de editar nada."
-                : `Conversando com ${agentLabel}.`}
-            </p>
+            <h1>{t("chat.emptyTitle")}</h1>
+            <p>{planning ? t("chat.planningHint") : t("chat.talkingWith", { agent: agentLabel })}</p>
             {planning && (
               <button type="button" className="chat__skip" onClick={() => setPlanning(false)}>
-                Pular entrevista
+                {t("chat.skipInterview")}
               </button>
             )}
             {!planning && (
               <div className="chat__suggestions">
-                {SUGGESTIONS.map((text) => (
-                  <button key={text} type="button" onClick={() => setDraft(text)}>
-                    {text}
+                {SUGGESTIONS.map((key) => (
+                  <button key={key} type="button" onClick={() => setDraft(t(key))}>
+                    {t(key)}
                   </button>
                 ))}
               </div>
@@ -1017,20 +1017,20 @@ ${outgoing}`
 
         {!stuck && messages.length > 0 && (
           <button type="button" className="chat__to-end" onClick={scrollToBottom}>
-            Ir para o fim <ArrowDown size={13} aria-hidden="true" />
+            {t("chat.toEnd")} <ArrowDown size={13} aria-hidden="true" />
           </button>
         )}
 
         {planning && lastIsReply && !running && (
-          <div className="plan-approval" role="region" aria-label="Aprovação do plano">
+          <div className="plan-approval" role="region" aria-label={t("chat.planApprovalAria")}>
             <p className="plan-approval__context">
               {understood === null
-                ? "Contexto entendido: o agente não informou."
-                : `Contexto entendido: ${understood}% de ${loadPlanTarget()}% necessários para o plano.`}
+                ? t("chat.understoodUnknown")
+                : t("chat.understood", { understood, target: loadPlanTarget() })}
             </p>
-            <p>Quando o plano estiver pronto, aprove para o agente começar a editar os arquivos.</p>
+            <p>{t("chat.planApproveHint")}</p>
             <button type="button" onClick={() => void approvePlan()} disabled={blocked}>
-              Aprovar e executar
+              {t("chat.approveRun")}
             </button>
           </div>
         )}
@@ -1048,16 +1048,16 @@ ${outgoing}`
       )}
 
       {configChanged && (
-        <section className="plugin-offer" role="status" aria-label="Configuração mudou">
+        <section className="plugin-offer" role="status" aria-label={t("chat.configChangedAria")}>
           <p>
-            <strong>A Luna instalou ou mudou um MCP, skill ou plugin.</strong> Recarregue o app para ele valer em tudo.
+            <strong>{t("chat.configChangedText")}</strong> {t("chat.configChangedHint")}
           </p>
           <div className="api-form__actions">
             <button type="button" disabled={running} onClick={() => window.location.reload()}>
-              Recarregar
+              {t("chat.reload")}
             </button>
             <button type="button" onClick={() => setConfigChanged(false)}>
-              Depois
+              {t("chat.later")}
             </button>
           </div>
         </section>
@@ -1122,17 +1122,17 @@ ${outgoing}`
             limits={profileId ? {} : limits}
             // Com perfil de API, a janela vem do modelo escolhido; sem ela, o medidor mostra só os tokens.
             context={context && { tokens: context.tokens, windowSize: profileId ? modelWindow : context.windowSize }}
-            windowHint={profileId && !modelWindow ? "Atualize a lista de modelos para ver a janela" : undefined}
+            windowHint={profileId && !modelWindow ? t("chat.windowHint") : undefined}
           />
         )}
         <button
           type="button"
           className="btn btn--ghost btn--sm"
-          title="Resume a conversa para liberar o contexto (também /compactar)"
+          title={t("chat.compactTitle")}
           disabled={running || messages.length === 0}
           onClick={compact}
         >
-          Compactar
+          {t("chat.compact")}
         </button>
       </div>
       </div>
@@ -1169,7 +1169,7 @@ function initialSessions(initial?: Conversation): AgentSessions {
 /// Título da conversa: a primeira mensagem do usuário, já truncada.
 function titleOf(messages: ChatMessage[]): string {
   const first = messages.find((m) => m.role === "user");
-  return first ? truncate(first.text, TITLE_MAX_CHARS) : "Nova conversa";
+  return first ? truncate(first.text, TITLE_MAX_CHARS) : t("sidebar.newConversation");
 }
 
 function truncate(text: string, max: number): string {

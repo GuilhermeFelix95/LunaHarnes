@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { parseShareCode, shareCode, type SavedTheme } from "../../themeShare";
+import { t } from "../../i18n";
 
 interface SavedThemesProps {
   /** Tema que está sendo editado agora. Compartilhar gera o código dele. */
@@ -25,43 +26,43 @@ export function SavedThemes({ active, onImport }: SavedThemesProps) {
     if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
-      setStatus("Código copiado.");
+      setStatus(t("themes.copied"));
     } catch {
-      setStatus("Não foi possível copiar. Selecione o código e copie manualmente.");
+      setStatus(t("themes.copyFailed"));
     }
   }
 
   function importCode() {
     const imported = parseShareCode(importText.trim());
     if (!imported) {
-      setError("Esse código não é um tema do LunaHarness.");
+      setError(t("themes.invalidCode"));
       return;
     }
     onImport(imported);
     setImportText("");
     setError(undefined);
-    setStatus(`Tema "${imported.name}" importado.`);
+    setStatus(t("themes.imported", { name: imported.name }));
   }
 
   return (
     <div className="saved-themes">
-      <h3 className="settings__sub">Compartilhar e importar</h3>
-      <p className="settings__hint">Compartilhe o código de um tema com outra pessoa, que o importa aqui.</p>
+      <h3 className="settings__sub">{t("themes.shareTitle")}</h3>
+      <p className="settings__hint">{t("themes.shareHelp")}</p>
 
       <div className="api-form__actions">
         <button type="button" disabled={!active} onClick={share}>
-          Gerar código do tema atual
+          {t("themes.generate")}
         </button>
       </div>
       {code && (
         <div className="saved-themes__share">
           <label>
-            Código do tema
-            <textarea aria-label="Código do tema" readOnly rows={4} value={code} />
+            {t("themes.codeLabel")}
+            <textarea aria-label={t("themes.codeLabel")} readOnly rows={4} value={code} />
           </label>
           <div className="api-form__actions">
             <button type="button" onClick={() => void copy()}>
-              Copiar código
+              {t("themes.copy")}
             </button>
           </div>
         </div>
@@ -69,12 +70,12 @@ export function SavedThemes({ active, onImport }: SavedThemesProps) {
 
       <div className="saved-themes__import">
         <label>
-          Importar um código recebido
-          <textarea aria-label="Código para importar" rows={3} value={importText} onChange={(e) => setImportText(e.target.value)} />
+          {t("themes.importLabel")}
+          <textarea aria-label={t("themes.importAria")} rows={3} value={importText} onChange={(e) => setImportText(e.target.value)} />
         </label>
         <div className="api-form__actions">
           <button type="button" disabled={!importText.trim()} onClick={importCode}>
-            Importar tema
+            {t("themes.import")}
           </button>
         </div>
       </div>

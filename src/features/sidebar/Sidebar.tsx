@@ -2,6 +2,8 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import type { ConversationSummary } from "../../types";
 import { EmptyState } from "../../ui/EmptyState";
+import { t, type MessageKey } from "../../i18n";
+import type { ConversationGroup } from "./groupByDay";
 import { groupByProject } from "./groupByProject";
 import { PlanTarget } from "./PlanTarget";
 
@@ -10,6 +12,13 @@ const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_FRACTION = 0.4;
 const KEY_STEP = 16;
+
+/// Nome de cada grupo de dia, traduzido. O rótulo interno continua em português (ver groupByDay).
+const DAY_KEYS: Record<ConversationGroup["label"], MessageKey> = {
+  Hoje: "sidebar.day.today",
+  Ontem: "sidebar.day.yesterday",
+  Anteriores: "sidebar.day.earlier",
+};
 
 /// Largura entre 200 px e 40% da janela.
 export function clampSidebarWidth(width: number, windowWidth: number): number {
@@ -133,12 +142,12 @@ export function Sidebar({
   const projects = groupByProject(matching, new Date());
 
   return (
-    <aside className="sidebar" aria-label="Projetos e conversas" style={{ width: `${width}px` }}>
+    <aside className="sidebar" aria-label={t("sidebar.label")} style={{ width: `${width}px` }}>
       <div
         className="sidebar__resize"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Largura da barra lateral"
+        aria-label={t("sidebar.resize")}
         aria-valuenow={width}
         tabIndex={0}
         onPointerDown={onPointerDown}
@@ -154,9 +163,9 @@ export function Sidebar({
       <div className="sidebar__top">
         <button type="button" className="sidebar__new" onClick={() => onNew()}>
           <Plus size={15} aria-hidden="true" />
-          Nova conversa
+          {t("sidebar.newConversation")}
         </button>
-        <button type="button" className="sidebar__add" onClick={onAddProject} aria-label="Adicionar projeto">
+        <button type="button" className="sidebar__add" onClick={onAddProject} aria-label={t("sidebar.addProject")}>
           <Plus size={16} aria-hidden="true" />
         </button>
       </div>
@@ -165,8 +174,8 @@ export function Sidebar({
         <input
           type="search"
           className="sidebar__search"
-          aria-label="Buscar conversas"
-          placeholder="Buscar conversas"
+          aria-label={t("sidebar.searchAria")}
+          placeholder={t("sidebar.searchAria")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -178,9 +187,7 @@ export function Sidebar({
 
         {projects.length === 0 && (
           <EmptyState>
-            {conversations.length === 0
-              ? "Suas conversas aparecem aqui, agrupadas por projeto."
-              : "Nenhuma conversa encontrada."}
+            {conversations.length === 0 ? t("sidebar.emptyNone") : t("sidebar.emptyNoMatch")}
           </EmptyState>
         )}
 
@@ -192,7 +199,7 @@ export function Sidebar({
                 <button
                   type="button"
                   className="sidebar__project-new"
-                  aria-label={`Nova conversa em ${project.name}`}
+                  aria-label={t("sidebar.newIn", { name: project.name })}
                   onClick={() => onNew(project.cwd)}
                 >
                   +
@@ -201,8 +208,8 @@ export function Sidebar({
                   <button
                     type="button"
                     className="sidebar__project-remove"
-                    aria-label={`Remover projeto ${project.name}`}
-                    title="Remover projeto"
+                    aria-label={t("sidebar.removeProject", { name: project.name })}
+                    title={t("sidebar.removeProjectTitle")}
                     onClick={() => onRemoveProject(project.cwd)}
                   >
                     <Trash2 size={13} aria-hidden="true" />
@@ -213,7 +220,7 @@ export function Sidebar({
 
             {project.days.map((group) => (
               <div key={group.label} className="sidebar__group">
-                <h3>{group.label}</h3>
+                <h3>{t(DAY_KEYS[group.label])}</h3>
                 <ul>
                   {group.items.map((item) =>
                     renaming?.id === item.id ? (
@@ -221,7 +228,7 @@ export function Sidebar({
                         <input
                           type="text"
                           className="sidebar__rename"
-                          aria-label="Novo nome da conversa"
+                          aria-label={t("sidebar.renameAria")}
                           autoFocus
                           value={renaming.draft}
                           onChange={(e) => setRenaming({ id: item.id, draft: e.target.value })}
@@ -242,7 +249,7 @@ export function Sidebar({
                           title={item.title}
                         >
                           {runningIds.includes(item.id) && (
-                            <span className="sidebar__running" role="img" aria-label="Respondendo" />
+                            <span className="sidebar__running" role="img" aria-label={t("sidebar.replying")} />
                           )}
                           {item.title}
                         </button>
@@ -250,8 +257,8 @@ export function Sidebar({
                           <button
                             type="button"
                             className="sidebar__rename-btn"
-                            aria-label={`Renomear ${item.title}`}
-                            title="Renomear"
+                            aria-label={t("sidebar.renameItem", { title: item.title })}
+                            title={t("sidebar.rename")}
                             onClick={() => startRename(item)}
                           >
                             <Pencil size={12} aria-hidden="true" />
@@ -260,7 +267,7 @@ export function Sidebar({
                         <button
                           type="button"
                           className="sidebar__delete"
-                          aria-label={`Excluir ${item.title}`}
+                          aria-label={t("sidebar.deleteItem", { title: item.title })}
                           onClick={() => onDelete(item.id)}
                         >
                           <Trash2 size={13} aria-hidden="true" />
@@ -278,7 +285,7 @@ export function Sidebar({
       <div data-plugin-slot="sidebar" />
       <footer className="sidebar__foot">
         <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>
-          <Settings size={16} aria-hidden="true" /> Configurações
+          <Settings size={16} aria-hidden="true" /> {t("settings.title")}
         </button>
         <PlanTarget />
       </footer>

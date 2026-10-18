@@ -48,6 +48,21 @@ describe("SettingsView", () => {
     expect(screen.getByRole("radio", { name: /Terminal/ }).getAttribute("aria-checked")).toBe("true");
   });
 
+  it("Geral troca o idioma da interface para inglês e volta para português", () => {
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Geral" }));
+    fireEvent.click(screen.getByRole("radio", { name: "English" }));
+
+    expect(localStorage.getItem("luna.language")).toBe("en");
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "General" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Português (Brasil)" }));
+
+    expect(localStorage.getItem("luna.language")).toBe("pt-BR");
+    expect(screen.getByRole("heading", { level: 1, name: "Configurações" })).toBeTruthy();
+  });
+
   it("Novo tema cria um cartão com preview e abre o editor com ele ativo", () => {
     localStorage.setItem(THEME_KEY, "luna");
     render(<SettingsView onClose={() => {}} />);

@@ -4,6 +4,7 @@ import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { onTerminalData, onTerminalExit, terminalClose, terminalOpen, terminalResize, terminalWrite } from "../../api";
 import { THEME_EVENT } from "../../theme";
+import { t } from "../../i18n";
 
 /// Fundo e texto do terminal vêm dos tokens do tema, para trocar junto com ele.
 function terminalTheme() {
@@ -58,7 +59,7 @@ export function TerminalPanel({ cwd }: TerminalPanelProps) {
       onTerminalExit((exited) => {
         if (exited !== id) return;
         setStatus("closed");
-        term.write("\r\n[shell encerrado]\r\n");
+        term.write(`\r\n${t("terminal.shellClosed")}\r\n`);
       }),
     );
 
@@ -99,9 +100,9 @@ export function TerminalPanel({ cwd }: TerminalPanelProps) {
   }, []);
 
   return (
-    <section className="terminal" aria-label="Terminal">
+    <section className="terminal" aria-label={t("terminal.label")}>
       {status === "error" && <p role="alert" className="terminal__note">{error}</p>}
-      {status === "opening" && <p className="terminal__note">Abrindo o terminal…</p>}
+      {status === "opening" && <p className="terminal__note">{t("terminal.opening")}</p>}
       <div ref={host} className="terminal__screen" />
     </section>
   );

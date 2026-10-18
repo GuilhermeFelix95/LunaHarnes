@@ -4,16 +4,26 @@ import type { ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
 import { PROVIDER_LABELS } from "../../chat/providers";
-import { ORIGIN_LABELS, type SlashItem } from "../../chat/slash";
+import type { SlashItem, SlashOrigin } from "../../chat/slash";
+import { t, type MessageKey } from "../../i18n";
 import { ModelMenu } from "./ModelMenu";
 import { Select } from "./Select";
 
 export { PROVIDER_LABELS };
 
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  readOnly: "Só leitura",
-  acceptEdits: "Aceitar edições",
-  fullAccess: "Acesso total",
+/// Nome de cada permissão no seletor, traduzido pela chave.
+export const PERMISSION_KEYS: Record<Permission, MessageKey> = {
+  readOnly: "composer.permission.readOnly",
+  acceptEdits: "composer.permission.acceptEdits",
+  fullAccess: "composer.permission.fullAccess",
+};
+
+/// Nome de cada origem no menu de `/`, traduzido pela chave.
+const ORIGIN_KEYS: Record<SlashOrigin, MessageKey> = {
+  luna: "slash.origin.luna",
+  plugin: "slash.origin.plugin",
+  skill: "slash.origin.skill",
+  command: "slash.origin.command",
 };
 
 const MAX_HEIGHT_PX = 200;
@@ -124,7 +134,7 @@ export function Composer(props: ComposerProps) {
     >
       <div data-plugin-slot="composer" />
       {slash.length > 0 && (
-        <ul className="composer__files" role="listbox" aria-label="Comandos e skills">
+        <ul className="composer__files" role="listbox" aria-label={t("composer.commandsAria")}>
           {slash.map((item, index) => (
             <li key={`${item.origin}-${item.name}`}>
               <button
@@ -135,14 +145,14 @@ export function Composer(props: ComposerProps) {
                 onClick={() => props.onPickSlash?.(item)}
               >
                 <strong>/{item.name}</strong> {item.description}{" "}
-                <span className="qpick__badge">{ORIGIN_LABELS[item.origin]}</span>
+                <span className="qpick__badge">{t(ORIGIN_KEYS[item.origin])}</span>
               </button>
             </li>
           ))}
         </ul>
       )}
       {(props.files ?? []).length > 0 && (
-        <ul className="composer__files" role="listbox" aria-label="Arquivos do projeto">
+        <ul className="composer__files" role="listbox" aria-label={t("composer.projectFilesAria")}>
           {(props.files ?? []).map((path) => (
             <li key={path}>
               <button type="button" role="option" aria-selected={false} onClick={() => props.onPickFile?.(path)}>
@@ -153,13 +163,13 @@ export function Composer(props: ComposerProps) {
         </ul>
       )}
       {(props.attachments ?? []).length > 0 && (
-        <ul className="composer__attachments" aria-label="Imagens anexadas">
+        <ul className="composer__attachments" aria-label={t("composer.imagesAria")}>
           {(props.attachments ?? []).map((a) => (
             <li key={a.id}>
-              <img src={a.url} alt="Imagem anexada" />
+              <img src={a.url} alt={t("composer.imageAlt")} />
               <button
                 type="button"
-                aria-label="Tirar imagem"
+                aria-label={t("composer.removeImage")}
                 onClick={() => props.onRemoveAttachment?.(a.id)}
                 disabled={running}
               >
@@ -170,14 +180,14 @@ export function Composer(props: ComposerProps) {
         </ul>
       )}
       {(props.fileAttachments ?? []).length > 0 && (
-        <ul className="composer__attachments composer__attachments--files" aria-label="Arquivos anexados">
+        <ul className="composer__attachments composer__attachments--files" aria-label={t("composer.filesAria")}>
           {(props.fileAttachments ?? []).map((f) => (
             <li key={f.id} className="composer__file">
               <Paperclip size={12} aria-hidden="true" />
               <span>{f.name}</span>
               <button
                 type="button"
-                aria-label="Tirar arquivo"
+                aria-label={t("composer.removeFile")}
                 onClick={() => props.onRemoveFileAttachment?.(f.id)}
                 disabled={running}
               >
@@ -189,8 +199,8 @@ export function Composer(props: ComposerProps) {
       )}
       <textarea
         ref={textarea}
-        aria-label="Mensagem"
-        placeholder={props.planning ? "Descreva o que quer planejar…" : "Responda ou peça algo…"}
+        aria-label={t("composer.messageAria")}
+        placeholder={props.planning ? t("composer.placeholderPlan") : t("composer.placeholderChat")}
         value={draft}
         onChange={(e) => onDraft(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -206,7 +216,7 @@ export function Composer(props: ComposerProps) {
       <div className="composer__footer">
         <div className="composer__selectors">
           <Select
-            label="Provedor"
+            label={t("composer.provider")}
             value={props.agent}
             options={props.agents.map((a) => ({ value: a.key, label: a.label }))}
             onChange={props.onAgent}
@@ -214,22 +224,22 @@ export function Composer(props: ComposerProps) {
           />
           <ModelMenu models={props.models} value={props.model} onChange={props.onModel} disabled={running} />
           <Select
-            label="Esforço"
+            label={t("composer.effort")}
             value={props.effort}
             options={[
-              { value: "", label: "Padrão" },
+              { value: "", label: t("composer.effortDefault") },
               ...efforts.map((level) => ({
                 value: level.id,
-                label: level.recommended ? `${level.label} (recomendado)` : level.label,
+                label: level.recommended ? t("composer.recommended", { label: level.label }) : level.label,
               })),
             ]}
             onChange={props.onEffort}
             disabled={running || efforts.length === 0}
           />
           <Select
-            label="Permissão"
+            label={t("composer.permission")}
             value={props.permission}
-            options={(Object.keys(PERMISSION_LABELS) as Permission[]).map((p) => ({ value: p, label: PERMISSION_LABELS[p] }))}
+            options={(Object.keys(PERMISSION_KEYS) as Permission[]).map((p) => ({ value: p, label: t(PERMISSION_KEYS[p]) }))}
             onChange={(value) => props.onPermission(value as Permission)}
             disabled={running}
           />
@@ -238,8 +248,8 @@ export function Composer(props: ComposerProps) {
           <button
             type="button"
             className="composer__attach"
-            aria-label="Anexar arquivo"
-            title="Anexar arquivo"
+            aria-label={t("composer.attach")}
+            title={t("composer.attach")}
             disabled={running || blocked}
             onClick={() => fileInput.current?.click()}
           >
@@ -271,19 +281,19 @@ export function Composer(props: ComposerProps) {
           <button
             type="button"
             className="composer__plan"
-            aria-label="Modo de planejamento"
+            aria-label={t("composer.planningAria")}
             aria-pressed={props.planning}
             disabled={running}
             onClick={props.onTogglePlanning}
           >
-            Planejar
+            {t("composer.plan")}
           </button>
           {running ? (
-            <button type="submit" className="composer__action composer__action--stop" aria-label="Parar">
+            <button type="submit" className="composer__action composer__action--stop" aria-label={t("composer.stop")}>
               <Square size={12} fill="currentColor" aria-hidden="true" />
             </button>
           ) : (
-            <button type="submit" className="composer__action" disabled={!canSend} aria-label="Enviar">
+            <button type="submit" className="composer__action" disabled={!canSend} aria-label={t("composer.send")}>
               <ArrowUp size={18} strokeWidth={2.4} aria-hidden="true" />
             </button>
           )}

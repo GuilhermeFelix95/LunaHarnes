@@ -2,6 +2,16 @@ import { useState } from "react";
 import { notificationsEnabled, setNotificationsEnabled } from "../../notifications";
 import { setToastsEnabled, toastsEnabled } from "../../ui/toast";
 import { loadSound, playSound, saveSound, SOUND_OFF, SOUNDS, type SoundChoice } from "../../sounds";
+import { t, type MessageKey } from "../../i18n";
+
+/// Nome de cada som, traduzido pela chave.
+const SOUND_KEYS: Record<(typeof SOUNDS)[number]["id"], MessageKey> = {
+  sino: "sound.sino",
+  gota: "sound.gota",
+  lua: "sound.lua",
+  miau: "sound.miau",
+  pop: "sound.pop",
+};
 
 /// Liga e desliga os avisos do sistema para respostas prontas, erros e planos, e escolhe o som da resposta.
 export function NotificationsSection() {
@@ -16,7 +26,7 @@ export function NotificationsSection() {
 
   return (
     <section className="settings__section" aria-labelledby="settings-notifications">
-      <h2 id="settings-notifications">Notificações</h2>
+      <h2 id="settings-notifications">{t("settings.nav.notifications")}</h2>
       <label className="settings__check">
         <input
           type="checkbox"
@@ -26,7 +36,7 @@ export function NotificationsSection() {
             setNotificationsEnabled(e.target.checked);
           }}
         />
-        Avisar quando uma resposta terminar, falhar ou um plano estiver pronto, com a janela fora de foco
+        {t("notifications.onAlert")}
       </label>
       <label className="settings__check">
         <input
@@ -37,18 +47,18 @@ export function NotificationsSection() {
             setToastsEnabled(e.target.checked);
           }}
         />
-        Mostrar aviso na tela quando a resposta terminar
+        {t("notifications.onToast")}
       </label>
       <div className="settings__row">
         <label>
-          Som ao responder
+          {t("notifications.sound")}
           <select className="sound-select" value={sound} onChange={(e) => changeSound(e.target.value as SoundChoice)}>
             {SOUNDS.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.label}
+                {t(SOUND_KEYS[s.id])}
               </option>
             ))}
-            <option value={SOUND_OFF}>Desligado</option>
+            <option value={SOUND_OFF}>{t("notifications.soundOff")}</option>
           </select>
         </label>
         <button
@@ -58,7 +68,7 @@ export function NotificationsSection() {
             if (sound !== SOUND_OFF) playSound(sound);
           }}
         >
-          Ouvir
+          {t("notifications.listen")}
         </button>
       </div>
     </section>

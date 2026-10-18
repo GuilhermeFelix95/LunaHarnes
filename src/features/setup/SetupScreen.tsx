@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { installCli } from "../../api";
 import type { CliStatus, ProviderKind } from "../../types";
+import { t } from "../../i18n";
 
 const NAMES: Record<ProviderKind, string> = { claude: "Claude Code", codex: "Codex" };
 
@@ -34,10 +35,8 @@ export function SetupScreen({ statuses: initial, onSkip }: SetupScreenProps) {
   return (
     <div className="setup" role="dialog" aria-modal="true" aria-labelledby="setup-title">
       <div className="setup__card">
-        <h2 id="setup-title">Configurar as CLIs</h2>
-        <p className="setup__intro">
-          O LunaHarness conversa pelo Claude Code e pelo Codex. Instale os que faltam. O que já está no computador não é baixado de novo.
-        </p>
+        <h2 id="setup-title">{t("setup.title")}</h2>
+        <p className="setup__intro">{t("setup.intro")}</p>
 
         <ul className="setup__list">
           {statuses.map((status) => (
@@ -45,12 +44,12 @@ export function SetupScreen({ statuses: initial, onSkip }: SetupScreenProps) {
               <div>
                 <strong>{NAMES[status.provider]}</strong>
                 <span className="setup__state">
-                  {status.installed && status.path ? `Instalado em ${status.path}` : "Não encontrado"}
+                  {status.installed && status.path ? t("setup.installedAt", { path: status.path }) : t("setup.notFound")}
                 </span>
               </div>
               {!status.installed && (
                 <button type="button" className="btn btn--primary" onClick={() => void install(status.provider)} disabled={busy !== null}>
-                  {busy === status.provider ? "Instalando… pode levar alguns minutos" : "Instalar"}
+                  {busy === status.provider ? t("setup.installing") : t("common.install")}
                 </button>
               )}
             </li>
@@ -61,7 +60,7 @@ export function SetupScreen({ statuses: initial, onSkip }: SetupScreenProps) {
 
         <div className="setup__actions">
           <button type="button" className="btn setup__skip" onClick={onSkip} disabled={busy !== null}>
-            {allInstalled ? "Continuar" : "Pular por agora"}
+            {allInstalled ? t("setup.continue") : t("setup.skip")}
           </button>
         </div>
       </div>

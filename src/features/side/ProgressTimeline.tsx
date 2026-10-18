@@ -1,10 +1,11 @@
 import { Check, Circle } from "lucide-react";
 import type { TodoItem } from "../../types";
+import { t } from "../../i18n";
 
-const LABEL: Record<TodoItem["status"], string> = {
-  pending: "Na fila",
-  in_progress: "Em andamento",
-  completed: "Concluída",
+const LABEL_KEYS: Record<TodoItem["status"], "progress.status.pending" | "progress.status.in_progress" | "progress.status.completed"> = {
+  pending: "progress.status.pending",
+  in_progress: "progress.status.in_progress",
+  completed: "progress.status.completed",
 };
 
 /// Etapas da tarefa como uma linha do tempo: um nó por etapa, ligados por um fio.
@@ -16,13 +17,11 @@ export function ProgressTimeline({ todos }: { todos: TodoItem[] }) {
   return (
     <div className="timeline">
       <div className="timeline__summary">
-        <span>
-          {done} de {todos.length} concluídas
-        </span>
+        <span>{t("progress.summary", { done, total: todos.length })}</span>
         <div
           className="timeline__bar"
           role="progressbar"
-          aria-label="Etapas concluídas"
+          aria-label={t("progress.barAria")}
           aria-valuemin={0}
           aria-valuemax={todos.length}
           aria-valuenow={done}
@@ -31,7 +30,7 @@ export function ProgressTimeline({ todos }: { todos: TodoItem[] }) {
         </div>
       </div>
 
-      <ol className="timeline__steps" aria-label="Progresso da tarefa">
+      <ol className="timeline__steps" aria-label={t("progress.listAria")}>
         {todos.map((todo, index) => (
           <li
             key={`${index}-${todo.content}`}
@@ -48,7 +47,7 @@ export function ProgressTimeline({ todos }: { todos: TodoItem[] }) {
               )}
             </span>
             <span className="timeline__body">
-              <span className="timeline__label">{LABEL[todo.status]}</span>
+              <span className="timeline__label">{t(LABEL_KEYS[todo.status])}</span>
               <span className="timeline__text">{todo.content}</span>
             </span>
           </li>

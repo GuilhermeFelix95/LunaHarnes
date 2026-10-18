@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Dialog } from "../../ui/Dialog";
+import { t } from "../../i18n";
 
 interface CatalogPickerProps {
   /** Catálogos por URL que o usuário adicionou. */
@@ -33,9 +34,9 @@ export function CatalogPicker({ sources, value, onChange, onAdd, onRemove }: Cat
   return (
     <div className="settings-actions">
       <label className="settings-field">
-        Catálogo
-        <select aria-label="Catálogo" value={value} onChange={(e) => onChange(e.target.value)}>
-          <option value="">LunaHarness oficial</option>
+        {t("catalog.label")}
+        <select aria-label={t("catalog.label")} value={value} onChange={(e) => onChange(e.target.value)}>
+          <option value="">{t("catalog.official")}</option>
           {sources.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -44,25 +45,25 @@ export function CatalogPicker({ sources, value, onChange, onAdd, onRemove }: Cat
         </select>
       </label>
       <button type="button" className="btn btn--sm" onClick={() => setAdding(true)}>
-        Adicionar catálogo
+        {t("catalog.add")}
       </button>
       {value && (
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => void onRemove(value).then(() => onChange(""))}>
-          Remover catálogo
+          {t("catalog.remove")}
         </button>
       )}
 
       {adding && (
         <Dialog
-          title="Adicionar catálogo"
-          description="Um catálogo é um arquivo JSON publicado em https. Ele é conferido antes de ser guardado."
+          title={t("catalog.add")}
+          description={t("catalog.addDescription")}
           onClose={() => setAdding(false)}
         >
           <form className="api-form" onSubmit={(e) => void submit(e)}>
             <label>
-              Endereço do catálogo (https)
+              {t("catalog.addressLabel")}
               <input
-                aria-label="Endereço do catálogo"
+                aria-label={t("catalog.addressAria")}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://exemplo.com/catalogo.json"
@@ -76,10 +77,10 @@ export function CatalogPicker({ sources, value, onChange, onAdd, onRemove }: Cat
             )}
             <div className="api-form__actions">
               <button type="button" className="btn btn--ghost" onClick={() => setAdding(false)}>
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button type="submit" className="btn btn--primary">
-                Adicionar
+                {t("common.add")}
               </button>
             </div>
           </form>
