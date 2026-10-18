@@ -786,6 +786,9 @@ ${outgoing}`
   async function approvePlan() {
     if (running || loggedIn !== true) return;
     setPlanning(false);
+    // Execução nova: a lista de progresso começa do zero, sem as etapas de um plano anterior.
+    tasksRef.current = [];
+    setTasks([]);
     await run("Plano aprovado.", APPROVAL_PROMPT, false);
   }
 

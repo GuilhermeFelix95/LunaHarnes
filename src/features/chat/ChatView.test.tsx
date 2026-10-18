@@ -326,3 +326,32 @@ describe("ChatView: continuidade e envio", () => {
     expect(saved.sessions).toEqual({ claude: { id: "sess-9", seen: 2 } });
   });
 });
+
+describe("Progresso de um plano novo", () => {
+  it("aprovar um plano novo começa a lista de progresso do zero, sem as etapas do plano anterior", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    // Um plano anterior terminou com a lista de progresso cheia.
+    await send("primeiro pedido");
+    emit({ kind: "todos", items: [{ content: "Etapa antiga", status: "completed" }] });
+    emit({ kind: "done", ok: true });
+    fireEvent.click(screen.getByRole("tab", { name: "Progresso" }));
+    expect(screen.getByText("Etapa antiga")).toBeTruthy();
+
+    // Outro plano: planejar, aprovar e executar.
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
+    await send("outra coisa");
+    emit({
+      kind: "textDelta",
+      text: 'Posso começar?\n```luna-perguntas\n[{"pergunta": "Aprovar o plano?", "opcoes": ["Aprovar e executar", "Ainda não"]}]\n```',
+    });
+    emit({ kind: "done", ok: true });
+    const picker = within(await screen.findByRole("region", { name: "Perguntas do agente" }));
+    fireEvent.click(picker.getByRole("button", { name: "Aprovar e executar" }));
+    fireEvent.click(picker.getByRole("button", { name: "Enviar respostas" }));
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(3));
+
+    expect(screen.queryByText("Etapa antiga")).toBeNull();
+  });
+});
