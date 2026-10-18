@@ -9,10 +9,13 @@ export const PLAN_INSTRUCTION = [
   "5. Só comece a executar depois que o usuário aprovar.",
 ].join("\n");
 
-/// Gerar spec (estilo to-spec): sintetiza a conversa, sem perguntas novas. A resposta vira o plano no painel.
-export const SPEC_INSTRUCTION = [
-  "Sintetize a conversa até agora numa spec, sem fazer novas perguntas e sem alterar arquivos.",
-  "Use estas seções, nesta ordem, em Markdown:",
+/// Opção que aprova o plano quando o agente pergunta pelo seletor. Escolhê-la encerra o planejamento.
+export const APPROVE_OPTION = "Aprovar e executar";
+
+/// Enviado quando o usuário aprova: o turno seguinte já sai do modo plano.
+/// A spec segue o modelo to-spec do Matt Pocock: é o que o projeto é e as decisões tomadas, não o plano passo a passo.
+export const APPROVAL_PROMPT = [
+  "O plano foi aprovado. Antes de começar, crie um arquivo Markdown em spec/ na raiz do projeto (ex.: spec/<funcionalidade>.md) com a spec deste trabalho, nesta ordem de seções:",
   "## Problem Statement",
   "## Solution",
   "## User Stories",
@@ -20,16 +23,9 @@ export const SPEC_INSTRUCTION = [
   "## Testing Decisions",
   "## Out of Scope",
   "## Further Notes",
-].join("\n");
-
-/// Opção que aprova o plano quando o agente pergunta pelo seletor. Escolhê-la encerra o planejamento.
-export const APPROVE_OPTION = "Aprovar e executar";
-
-/// Enviado quando o usuário aprova: o turno seguinte já sai do modo plano.
-export const APPROVAL_PROMPT = [
-  "O plano foi aprovado. Antes de começar, crie a pasta spec/ na raiz do projeto com arquivos .md técnicos que descrevam o que o app é: stack, frontend, backend, dados e as decisões já tomadas (ex.: 'frontend em React', sem outro framework que não foi escolhido). Não copie o plano: a spec é a descrição técnica do produto.",
+  "Regras da spec: descreva decisões técnicas fixas do projeto (ex.: 'frontend em React', sem outro framework que não foi escolhido). Em Implementation Decisions, não coloque caminhos de arquivo nem trechos de código. Em Testing Decisions, só comportamento externo. Não copie o plano passo a passo.",
   "Depois, execute o plano agora, editando os arquivos necessários, e resuma o que foi feito ao final.",
-].join(" ");
+].join("\n");
 
 /// Protocolo das perguntas: toda pergunta vai dentro do bloco, que o app mostra como seletor.
 /// Sem o bloco, a pergunta apareceria como texto no chat, o que o usuário não quer.

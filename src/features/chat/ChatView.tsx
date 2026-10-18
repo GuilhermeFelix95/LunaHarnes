@@ -25,7 +25,7 @@ import {
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, APPROVE_OPTION, QUESTION_PROTOCOL, SPEC_INSTRUCTION, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, APPROVE_OPTION, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
@@ -41,8 +41,8 @@ import type {
   ModelOption,
   Permission,
   ProviderKind,
-  TodoItem,
 } from "../../types";
+import { applyTaskEvent, toTodos, type TaskEntry } from "../../chat/tasks";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
 import { RightPanel, type SideTab } from "../side/RightPanel";
@@ -145,8 +145,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   live.current = { provider, profileId, cwd, permission, model, effort, planning, running, sideTab };
   const [limits, setLimits] = useState<LimitState>({});
   const [context, setContext] = useState<ContextState | null>(null);
-  // Checklist do agente (TodoWrite do Claude): a última lista recebida, na ordem dele.
-  const [todos, setTodos] = useState<TodoItem[]>([]);
+  // Tarefas do agente na resposta atual (aba Progresso), na ordem em que foram criadas.
+  const [tasks, setTasks] = useState<TaskEntry[]>([]);
   const body = useRef<HTMLDivElement>(null);
   const { stuck, scrollToBottom } = useStickToBottom(body, messages);
 
@@ -261,7 +261,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         }));
       }
       if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize ?? undefined });
-      if (event.kind === "todos") setTodos(event.items);
+      if (event.kind === "todos" || event.kind === "taskCreated" || event.kind === "taskAssigned" || event.kind === "taskUpdated") {
+        setTasks((current) => applyTaskEvent(current, event));
+      }
       if (event.kind === "cost") {
         costRef.current += event.usd;
         setCostUsd(costRef.current);
@@ -378,6 +380,8 @@ ${cliPrompt}`;
       rewindNote.current = null;
     }
     responseText.current = "";
+    // Cada resposta monta o próprio checklist; o da resposta anterior não fica na aba.
+    setTasks([]);
     setQuestions(null);
     turnPlanning.current = plan;
     turnAsk.current = plan || mode?.id === "ask";
@@ -553,12 +557,6 @@ ${outgoing}`
       return;
     }
     await run(text, text, planning, modes.find((m) => m.id === modeId));
-  }
-
-  /// Gera a spec da conversa (estilo to-spec): um turno de planejamento que só lê, e a resposta vira o plano.
-  async function generateSpec() {
-    if (running || loggedIn !== true) return;
-    await run("Gerar spec da conversa", SPEC_INSTRUCTION, true);
   }
 
   /// Aprovação do plano: sai do modo plano e manda o agente executar com a permissão escolhida.
@@ -785,9 +783,7 @@ ${outgoing}`
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
         plan={plan}
-        todos={todos}
-        onGenerateSpec={() => void generateSpec()}
-        canGenerateSpec={!running && !blocked && messages.length > 0}
+        todos={toTodos(tasks)}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
       />
       </div>

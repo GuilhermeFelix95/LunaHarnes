@@ -192,8 +192,6 @@ button:disabled {
 
 /* Rodapé da barra lateral: preso embaixo mesmo com a lista rolando */
 .sidebar__foot {
-  position: sticky;
-  bottom: -12px;
   margin: auto -12px -12px;
   padding: 8px 12px 12px;
   border-top: 1px solid var(--border);
@@ -351,7 +349,7 @@ button:disabled {
   flex-direction: column;
   gap: 4px;
   padding: 12px;
-  overflow-y: auto;
+  overflow: hidden;
   background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
   backdrop-filter: blur(18px);
   border-right: 1px solid var(--glass-border);
@@ -402,9 +400,63 @@ button:disabled {
   font-size: 16px;
 }
 
+/* Área rolável com os projetos; a barra fina aparece só quando não cabe tudo */
+.sidebar__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 /* Um bloco por projeto: nome da pasta em cima, dias embaixo */
 .sidebar__project {
   margin-top: 12px;
+}
+
+.sidebar__project-actions {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar__project-remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0 4px;
+  opacity: 0;
+}
+
+.sidebar__project:hover .sidebar__project-remove,
+.sidebar__project-remove:focus-visible {
+  opacity: 1;
+}
+
+.sidebar__rename {
+  flex: 1;
+  min-width: 0;
+  margin: 2px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.sidebar__rename-btn {
+  opacity: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+.sidebar li:hover .sidebar__rename-btn,
+.sidebar li.is-active .sidebar__rename-btn,
+.sidebar__rename-btn:focus-visible {
+  opacity: 1;
 }
 
 .sidebar__project-head {
@@ -2085,4 +2137,79 @@ textarea:focus-visible {
 .model-picker__item[aria-pressed="true"] {
   background: var(--accent);
   color: var(--accent-fg);
+}
+
+/* Primeira abertura: CLIs que faltam (sobre o app, sem desmontar as conversas) */
+.setup {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.setup__card {
+  width: 100%;
+  max-width: 560px;
+  padding: 24px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sidebar);
+  box-shadow: var(--shadow);
+}
+
+.setup__card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.setup__intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.setup__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.setup__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.setup__item div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setup__state {
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.setup__error {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--error);
+}
+
+.setup__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }

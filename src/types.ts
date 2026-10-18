@@ -78,6 +78,14 @@ export interface ModelOption {
   contextWindow?: number;
 }
 
+/// Situação de uma CLI no computador (espelha setup::CliStatus em src-tauri/src/setup.rs).
+export interface CliStatus {
+  provider: ProviderKind;
+  installed: boolean;
+  /** Onde a CLI foi achada. Null = não instalada. */
+  path: string | null;
+}
+
 /// Uma etapa do checklist do agente (espelha TodoItem em providers/mod.rs).
 export interface TodoItem {
   content: string;
@@ -89,6 +97,9 @@ export type ProviderEvent =
   | { kind: "textDelta"; text: string }
   | { kind: "toolUse"; name: string; detail: string }
   | { kind: "todos"; items: TodoItem[] }
+  | { kind: "taskCreated"; key: string; subject: string }
+  | { kind: "taskAssigned"; key: string; id: string }
+  | { kind: "taskUpdated"; id: string; status: string | null; subject: string | null }
   | { kind: "rateLimit"; window: "fiveHour" | "sevenDay"; utilization: number; resetsAt: number }
   | { kind: "context"; tokens: number; windowSize: number | null }
   | { kind: "cost"; usd: number }
@@ -122,6 +133,8 @@ export type AgentSessions = Partial<Record<string, AgentSession>>;
 export interface Conversation {
   id: string;
   title: string;
+  /** Nome escolhido na barra lateral: salvar de novo não troca o título (ver conversations.rs). */
+  titleLocked?: boolean;
   provider: ProviderKind;
   sessionId?: string;
   cwd: string;

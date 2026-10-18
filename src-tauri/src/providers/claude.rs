@@ -5,6 +5,15 @@ use super::{ProviderEvent, TodoItem};
 
 use super::{image_media_type, LimitWindow, Permission, RunRequest, LUNA_IDENTITY};
 
+/// Sem isso, o Claude Code oferece as ferramentas de tarefa só para alguns modelos; com esta variável elas ficam ligadas.
+/// Confirmado numa execução real: com ela, o agente cria e atualiza tarefas (TaskCreate / TaskUpdate).
+pub fn task_env() -> (String, String) {
+    ("CLAUDE_CODE_ENABLE_TODO_TOOLS".to_string(), "true".to_string())
+}
+
+/// Em tarefas com etapas, o agente registra cada etapa e atualiza o estado ao avançar: é o que alimenta a aba Progresso.
+const TASK_INSTRUCTION: &str = "Em tarefas com mais de uma etapa, registre as etapas com a ferramenta de tarefas (TaskCreate) antes de começar e atualize o estado de cada uma (TaskUpdate) ao avançar.";
+
 /// `claude -p` lê o prompt do stdin e emite JSON por linha.
 /// `--include-partial-messages` manda os deltas de texto conforme chegam.
 pub fn args(request: &RunRequest) -> Vec<String> {
@@ -25,7 +34,7 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     }
 
     // Acrescenta a identidade ao prompt padrão, que diz que o agente é o Claude Code.
-    args.extend(["--append-system-prompt".to_string(), LUNA_IDENTITY.to_string()]);
+    args.extend(["--append-system-prompt".to_string(), format!("{LUNA_IDENTITY}\n\n{TASK_INSTRUCTION}")]);
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
     }
@@ -106,18 +115,12 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 blocks
                     .iter()
                     .filter(|b| b.get("type").and_then(Value::as_str) == Some("tool_use"))
-                    .flat_map(|b| {
-                        let name = b["name"].as_str().unwrap_or("ferramenta").to_string();
-                        let mut events = Vec::new();
-                        if name == "TodoWrite" {
-                            events.extend(todos_event(&b["input"]));
-                        }
-                        events.insert(0, ProviderEvent::ToolUse { name, detail: tool_detail(&b["input"]) });
-                        events
-                    })
+                    .flat_map(tool_use_events)
                     .collect()
             })
             .unwrap_or_default(),
+        // O resultado de TaskCreate traz o id da tarefa; ele liga o tool_use_id ao id que o TaskUpdate usa.
+        Some("user") => task_assigned_events(&value),
         Some("rate_limit_event") => rate_limit_events(&value),
         Some("result") => {
             let is_error = value.get("is_error").and_then(Value::as_bool).unwrap_or(false);
@@ -180,6 +183,42 @@ fn context_event(value: &Value) -> Option<ProviderEvent> {
     Some(ProviderEvent::Context { tokens, window_size })
 }
 
+/// Linha de ferramenta e, quando a ferramenta mexe no checklist, o evento de tarefa correspondente.
+fn tool_use_events(block: &Value) -> Vec<ProviderEvent> {
+    let name = block["name"].as_str().unwrap_or("ferramenta").to_string();
+    let input = &block["input"];
+    let mut events = vec![ProviderEvent::ToolUse { name: name.clone(), detail: tool_detail(input) }];
+    match name.as_str() {
+        "TodoWrite" => events.extend(todos_event(input)),
+        "TaskCreate" => events.push(ProviderEvent::TaskCreated {
+            key: block["id"].as_str().unwrap_or_default().to_string(),
+            subject: input["subject"].as_str().unwrap_or_default().to_string(),
+        }),
+        "TaskUpdate" => events.push(ProviderEvent::TaskUpdated {
+            id: input["taskId"].as_str().unwrap_or_default().to_string(),
+            status: input["status"].as_str().map(str::to_string),
+            subject: input["subject"].as_str().map(str::to_string),
+        }),
+        _ => {}
+    }
+    events
+}
+
+/// Resultado de TaskCreate: `tool_use_result.task.id` é o id da tarefa e `tool_use_id` liga ao TaskCreate.
+fn task_assigned_events(value: &Value) -> Vec<ProviderEvent> {
+    let Some(id) = value["tool_use_result"]["task"]["id"].as_str() else {
+        return vec![];
+    };
+    value["message"]["content"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|b| b.get("type").and_then(Value::as_str) == Some("tool_result"))
+        .filter_map(|b| b["tool_use_id"].as_str())
+        .map(|key| ProviderEvent::TaskAssigned { key: key.to_string(), id: id.to_string() })
+        .collect()
+}
+
 /// Lista de etapas da ferramenta TodoWrite. Etapa sem texto ou sem status vira "" ou "pending".
 fn todos_event(input: &Value) -> Option<ProviderEvent> {
     let items = input["todos"]
@@ -223,7 +262,7 @@ mod tests {
 
         let args = args(&request);
 
-        assert!(args.windows(2).any(|w| w[0] == "--append-system-prompt" && w[1] == LUNA_IDENTITY));
+        assert!(args.windows(2).any(|w| w[0] == "--append-system-prompt" && w[1].starts_with(LUNA_IDENTITY) && w[1].contains("TaskCreate")));
         assert!(!args.iter().any(|a| a == "--system-prompt"));
     }
 
@@ -317,6 +356,30 @@ mod tests {
             tokens: 44060,
             window_size: Some(1_000_000),
         }));
+    }
+
+    /// O Claude Code atual cria tarefas com TaskCreate e atualiza com TaskUpdate (formato medido numa execução real).
+    #[test]
+    fn task_create_and_update_become_task_events() {
+        let create = parse_line(
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"TaskCreate","input":{"subject":"Criar hello.txt","description":"d","activeForm":"Criando"}}]}}"#,
+        );
+        let update = parse_line(
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_2","name":"TaskUpdate","input":{"taskId":"1","status":"completed"}}]}}"#,
+        );
+
+        assert!(create.contains(&ProviderEvent::TaskCreated { key: "toolu_1".into(), subject: "Criar hello.txt".into() }));
+        assert!(update.contains(&ProviderEvent::TaskUpdated { id: "1".into(), status: Some("completed".into()), subject: None }));
+    }
+
+    /// O id da tarefa só volta no resultado da ferramenta (mensagem `user`), ligado ao tool_use_id.
+    #[test]
+    fn the_task_id_comes_back_in_the_tool_result() {
+        let events = parse_line(
+            r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"Task #1 created"}]},"tool_use_result":{"task":{"id":"1","subject":"Criar hello.txt"}}}"#,
+        );
+
+        assert_eq!(events, vec![ProviderEvent::TaskAssigned { key: "toolu_1".into(), id: "1".into() }]);
     }
 
     /// TodoWrite vira o checklist da aba Progresso, na ordem que o agente escreveu.

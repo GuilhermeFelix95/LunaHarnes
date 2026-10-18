@@ -198,14 +198,14 @@ fn collect_stderr_tail(mut pipe: ChildStderr) -> String {
     String::from_utf8_lossy(&tail).trim().to_string()
 }
 
-/// Procura o executável no PATH. No Windows, CLIs instalados via npm são shims
-/// `.cmd`, então as extensões `.exe` e `.cmd` também são testadas.
+/// Procura o executável no PATH e depois nas pastas dos instaladores oficiais (ver setup.rs).
+/// No Windows, CLIs instalados via npm são shims `.cmd`, então `.exe` e `.cmd` também são testados.
 pub(crate) fn resolve_program(program: &str) -> Option<PathBuf> {
     if Path::new(program).is_absolute() {
         return Path::new(program).is_file().then(|| PathBuf::from(program));
     }
-    let dirs: Vec<PathBuf> = env::split_paths(&env::var_os("PATH")?).collect();
-    resolve_in(program, &dirs, cfg!(windows))
+    let path_dirs: Vec<PathBuf> = env::var_os("PATH").map(|value| env::split_paths(&value).collect()).unwrap_or_default();
+    crate::setup::find(program, &path_dirs, &crate::setup::known_dirs())
 }
 
 /// Procura `program` em `dirs`. No Windows só aceita `.exe`, `.cmd` e `.bat`:

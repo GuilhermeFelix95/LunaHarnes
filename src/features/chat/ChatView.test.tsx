@@ -157,23 +157,6 @@ describe("ChatView: continuidade e envio", () => {
     expect(screen.queryByLabelText("Perguntas do agente")).toBeNull();
   });
 
-  it("Gerar spec manda o pedido de spec em modo somente leitura", async () => {
-    render(<ChatView onPersist={() => {}} />);
-    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
-    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
-    await send("quero um app de tarefas");
-    emit({ kind: "textDelta", text: "Plano curto." });
-    emit({ kind: "done", ok: true });
-    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
-
-    fireEvent.click(screen.getByRole("button", { name: "Gerar spec" }));
-
-    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
-    const spec = vi.mocked(api.sendPrompt).mock.calls[1][0];
-    expect(spec.prompt).toContain("## Problem Statement");
-    expect(spec.permission).toBe("readOnly");
-  });
-
   it("sugestões da tela vazia preenchem a caixa sem enviar", async () => {
     render(<ChatView onPersist={() => {}} />);
 

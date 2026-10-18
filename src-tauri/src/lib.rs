@@ -8,6 +8,7 @@ pub mod models;
 pub mod plugins;
 pub mod providers;
 pub mod session;
+pub mod setup;
 pub mod spec;
 pub mod terminal;
 
@@ -43,6 +44,9 @@ pub fn run() {
             commands::load_conversation,
             commands::save_conversation,
             commands::delete_conversation,
+            commands::rename_conversation,
+            commands::cli_status,
+            commands::install_cli,
             commands::api_presets,
             commands::list_api_profiles,
             commands::save_api_profile,

@@ -99,6 +99,12 @@ pub enum ProviderEvent {
     ToolUse { name: String, detail: String },
     /// Etapas que o agente escreveu com a ferramenta TodoWrite, na ordem dele. A lista inteira vale a cada evento.
     Todos { items: Vec<TodoItem> },
+    /// Tarefa criada com TaskCreate. `key` é o id do tool_use, que liga ao `TaskAssigned` seguinte.
+    TaskCreated { key: String, subject: String },
+    /// Id que o Claude Code deu à tarefa criada (vem no resultado da ferramenta).
+    TaskAssigned { key: String, id: String },
+    /// Mudança de uma tarefa com TaskUpdate: estado novo (pending, in_progress, completed ou deleted) e/ou novo nome.
+    TaskUpdated { id: String, status: Option<String>, subject: Option<String> },
     /// Uso de uma janela de limite da conta (sessão de 5 horas ou semana). `utilization` vem de 0 a 1.
     RateLimit { window: LimitWindow, utilization: f64, resets_at: i64 },
     /// Tokens que ocupam a janela de contexto no último turno, e o tamanho dessa janela.

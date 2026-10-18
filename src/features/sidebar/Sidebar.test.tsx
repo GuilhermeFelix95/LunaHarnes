@@ -27,6 +27,54 @@ function setup() {
   return props;
 }
 
+describe("Sidebar: rolagem e ações", () => {
+  it("só a lista de projetos rola; a marca e o rodapé ficam fora dela", () => {
+    const { container } = render(
+      <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} />,
+    );
+    const list = container.querySelector(".sidebar__list");
+
+    expect(list?.querySelector(".sidebar__project")).toBeTruthy();
+    expect(list?.querySelector(".sidebar__foot")).toBeNull();
+    expect(container.querySelector(".sidebar__foot")).toBeTruthy();
+  });
+
+  it("renomear troca o título pelo campo em linha e confirma com Enter", () => {
+    const onRename = vi.fn();
+    render(<Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} onRename={onRename} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Renomear Revisar o login" }));
+    const field = screen.getByLabelText("Novo nome da conversa");
+    fireEvent.change(field, { target: { value: "  Login novo  " } });
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(onRename).toHaveBeenCalledWith("a", "Login novo");
+  });
+
+  it("Esc cancela a renomeação e um nome vazio não é salvo", () => {
+    const onRename = vi.fn();
+    render(<Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} onRename={onRename} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Renomear Revisar o login" }));
+    const field = screen.getByLabelText("Novo nome da conversa");
+    fireEvent.change(field, { target: { value: "   " } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(onRename).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(screen.queryByLabelText("Novo nome da conversa")).toBeNull();
+  });
+
+  it("remover o projeto avisa a conversa com o caminho da pasta", () => {
+    const onRemoveProject = vi.fn();
+    render(<Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} onRemoveProject={onRemoveProject} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remover projeto LunaHarnes" }));
+
+    expect(onRemoveProject).toHaveBeenCalledWith("C:\\LunaHarnes");
+  });
+});
+
 describe("filterByTitle", () => {
   it("ignora maiúsculas e acentos", () => {
     expect(filterByTitle(items, "PRECOS").map((c) => c.id)).toEqual(["b"]);

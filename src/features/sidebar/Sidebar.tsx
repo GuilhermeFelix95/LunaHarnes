@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Plus, Settings } from "lucide-react";
+import { Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import lunaLogo from "../../assets/luna.svg";
 import type { ConversationSummary } from "../../types";
 import { groupByProject } from "./groupByProject";
@@ -55,6 +55,10 @@ interface SidebarProps {
   onAddProject: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Troca o título de uma conversa (o nome vale mesmo se a conversa for salva de novo). */
+  onRename?: (id: string, title: string) => void;
+  /** Remove o projeto (a pasta) da barra lateral e as conversas dele. A confirmação fica com quem chama. */
+  onRemoveProject?: (cwd: string) => void;
   onSettings: () => void;
   /** Página de configurações aberta: marca o botão do rodapé. */
   settingsOpen?: boolean;
@@ -70,6 +74,8 @@ export function Sidebar({
   onAddProject,
   onOpen,
   onDelete,
+  onRename,
+  onRemoveProject,
   onSettings,
   settingsOpen = false,
   error,
@@ -77,6 +83,19 @@ export function Sidebar({
   // Largura ajustável pela alça na borda direita, como o painel da direita.
   const [width, setWidth] = useState(loadWidth);
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
+  // Conversa com o nome em edição e o texto digitado até agora.
+  const [renaming, setRenaming] = useState<{ id: string; draft: string } | null>(null);
+
+  function startRename(item: ConversationSummary) {
+    setRenaming({ id: item.id, draft: item.title });
+  }
+
+  function finishRename(id: string) {
+    const title = renaming?.draft.trim() ?? "";
+    if (!title) return;
+    setRenaming(null);
+    onRename?.(id, title);
+  }
 
   function resize(next: number) {
     const clamped = clampSidebarWidth(next, window.innerWidth);
@@ -151,62 +170,108 @@ export function Sidebar({
         />
       )}
 
-      {error && <p role="alert" className="sidebar__error">{error}</p>}
+      {/* Só esta área rola; a marca, a busca e o rodapé ficam sempre visíveis. */}
+      <div className="sidebar__list">
+        {error && <p role="alert" className="sidebar__error">{error}</p>}
 
-      {projects.length === 0 && (
-        <p className="sidebar__empty">
-          {conversations.length === 0
-            ? "Suas conversas aparecem aqui, agrupadas por projeto."
-            : "Nenhuma conversa encontrada."}
-        </p>
-      )}
+        {projects.length === 0 && (
+          <p className="sidebar__empty">
+            {conversations.length === 0
+              ? "Suas conversas aparecem aqui, agrupadas por projeto."
+              : "Nenhuma conversa encontrada."}
+          </p>
+        )}
 
-      {projects.map((project) => (
-        <section key={project.cwd} className="sidebar__project">
-          <header className="sidebar__project-head">
-            <h2 title={project.cwd}>{project.name}</h2>
-            <button
-              type="button"
-              className="sidebar__project-new"
-              aria-label={`Nova conversa em ${project.name}`}
-              onClick={() => onNew(project.cwd)}
-            >
-              +
-            </button>
-          </header>
+        {projects.map((project) => (
+          <section key={project.cwd} className="sidebar__project">
+            <header className="sidebar__project-head">
+              <h2 title={project.cwd}>{project.name}</h2>
+              <span className="sidebar__project-actions">
+                <button
+                  type="button"
+                  className="sidebar__project-new"
+                  aria-label={`Nova conversa em ${project.name}`}
+                  onClick={() => onNew(project.cwd)}
+                >
+                  +
+                </button>
+                {onRemoveProject && (
+                  <button
+                    type="button"
+                    className="sidebar__project-remove"
+                    aria-label={`Remover projeto ${project.name}`}
+                    title="Remover projeto"
+                    onClick={() => onRemoveProject(project.cwd)}
+                  >
+                    <Trash2 size={13} aria-hidden="true" />
+                  </button>
+                )}
+              </span>
+            </header>
 
-          {project.days.map((group) => (
-            <div key={group.label} className="sidebar__group">
-              <h3>{group.label}</h3>
-              <ul>
-                {group.items.map((item) => (
-                  <li key={item.id} className={item.id === activeId ? "is-active" : undefined}>
-                    <button
-                      type="button"
-                      className="sidebar__item"
-                      onClick={() => onOpen(item.id)}
-                      title={item.title}
-                    >
-                      {runningIds.includes(item.id) && (
-                        <span className="sidebar__running" role="img" aria-label="Respondendo" />
-                      )}
-                      {item.title}
-                    </button>
-                    <button
-                      type="button"
-                      className="sidebar__delete"
-                      aria-label={`Excluir ${item.title}`}
-                      onClick={() => onDelete(item.id)}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-      ))}
+            {project.days.map((group) => (
+              <div key={group.label} className="sidebar__group">
+                <h3>{group.label}</h3>
+                <ul>
+                  {group.items.map((item) =>
+                    renaming?.id === item.id ? (
+                      <li key={item.id} className="is-active">
+                        <input
+                          type="text"
+                          className="sidebar__rename"
+                          aria-label="Novo nome da conversa"
+                          autoFocus
+                          value={renaming.draft}
+                          onChange={(e) => setRenaming({ id: item.id, draft: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") finishRename(item.id);
+                            if (e.key === "Escape") setRenaming(null);
+                          }}
+                          onBlur={() => setRenaming(null)}
+                        />
+                      </li>
+                    ) : (
+                      <li key={item.id} className={item.id === activeId ? "is-active" : undefined}>
+                        <button
+                          type="button"
+                          className="sidebar__item"
+                          onClick={() => onOpen(item.id)}
+                          onDoubleClick={() => onRename && startRename(item)}
+                          title={item.title}
+                        >
+                          {runningIds.includes(item.id) && (
+                            <span className="sidebar__running" role="img" aria-label="Respondendo" />
+                          )}
+                          {item.title}
+                        </button>
+                        {onRename && (
+                          <button
+                            type="button"
+                            className="sidebar__rename-btn"
+                            aria-label={`Renomear ${item.title}`}
+                            title="Renomear"
+                            onClick={() => startRename(item)}
+                          >
+                            <Pencil size={12} aria-hidden="true" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="sidebar__delete"
+                          aria-label={`Excluir ${item.title}`}
+                          onClick={() => onDelete(item.id)}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </div>
+            ))}
+          </section>
+        ))}
+      </div>
 
       <footer className="sidebar__foot">
         <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>

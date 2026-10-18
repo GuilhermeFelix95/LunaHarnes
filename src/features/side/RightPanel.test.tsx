@@ -1,11 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TodoItem } from "../../types";
-import { clampWidth, RightPanel, sortTodos, WIDTH_KEY } from "./RightPanel";
+import { clampWidth, RightPanel, WIDTH_KEY } from "./RightPanel";
 
 function setup(tab: "changes" | "plan" | "progress" | "terminal" = "changes", plan?: string, todos: TodoItem[] = []) {
   const onTab = vi.fn();
-  const onGenerateSpec = vi.fn();
   render(
     <RightPanel
       open
@@ -14,12 +13,10 @@ function setup(tab: "changes" | "plan" | "progress" | "terminal" = "changes", pl
       changes={<p>lista de alterações</p>}
       plan={plan}
       todos={todos}
-      onGenerateSpec={onGenerateSpec}
-      canGenerateSpec
       terminal={<p>shell</p>}
     />,
   );
-  return { onTab, onGenerateSpec };
+  return { onTab };
 }
 
 describe("RightPanel", () => {
@@ -79,15 +76,13 @@ describe("RightPanel", () => {
     expect(screen.getByText(/aparece aqui/)).toBeTruthy();
   });
 
-  it("Gerar spec chama o handler da conversa", () => {
-    const { onGenerateSpec } = setup("plan");
+  it("a aba Plano não tem botão de spec: a spec sai do plano aprovado, em spec/", () => {
+    setup("plan", "## Plano\n\nFazer X.");
 
-    fireEvent.click(screen.getByRole("button", { name: "Gerar spec" }));
-
-    expect(onGenerateSpec).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Gerar spec" })).toBeNull();
   });
 
-  it("progresso mostra o checklist: pendente, em andamento, concluída", () => {
+  it("progresso mostra as tarefas na ordem em que foram criadas, com o estado de cada uma", () => {
     setup("progress", undefined, [
       { content: "Concluir a tela", status: "completed" },
       { content: "Criar o teste", status: "pending" },
@@ -96,9 +91,9 @@ describe("RightPanel", () => {
 
     const items = screen.getAllByRole("listitem").map((item) => item.textContent);
     expect(items).toEqual([
+      "ConcluídaConcluir a tela",
       "PendenteCriar o teste",
       "Em andamentoLigar o evento",
-      "ConcluídaConcluir a tela",
     ]);
   });
 
@@ -106,16 +101,6 @@ describe("RightPanel", () => {
     setup("progress");
 
     expect(screen.getByText(/elas aparecem em ordem/)).toBeTruthy();
-  });
-
-  it("sortTodos mantém a ordem do agente dentro de cada estado", () => {
-    const sorted = sortTodos([
-      { content: "b", status: "completed" },
-      { content: "a", status: "pending" },
-      { content: "c", status: "pending" },
-    ]);
-
-    expect(sorted.map((todo) => todo.content)).toEqual(["a", "c", "b"]);
   });
 
   it("largura fica entre 240 px e 60% da janela", () => {

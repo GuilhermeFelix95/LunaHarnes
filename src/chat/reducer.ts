@@ -42,6 +42,9 @@ export function applyEvent(
     case "context":
     case "cost":
     case "todos":
+    case "taskCreated":
+    case "taskAssigned":
+    case "taskUpdated":
       // Não mudam a conversa: o ChatView usa para o medidor de uso e o painel de progresso.
       return messages;
   }

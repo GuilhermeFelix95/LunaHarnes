@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::ProviderEvent;
+use super::{ProviderEvent, TodoItem};
 
 use super::{Permission, RunRequest, LUNA_IDENTITY};
 
@@ -53,6 +53,24 @@ fn sandbox_mode(permission: Permission) -> &'static str {
     }
 }
 
+/// Etapas de um `todo_list` do Codex: `completed` vira concluída; sem ele, a etapa está pendente.
+/// Formato da documentação do Codex; ainda não confirmado com uma execução real (login pendente nesta máquina).
+fn codex_todos(item: &Value) -> Vec<ProviderEvent> {
+    let items = item["items"]
+        .as_array()
+        .map(|todos| {
+            todos
+                .iter()
+                .map(|todo| TodoItem {
+                    content: todo["text"].as_str().unwrap_or_default().to_string(),
+                    status: if todo["completed"].as_bool() == Some(true) { "completed" } else { "pending" }.to_string(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    vec![ProviderEvent::Todos { items }]
+}
+
 /// Eventos `error` de nível superior são avisos de reconexão do próprio Codex,
 /// então são ignorados. Falha real chega em `turn.failed`.
 pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
@@ -64,6 +82,12 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
             }]
         }
     };
+
+    // Lista de etapas (todo_list) chega em item.started, item.updated e item.completed: a lista inteira vale a cada evento.
+    let is_item_event = value.get("type").and_then(Value::as_str).is_some_and(|t| t.starts_with("item."));
+    if is_item_event && value["item"]["type"].as_str() == Some("todo_list") {
+        return codex_todos(&value["item"]);
+    }
 
     match value.get("type").and_then(Value::as_str) {
         Some("thread.started") => match value.get("thread_id").and_then(Value::as_str) {
@@ -124,6 +148,24 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Formato da documentação do Codex (ainda sem execução real): a lista inteira vira o checklist.
+    #[test]
+    fn todo_list_becomes_the_checklist_on_every_update() {
+        let events = parse_line(
+            r#"{"type":"item.updated","item":{"type":"todo_list","items":[{"text":"Criar arquivo","completed":true},{"text":"Testar","completed":false}]}}"#,
+        );
+
+        assert_eq!(
+            events,
+            vec![ProviderEvent::Todos {
+                items: vec![
+                    TodoItem { content: "Criar arquivo".into(), status: "completed".into() },
+                    TodoItem { content: "Testar".into(), status: "pending".into() },
+                ],
+            }]
+        );
+    }
 
     const FAILED_TURN: &str = include_str!("../../tests/fixtures/codex_stream.jsonl");
 

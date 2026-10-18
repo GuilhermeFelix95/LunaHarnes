@@ -4,17 +4,11 @@ import type { TodoItem } from "../../types";
 
 export type SideTab = "changes" | "plan" | "progress" | "terminal";
 
-const STATUS_ORDER: Record<TodoItem["status"], number> = { pending: 0, in_progress: 1, completed: 2 };
 const STATUS_LABEL: Record<TodoItem["status"], string> = {
   pending: "Pendente",
   in_progress: "Em andamento",
   completed: "Concluída",
 };
-
-/// Ordena o checklist por estado (pendente, em andamento, concluída), mantendo a ordem do agente dentro de cada estado.
-export function sortTodos(items: TodoItem[]): TodoItem[] {
-  return [...items].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
-}
 
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 320;
@@ -56,8 +50,6 @@ interface RightPanelProps {
   plan?: string;
   /** Checklist do agente na última resposta. Vazio = nenhuma tarefa em andamento. */
   todos: TodoItem[];
-  onGenerateSpec: () => void;
-  canGenerateSpec: boolean;
   terminal: ReactNode;
 }
 
@@ -76,8 +68,6 @@ export function RightPanel({
   changes,
   plan,
   todos,
-  onGenerateSpec,
-  canGenerateSpec,
   terminal,
 }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
@@ -146,23 +136,16 @@ export function RightPanel({
         {changes}
       </div>
       <div className="side__body side__plan" role="tabpanel" hidden={tab !== "plan"}>
-        <div className="side__plan-head">
-          <button type="button" onClick={onGenerateSpec} disabled={!canGenerateSpec}>
-            Gerar spec
-          </button>
-        </div>
         {plan ? (
           <Markdown text={plan} />
         ) : (
-          <p className="side__empty">
-            Ao planejar, o plano completo aparece aqui. Use "Gerar spec" para resumir a conversa numa spec.
-          </p>
+          <p className="side__empty">Ao planejar, o plano completo aparece aqui.</p>
         )}
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "progress"}>
         {todos.length ? (
           <ol className="side__todos" aria-label="Progresso da tarefa">
-            {sortTodos(todos).map((todo, index) => (
+            {todos.map((todo, index) => (
               <li key={`${index}-${todo.content}`} className={`side__todo side__todo--${todo.status}`}>
                 <span className="side__todo-status">{STATUS_LABEL[todo.status]}</span>
                 <span>{todo.content}</span>

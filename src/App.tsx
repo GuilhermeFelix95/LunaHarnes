@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  cliStatus,
   deleteConversation,
   listConversations,
   loadConversation,
   pickWorkspace,
+  renameConversation,
   saveConversation,
 } from "./api";
 import { ChatView } from "./features/chat/ChatView";
 import { SettingsView } from "./features/settings/SettingsView";
+import { SetupScreen } from "./features/setup/SetupScreen";
 import { Sidebar } from "./features/sidebar/Sidebar";
-import type { Conversation, ConversationSummary } from "./types";
+import type { CliStatus, Conversation, ConversationSummary } from "./types";
 
 /// Conversa aberta na barra. Cada uma fica montada: uma resposta em andamento segue
 /// mesmo quando o usuário troca de conversa (ver `hidden` abaixo).
@@ -33,8 +36,18 @@ export function App() {
   // O chat fica montado enquanto as configurações estão abertas, para não cortar uma resposta.
   const [view, setView] = useState<"chat" | "settings">("chat");
 
+  // CLIs que faltam no computador: abre a tela de instalação por cima do app (só na abertura).
+  const [missingCli, setMissingCli] = useState<CliStatus[] | null>(null);
+
   useEffect(() => {
     void refreshList();
+    cliStatus()
+      .then((statuses) => {
+        if (statuses.some((status) => !status.installed)) setMissingCli(statuses);
+      })
+      .catch(() => {
+        // Sem a checagem, o app segue: o erro de CLI não encontrada aparece na conversa.
+      });
   }, []);
 
   async function refreshList() {
@@ -104,6 +117,36 @@ export function App() {
     }
   }
 
+  async function renameSelected(id: string, title: string) {
+    try {
+      await renameConversation(id, title);
+      await refreshList();
+    } catch (e) {
+      setListError(String(e));
+    }
+  }
+
+  /// Remove o projeto da barra lateral apagando as conversas dele. Confirma antes, com a contagem.
+  async function removeProject(cwd: string) {
+    const name = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd;
+    const ids = summaries.filter((s) => s.cwd === cwd).map((s) => s.id);
+    if (ids.some((id) => runningIds.includes(id))) {
+      setListError(`Espere as respostas de "${name}" terminarem para remover o projeto.`);
+      return;
+    }
+    if (!window.confirm(`Remover o projeto "${name}" e apagar ${ids.length} conversa(s)? Essa ação não pode ser desfeita.`)) return;
+    try {
+      for (const id of ids) await deleteConversation(id);
+      const gone = chats.filter((c) => ids.includes(chatIds.current[c.key] ?? ""));
+      setChats((current) => current.filter((c) => !gone.includes(c)));
+      if (activeId && ids.includes(activeId)) newConversation();
+      await refreshList();
+    } catch (e) {
+      setListError(String(e));
+      await refreshList();
+    }
+  }
+
   function onPersist(key: number, conversation: Conversation) {
     chatIds.current[key] = conversation.id;
     if (key === activeKey) setActiveId(conversation.id);
@@ -124,6 +167,7 @@ export function App() {
 
   return (
     <div className="app">
+      {missingCli && <SetupScreen statuses={missingCli} onSkip={() => setMissingCli(null)} />}
       <Sidebar
         conversations={summaries}
         activeId={activeId}
@@ -132,6 +176,8 @@ export function App() {
         onAddProject={() => void addProject()}
         onOpen={(id) => void openConversation(id)}
         onDelete={(id) => void removeConversation(id)}
+        onRename={(id, title) => void renameSelected(id, title)}
+        onRemoveProject={(cwd) => void removeProject(cwd)}
         onSettings={() => setView((v) => (v === "settings" ? "chat" : "settings"))}
         settingsOpen={view === "settings"}
         error={listError}

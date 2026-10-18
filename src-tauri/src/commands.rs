@@ -13,8 +13,9 @@ use crate::conversations;
 use crate::models::{self, ModelOption};
 use crate::plugins::loader::{self, PluginScan};
 use crate::plugins::marketplace::{self, Catalog, PluginsState};
-use crate::providers::{fallback_events, image_media_type, Permission, ProviderEvent, ProviderKind, RunRequest};
+use crate::providers::{claude, fallback_events, image_media_type, Permission, ProviderEvent, ProviderKind, RunRequest};
 use crate::session::{CancelHandle, Session};
+use crate::setup;
 use crate::spec;
 use crate::terminal::{self, Terminals};
 
@@ -55,7 +56,7 @@ pub fn send_prompt(
     if run_id.is_empty() || run_id.len() > 64 || !run_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err("identificador de execução inválido".into());
     }
-    let env = match &request.profile {
+    let mut env = match &request.profile {
         Some(id) => {
             let dir = app_data_dir(&app)?;
             let profile = load_profile(&dir, id)?;
@@ -63,6 +64,11 @@ pub fn send_prompt(
         }
         None => Vec::new(),
     };
+    // O Claude Code liga as ferramentas de tarefa com esta variável (alimenta a aba Progresso).
+    if request.provider == ProviderKind::Claude {
+        let (key, value) = claude::task_env();
+        env.push((key, value));
+    }
     // Imagens só podem vir da pasta de anexos do app: o pedido não lê arquivo arbitrário do disco.
     if !request.images.is_empty() {
         let folder = app_data_dir(&app)?.join("attachments");
@@ -202,7 +208,7 @@ pub async fn refresh_api_models(app: AppHandle, id: String) -> Result<RemoteMode
     let base = profile
         .effective_base_url()
         .ok_or_else(|| "este provedor não tem endereço de API para listar modelos".to_string())?;
-    api_profiles::fetch_models(&base, &key).await
+    api_profiles::fetch_models(profile.preset, &base, &key).await
 }
 
 /// Lista os modelos de um provedor com a chave que está na tela, antes de salvar o perfil.
@@ -213,7 +219,7 @@ pub async fn list_provider_models(preset: Preset, base_url: String, api_key: Str
         return Err("cole a chave da API para listar os modelos".into());
     }
     let base = api_profiles::base_url_for(preset, &base_url)?;
-    api_profiles::fetch_models(&base, api_key.trim()).await
+    api_profiles::fetch_models(preset, &base, api_key.trim()).await
 }
 
 /// Manda um prompt mínimo pelo perfil e devolve a resposta: prova que a chave, a URL e o modelo funcionam.
@@ -377,6 +383,26 @@ pub fn save_conversation(app: AppHandle, conversation: conversations::Conversati
 #[tauri::command]
 pub fn delete_conversation(app: AppHandle, id: String) -> Result<(), String> {
     conversations::delete(&conversations_dir(&app)?, &id)
+}
+
+/// Situação das CLIs (Claude Code e Codex): instaladas ou não, e onde.
+#[tauri::command]
+pub fn cli_status() -> Vec<setup::CliStatus> {
+    vec![setup::status(ProviderKind::Claude), setup::status(ProviderKind::Codex)]
+}
+
+/// Roda o instalador oficial da CLI pedida. Demora (baixa o binário), por isso roda fora da thread principal.
+#[tauri::command]
+pub async fn install_cli(kind: ProviderKind) -> Result<setup::CliStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || setup::install(kind))
+        .await
+        .map_err(|e| format!("a instalação foi interrompida: {e}"))?
+}
+
+/// Troca o nome de uma conversa na barra lateral. O nome fica travado: salvar o chat de novo não o desfaz.
+#[tauri::command]
+pub fn rename_conversation(app: AppHandle, id: String, title: String) -> Result<(), String> {
+    conversations::rename(&conversations_dir(&app)?, &id, &title)
 }
 
 /// Pasta de trabalho inicial: a pasta de onde o `luna` foi rodado.

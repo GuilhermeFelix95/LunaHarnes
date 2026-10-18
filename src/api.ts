@@ -7,6 +7,7 @@ import type {
   ApiProfile,
   ChangedFile,
   Changes,
+  CliStatus,
   Conversation,
   ConversationSummary,
   ModelOption,
@@ -80,6 +81,20 @@ export function saveConversation(conversation: Conversation): Promise<void> {
 
 export function deleteConversation(id: string): Promise<void> {
   return invoke("delete_conversation", { id });
+}
+
+export function renameConversation(id: string, title: string): Promise<void> {
+  return invoke("rename_conversation", { id, title });
+}
+
+/// Situação das CLIs (Claude Code e Codex) no computador.
+export function cliStatus(): Promise<CliStatus[]> {
+  return invoke("cli_status");
+}
+
+/// Roda o instalador oficial da CLI. Só instala se ela ainda não estiver no computador.
+export function installCli(kind: ProviderKind): Promise<CliStatus> {
+  return invoke("install_cli", { kind });
 }
 
 /// Pasta de onde o `luna` foi rodado; é o ponto de partida do workspace.

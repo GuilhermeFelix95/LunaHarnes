@@ -262,18 +262,24 @@ pub fn base_url_for(preset: Preset, base_url: &str) -> Result<String, String> {
     Ok(default.to_string())
 }
 
+/// O OpenRouter muda a resposta de `/v1/models` quando recebe `anthropic-version`: devolve só 20 ids no formato Anthropic.
+/// Por isso ele recebe só o Bearer; os demais provedores seguem como antes.
+fn uses_anthropic_headers(preset: Preset) -> bool {
+    preset != Preset::OpenRouter
+}
+
 /// Busca a lista de modelos num endereço de API. A chave vai só nos cabeçalhos; os erros citam o endereço, nunca a chave.
-pub async fn fetch_models(base: &str, api_key: &str) -> Result<RemoteModels, String> {
+pub async fn fetch_models(preset: Preset, base: &str, api_key: &str) -> Result<RemoteModels, String> {
     let url = format!("{}/v1/models", base.trim_end_matches('/'));
     let client = reqwest::Client::builder()
         .timeout(MODELS_TIMEOUT)
         .build()
         .map_err(|e| format!("não foi possível preparar a conexão: {e}"))?;
-    let response = client
-        .get(&url)
-        .bearer_auth(api_key)
-        .header("x-api-key", api_key)
-        .header("anthropic-version", "2023-06-01")
+    let mut request = client.get(&url).bearer_auth(api_key);
+    if uses_anthropic_headers(preset) {
+        request = request.header("x-api-key", api_key).header("anthropic-version", "2023-06-01");
+    }
+    let response = request
         .send()
         .await
         .map_err(|e| format!("falha ao listar modelos em {url}: {e}"))?;
@@ -668,6 +674,24 @@ mod tests {
 
         assert_eq!(models.contexts.get("nvidia/x:free"), Some(&131072));
         assert!(!models.contexts.contains_key("sem/contexto"));
+    }
+
+    #[test]
+    fn openrouter_models_request_sends_no_anthropic_headers() {
+        // Com `anthropic-version`, o OpenRouter responde só 20 ids no formato Anthropic: a lista some.
+        assert!(!uses_anthropic_headers(Preset::OpenRouter));
+        assert!(uses_anthropic_headers(Preset::DeepSeek));
+    }
+
+    #[test]
+    fn openrouter_list_keeps_every_model_beyond_the_first_page() {
+        let data: Vec<serde_json::Value> = (0..471)
+            .map(|i| serde_json::json!({"id": format!("vendor/model-{i}"), "pricing": {"prompt": "0.000001"}}))
+            .collect();
+
+        let models = parse_models(&serde_json::json!({ "data": data }));
+
+        assert_eq!(models.ids.len(), 471);
     }
 
     #[test]

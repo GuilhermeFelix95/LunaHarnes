@@ -14,6 +14,9 @@ use crate::providers::{Permission, ProviderKind};
 pub struct Conversation {
     pub id: String,
     pub title: String,
+    /// Nome escolhido pelo usuário na barra lateral. Com ele ligado, salvar de novo não troca o título.
+    #[serde(default)]
+    pub title_locked: bool,
     pub provider: ProviderKind,
     pub session_id: Option<String>,
     pub cwd: String,
@@ -71,7 +74,36 @@ fn file_for(dir: &Path, id: &str) -> Result<std::path::PathBuf, String> {
     Ok(dir.join(format!("{id}.json")))
 }
 
+/// Salva a conversa. Se o usuário renomeou a conversa, o título guardado vence o que o chat enviou.
 pub fn save(dir: &Path, conversation: &Conversation) -> Result<(), String> {
+    let mut next = conversation.clone();
+    if let Ok(saved) = load(dir, &conversation.id) {
+        if saved.title_locked {
+            next.title = saved.title;
+            next.title_locked = true;
+        }
+    }
+    write(dir, &next)
+}
+
+const MAX_TITLE_CHARS: usize = 120;
+
+/// Troca o nome da conversa pelo que o usuário digitou e trava o nome.
+pub fn rename(dir: &Path, id: &str, title: &str) -> Result<(), String> {
+    let title = title.trim();
+    if title.is_empty() {
+        return Err("o nome da conversa não pode ficar vazio".into());
+    }
+    if title.chars().count() > MAX_TITLE_CHARS {
+        return Err(format!("o nome da conversa passa de {MAX_TITLE_CHARS} caracteres"));
+    }
+    let mut conversation = load(dir, id)?;
+    conversation.title = title.to_string();
+    conversation.title_locked = true;
+    write(dir, &conversation)
+}
+
+fn write(dir: &Path, conversation: &Conversation) -> Result<(), String> {
     let file = file_for(dir, &conversation.id)?;
     fs::create_dir_all(dir).map_err(|e| format!("não foi possível criar a pasta de conversas: {e}"))?;
     let text = serde_json::to_string_pretty(conversation)
@@ -130,6 +162,7 @@ mod tests {
         Conversation {
             id: id.into(),
             title: format!("Conversa {id}"),
+            title_locked: false,
             provider: ProviderKind::Claude,
             session_id: Some("sess-1".into()),
             cwd: "C:\\projeto".into(),
@@ -145,6 +178,29 @@ mod tests {
             sessions: Some(json!({"claude": {"id": "sess-1", "seen": 1}, "codex": {"id": "th-9", "seen": 3}})),
             messages: vec![json!({"role": "user", "text": "oi"})],
         }
+    }
+
+    #[test]
+    fn a_renamed_conversation_keeps_its_name_when_the_open_chat_saves_again() {
+        let dir = temp_dir("rename-kept");
+        save(&dir, &conversation("c-1", 5)).unwrap();
+
+        rename(&dir, "c-1", "Meu nome").unwrap();
+        // O chat aberto ainda calcula o título pela primeira mensagem e salva de novo.
+        save(&dir, &conversation("c-1", 6)).unwrap();
+
+        let loaded = load(&dir, "c-1").unwrap();
+        assert_eq!(loaded.title, "Meu nome");
+        assert!(loaded.title_locked);
+    }
+
+    #[test]
+    fn rename_refuses_an_empty_title_and_keeps_the_old_one() {
+        let dir = temp_dir("rename-empty");
+        save(&dir, &conversation("c-2", 5)).unwrap();
+
+        assert!(rename(&dir, "c-2", "   ").is_err());
+        assert_eq!(load(&dir, "c-2").unwrap().title, "Conversa c-2");
     }
 
     #[test]
