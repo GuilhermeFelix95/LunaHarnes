@@ -9,6 +9,7 @@ import {
   saveCustomPalette,
   saveTheme,
   THEME_KEY,
+  isDarkPalette,
   SHAPES,
   THEMES,
   type ThemePalette,
@@ -25,8 +26,22 @@ describe("theme", () => {
 
   it("tem 12 temas de fábrica, na ordem, e o personalizado no fim", () => {
     expect(THEMES.map((t) => t.id)).toEqual([
-      "luna", "claude", "codex", "terminal", "pixel", "meia-noite", "floresta", "por-do-sol", "cereja", "neon", "lavanda", "areia", "custom",
+      "luna", "codex", "terminal", "pixel", "meia-noite", "neon", "claude", "cereja", "por-do-sol", "lavanda", "floresta", "areia", "custom",
     ]);
+  });
+
+  it("seis temas são claros e seis são noturnos", () => {
+    const factory = THEMES.filter((t) => t.id !== "custom");
+    expect(factory.filter((t) => isDarkPalette(t.palette))).toHaveLength(6);
+    expect(factory.filter((t) => !isDarkPalette(t.palette))).toHaveLength(6);
+  });
+
+  it("nenhum tema de fábrica repete a barra, o balão ou o destaque de outro", () => {
+    const factory = THEMES.filter((t) => t.id !== "custom");
+    for (const key of ["sidebar", "bubble", "accent"] as const) {
+      const values = factory.map((t) => t.palette[key]);
+      expect(new Set(values).size, key).toBe(values.length);
+    }
   });
 
   it("o tamanho do texto multiplica a escala de tipo", () => {
@@ -76,13 +91,6 @@ describe("theme", () => {
     expect(document.documentElement.style.getPropertyValue("--terminal-bg")).toBe("#123456");
   });
 
-  it("só os temas Claude usam o terracota; os demais não têm laranja", () => {
-    for (const t of THEMES) {
-      if (t.id.startsWith("claude")) continue;
-      expect(t.palette.accent).not.toMatch(/^#(d9|b2|ae|f2)/i);
-    }
-    expect(THEMES.find((t) => t.id === "claude")?.palette.accent).toBe("#d97757");
-  });
 
   it("sem escolha salva, usa o Luna", () => {
     expect(loadTheme()).toBe("luna");
@@ -158,7 +166,7 @@ describe("theme", () => {
   it("trocar de tema troca todas as cores de uma vez", () => {
     applyTheme("pixel");
     applyTheme("codex");
-    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#212121");
+    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#161d1a");
   });
 });
 

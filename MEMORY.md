@@ -106,3 +106,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Temas refeitos: 12 de fábrica com quatro cores distintas cada (lavanda e areia claros e noturnos); terminal embutido fixo escuro nos temas de fábrica, só o personalizado muda; Pixel art com texto corrido maior e fonte pixel só nos títulos; cartões de tema personalizado com botão de remover.
 2026-10-18 | Novo tema abre um modo de edição na aba Aparência: some a lista de fábrica e fica só Seus temas com o editor, com botão Voltar aos temas.
 2026-10-18 | Gatinho de sprites trocado por mascote SVG animado (corpo arredondado, olhos que piscam, braços que acenam, pulinho ao terminar); sprites em public/luna ficaram sem uso.
+2026-10-18 | Temas refeitos em seis claros e seis noturnos, cada um com fonte, formato de balão e cores próprios; Pixel art com fontes menores; Aparência separa Claros e Noturnos.
+2026-10-18 | Mascote da Luna com cara de gato (orelhas, bigodes, rabo), dormindo com boca aberta, piscando, pulando de alegria e fazendo caretas ociosas.

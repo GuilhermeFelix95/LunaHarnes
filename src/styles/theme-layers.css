@@ -16,14 +16,14 @@
 
 /* Pixel art: fonte pixel nos títulos e botões, cantos retos, degraus no lugar de sombra */
 :root[data-theme="pixel"] {
-  /* VT323 é fina e pequena: o corpo sobe de tamanho para ficar legível */
-  --text-xs: 16px !important;
-  --text-sm: 18px !important;
-  --text-base: 22px !important;
-  --text-md: 23px !important;
-  --text-lg: 26px !important;
-  --text-xl: 30px !important;
-  --text-2xl: 36px !important;
+  /* VT323 é fina e pequena: o corpo sobe um pouco, sem passar do ponto de leitura confortável */
+  --text-xs: 14px !important;
+  --text-sm: 15px !important;
+  --text-base: 17px !important;
+  --text-md: 18px !important;
+  --text-lg: 20px !important;
+  --text-xl: 23px !important;
+  --text-2xl: 27px !important;
 }
 
 :root[data-theme="pixel"] *,
@@ -46,9 +46,14 @@
   line-height: 1.6;
 }
 
-:root[data-theme="pixel"] h1,
-:root[data-theme="pixel"] h2 {
-  font-size: 14px !important;
+:root[data-theme="pixel"] h1 {
+  font-size: 12px !important;
+}
+
+:root[data-theme="pixel"] h2,
+:root[data-theme="pixel"] h3,
+:root[data-theme="pixel"] .theme-card__name {
+  font-size: 10px !important;
 }
 
 :root[data-theme="pixel"] .btn,

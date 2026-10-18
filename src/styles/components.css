@@ -1368,10 +1368,11 @@ textarea:focus-visible {
   min-height: 0;
 }
 
-/* Mascote da Luna (SVG em LunaCat.tsx): balança e acena quando a Luna trabalha; dorme com zZ quando para */
+/* Mascote da Luna (SVG em LunaCat.tsx), com cara de gato: balança e acena quando trabalha;
+   dorme com a boca aberta e zZ; pula de alegria; faz caretas de tempos em tempos */
 .luna-bot {
   position: relative;
-  width: 160px;
+  width: 170px;
   margin: 16px auto 0;
 }
 
@@ -1384,44 +1385,31 @@ textarea:focus-visible {
 }
 
 .luna-bot__body,
-.luna-bot__tip,
+.luna-bot__ear,
 .luna-bot__arm,
 .luna-bot__leg {
   fill: var(--accent, #7fd1b9);
 }
 
-.luna-bot__antenna {
-  stroke: var(--accent, #7fd1b9);
-  stroke-width: 4;
-  stroke-linecap: round;
-}
-
-.luna-bot__arm,
-.luna-bot__leg {
-  transform-box: fill-box;
-  transform-origin: 50% 0;
-}
-
-.luna-bot__eye,
-.luna-bot__mouth,
-.luna-bot__eye-closed {
+.luna-bot__tail {
   fill: none;
-  stroke: var(--bg-sidebar, #1b1a18);
-  stroke-width: 4;
+  stroke: var(--accent, #7fd1b9);
+  stroke-width: 7;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: luna-tail 1.6s ease-in-out infinite alternate;
+}
+
+.luna-bot__whiskers path {
+  fill: none;
+  stroke: var(--fg-subtle, #888);
+  stroke-width: 2;
   stroke-linecap: round;
 }
 
-.luna-bot__eye {
-  fill: var(--bg-sidebar, #1b1a18);
-  stroke: none;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: luna-blink 4.5s infinite;
-}
-
-.luna-bot__eye-closed,
-.luna-bot__cheek {
-  display: none;
+.luna-bot__nose {
+  fill: #ff8fa3;
 }
 
 .luna-bot__cheek {
@@ -1429,12 +1417,122 @@ textarea:focus-visible {
   opacity: 0.45;
 }
 
-.luna-bot--sleeping .luna-bot__eye {
+.luna-bot__eye {
+  fill: var(--bg-sidebar, #1b1a18);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: luna-blink 4.5s infinite;
+}
+
+.luna-bot__eye-closed,
+.luna-bot__eye-happy,
+.luna-bot__mouth {
+  fill: none;
+  stroke: var(--bg-sidebar, #1b1a18);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.luna-bot__tongue {
+  fill: #ff8fa3;
+}
+
+.luna-bot__mouth-open {
+  fill: var(--bg-sidebar, #1b1a18);
+}
+
+/* Partes que só aparecem em certas caras */
+.luna-bot__eye-closed,
+.luna-bot__eye-happy,
+.luna-bot__tongue,
+.luna-bot__mouth-open {
   display: none;
 }
 
-.luna-bot--sleeping .luna-bot__eye-closed {
+/* Dormindo: olhos fechados, boca aberta roncando */
+.luna-bot--sleeping svg {
+  transform-origin: 50% 100%;
+  animation: luna-breathe 3s ease-in-out infinite;
+}
+
+.luna-bot--sleeping .luna-bot__eye,
+.luna-bot--sleeping .luna-bot__mouth {
+  display: none;
+}
+
+.luna-bot--sleeping .luna-bot__eye-closed,
+.luna-bot--sleeping .luna-bot__mouth-open {
   display: inline;
+}
+
+.luna-bot--sleeping .luna-bot__mouth-open {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: luna-snore 3s ease-in-out infinite;
+}
+
+/* Trabalhando: balança e acena */
+.luna-bot--working svg {
+  animation: luna-bob 0.5s ease-in-out infinite alternate;
+}
+
+.luna-bot--working .luna-bot__arm--right {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: luna-wave 0.5s ease-in-out infinite alternate;
+}
+
+/* Início do turno: aceno (declarado depois, então vale por cima do balanço) */
+.luna-bot--hello .luna-bot__arm--right {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: luna-hello 1.2s ease-in-out;
+}
+
+/* Fim do turno: pulinhos de alegria com carinha de ^^ e língua */
+.luna-bot--happy .luna-bot__eye {
+  display: none;
+}
+
+.luna-bot--happy .luna-bot__eye-happy,
+.luna-bot--happy .luna-bot__tongue {
+  display: inline;
+}
+
+.luna-bot--happy svg {
+  animation: luna-jump 1.2s ease-out;
+}
+
+/* Caretas ociosas */
+.luna-bot--face-wink .luna-bot__eye--right {
+  display: none;
+}
+
+.luna-bot--face-wink .luna-bot__eye-happy--right {
+  display: inline;
+}
+
+.luna-bot--face-tongue .luna-bot__tongue {
+  display: inline;
+}
+
+.luna-bot--face-surprised .luna-bot__eye {
+  animation: none;
+  transform: scale(1.25);
+}
+
+.luna-bot--face-surprised .luna-bot__mouth {
+  display: none;
+}
+
+.luna-bot--face-surprised .luna-bot__mouth-open {
+  display: inline;
+}
+
+/* Orelhas se mexem de leve e o rabo balança */
+.luna-bot__ear {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
 
 .luna-bot__z {
@@ -1463,27 +1561,6 @@ textarea:focus-visible {
   animation-delay: 1.4s;
 }
 
-.luna-bot--working svg {
-  animation: luna-bob 0.5s ease-in-out infinite alternate;
-}
-
-.luna-bot--working .luna-bot__arm--right {
-  animation: luna-wave 0.5s ease-in-out infinite alternate;
-}
-
-.luna-bot--sleeping svg {
-  transform-origin: 50% 100%;
-  animation: luna-breathe 3s ease-in-out infinite;
-}
-
-.luna-bot--hello .luna-bot__arm--right {
-  animation: luna-hello 1.2s ease-in-out;
-}
-
-.luna-bot--happy svg {
-  animation: luna-jump 0.6s ease-out;
-}
-
 @keyframes luna-bob {
   from { transform: translateY(0); }
   to { transform: translateY(-6px); }
@@ -1502,7 +1579,15 @@ textarea:focus-visible {
 
 @keyframes luna-jump {
   0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-18px); }
+  20% { transform: translateY(-18px); }
+  40% { transform: translateY(0); }
+  60% { transform: translateY(-14px); }
+  80% { transform: translateY(0); }
+}
+
+@keyframes luna-tail {
+  from { transform: rotate(-10deg); }
+  to { transform: rotate(12deg); }
 }
 
 @keyframes luna-blink {
@@ -1515,6 +1600,11 @@ textarea:focus-visible {
   50% { transform: scaleY(1.03); }
 }
 
+@keyframes luna-snore {
+  0%, 100% { transform: scale(0.7); }
+  50% { transform: scale(1.15); }
+}
+
 @keyframes luna-z {
   0% { opacity: 0; transform: translate(0, 4px); }
   30% { opacity: 1; }
@@ -1523,8 +1613,10 @@ textarea:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .luna-bot svg,
+  .luna-bot__tail,
   .luna-bot__arm,
   .luna-bot__eye,
+  .luna-bot__mouth-open,
   .luna-bot__z {
     animation: none !important;
   }

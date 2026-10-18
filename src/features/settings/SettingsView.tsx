@@ -11,6 +11,7 @@ import {
   TEXT_SIZES,
   DEFAULT_THEME,
   THEMES,
+  isDarkPalette,
   type FontId,
   type ShapeId,
   type TextSizeId,
@@ -271,22 +272,28 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               ) : (
                 <>
                   <h2 id="settings-theme">Tema</h2>
-                  <div
-                    className="themes"
-                    role="radiogroup"
-                    aria-labelledby="settings-theme"
-                  >
-                    {THEMES.filter((t) => t.id !== "custom").map((t) => (
-                      <ThemeCard
-                        key={t.id}
-                        label={t.label}
-                        description={t.description}
-                        palette={t.palette}
-                        checked={theme === t.id}
-                        onChoose={() => choose(t.id)}
-                      />
-                    ))}
-                  </div>
+                  {[
+                    { title: "Claros", dark: false },
+                    { title: "Noturnos", dark: true },
+                  ].map(({ title, dark }) => (
+                    <div key={title}>
+                      <h3 id={`settings-${dark ? "dark" : "light"}`} className="settings__subhead">
+                        {title}
+                      </h3>
+                      <div className="themes" role="radiogroup" aria-labelledby={`settings-${dark ? "dark" : "light"}`}>
+                        {THEMES.filter((t) => t.id !== "custom" && isDarkPalette(t.palette) === dark).map((t) => (
+                          <ThemeCard
+                            key={t.id}
+                            label={t.label}
+                            description={t.description}
+                            palette={t.palette}
+                            checked={theme === t.id}
+                            onChoose={() => choose(t.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
 
                   <h3 id="settings-user-themes" className="settings__subhead">
                     Seus temas
