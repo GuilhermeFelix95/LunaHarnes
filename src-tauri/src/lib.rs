@@ -66,7 +66,8 @@ pub fn run() {
             commands::set_plugin_enabled,
             commands::inspect_local_plugin,
             commands::install_local_plugin,
-            commands::create_plugin
+            commands::create_plugin,
+            commands::open_plugins_folder
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaHarness");

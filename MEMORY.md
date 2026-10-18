@@ -47,3 +47,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Corrigido build do Vite: chaves sobrando em src/styles/components.css (duas da divisão do CSS antigo).
 2026-10-18 | Glifos viram ícones lucide (×, ▢, ↓); src/ui/EmptyState.tsx nos estados vazios da barra lateral, alterações e painel; abas do painel direito no padrão segmentado; --fg-subtle do Luna sobe para contraste AA.
 2026-10-18 | Configurações, setup e login usam .btn e abas segmentadas; composer unifica Planejar e modos de plugin; contraste dos 7 temas passa AA (texto e botão primário) com ajuste de --fg-subtle e --accent.
+2026-10-18 | Mensagens e barra lateral: bloco de código com linguagem e copiar no cabeçalho; ferramentas com ícone por tipo; erro em cartão; "Nova conversa" como ação principal; botão Abrir pasta de plugins (comando open_plugins_folder).

@@ -1,4 +1,4 @@
-import { Bot, Sparkles, type LucideIcon } from "lucide-react";
+import { AlertCircle, Bot, FilePen, FileText, Search, Sparkles, SquareTerminal, Wrench, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
@@ -22,6 +22,21 @@ interface MessageListProps {
 }
 
 type Tool = NonNullable<ChatMessage["tool"]>;
+
+/// Ícone de cada tipo de ferramenta, para a linha recolhida ficar fácil de ler.
+const TOOL_ICONS: Record<string, LucideIcon> = {
+  Bash: SquareTerminal,
+  Edit: FilePen,
+  MultiEdit: FilePen,
+  Write: FilePen,
+  Read: FileText,
+  Grep: Search,
+  Glob: Search,
+};
+
+function toolIcon(name: string): LucideIcon {
+  return TOOL_ICONS[name] ?? Wrench;
+}
 
 /** Pedaço de uma resposta: ferramentas seguidas viram um grupo; texto e erro ficam como estão. */
 type Part = { kind: "tools"; tools: Tool[] } | { kind: "text"; message: ChatMessage };
@@ -109,12 +124,18 @@ export function MessageList({ messages, fallbackProvider, running, onRewind }: M
                         <span className="tool-line__preview">{toolSummary(part.tools)}</span>
                       </summary>
                       <ul className="tool-line__list">
-                        {part.tools.map((t, k) => (
-                          <li key={k}>
-                            <span className="tool-line__name">{t.name}</span>
-                            {t.detail && <code>{t.detail}</code>}
-                          </li>
-                        ))}
+                        {part.tools.map((t, k) => {
+                          const Icon = toolIcon(t.name);
+                          return (
+                            <li key={k}>
+                              <span className="tool-line__name">
+                                <Icon size={13} aria-hidden="true" />
+                                {t.name}
+                              </span>
+                              {t.detail && <code>{t.detail}</code>}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </details>
                   );
@@ -124,8 +145,9 @@ export function MessageList({ messages, fallbackProvider, running, onRewind }: M
                   <div key={j}>
                     {m.text && <Markdown text={m.text} />}
                     {m.error && (
-                      <p role="alert" className="message__error">
-                        {m.error}
+                      <p role="alert" className="notice">
+                        <AlertCircle size={15} aria-hidden="true" />
+                        <span>{m.error}</span>
                       </p>
                     )}
                   </div>

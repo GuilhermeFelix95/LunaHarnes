@@ -6,6 +6,7 @@ import {
   installCatalogPlugin,
   installLocalPlugin,
   inspectLocalPlugin,
+  openPluginsFolder,
   pickPluginFolder,
   listCatalogSources,
   listPlugins,
@@ -172,6 +173,16 @@ export function PluginsSection() {
     }
   }
 
+  /// Abre a pasta de plugins no gerenciador de arquivos, para o usuário editar ou copiar plugins.
+  async function openFolder() {
+    setError(undefined);
+    try {
+      await openPluginsFolder();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   async function installLocal() {
     if (!pendingLocal) return;
     setError(undefined);
@@ -258,6 +269,9 @@ export function PluginsSection() {
           <div className="api-form__actions">
             <button type="button" onClick={() => void chooseLocal()}>
               Instalar de uma pasta
+            </button>
+            <button type="button" onClick={() => void openFolder()}>
+              Abrir pasta de plugins
             </button>
           </div>
           <form className="api-form" onSubmit={(e) => void createNew(e)}>

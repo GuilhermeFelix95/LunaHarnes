@@ -16,6 +16,7 @@ vi.mock("../../api", () => ({
   setPluginEnabled: vi.fn(async () => ({ disabled: ["ask-mode"] })),
   uninstallPlugin: vi.fn(async () => {}),
   createPlugin: vi.fn(async () => "C:/plugins/meu-plugin"),
+  openPluginsFolder: vi.fn(async () => {}),
   pickPluginFolder: vi.fn(async () => null),
   inspectLocalPlugin: vi.fn(),
   installLocalPlugin: vi.fn(async () => ({})),
@@ -105,6 +106,14 @@ describe("PluginsSection", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Atualizar" }));
     expect(api.installCatalogPlugin).toHaveBeenCalledWith("oficial", "ask-mode");
+  });
+
+  it("abrir a pasta de plugins chama o backend", async () => {
+    render(<PluginsSection />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir pasta de plugins" }));
+
+    expect(api.openPluginsFolder).toHaveBeenCalled();
   });
 
   it("criar plugin manda id e nome para o backend", async () => {

@@ -372,6 +372,25 @@ pub fn install_local_plugin(app: AppHandle, folder: String) -> Result<Manifest, 
     local::install_from_folder(&plugins_dir(&app)?, Path::new(&folder))
 }
 
+/// Abre a pasta de plugins no gerenciador de arquivos (cria a pasta se ainda não existir).
+#[tauri::command]
+pub fn open_plugins_folder(app: AppHandle) -> Result<(), String> {
+    let dir = plugins_dir(&app)?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("não foi possível criar a pasta de plugins: {e}"))?;
+    let program = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    std::process::Command::new(program)
+        .arg(&dir)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("não foi possível abrir {}: {e}", dir.display()))
+}
+
 /// Cria um plugin novo com o modelo, na pasta de plugins. Devolve a pasta criada.
 #[tauri::command]
 pub fn create_plugin(app: AppHandle, id: String, name: String) -> Result<String, String> {

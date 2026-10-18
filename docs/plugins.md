@@ -10,7 +10,7 @@ Há três caminhos, todos em **Configurações > Plugins**:
 2. **Criar um plugin:** veja a seção abaixo.
 3. **Marketplace:** veja a seção Marketplace.
 
-Por baixo, a pasta do plugin fica em `plugins/<id-do-plugin>/` dentro da pasta de dados do app (no Windows, `%APPDATA%dev.lunaharness.app`). Ligar ou desligar vale a partir do próximo envio.
+Por baixo, a pasta do plugin fica em `plugins/<id-do-plugin>/` dentro da pasta de dados do app (no Windows, `%APPDATA%\dev.lunaharness.app`). Ligar ou desligar vale a partir do próximo envio.
 
 ## Criar um plugin
 

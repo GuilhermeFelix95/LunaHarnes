@@ -303,6 +303,11 @@ export function installLocalPlugin(folder: string): Promise<PluginManifest> {
   return invoke("install_local_plugin", { folder });
 }
 
+/// Abre a pasta de plugins no gerenciador de arquivos do sistema.
+export function openPluginsFolder(): Promise<void> {
+  return invoke("open_plugins_folder");
+}
+
 /// Cria um plugin novo com o modelo na pasta de plugins. Devolve a pasta criada.
 export function createPlugin(id: string, name: string): Promise<string> {
   return invoke("create_plugin", { id, name });

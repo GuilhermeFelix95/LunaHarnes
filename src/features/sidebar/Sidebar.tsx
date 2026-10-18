@@ -152,7 +152,8 @@ export function Sidebar({
       </div>
 
       <div className="sidebar__top">
-        <button type="button" className="sidebar__new" onClick={() => onNew()}>
+        <button type="button" className="sidebar__new btn btn--primary" onClick={() => onNew()}>
+          <Plus size={15} aria-hidden="true" />
           Nova conversa
         </button>
         <button type="button" className="sidebar__add" onClick={onAddProject} aria-label="Adicionar projeto">
