@@ -126,6 +126,29 @@ Regras que o núcleo aplica (não dá para mudar pelo plugin):
 
 O cache conta acertos, não tokens economizados: o app não tem a contagem exata de tokens por turno.
 
+### `api.ui`: permissão `ui`
+
+Permite mexer em qualquer parte da tela do app: o chat, a barra lateral, o composer e os demais blocos. **É a permissão mais forte.** Na instalação, a Luna mostra que o plugin "pode ler e mudar qualquer parte da tela do app, inclusive o chat e a barra". Instale só plugins de quem você confia.
+
+- `api.ui.root()`: devolve o `document` inteiro. Use com cuidado: qualquer elemento pode ser lido ou alterado.
+- `api.ui.addStyle(css)`: injeta CSS. A folha sai quando o plugin é desligado.
+- `api.ui.mount(slot, render)`: monta um bloco num ponto fixo da tela. `render(el)` recebe um `div` vazio e pode devolver uma função de limpeza. Os pontos são `"chat"` (topo do chat), `"composer"` (acima da caixa de texto) e `"sidebar"` (acima do rodapé da barra lateral). Se o ponto ainda não estiver na tela, o bloco entra quando ela aparecer.
+
+Tudo que o plugin monta ou injeta é desfeito ao desligá-lo ou recarregar os plugins.
+
+Exemplo: um aviso no topo do chat.
+
+```js
+export function activate(api) {
+  api.ui.addStyle(".meu-aviso{padding:6px 10px;border-radius:var(--chip-radius);background:var(--bg-sidebar)}");
+  api.ui.mount("chat", (el) => {
+    el.innerHTML = '<p class="meu-aviso">Revise o plano antes de aprovar.</p>';
+  });
+}
+```
+
+Ainda não há ponto no cabeçalho nem na aba do painel direito. Cada ponto novo é um `data-plugin-slot` adicionado ao componente.
+
 ## Limites
 
 - Comandos e hooks têm **10 segundos**. Passou disso, o resultado é ignorado, o erro vai para os avisos e o envio segue sem ele.
@@ -139,7 +162,7 @@ Esta lista é importante para não prometer o que não existe:
 - não lê nem grava arquivos do computador ou do projeto;
 - não executa comandos do sistema;
 - não faz requisições de rede;
-- não cria painéis, botões ou janelas;
+- não cria painéis próprios nem janelas: só mexe nos pontos da tela e no que já existe, e isso exige a permissão `ui`;
 - não lê nem envia chaves de API;
 - um hook não consegue alterar a resposta exibida, só o texto enviado.
 
@@ -246,7 +269,7 @@ Antes de instalar um plugin de outra pessoa, leia o `index.js`. Plugins rodam na
 ## Fora da API (planejado)
 
 - Permissões de sistema de arquivos e rede, com isolamento real (sandbox).
-- Painéis de interface (`registerPanel`).
+- Painel próprio na aba do painel direito (`registerPanel`) e pontos de interface além de chat, composer e barra.
 - Plugins com vários arquivos e TypeScript.
 - Assinatura de catálogos.
 - Atualização automática de plugins instalados.

@@ -144,6 +144,12 @@ export interface AgentSession {
 export type AgentSessions = Partial<Record<string, AgentSession>>;
 
 /// Espelha src-tauri/src/conversations.rs (Conversation). Mensagens seguem o formato de ChatMessage.
+/** Resumo da conversa compactada. */
+export interface Compaction {
+  at: number;
+  summary: string;
+}
+
 export interface Conversation {
   id: string;
   title: string;
@@ -166,6 +172,8 @@ export interface Conversation {
   sessions?: AgentSessions;
   /** Tarefas do agente, para a aba Progresso voltar ao reabrir a conversa. */
   tasks?: SavedTask[];
+  /** Compactações: `at` é o tamanho do histórico quando o resumo foi feito (ver chat/compact.ts). */
+  compactions?: Compaction[];
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];

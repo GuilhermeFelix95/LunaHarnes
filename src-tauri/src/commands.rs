@@ -10,6 +10,7 @@ use crate::api_profiles::{self, ApiProfile, Preset, PresetInfo, RemoteModels};
 use crate::changes::{self, Changes};
 use crate::checkpoints;
 use crate::conversations;
+use crate::rules;
 use crate::models::{self, ModelOption};
 use crate::plugins::local;
 use crate::plugins::loader::{self, Manifest, PluginScan};
@@ -54,6 +55,11 @@ pub fn send_prompt(
     // A spec do projeto (pasta spec/) vai em toda chamada, antes do pedido. Vale para qualquer provedor.
     let spec = spec::load_spec(&request.cwd)?;
     request.prompt = spec::with_spec(&spec, &request.prompt);
+    // Perfis de API não leem ~/.claude nem ~/.codex: as regras globais vão no próprio pedido.
+    if request.profile.is_some() {
+        let rules = rules::load(&app_data_dir(&app)?)?;
+        request.prompt = rules::with_rules(&rules, &request.prompt);
+    }
     if run_id.is_empty() || run_id.len() > 64 || !run_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err("identificador de execução inválido".into());
     }
@@ -126,7 +132,7 @@ pub fn send_prompt(
 }
 
 /// Pasta de dados do app (conversas, plugins, perfis de API).
-fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_data_dir()
         .map_err(|e| format!("não foi possível localizar a pasta de dados do app: {e}"))

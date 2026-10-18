@@ -33,6 +33,18 @@ export interface LunaPluginApi {
   registerMode(mode: PluginMode): void;
   /** Requer `cache`. Sem essa permissão, acessar `cache` recusa o plugin. */
   readonly cache: PluginCacheApi;
+  /** Requer `ui`. Pode ler e mudar qualquer parte da tela do app. Tudo que ele monta ou injeta sai ao desligar o plugin. */
+  readonly ui: LunaPluginUi;
+}
+
+/** Permissão `ui`. */
+export interface LunaPluginUi {
+  /** O documento inteiro da janela. */
+  root(): Document;
+  /** Injeta CSS na janela. */
+  addStyle(css: string): void;
+  /** Monta um bloco no ponto indicado (`chat`, `composer` ou `sidebar`). `render` recebe o elemento e pode devolver uma função de limpeza. */
+  mount(slot: "chat" | "composer" | "sidebar", render: (el: HTMLElement) => void | (() => void)): void;
 }
 
 /** Todo plugin exporta `activate`, chamado uma vez quando o plugin é ligado ou o app abre. */

@@ -32,9 +32,19 @@ export function planInstruction(target: number): string {
     "2. Em toda resposta, escreva na primeira linha \"Contexto entendido: X%\", com X de 0 a 100: a parte do contexto que você já tem para montar o plano. Essa linha é obrigatória, mesmo quando há perguntas.",
     `3. Só apresente o plano quando o contexto entendido chegar a ${target}% ou mais. Abaixo disso, continue perguntando, sem escrever o plano.`,
     "4. Não altere arquivos nem execute comandos que modifiquem algo.",
-    "5. Ao apresentar o plano, liste os arquivos a alterar e pergunte se pode aprovar, com o bloco de perguntas e as opções \"Aprovar e executar\" e \"Ainda não\".",
-    "6. Só comece a executar depois que o usuário aprovar.",
+    "5. Ao apresentar o plano, escreva primeiro um resumo de no máximo 3 linhas, fora de qualquer bloco. Depois, o plano completo dentro de um bloco de código chamado luna-plano, em Markdown, com estas seções: ## Contexto; ## Arquivos a alterar (caminho e o que muda em cada um); ## Passos (numerados, cada um com a verificação); ## Não mexer (arquivos e pastas que não devem ser tocados, e o motivo); ## Testes; ## Riscos. Cite os arquivos pelo caminho, sem trechos de código.",
+    "6. Termine perguntando se pode aprovar, com o bloco de perguntas e as opções \"Aprovar e executar\" e \"Ainda não\".",
+    "7. Só comece a executar depois que o usuário aprovar.",
   ].join("\n");
+}
+
+const PLAN_BLOCK = /```luna-plano\s*\n([\s\S]*?)\n```/;
+
+/// Separa o plano completo (bloco `luna-plano`) do resumo que fica no chat. Sem o bloco, devolve null.
+export function extractPlan(reply: string): { summary: string; plan: string } | null {
+  const match = PLAN_BLOCK.exec(reply);
+  if (!match || !match[1].trim()) return null;
+  return { summary: reply.replace(match[0], "").trim(), plan: match[1].trim() };
 }
 
 /// O texto que vira plano na aba Plano, ou null. Vale para a resposta sem perguntas e para a que pede aprovação

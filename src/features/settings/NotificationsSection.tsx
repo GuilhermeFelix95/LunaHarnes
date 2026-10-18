@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { notificationsEnabled, setNotificationsEnabled } from "../../notifications";
+import { setToastsEnabled, toastsEnabled } from "../../ui/toast";
 import { loadSound, playSound, saveSound, SOUND_OFF, SOUNDS, type SoundChoice } from "../../sounds";
 
 /// Liga e desliga os avisos do sistema para respostas prontas, erros e planos, e escolhe o som da resposta.
 export function NotificationsSection() {
   const [on, setOn] = useState(notificationsEnabled);
   const [sound, setSound] = useState<SoundChoice>(loadSound);
+  const [toast, setToast] = useState(toastsEnabled);
 
   function changeSound(choice: SoundChoice) {
     setSound(choice);
@@ -25,6 +27,17 @@ export function NotificationsSection() {
           }}
         />
         Avisar quando uma resposta terminar, falhar ou um plano estiver pronto, com a janela fora de foco
+      </label>
+      <label className="settings__check">
+        <input
+          type="checkbox"
+          checked={toast}
+          onChange={(e) => {
+            setToast(e.target.checked);
+            setToastsEnabled(e.target.checked);
+          }}
+        />
+        Mostrar aviso na tela quando a resposta terminar
       </label>
       <div className="settings__row">
         <label>

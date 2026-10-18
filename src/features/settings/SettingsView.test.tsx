@@ -24,6 +24,9 @@ vi.mock("../../api", () => ({
   removeCatalogSource: vi.fn(async () => {}),
   setPluginEnabled: vi.fn(async () => ({ disabled: [] })),
   uninstallPlugin: vi.fn(async () => {}),
+  getRules: vi.fn(async () => ""),
+  importRules: vi.fn(async () => ""),
+  saveRules: vi.fn(async () => []),
 }));
 
 
@@ -62,6 +65,18 @@ describe("SettingsView", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("grafite");
     expect(localStorage.getItem(THEME_KEY)).toBe("grafite");
     expect(screen.getByRole("radio", { name: /Grafite/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("troca de seção pelo menu lateral e lembra a última aberta", () => {
+    const { unmount } = render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Regras globais" }));
+    expect(screen.getByRole("button", { name: "Regras globais" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("heading", { name: "Regras globais" })).toBeTruthy();
+    unmount();
+
+    render(<SettingsView onClose={() => {}} />);
+    expect(screen.getByRole("button", { name: "Regras globais" }).getAttribute("aria-current")).toBe("page");
   });
 
   it("botão de voltar fecha a página", () => {

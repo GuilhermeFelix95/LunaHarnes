@@ -276,6 +276,7 @@ export function Sidebar({
         ))}
       </div>
 
+      <div data-plugin-slot="sidebar" />
       <footer className="sidebar__foot">
         <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>
           <Settings size={16} aria-hidden="true" /> Configurações

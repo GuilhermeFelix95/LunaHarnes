@@ -1339,6 +1339,17 @@ textarea:focus-visible {
   color: var(--fg-muted);
 }
 
+.luna-cat__canvas {
+  width: 100%;
+  aspect-ratio: 16 / 11;
+}
+
+.luna-cat__canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .luna-cat svg {
   display: block;
   width: 100%;
@@ -2253,7 +2264,7 @@ textarea:focus-visible {
   height: 26px;
   padding: 0;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--button-radius);
   background: transparent;
   color: var(--muted);
 }
@@ -2280,17 +2291,26 @@ textarea:focus-visible {
 
 .qpick__options {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
 }
 
+/* Uma opção por linha, sempre; texto longo quebra dentro do botão */
 .qpick__option {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
   border: 1px solid var(--glass-border);
-  border-radius: 999px;
+  border-radius: var(--chip-radius);
   background: transparent;
   color: var(--fg);
   font-size: 13px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .qpick__option:hover {
@@ -2306,7 +2326,7 @@ textarea:focus-visible {
 .qpick__badge {
   margin-left: 6px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--chip-radius);
   background: var(--accent);
   color: var(--accent-fg);
   font-size: 11px;
@@ -2326,16 +2346,7 @@ textarea:focus-visible {
 .qpick__foot {
   display: flex;
   justify-content: flex-end;
-}
-
-.qpick__send {
-  padding: 7px 16px;
-  border: none;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-fg);
-  font-size: 13px;
-  font-weight: 600;
+  gap: 8px;
 }
 
 .qpick__send:disabled {
@@ -2458,4 +2469,131 @@ textarea:focus-visible {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+/* Pop-up de aviso, no canto inferior direito */
+.toaster {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100vw - 32px));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--bg-sidebar);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+}
+
+.toast--error {
+  border-left-color: var(--error);
+}
+
+.toast__text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.toast__text span {
+  color: var(--fg-muted);
+  overflow-wrap: anywhere;
+}
+
+.toast__close {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+/* Configurações em duas colunas: seções à esquerda, conteúdo à direita. */
+.settings__layout {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--space-5, 24px);
+  align-items: start;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 0;
+}
+
+.settings-nav__item {
+  text-align: left;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--button-radius);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-nav__item:hover {
+  color: var(--fg);
+  background: var(--bg-sidebar);
+}
+
+.settings-nav__item[aria-current="page"] {
+  color: var(--fg);
+  background: var(--bg-sidebar);
+  font-weight: 600;
+}
+
+.settings__body {
+  min-width: 0;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-3, 12px);
+}
+
+.rules__text {
+  width: 100%;
+  min-height: 280px;
+  margin-top: var(--space-3, 12px);
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sidebar);
+  color: var(--fg);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+@media (max-width: 720px) {
+  .settings__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: static;
+  }
 }

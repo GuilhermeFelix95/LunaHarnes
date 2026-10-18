@@ -1,10 +1,65 @@
+import { useEffect, useRef, useState } from "react";
+
 interface LunaCatProps {
   /** Trabalhando: digita no notebook. Parado: dorme enrolado com "zZ". */
   working: boolean;
 }
 
-/// Gatinho lunar, com uma lua na testa. É a mascote do progresso: mostra se a Luna está trabalhando.
+function hasWebGL(): boolean {
+  return typeof window.WebGLRenderingContext !== "undefined";
+}
+
+/// Gatinho lunar 3D (three.js, carregado sob demanda). Sem WebGL, mostra o SVG.
 export function LunaCat({ working }: LunaCatProps) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const workingRef = useRef(working);
+  const [fallback, setFallback] = useState(() => !hasWebGL());
+
+  useEffect(() => {
+    workingRef.current = working;
+  }, [working]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (fallback || !host) return;
+    let cancelled = false;
+    let unmount: (() => void) | undefined;
+    import("./catScene")
+      .then(({ mountCatScene }) => {
+        if (cancelled) return;
+        try {
+          unmount = mountCatScene(host, () => workingRef.current);
+        } catch (e) {
+          console.error("gatinho 3D: não foi possível montar a cena, usando o desenho simples", e);
+          setFallback(true);
+        }
+      })
+      .catch((e) => {
+        console.error("gatinho 3D: falha ao carregar a cena", e);
+        setFallback(true);
+      });
+    return () => {
+      cancelled = true;
+      unmount?.();
+    };
+  }, [fallback]);
+
+  if (fallback) return <LunaCatFallback working={working} />;
+
+  return (
+    <figure className={`luna-cat ${working ? "luna-cat--working" : "luna-cat--sleeping"}`}>
+      <div
+        ref={hostRef}
+        className="luna-cat__canvas"
+        role="img"
+        aria-label={working ? "Gatinho lunar trabalhando" : "Gatinho lunar dormindo"}
+      />
+    </figure>
+  );
+}
+
+/// Versão em SVG, usada quando o WebGL não está disponível.
+export function LunaCatFallback({ working }: LunaCatProps) {
   return (
     <figure className={`luna-cat ${working ? "luna-cat--working" : "luna-cat--sleeping"}`}>
       <svg viewBox="0 0 160 110" role="img" aria-label={working ? "Gatinho lunar trabalhando" : "Gatinho lunar dormindo"}>

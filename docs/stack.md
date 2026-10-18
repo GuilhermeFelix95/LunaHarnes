@@ -40,6 +40,16 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Rodada de tela, plano, compactação e regras (2026-10-18):
+  - Gatinho 3D: three.js 0.186.1 e @types/three (`package.json`). A cena fica em `src/features/side/catScene.ts`, carregada por import dinâmico em `LunaCat.tsx`. Sem WebGL, cai no SVG (`LunaCatFallback`). Não foi conferido visualmente num `tauri dev`.
+  - Aviso na tela: `src/ui/toast.ts` (pub/sub) e `src/ui/Toaster.tsx`, montado em `App.tsx`. Liga e desliga em Configurações > Notificações (`luna.toast`). Clicar no aviso ainda não abre a conversa.
+  - Seletor de perguntas: opções em coluna (`.qpick__options`) e botões com `.btn`, seguindo o tema.
+  - Plano: o bloco `luna-plano` vai para o painel Plano, e o balão mostra só o resumo (`extractPlan` em `src/chat/planning.ts`). Sem bloco, o texto inteiro vai para os dois lugares.
+  - Plugins com permissão `ui`: `api.ui` (`src/plugins/ui.ts`) com `root`, `addStyle` e `mount` nos pontos `data-plugin-slot` chat, composer e sidebar. O que o plugin monta ou injeta sai no reset. Documentado em `docs/plugins.md`.
+  - Compactação: `src/chat/compact.ts`. Botão Compactar no medidor, `/compactar` e disparo automático acima de 90% do contexto (liga e desliga em Configurações > Conversa). O resumo vai no início da próxima mensagem e a sessão antiga é descartada. Campo `compactions` em `conversations.rs`. Divisor no chat ainda não existe.
+  - Regras globais: `src-tauri/src/rules.rs` guarda o texto em `<app_data>/rules.md` e grava o bloco entre marcadores em `~/.claude/CLAUDE.md` e `~/.codex/AGENTS.md` (com `.bak-<segundos>`). Perfis de API recebem o texto no próprio pedido (`with_rules` em `send_prompt`), porque o CLI deles não lê o arquivo global.
+  - Configurações: menu lateral com Aparência, Notificações, Conversa, Regras globais, Contas e modelos e Plugins (`SettingsView.tsx`, seção lembrada em `luna.settings.section`). Ainda falta reorganizar o interior de `ApiProfilesSection` e `PluginsSection` (cartões, formulário em diálogo, "Criar plugin" no topo).
+  - Pendente da rodada: `.chat__notes` com cor neutra para avisos (só erro em vermelho).
 - Rodada de progresso, painel e menu (2026-10-18):
   - Progresso ao vivo: as tarefas do agente ficam na conversa (campo `tasks` em `conversations.rs`) e não zeram a cada envio. Sem etapa marcada como `in_progress` durante a resposta, a primeira pendente aparece como atual (`displayTodos` em `src/chat/tasks.ts`). `APPROVAL_PROMPT` pede uma tarefa por etapa do plano.
   - Painel direito fechável pelo X (`RightPanel.tsx`, estado em `luna.rightPanel.open`). Abre sozinho ao enviar, na aba Progresso.

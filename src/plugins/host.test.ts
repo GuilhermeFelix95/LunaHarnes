@@ -351,3 +351,66 @@ describe("PluginHost: cache", () => {
     expect(host.messages()).toEqual([]);
   });
 });
+
+describe("PluginHost: ui", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+    document.head.innerHTML = "";
+  });
+
+  it("recusa api.ui sem a permissão ui", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(manifest({ permissions: ["commands"] }), plugin((api) => api.ui.addStyle("p{}")));
+
+    expect(ok).toBe(false);
+    expect(host.errors[0]).toContain('não tem a permissão "ui"');
+  });
+
+  it("addStyle injeta a folha e reset a remove", async () => {
+    const host = new PluginHost();
+    await host.load(manifest({ permissions: ["ui"] }), plugin((api) => api.ui.addStyle(".x{color:red}")));
+
+    expect(document.head.querySelector('style[data-plugin="hello"]')?.textContent).toBe(".x{color:red}");
+    host.reset();
+    expect(document.head.querySelector('style[data-plugin="hello"]')).toBeNull();
+  });
+
+  it("mount monta no ponto quando ele existe, e reset desmonta com o cleanup", async () => {
+    const slot = document.createElement("div");
+    slot.dataset.pluginSlot = "sidebar";
+    document.body.appendChild(slot);
+    const cleanup = vi.fn();
+    const host = new PluginHost();
+    await host.load(
+      manifest({ permissions: ["ui"] }),
+      plugin((api) =>
+        api.ui.mount("sidebar", (el) => {
+          el.textContent = "olá";
+          return cleanup;
+        }),
+      ),
+    );
+
+    expect(slot.querySelector('[data-plugin="hello"]')?.textContent).toBe("olá");
+    host.reset();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(slot.querySelector('[data-plugin="hello"]')).toBeNull();
+  });
+
+  it("mount espera o ponto aparecer na tela", async () => {
+    const host = new PluginHost();
+    await host.load(
+      manifest({ permissions: ["ui"] }),
+      plugin((api) => api.ui.mount("chat", (el) => void (el.textContent = "chat"))),
+    );
+    expect(document.querySelector('[data-plugin="hello"]')).toBeNull();
+
+    const slot = document.createElement("div");
+    slot.dataset.pluginSlot = "chat";
+    document.body.appendChild(slot);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(slot.querySelector('[data-plugin="hello"]')?.textContent).toBe("chat");
+    host.reset();
+    expect(slot.querySelector('[data-plugin="hello"]')).toBeNull();
+  });
+});

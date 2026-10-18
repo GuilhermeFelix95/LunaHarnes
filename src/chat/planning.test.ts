@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   APPROVAL_PROMPT,
   contextUnderstood,
+  extractPlan,
   DEFAULT_PLAN_TARGET,
   loadPlanTarget,
   PLAN_TARGET_KEY,
@@ -90,5 +91,28 @@ describe("modo plano", () => {
     const positions = sections.map((section) => APPROVAL_PROMPT.indexOf(section));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  });
+});
+
+describe("extractPlan", () => {
+  it("separa o resumo do plano completo", () => {
+    const reply = "Resumo em três linhas.\nVou criar a tela.\nFalta só aprovar.\n```luna-plano\n## Contexto\nTarefas.\n## Arquivos a alterar\n- src/App.tsx: cria a tela\n```";
+
+    const parts = extractPlan(reply);
+
+    expect(parts?.summary).toBe("Resumo em três linhas.\nVou criar a tela.\nFalta só aprovar.");
+    expect(parts?.plan).toContain("## Arquivos a alterar");
+  });
+
+  it("sem bloco ou com bloco vazio, não há plano separado", () => {
+    expect(extractPlan("Só um texto.")).toBeNull();
+    expect(extractPlan("```luna-plano\n   \n```")).toBeNull();
+  });
+
+  it("o prompt do modo plano pede o resumo e o bloco luna-plano", () => {
+    const text = planInstruction(DEFAULT_PLAN_TARGET);
+
+    expect(text).toContain("luna-plano");
+    expect(text).toContain("## Não mexer");
   });
 });

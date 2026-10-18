@@ -121,6 +121,44 @@ describe("ChatView: continuidade e envio", () => {
     expect(document.querySelector(".side__plan")?.textContent ?? "").not.toContain("Antes de planejar");
   });
 
+  it("compactar pede o resumo e a próxima mensagem começa com ele, sem a sessão antiga", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    await send("primeira pergunta");
+    emit({ kind: "textDelta", text: "Resposta antiga." });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Compactar" }).hasAttribute("disabled")).toBe(false));
+
+    fireEvent.click(screen.getByRole("button", { name: "Compactar" }));
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
+    emit({ kind: "textDelta", text: "## Objetivo\nTela de login." });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByText(/Conversa compactada/)).toBeTruthy());
+
+    await send("continua");
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(3));
+    const next = vi.mocked(api.sendPrompt).mock.calls[2][0];
+    expect(next.prompt).toContain("Esta conversa foi compactada");
+    expect(next.prompt).toContain("Tela de login.");
+    expect(next.sessionId).toBeUndefined();
+  });
+
+  it("no plano, o chat mostra só o resumo e o painel Plano mostra o plano completo", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
+
+    await send("quero um app de tarefas");
+    emit({
+      kind: "textDelta",
+      text: "Resumo: criar a tela de tarefas.\n```luna-plano\n## Arquivos a alterar\n- src/App.tsx: monta a tela\n```\nPode aprovar?",
+    });
+    emit({ kind: "done", ok: true });
+
+    await waitFor(() => expect(document.querySelector(".side__plan")?.textContent ?? "").toContain("src/App.tsx"));
+    expect(screen.getByText(/Resumo: criar a tela/).textContent).not.toContain("src/App.tsx");
+  });
+
   it("no modo plano, responder 'Aprovar e executar' pelo seletor desliga o plano e executa", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));

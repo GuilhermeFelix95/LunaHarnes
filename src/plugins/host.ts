@@ -2,6 +2,7 @@
 // liberadas no manifesto. Permissão recusada vira erro registrado, não quebra os outros plugins.
 
 import { responseCache, type CacheStats, type ResponseCache } from "../chat/responseCache";
+import { PluginUi, type PluginUiApi } from "./ui";
 
 export interface PluginManifest {
   id: string;
@@ -53,6 +54,8 @@ export interface PluginApi {
   registerMode(mode: PluginMode): void;
   /** Requer permissão `cache`. Sem ela, acessar `cache` falha a ativação. */
   readonly cache: PluginCacheApi;
+  /** Requer permissão `ui`. Pode ler e mudar qualquer parte da tela; o que ele monta sai ao desligar. */
+  readonly ui: PluginUiApi;
 }
 
 export interface PluginModule {
@@ -67,13 +70,14 @@ export interface CommandResult {
 }
 
 const COMMAND_NAME = /^[a-z][a-z0-9-]*$/;
-const PERMISSIONS = ["commands", "hooks", "modes", "cache"] as const;
+const PERMISSIONS = ["commands", "hooks", "modes", "cache", "ui"] as const;
 
 export class PluginHost {
   private commands = new Map<string, { pluginId: string; handler: CommandHandler }>();
   private beforeSendHooks: { pluginId: string; hook: BeforeSendHook }[] = [];
   private afterResponseHooks: { pluginId: string; hook: AfterResponseHook }[] = [];
   private modes = new Map<string, { pluginId: string; mode: PluginMode }>();
+  private ui = new PluginUi();
   private notices: string[] = [];
   readonly loaded: string[] = [];
   readonly errors: string[] = [];
@@ -175,6 +179,7 @@ export class PluginHost {
     this.beforeSendHooks = [];
     this.afterResponseHooks = [];
     this.modes.clear();
+    this.ui.clear();
     this.loaded.length = 0;
     this.errors.length = 0;
     // O cache volta desligado e vazio: quem o quer ligar é um plugin recarregado.
@@ -205,7 +210,13 @@ export class PluginHost {
       },
     };
 
+    const uiApi = this.ui.api(id);
+
     return {
+      get ui() {
+        require("ui");
+        return uiApi;
+      },
       get cache() {
         require("cache");
         return cacheApi;

@@ -82,18 +82,18 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
       </fieldset>
       <div className="qpick__foot">
         {step > 0 && (
-          <button type="button" className="qpick__back" onClick={() => setStep(step - 1)}>
+          <button type="button" className="btn btn--ghost btn--sm qpick__back" onClick={() => setStep(step - 1)}>
             Voltar
           </button>
         )}
         {isLast ? (
-          <button type="button" className="qpick__send" disabled={!ready} onClick={submit}>
+          <button type="button" className="btn btn--primary btn--sm qpick__send" disabled={!ready} onClick={submit}>
             Enviar respostas
           </button>
         ) : (
           <button
             type="button"
-            className="qpick__send"
+            className="btn btn--primary btn--sm qpick__send"
             disabled={answers[step].length === 0}
             onClick={() => setStep(step + 1)}
           >

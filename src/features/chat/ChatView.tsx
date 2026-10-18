@@ -26,7 +26,8 @@ import {
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
+import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
+import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { cacheKey } from "../../chat/responseCache";
@@ -37,12 +38,14 @@ import { cliPrompt, filterSlash, LUNA_COMMANDS, parseLunaCommand, slashQuery, ty
 import { extractPluginOffer } from "../../chat/pluginOffer";
 import { PluginOfferCard } from "./PluginOfferCard";
 import { playReplySound } from "../../sounds";
+import { showToast } from "../../ui/toast";
 import { loadInstalledPlugins } from "../../plugins/loader";
 import type {
   AgentSessions,
   ApiPreset,
   ApiProfile,
   ChatMessage,
+  Compaction,
   Conversation,
   ModelOption,
   Permission,
@@ -111,6 +114,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const messagesRef = useRef(messages);
   const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, running: false, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
+  /// Pede à conversa um resumo. Quando ele chega, a próxima mensagem começa uma sessão nova com ele.
+  function compact() {
+    if (running || messagesRef.current.length === 0) return;
+    compactPending.current = true;
+    void run("Compactar conversa", COMPACT_PROMPT, false);
+  }
+
   /// Pasta de um plugin à espera de instalação: o cartão aparece acima do composer.
   const [pluginOffer, setPluginOffer] = useState<string | undefined>(undefined);
   // Sugestões do @arquivo para o trecho digitado depois do último "@".
@@ -122,6 +132,14 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [attachments, setAttachments] = useState<{ id: number; path: string; url: string }[]>([]);
   const attachmentSeq = useRef(0);
   const [running, setRunning] = useState(false);
+  // Contexto cheio depois de um turno: compacta antes de o usuário precisar pedir.
+  useEffect(() => {
+    if (running || !compactDue.current) return;
+    compactDue.current = false;
+    compact();
+    // compact só lê o estado da renderização atual; roda quando o turno termina.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running]);
   // Perguntas do agente, mostradas no seletor. `questionsRound` muda a cada conjunto novo e recria o seletor.
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [questionsRound, setQuestionsRound] = useState(0);
@@ -167,6 +185,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [tasks, setTasks] = useState<TaskEntry[]>(() => initial?.tasks ?? []);
   // Ref para o listener, que é registrado uma vez: ele lê a lista atual daqui.
   const tasksRef = useRef<TaskEntry[]>(tasks);
+  // Compactações da conversa: a última define onde começa a sessão nova (ver compact.ts).
+  const [compactions, setCompactions] = useState<Compaction[]>(() => initial?.compactions ?? []);
+  const compactionsRef = useRef<Compaction[]>(compactions);
+  // compactPending: o próximo turno concluído é o resumo. compactDue: o contexto encheu, compactar depois do turno.
+  const compactPending = useRef(false);
+  const compactDue = useRef(false);
   const body = useRef<HTMLDivElement>(null);
   const { stuck, scrollToBottom } = useStickToBottom(body, messages);
 
@@ -280,7 +304,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           [event.window]: { utilization: event.utilization, resetsAt: event.resetsAt },
         }));
       }
-      if (event.kind === "context") setContext({ tokens: event.tokens, windowSize: event.windowSize ?? undefined });
+      if (event.kind === "context") {
+        setContext({ tokens: event.tokens, windowSize: event.windowSize ?? undefined });
+        // O próprio turno de resumo não dispara outro resumo.
+        if (!compactPending.current && needsCompaction(event.tokens, event.windowSize ?? undefined) && autoCompactEnabled()) {
+          compactDue.current = true;
+        }
+      }
       if (event.kind === "todos" || event.kind === "taskCreated" || event.kind === "taskAssigned" || event.kind === "taskUpdated") {
         tasksRef.current = applyTaskEvent(tasksRef.current, event);
         setTasks(tasksRef.current);
@@ -292,6 +322,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
       if (event.kind === "error") {
         void notifyIfUnfocused("Erro na resposta", "Uma resposta falhou. Abra a conversa para ver o motivo.");
+        showToast({ kind: "error", title: "Erro na resposta", body: "Abra a conversa para ver o motivo." });
       }
       if (event.kind === "done") {
         const doneKey = turnCacheKey.current;
@@ -304,9 +335,26 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           `"${subject}" terminou.`,
         );
         if (event.ok) playReplySound();
+        if (event.ok) {
+          showToast({
+            kind: "success",
+            title: live.current.planning ? "Plano pronto para revisar" : "Resposta pronta",
+            body: `"${subject}" terminou.`,
+          });
+        }
         const session = sessions.current[turn];
         // O agente viu tudo até o fim deste turno.
         if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
+        // Resumo pronto: a sessão antiga é descartada, e a próxima mensagem começa uma nova com o resumo.
+        if (compactPending.current) {
+          compactPending.current = false;
+          if (event.ok && responseText.current.trim()) {
+            compactionsRef.current = [...compactionsRef.current, { at: messagesRef.current.length, summary: responseText.current }];
+            setCompactions(compactionsRef.current);
+            sessions.current = {};
+            setNotes((current) => [...current, "Conversa compactada: a próxima mensagem começa com o resumo."]);
+          }
+        }
         setRunning(false);
         setChangesVersion((v) => v + 1);
         // O bloco de perguntas sai do texto e vira o seletor; o resto da resposta fica no chat.
@@ -330,7 +378,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         }
         // Vira plano a resposta sem perguntas, ou a que pede a aprovação (a aprovação é a última pergunta do plano).
         // Rodadas de perguntas não mexem no plano: o agente ainda está entendendo o contexto.
-        const draft = planFromReply(parsed, turnPlanning.current);
+        // O plano completo vai para o painel; no chat fica só o resumo de 3 linhas.
+        const planParts = turnPlanning.current ? extractPlan(parsed.text) : null;
+        if (planParts) {
+          const last = messagesRef.current.at(-1);
+          if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: planParts.summary }]);
+        }
+        const draft = planParts?.plan ?? planFromReply(parsed, turnPlanning.current);
         if (draft) {
           planRef.current = draft;
           setPlan(draft);
@@ -373,6 +427,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       costUsd: costRef.current || undefined,
       plan: planRef.current,
       tasks: tasksRef.current,
+      compactions: compactionsRef.current,
       createdAt: createdAt.current,
       updatedAt: Date.now(),
       messages: current,
@@ -446,16 +501,23 @@ ${cliPrompt}`;
       const checkpoint = await checkpointTake(cwd).catch(() => null);
       if (checkpoint) commit(messagesRef.current.map((m) => (m === userMsg ? { ...m, checkpoint } : m)));
       const key = turnAgent.current;
-      const behind = (sessions.current[key]?.seen ?? 0) < history.length;
+      // Depois de uma compactação, só vale a sessão criada depois dela, e o histórico começa nela.
+      const since = compactionsRef.current.at(-1);
+      const cut = since?.at ?? 0;
+      const visible = history.slice(cut);
+      const sessionsSinceCut = sessionsFrom(sessions.current, cut);
+      const behind = (sessionsSinceCut[key]?.seen ?? 0) < visible.length;
       const changes = behind ? await getChanges(cwd).catch(() => null) : null;
-      const { sessionId, preamble } = contextFor({
-        sessions: sessions.current,
+      const context = contextFor({
+        sessions: sessionsSinceCut,
         target: key,
-        history,
+        history: visible,
         fallback: legacyProvider.current,
         cwd,
         changes,
       });
+      const sessionId = context.sessionId;
+      const preamble = since && !sessionId ? [compactPreamble(since.summary), context.preamble].filter(Boolean).join("\n\n") : context.preamble;
       await sendPrompt({
         provider,
         profile: profileId ?? undefined,
@@ -573,6 +635,11 @@ ${cliPrompt}`;
     const luna = parseLunaCommand(prompt);
     if (luna?.id === "plano") {
       setPlanning(true);
+      return;
+    }
+    if (luna?.id === "compactar") {
+      setDraft("");
+      compact();
       return;
     }
     if (luna?.id === "plugin") {
@@ -721,6 +788,7 @@ ${outgoing}`
 
   return (
     <div className="chat">
+      <div data-plugin-slot="chat" />
       {pendingRewind && (
         <ConfirmDialog
           title="Voltar até aqui?"
@@ -781,7 +849,7 @@ ${outgoing}`
       <div className="chat__body" ref={body}>
         {loggedIn === false && profileId && (
           <p role="alert" className="chat__notes">
-            Este perfil ainda não tem chave. Cole a chave em Configurações &gt; Contas e APIs.
+            Este perfil ainda não tem chave. Cole a chave em Configurações &gt; Contas e modelos.
           </p>
         )}
         {loggedIn === false && !profileId && (
@@ -931,6 +999,15 @@ ${outgoing}`
             windowHint={profileId && !modelWindow ? "Atualize a lista de modelos para ver a janela" : undefined}
           />
         )}
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          title="Resume a conversa para liberar o contexto (também /compactar)"
+          disabled={running || messages.length === 0}
+          onClick={compact}
+        >
+          Compactar
+        </button>
       </div>
       </div>
 

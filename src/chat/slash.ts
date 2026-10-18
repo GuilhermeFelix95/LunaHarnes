@@ -10,6 +10,7 @@ export interface SlashItem {
 /// Comandos que o próprio app executa. `plugin instalar` leva o caminho da pasta depois do nome.
 export const LUNA_COMMANDS: SlashItem[] = [
   { name: "plano", description: "Liga o modo de planejamento", origin: "luna" },
+  { name: "compactar", description: "Resume a conversa para liberar o contexto", origin: "luna" },
   { name: "plugin instalar", description: "Instala o plugin de uma pasta, depois de revisar as permissões", origin: "luna" },
 ];
 
@@ -37,12 +38,13 @@ export function filterSlash(items: SlashItem[], query: string): SlashItem[] {
   ];
 }
 
-export type LunaCommand = { id: "plano" } | { id: "plugin"; folder: string };
+export type LunaCommand = { id: "plano" } | { id: "compactar" } | { id: "plugin"; folder: string };
 
 /// Reconhece os comandos da Luna digitados. Qualquer outra entrada devolve null.
 export function parseLunaCommand(input: string): LunaCommand | null {
   const text = input.trim();
   if (text === "/plano") return { id: "plano" };
+  if (text === "/compactar") return { id: "compactar" };
   const install = /^\/plugin instalar\s+(.+)$/.exec(text);
   if (install) return { id: "plugin", folder: install[1].trim() };
   return null;

@@ -117,6 +117,7 @@ export function Composer(props: ComposerProps) {
         else if (canSend) onSend();
       }}
     >
+      <div data-plugin-slot="composer" />
       {slash.length > 0 && (
         <ul className="composer__files" role="listbox" aria-label="Comandos e skills">
           {slash.map((item, index) => (

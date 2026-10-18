@@ -14,6 +14,7 @@ import { SetupScreen } from "./features/setup/SetupScreen";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { CliStatus, Conversation, ConversationSummary } from "./types";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { Toaster } from "./ui/Toaster";
 import { loadLastWorkspace } from "./workspace";
 
 /// Ação pendente de confirmação: o diálogo mostra o texto e roda `run` se o usuário confirmar.
@@ -194,6 +195,7 @@ export function App() {
 
   return (
     <div className="app">
+      <Toaster />
       {missingCli && <SetupScreen statuses={missingCli} onSkip={() => setMissingCli(null)} />}
       {confirming && (
         <ConfirmDialog

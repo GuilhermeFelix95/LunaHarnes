@@ -74,3 +74,10 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Sons de resposta: Sino, Gota, Lua, Miau, Pop e Desligado, em luna.sound (src/sounds.ts, Web Audio); toca ao fim de resposta sem erro; seletor e Ouvir em Configurações > Notificações.
 2026-10-18 | Menu de / no composer: comandos da Luna (/plano, /plugin instalar), de plugin e skills/comandos da CLI (src-tauri/src/slash.rs lê ~/.claude, <cwd>/.claude e ~/.codex). Uso com /skill no claude -p ainda não verificado numa execução real.
 2026-10-18 | A Luna cria plugins em <app_data>/plugin-drafts e emite bloco luna-plugin com a pasta; o chat mostra cartão Instalar que abre as permissões (src/chat/pluginOffer.ts, PluginOfferCard.tsx). /plugin instalar <pasta> abre o mesmo cartão. Instalar de uma pasta fica para conteúdo compartilhado. Falta conferir que a pasta está em plugin-drafts.
+2026-10-18 | Gatinho 3D com three.js 0.186.1 (src/features/side/catScene.ts, carregado sob demanda; SVG como fallback sem WebGL).
+2026-10-18 | Aviso na tela ao fim de resposta (src/ui/toast.ts, Toaster.tsx), ligável em Configurações > Notificações.
+2026-10-18 | Plano em duas partes: resumo de 3 linhas no chat e bloco luna-plano completo no painel Plano (extractPlan em planning.ts).
+2026-10-18 | Permissão de plugin ui: api.ui com addStyle e mount nos slots chat, composer e sidebar; docs/plugins.md atualizado.
+2026-10-18 | Compactação de conversa: botão, /compactar e automática acima de 90%, com resumo no próximo envio (src/chat/compact.ts).
+2026-10-18 | Regras globais: src-tauri/src/rules.rs grava o bloco da Luna em ~/.claude/CLAUDE.md e ~/.codex/AGENTS.md; perfis de API recebem o texto no pedido.
+2026-10-18 | Configurações em menu lateral (Aparência, Notificações, Conversa, Regras globais, Contas e modelos, Plugins); Contas e APIs virou Contas e modelos.

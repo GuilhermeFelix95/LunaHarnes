@@ -9,6 +9,14 @@ use serde_json::Value;
 
 use crate::providers::{Permission, ProviderKind};
 
+/// Resumo que a conversa guardou ao compactar. `at` = quantas mensagens existiam quando ele foi feito.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Compaction {
+    pub at: usize,
+    pub summary: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Conversation {
@@ -41,6 +49,10 @@ pub struct Conversation {
     /// Tarefas do agente (aba Progresso). Ficam na conversa porque o Claude Code as mantém na sessão inteira.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tasks: Option<Value>,
+    /// Compactações da conversa: `at` é o tamanho do histórico no momento e `summary` o resumo gravado.
+    /// Ausente em arquivos antigos (lista vazia).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub compactions: Vec<Compaction>,
     /// Sessão nativa de cada agente e quanto do histórico ele já viu (ver src/chat/handoff.ts).
     /// Ausente em arquivos antigos: o frontend usa `session_id`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -179,6 +191,7 @@ mod tests {
             cost_usd: None,
             plan: None,
             tasks: None,
+            compactions: Vec::new(),
             sessions: Some(json!({"claude": {"id": "sess-1", "seen": 1}, "codex": {"id": "th-9", "seen": 3}})),
             messages: vec![json!({"role": "user", "text": "oi"})],
         }

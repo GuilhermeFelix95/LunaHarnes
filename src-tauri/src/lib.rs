@@ -7,6 +7,7 @@ pub mod conversations;
 pub mod models;
 pub mod plugins;
 pub mod providers;
+pub mod rules;
 pub mod session;
 pub mod setup;
 pub mod slash;
@@ -55,6 +56,9 @@ pub fn run() {
             commands::terminal_close,
             commands::open_login,
             commands::get_workspace,
+            rules::get_rules,
+            rules::save_rules,
+            rules::import_rules,
             commands::list_conversations,
             commands::load_conversation,
             commands::save_conversation,

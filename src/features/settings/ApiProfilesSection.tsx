@@ -49,7 +49,7 @@ function announceChange() {
   window.dispatchEvent(new Event(PROFILES_CHANGED));
 }
 
-/// Seção "Contas e APIs": login das CLIs e perfis de API (chave no cofre do Windows).
+/// Seção "Contas e modelos": login das CLIs e perfis de API (chave no cofre do Windows).
 export function ApiProfilesSection() {
   const [profiles, setProfiles] = useState<ApiProfile[]>([]);
   const [presets, setPresets] = useState<ApiPreset[]>([]);
@@ -241,7 +241,7 @@ export function ApiProfilesSection() {
 
   return (
     <section className="settings__section" aria-labelledby="settings-accounts">
-      <h2 id="settings-accounts">Contas e APIs</h2>
+      <h2 id="settings-accounts">Contas e modelos</h2>
 
       <h3 className="settings__sub">Login das CLIs</h3>
       <ul className="accounts">

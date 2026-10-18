@@ -109,7 +109,7 @@ pub fn collect(home: &Path, cwd: &Path, provider: ProviderKind) -> Vec<SlashItem
     out
 }
 
-fn home_dir() -> Option<PathBuf> {
+pub fn home_dir() -> Option<PathBuf> {
     env::var_os("USERPROFILE").or_else(|| env::var_os("HOME")).map(PathBuf::from)
 }
 

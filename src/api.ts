@@ -130,6 +130,21 @@ export function listFiles(cwd: string, query: string): Promise<string[]> {
 }
 
 /// Skills e comandos que a CLI conhece, para o menu de `/`. Lê as pastas do usuário e, no Claude, a do projeto.
+/// Regras globais: o texto fica no app e vai para ~/.claude/CLAUDE.md e ~/.codex/AGENTS.md (ver src-tauri/src/rules.rs).
+export function getRules(): Promise<string> {
+  return invoke<string>("get_rules");
+}
+
+/// Salva as regras e devolve os arquivos das CLIs que foram gravados.
+export function saveRules(text: string): Promise<string[]> {
+  return invoke<string[]>("save_rules", { text });
+}
+
+/// Bloco atual do ~/.claude/CLAUDE.md (ou o arquivo inteiro), para a primeira colagem.
+export function importRules(): Promise<string> {
+  return invoke<string>("import_rules");
+}
+
 export async function listSlashItems(cwd: string, provider: ProviderKind): Promise<SlashItem[]> {
   const items = await invoke<{ name: string; description: string; kind: "skill" | "command" }[]>("list_slash_items", {
     cwd,

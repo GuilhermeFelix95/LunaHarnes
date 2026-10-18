@@ -85,4 +85,12 @@ describe("QuestionPicker", () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
     expect(onAnswer).not.toHaveBeenCalled();
   });
+
+  it("os botões usam o estilo compartilhado, para seguir o tema", () => {
+    render(<QuestionPicker questions={QUESTIONS} onAnswer={vi.fn()} onDismiss={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Postgres" }));
+
+    expect(screen.getByRole("button", { name: "Voltar" }).classList.contains("btn")).toBe(true);
+    expect(screen.getByRole("button", { name: "Enviar respostas" }).classList.contains("btn--primary")).toBe(true);
+  });
 });
