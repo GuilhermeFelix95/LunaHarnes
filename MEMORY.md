@@ -49,3 +49,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Configurações, setup e login usam .btn e abas segmentadas; composer unifica Planejar e modos de plugin; contraste dos 7 temas passa AA (texto e botão primário) com ajuste de --fg-subtle e --accent.
 2026-10-18 | Mensagens e barra lateral: bloco de código com linguagem e copiar no cabeçalho; ferramentas com ícone por tipo; erro em cartão; "Nova conversa" como ação principal; botão Abrir pasta de plugins (comando open_plugins_folder).
 2026-10-18 | Tema Luna trocado para a paleta Maré (ardósia azulada com a luz da Terra); contraste acima de 4,5:1 no texto e no acento.
+2026-10-18 | Temas Claro e Escuro trocam o laranja por azul-Maré (#2a6f97 no claro, #8cc4e8 no escuro); novo tema Personalizado com quatro cores (barra lateral, conversa, balão do usuário, destaque) salvas em `luna.customTheme` e aplicadas na hora como variáveis no `<html>`.

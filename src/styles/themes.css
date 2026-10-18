@@ -13,21 +13,21 @@
   --muted: var(--fg-muted);
   --border: #e4e1d8;
   --border-strong: #cfcabd;
-  --accent: #b25737;
+  --accent: #2a6f97;
   --accent-fg: #ffffff;
-  --accent-soft: rgb(193 95 60 / 12%);
+  --accent-soft: rgb(42 111 151 / 12%);
   --success: #2e7d4f;
   --warning: #9a6a10;
   --error: #b3261e;
   --diff-add: #2e7d4f;
   --diff-del: #b3261e;
-  --focus-ring: #b25737;
+  --focus-ring: #2a6f97;
   --user-bubble: #f0eee6;
   --code-bg: #f4f2ec;
   --hover: #ebe8df;
   --terminal-bg: #1f1e1d;
   --terminal-fg: #f0eee6;
-  --glow: rgb(193 95 60 / 14%);
+  --glow: rgb(42 111 151 / 14%);
   --glass: color-mix(in srgb, var(--surface) 72%, transparent);
   --glass-border: color-mix(in srgb, var(--fg) 12%, transparent);
   --shadow: 0 10px 30px rgb(0 0 0 / 10%);
@@ -44,19 +44,19 @@
     --fg-subtle: #928f88;
     --border: #3d3d3a;
     --border-strong: #52514d;
-    --accent: #d97757;
+    --accent: #8cc4e8;
     --accent-fg: #1f1e1d;
-    --accent-soft: rgb(217 119 87 / 16%);
+    --accent-soft: rgb(140 196 232 / 16%);
     --success: #7fd6a4;
     --warning: #f2c46d;
     --error: #ff8a80;
     --diff-add: #7fd6a4;
     --diff-del: #ff8a80;
-    --focus-ring: #d97757;
+    --focus-ring: #8cc4e8;
     --user-bubble: #3a3936;
     --code-bg: #1f1e1d;
     --hover: #3a3936;
-    --glow: rgb(217 119 87 / 18%);
+    --glow: rgb(140 196 232 / 18%);
     --shadow: 0 10px 30px rgb(0 0 0 / 40%);
     color-scheme: dark;
   }
@@ -72,21 +72,21 @@
   --fg-subtle: #928f88;
   --border: #3d3d3a;
   --border-strong: #52514d;
-  --accent: #d97757;
+  --accent: #8cc4e8;
   --accent-fg: #1f1e1d;
-  --accent-soft: rgb(217 119 87 / 16%);
+  --accent-soft: rgb(140 196 232 / 16%);
   --success: #7fd6a4;
   --warning: #f2c46d;
   --error: #ff8a80;
   --diff-add: #7fd6a4;
   --diff-del: #ff8a80;
-  --focus-ring: #d97757;
+  --focus-ring: #8cc4e8;
   --user-bubble: #3a3936;
   --code-bg: #1f1e1d;
   --hover: #3a3936;
   --terminal-bg: #1f1e1d;
   --terminal-fg: #f0eee6;
-  --glow: rgb(217 119 87 / 18%);
+  --glow: rgb(140 196 232 / 18%);
   --shadow: 0 10px 30px rgb(0 0 0 / 40%);
   color-scheme: dark;
 }
@@ -101,21 +101,21 @@
   --fg-subtle: #72706d;
   --border: #e4e1d8;
   --border-strong: #cfcabd;
-  --accent: #b25737;
+  --accent: #2a6f97;
   --accent-fg: #ffffff;
-  --accent-soft: rgb(193 95 60 / 12%);
+  --accent-soft: rgb(42 111 151 / 12%);
   --success: #2e7d4f;
   --warning: #9a6a10;
   --error: #b3261e;
   --diff-add: #2e7d4f;
   --diff-del: #b3261e;
-  --focus-ring: #b25737;
+  --focus-ring: #2a6f97;
   --user-bubble: #f0eee6;
   --code-bg: #f4f2ec;
   --hover: #ebe8df;
   --terminal-bg: #1f1e1d;
   --terminal-fg: #f0eee6;
-  --glow: rgb(193 95 60 / 14%);
+  --glow: rgb(42 111 151 / 14%);
   --shadow: 0 10px 30px rgb(0 0 0 / 10%);
   color-scheme: light;
 }
@@ -207,6 +207,20 @@
   --glow: rgb(181 83 42 / 14%);
   --shadow: 0 10px 30px rgb(43 33 24 / 12%);
   color-scheme: light;
+}
+
+/* Personalizado: as cores vêm de applyCustomPalette (src/theme.ts), como estilo inline no <html>.
+   Aqui ficam só os tons fixos de status e terminal. */
+:root[data-theme="custom"] {
+  --success: #7fd6a4;
+  --warning: #f2c46d;
+  --error: #ff8a9a;
+  --diff-add: #7fd6a4;
+  --diff-del: #ff8a9a;
+  --terminal-bg: #0a1018;
+  --terminal-fg: #c6d6e8;
+  --glass: color-mix(in srgb, var(--surface) 72%, transparent);
+  --shadow: 0 10px 40px rgb(0 0 0 / 45%);
 }
 
 :root[data-theme="grafite"] {

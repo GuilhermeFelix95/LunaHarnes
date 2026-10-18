@@ -37,7 +37,8 @@ describe("SettingsView", () => {
     localStorage.setItem(THEME_KEY, "duna");
     render(<SettingsView onClose={() => {}} />);
 
-    expect(screen.getAllByRole("radio")).toHaveLength(7);
+    expect(screen.getAllByRole("radio")).toHaveLength(8);
+    expect(screen.getByRole("radio", { name: /Personalizado/ })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /Duna/ }).getAttribute("aria-checked")).toBe("true");
   });
 
