@@ -345,3 +345,39 @@ export function getPluginsState(): Promise<PluginsState> {
 export function setPluginEnabled(id: string, enabled: boolean): Promise<PluginsState> {
   return invoke("set_plugin_enabled", { id, enabled });
 }
+
+/// Skill instalada nas CLIs (ver src-tauri/src/skills.rs).
+export interface InstalledSkill {
+  id: string;
+  name: string;
+  description: string;
+  /** "claude" e/ou "codex": onde a pasta está instalada. */
+  engines: string[];
+}
+
+export interface SkillCatalogEntry {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  version: string;
+}
+
+export const SKILLS_CHANGED = "luna:skills-changed";
+
+export function listSkills(): Promise<InstalledSkill[]> {
+  return invoke<InstalledSkill[]>("list_skills");
+}
+
+/// Catálogo oficial de skills. Os arquivos ficam no app e não entram na resposta.
+export function loadSkillCatalog(): Promise<{ skills: SkillCatalogEntry[] }> {
+  return invoke<{ skills: SkillCatalogEntry[] }>("load_skill_catalog");
+}
+
+export function installSkill(id: string): Promise<string[]> {
+  return invoke<string[]>("install_skill", { id });
+}
+
+export function uninstallSkill(id: string): Promise<void> {
+  return invoke<void>("uninstall_skill", { id });
+}

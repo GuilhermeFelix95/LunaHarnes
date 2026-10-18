@@ -22,6 +22,7 @@ import { ConversationSection } from "./ConversationSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { PluginsSection } from "./PluginsSection";
 import { RulesSection } from "./RulesSection";
+import { SkillsSection } from "./SkillsSection";
 import { SavedThemes } from "./SavedThemes";
 
 interface SettingsViewProps {
@@ -35,7 +36,8 @@ type SettingsSection =
   | "rules"
   | "accounts"
   | "providers"
-  | "plugins";
+  | "plugins"
+  | "skills";
 
 const SECTIONS: Array<[SettingsSection, string]> = [
   ["appearance", "Aparência"],
@@ -45,6 +47,7 @@ const SECTIONS: Array<[SettingsSection, string]> = [
   ["accounts", "Contas"],
   ["providers", "Provedores"],
   ["plugins", "Plugins"],
+  ["skills", "Skills"],
 ];
 
 const SECTION_KEY = "luna.settings.section";
@@ -327,6 +330,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {section === "accounts" && <AccountsSection />}
           {section === "providers" && <ApiProfilesSection />}
           {section === "plugins" && <PluginsSection />}
+      {section === "skills" && <SkillsSection />}
         </div>
       </div>
     </div>

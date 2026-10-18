@@ -10,6 +10,7 @@ pub mod providers;
 pub mod rules;
 pub mod session;
 pub mod setup;
+pub mod skills;
 pub mod slash;
 pub mod spec;
 pub mod terminal;
@@ -47,6 +48,10 @@ pub fn run() {
             commands::checkpoint_take,
             commands::list_files,
             slash::list_slash_items,
+            skills::list_skills,
+            skills::load_skill_catalog,
+            skills::install_skill,
+            skills::uninstall_skill,
             commands::save_attachment,
             commands::checkpoint_preview,
             commands::checkpoint_restore,

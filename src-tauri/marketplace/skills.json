@@ -1,0 +1,18 @@
+{
+  "skills": [
+    {
+      "id": "revisar-diff",
+      "name": "Revisar mudanças",
+      "description": "Revisa as mudanças não commitadas do git procurando bugs, riscos e testes faltando.",
+      "author": "LunaHarness",
+      "version": "1.0.0",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ebe2e493dd8fd7e98b5bffd8e6de9a425248a439a279d39a76d54e4d748dc27f",
+          "content": "---\nname: revisar-diff\ndescription: Revisa as mudanças não commitadas do git procurando bugs, riscos e testes faltando\n---\nRevise só o que mudou (git diff e git status). Para cada arquivo alterado, aponte:\n1. bugs prováveis e casos de borda sem tratamento;\n2. trechos que mudam comportamento sem teste;\n3. código morto ou imports sobrando.\nResponda com uma lista curta, por arquivo e linha. Não altere nenhum arquivo.\n"
+        }
+      ]
+    }
+  ]
+}
