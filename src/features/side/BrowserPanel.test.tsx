@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api";
 import { BrowserPanel } from "./BrowserPanel";
@@ -11,6 +11,7 @@ vi.mock("../../api", () => ({
   browserNavigate: vi.fn(async (url: string) => `https://${url}/`),
   browserHistory: vi.fn(async () => {}),
   browserReload: vi.fn(async () => {}),
+  onBrowserOpened: vi.fn(async () => () => {}),
 }));
 
 const AREA = { x: 12, y: 40, width: 300, height: 500, left: 12, top: 40, right: 312, bottom: 540, toJSON: () => ({}) };
@@ -99,5 +100,16 @@ describe("BrowserPanel", () => {
 
     expect(api.browserHistory).toHaveBeenNthCalledWith(1, "back");
     expect(api.browserHistory).toHaveBeenNthCalledWith(2, "forward");
+  });
+
+  it("página aberta pelo agente aparece no painel sem clique", async () => {
+    let fire: (url: string) => void = () => {};
+    vi.mocked(api.onBrowserOpened).mockImplementationOnce(async (handler) => {
+      fire = handler;
+      return () => {};
+    });
+    render(<BrowserPanel active={false} />);
+    await act(async () => fire("https://exemplo.com/"));
+    await waitFor(() => expect((screen.getByLabelText("Endereço") as HTMLInputElement).value).toBe("https://exemplo.com/"));
   });
 });

@@ -12,12 +12,16 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
+use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
 
 /// Rótulo fixo da webview do navegador.
 pub const LABEL: &str = "luna-browser";
+/// Evento enviado ao painel quando o agente abre uma página. O payload é o endereço.
+pub const OPENED_EVENT: &str = "browser://opened";
 /// Janela principal (o Tauri dá o rótulo "main" quando o config não define outro).
 const MAIN_WINDOW: &str = "main";
+/// Porta do servidor de desenvolvimento do app (`devUrl` em tauri.conf.json).
+const DEV_SERVER_PORT: u16 = 1420;
 /// Texto da página devolvido ao agente: o começo basta, e evita estourar o contexto.
 const READ_LIMIT: usize = 20_000;
 const CALLBACK_TIMEOUT: Duration = Duration::from_secs(10);
@@ -54,9 +58,14 @@ pub fn parse_url(input: &str) -> Result<Url, String> {
     };
     let url = Url::parse(&candidate).map_err(|e| format!("endereço inválido: {e}"))?;
     match url.scheme() {
-        "http" | "https" => Ok(url),
-        other => Err(format!("só http e https são permitidos, não \"{other}\"")),
+        "http" | "https" => {}
+        other => return Err(format!("só http e https são permitidos, não \"{other}\"")),
     }
+    let local = matches!(url.host_str(), Some("localhost" | "127.0.0.1"));
+    if local && url.port() == Some(DEV_SERVER_PORT) {
+        return Err("esse endereço é o servidor de desenvolvimento do próprio app".into());
+    }
+    Ok(url)
 }
 
 fn rect(bounds: Bounds) -> Result<Rect, String> {
@@ -215,13 +224,16 @@ fn read_page() -> Result<String, String> {
 /// Abre a página para o agente. Sem a aba aberta, a webview nasce escondida: a aba mostra depois.
 fn tool_navigate(url: &str) -> Result<String, String> {
     let url = parse_url(url)?;
-    match app()?.get_webview(LABEL) {
+    let app = app()?;
+    match app.get_webview(LABEL) {
         Some(view) => view.navigate(url.clone()).map_err(|e| e.to_string())?,
         None => {
             let view = open_at(url.clone(), DEFAULT_BOUNDS)?;
             view.hide().map_err(|e| e.to_string())?;
         }
     }
+    // Avisa o painel, para que o endereço apareça mesmo com a aba fechada.
+    let _ = app.emit(OPENED_EVENT, url.as_str());
     Ok(format!("Página aberta: {url}"))
 }
 
@@ -493,6 +505,14 @@ mod tests {
         assert!(parse_url("data://x.com/a").is_err());
         assert!(parse_url("   ").is_err());
         assert!(parse_url("não é endereço").is_err());
+    }
+
+    #[test]
+    fn refuses_the_app_dev_server_so_the_agent_cannot_reach_the_app_itself() {
+        // A devUrl do app (vite em 1420) é a própria interface: abri-la dentro do navegador daria acesso ao app.
+        assert!(parse_url("http://localhost:1420/").is_err());
+        assert!(parse_url("http://127.0.0.1:1420/x").is_err());
+        assert!(parse_url("http://localhost:3000/").is_ok());
     }
 
     #[test]

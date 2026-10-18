@@ -244,6 +244,11 @@ export function onTerminalData(handler: (event: TerminalDataEvent) => void): Pro
   return listen<TerminalDataEvent>("terminal-data", (e) => handler(e.payload));
 }
 
+/** Página aberta pelo agente (ferramenta do navegador); o endereço chega como texto. */
+export function onBrowserOpened(handler: (url: string) => void): Promise<UnlistenFn> {
+  return listen<string>("browser://opened", (e) => handler(e.payload));
+}
+
 export function onTerminalExit(handler: (id: string) => void): Promise<UnlistenFn> {
   return listen<{ id: string }>("terminal-exit", (e) => handler(e.payload.id));
 }

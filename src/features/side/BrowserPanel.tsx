@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Globe, RotateCw } from "lucide-react";
-import { browserHistory, browserNavigate, browserOpen, browserReload, browserSetBounds, browserShow, type BrowserBounds } from "../../api";
+import { browserHistory, browserNavigate, browserOpen, browserReload, browserSetBounds, browserShow, onBrowserOpened, type BrowserBounds } from "../../api";
 import { EmptyState } from "../../ui/EmptyState";
 import { t } from "../../i18n";
 
@@ -22,6 +22,17 @@ export function BrowserPanel({ active }: BrowserPanelProps) {
   // Liga quando a página existe: pela primeira vez que a aba aparece com um navegador já aberto, ou depois de um endereço digitado.
   const [opened, setOpened] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
+
+  // O agente abriu uma página: o painel acompanha o endereço, mesmo com a aba fechada.
+  useEffect(() => {
+    const unlisten = onBrowserOpened((url) => {
+      setOpened(true);
+      setAddress(url);
+    });
+    return () => {
+      unlisten.then((stop) => stop()).catch(() => {});
+    };
+  }, []);
 
   // Mostra a página quando a aba está à vista e esconde quando sai. Sem página, o pedido não faz nada.
   useEffect(() => {

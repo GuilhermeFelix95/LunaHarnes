@@ -59,6 +59,7 @@ vi.mock("../../api", () => ({
   browserNavigate: vi.fn(async (url: string) => url),
   browserHistory: vi.fn(async () => {}),
   browserReload: vi.fn(async () => {}),
+  onBrowserOpened: vi.fn(async () => () => {}),
   onTerminalData: vi.fn(async () => () => {}),
   onTerminalExit: vi.fn(async () => () => {}),
   pickWorkspace: vi.fn(async () => null),

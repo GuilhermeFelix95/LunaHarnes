@@ -120,3 +120,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | READMEs em 22 idiomas (pt-BR, en, es, fr, de, it, nl, pl, sv, ru, uk, tr, ar, he, hi, id, vi, th, ja, ko, zh-CN, zh-TW), cada um com barra de seleção; árabe e hebraico em RTL.
 2026-10-18 | Navegador (Etapa 2, parcial): browser_open e browser_close viram async com spawn_blocking; a conversa oculta não mostra a página (prop visible do ChatView, passada pelo App).
 2026-10-18 | i18n: idioma da interface (Sistema, Português (Brasil), English) em Configurações > Geral; dicionários em src/i18n, telas traduzidas, testes focados passando.
+2026-10-18 | Navegador (Etapa 2, continuação): evento browser://opened quando o agente abre página (painel acompanha o endereço); parse_url recusa a devUrl do app (porta 1420).
