@@ -12,7 +12,8 @@ describe("UsageMeter", () => {
   it("mostra o contexto do turno com tokens e porcentagem", () => {
     render(<UsageMeter limits={{}} context={{ tokens: 44060, windowSize: 1_000_000 }} />);
 
-    expect(screen.getByText(/44k de 1M \(4%\)/)).toBeTruthy();
+    expect(screen.getByText("Contexto · 4%")).toBeTruthy();
+    expect(screen.getByTitle(/44k de 1M/)).toBeTruthy();
   });
 
   it("sem janela conhecida do modelo, mostra só os tokens usados", () => {
@@ -33,8 +34,9 @@ describe("UsageMeter", () => {
       />,
     );
 
-    expect(screen.getByText(/Sessão de 5 h · 45% · reseta/)).toBeTruthy();
-    expect(screen.getByText(/Semana · 35% · reseta/)).toBeTruthy();
+    expect(screen.getByText("5 h · 45%")).toBeTruthy();
+    expect(screen.getByText("Semana · 35%")).toBeTruthy();
+    expect(screen.getByTitle(/Sessão de 5 h · 45% · reseta/)).toBeTruthy();
   });
 
   it("mostra só a janela que a CLI informou", () => {

@@ -42,20 +42,7 @@ export interface ThemePalette {
   glass: boolean;
 }
 
-export type ThemeId =
-  | "noite"
-  | "musgo"
-  | "ametista"
-  | "papel"
-  | "oceano"
-  | "grafite"
-  | "claude"
-  | "claude-claro"
-  | "codex"
-  | "terminal-verde"
-  | "terminal-ambar"
-  | "terminal-classico"
-  | "custom";
+export type ThemeId = "luna" | "claude" | "codex" | "terminal" | "pixel" | "custom";
 
 export interface ThemeInfo {
   id: ThemeId;
@@ -78,42 +65,13 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
   glass: false,
 };
 
+/// Temas de fábrica. O Luna é o padrão: o gatinho em grafite e âmbar, sem tons pastel.
 const PRESETS: ThemeInfo[] = [
   {
-    id: "noite",
-    label: "Noite",
-    description: "Azul-marinho profundo com destaque prateado.",
-    palette: { ...BASE, glass: true, sidebar: "#0b111b", chat: "#0f1622", bubble: "#1f2d40", bubbleText: "#e6eef8", accent: "#8cc4e8", text: "#e6eef8", terminal: "#0a1018" },
-  },
-  {
-    id: "musgo",
-    label: "Musgo",
-    description: "Verde-floresta escuro, calmo para leituras longas.",
-    palette: { ...BASE, sidebar: "#0c140f", chat: "#111a15", bubble: "#1f3026", bubbleText: "#e4f2e8", accent: "#9fd8a9", text: "#e4f2e8", terminal: "#0a110d" },
-  },
-  {
-    id: "ametista",
-    label: "Ametista",
-    description: "Violeta noturno, com cantos mais redondos.",
-    palette: { ...BASE, shape: "round", sidebar: "#0f0c17", chat: "#15121f", bubble: "#2b2342", bubbleText: "#efeaff", accent: "#b9a6ff", text: "#efeaff", terminal: "#0c0a13" },
-  },
-  {
-    id: "papel",
-    label: "Papel",
-    description: "Claro e com serifa, para ler como em papel.",
-    palette: { ...BASE, font: "georgia", sidebar: "#f1ebdd", chat: "#fbf8f1", bubble: "#e7dfcb", bubbleText: "#2a2620", accent: "#1f7a72", text: "#2a2620", terminal: "#2a2620" },
-  },
-  {
-    id: "oceano",
-    label: "Oceano",
-    description: "Azul claro e limpo, com a fonte do Windows.",
-    palette: { ...BASE, font: "segoe", sidebar: "#e6eef6", chat: "#f6f9fc", bubble: "#d7e5f2", bubbleText: "#13263a", accent: "#2563a8", text: "#13263a", terminal: "#13263a" },
-  },
-  {
-    id: "grafite",
-    label: "Grafite",
-    description: "Monocromático, com cantos retos.",
-    palette: { ...BASE, shape: "square", sidebar: "#141416", chat: "#1b1b1d", bubble: "#2a2a2e", bubbleText: "#f0f0f0", accent: "#e4e4e4", text: "#f0f0f0", terminal: "#111113" },
+    id: "luna",
+    label: "Luna",
+    description: "Grafite quente com destaque âmbar, como o gatinho.",
+    palette: { ...BASE, sidebar: "#1a1a1c", chat: "#201e1c", bubble: "#3a3530", bubbleText: "#f3e9d8", accent: "#e8a33d", text: "#ece6dc", terminal: "#161513" },
   },
   {
     id: "claude",
@@ -122,34 +80,22 @@ const PRESETS: ThemeInfo[] = [
     palette: { ...BASE, sidebar: "#1f1e1d", chat: "#262624", bubble: "#3a3936", bubbleText: "#f0eee6", accent: "#d97757", text: "#f0eee6", terminal: "#1f1e1d" },
   },
   {
-    id: "claude-claro",
-    label: "Claude claro",
-    description: "As cores do Claude desktop, no claro, com o terracota.",
-    palette: { ...BASE, sidebar: "#f0eee6", chat: "#faf9f5", bubble: "#f0eee6", bubbleText: "#1f1e1d", accent: "#b25737", text: "#1f1e1d", terminal: "#1f1e1d" },
-  },
-  {
     id: "codex",
     label: "Codex",
     description: "Cinza-carvão, sem brilho, com verde-menta no destaque.",
     palette: { ...BASE, sidebar: "#171717", chat: "#212121", bubble: "#2f2f2f", bubbleText: "#ececec", accent: "#10a37f", text: "#ececec", terminal: "#0d0d0d" },
   },
   {
-    id: "terminal-verde",
-    label: "Terminal verde",
-    description: "Fósforo verde sobre preto, em fonte monoespaçada.",
-    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#050805", chat: "#0a0f0a", bubble: "#13231a", bubbleText: "#7dff9a", accent: "#7dff9a", text: "#7dff9a", terminal: "#050805" },
+    id: "terminal",
+    label: "Terminal",
+    description: "Tela de fósforo verde, texto monoespaçado e cantos retos.",
+    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#031005", chat: "#051407", bubble: "#0c2412", bubbleText: "#63ff8a", accent: "#4dff7a", text: "#4dff7a", terminal: "#020a04" },
   },
   {
-    id: "terminal-ambar",
-    label: "Terminal âmbar",
-    description: "Monitor de âmbar, em fonte monoespaçada.",
-    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#100b04", chat: "#140e05", bubble: "#2a1d08", bubbleText: "#ffb000", accent: "#ffb000", text: "#ffb000", terminal: "#0c0802" },
-  },
-  {
-    id: "terminal-classico",
-    label: "Terminal clássico",
-    description: "Cinza sobre preto, como um shell antigo.",
-    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#000000", chat: "#0c0c0c", bubble: "#1a1a1a", bubbleText: "#cccccc", accent: "#e0e0e0", text: "#cccccc", terminal: "#000000" },
+    id: "pixel",
+    label: "Pixel art",
+    description: "Retrô de arcade: azul-noite, amarelo vivo e bordas duras.",
+    palette: { ...BASE, font: "consolas", shape: "square", sidebar: "#16132b", chat: "#1e1a3a", bubble: "#3b2f6b", bubbleText: "#fff3b0", accent: "#ffd23f", text: "#f4f1de", terminal: "#100c22" },
   },
   {
     id: "custom",
@@ -208,8 +154,8 @@ export const CUSTOM_KEY = "luna.customTheme";
 /** Disparado ao trocar de tema, para quem desenha cores fora do CSS (o terminal). */
 export const THEME_EVENT = "luna:theme";
 
-/** Padrão de quem ainda não escolheu. O Luna saiu da lista: quem o tinha salvo cai aqui. */
-export const DEFAULT_THEME: ThemeId = "noite";
+/** Padrão de quem ainda não escolheu. Temas removidos (Noite, Musgo etc.) caem aqui. */
+export const DEFAULT_THEME: ThemeId = "luna";
 export const DEFAULT_PALETTE: ThemePalette = PRESETS.find((t) => t.id === "custom")!.palette;
 
 const HEX = /^#[0-9a-f]{6}$/i;

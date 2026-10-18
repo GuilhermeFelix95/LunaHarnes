@@ -10,6 +10,7 @@ import {
   planInstruction,
   QUESTION_PROTOCOL,
   savePlanTarget,
+  streamingPlan,
   withPlanInstruction,
 } from "./planning";
 
@@ -114,5 +115,26 @@ describe("extractPlan", () => {
 
     expect(text).toContain("luna-plano");
     expect(text).toContain("## Não mexer");
+  });
+});
+
+describe("streamingPlan", () => {
+  it("sem o bloco luna-plano, ainda não há plano para mostrar", () => {
+    expect(streamingPlan("Contexto entendido: 40%\nPreciso saber mais.")).toBeNull();
+  });
+
+  it("mostra o plano que já chegou, sem a cerca de abertura", () => {
+    const reply = "Resumo.\n```luna-plano\n## Contexto\nAinda chega";
+    expect(streamingPlan(reply)).toBe("## Contexto\nAinda chega");
+  });
+
+  it("tira a cerca de fechamento quando o bloco termina", () => {
+    const reply = "Resumo.\n```luna-plano\n## Passos\n1. Faz\n```";
+    expect(streamingPlan(reply)).toBe("## Passos\n1. Faz");
+  });
+
+  it("tira a cerca parcial, ainda chegando", () => {
+    const reply = "```luna-plano\n## Riscos\nNenhum\n``";
+    expect(streamingPlan(reply)).toBe("## Riscos\nNenhum");
   });
 });

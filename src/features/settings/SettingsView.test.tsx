@@ -36,13 +36,13 @@ describe("SettingsView", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("lista os temas, o Personalizado e marca o atual", () => {
-    localStorage.setItem(THEME_KEY, "papel");
+  it("lista os temas de fábrica, depois a seção Seus temas com o Personalizado, e marca o atual", () => {
+    localStorage.setItem(THEME_KEY, "terminal");
     render(<SettingsView onClose={() => {}} />);
 
-    expect(screen.getAllByRole("radio")).toHaveLength(13);
-    expect(screen.getByRole("radio", { name: /Personalizado/ })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: /Papel/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getAllByRole("radio")).toHaveLength(6);
+    expect(screen.getByRole("radiogroup", { name: "Seus temas" }).textContent).toContain("Personalizado");
+    expect(screen.getByRole("radio", { name: /Terminal/ }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("o editor do Personalizado troca a fonte e o formato na hora", () => {
@@ -60,11 +60,11 @@ describe("SettingsView", () => {
   it("escolher um tema aplica na hora e salva", () => {
     render(<SettingsView onClose={() => {}} />);
 
-    fireEvent.click(screen.getByRole("radio", { name: /Grafite/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /Pixel art/ }));
 
-    expect(document.documentElement.getAttribute("data-theme")).toBe("grafite");
-    expect(localStorage.getItem(THEME_KEY)).toBe("grafite");
-    expect(screen.getByRole("radio", { name: /Grafite/ }).getAttribute("aria-checked")).toBe("true");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("pixel");
+    expect(localStorage.getItem(THEME_KEY)).toBe("pixel");
+    expect(screen.getByRole("radio", { name: /Pixel art/ }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("troca de seção pelo menu lateral e lembra a última aberta", () => {

@@ -77,6 +77,33 @@ function saveSection(id: SettingsSection) {
   }
 }
 
+/// Cartão de tema: prévia com as cores da paleta, nome e descrição. Escolher aplica na hora.
+function ThemeCard({
+  label,
+  description,
+  palette,
+  checked,
+  onChoose,
+}: {
+  label: string;
+  description: string;
+  palette: ThemePalette;
+  checked: boolean;
+  onChoose: () => void;
+}) {
+  return (
+    <button type="button" role="radio" aria-checked={checked} className="theme-card" onClick={onChoose}>
+      <span className="theme-card__preview" style={{ background: palette.chat }} aria-hidden="true">
+        <span className="theme-card__sidebar" style={{ background: palette.sidebar }} />
+        <span className="theme-card__bubble" style={{ background: palette.bubble }} />
+        <span className="theme-card__accent" style={{ background: palette.accent }} />
+      </span>
+      <span className="theme-card__name">{label}</span>
+      <span className="theme-card__desc">{description}</span>
+    </button>
+  );
+}
+
 /// Cores do editor do Personalizado, na ordem em que aparecem.
 const COLOR_FIELDS: Array<[keyof ThemePalette, string]> = [
   ["sidebar", "Barra lateral"],
@@ -178,41 +205,37 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 role="radiogroup"
                 aria-labelledby="settings-theme"
               >
-                {THEMES.map((t) => {
+                {THEMES.filter((t) => t.id !== "custom").map((t) => (
+                  <ThemeCard
+                    key={t.id}
+                    label={t.label}
+                    description={t.description}
+                    palette={t.palette}
+                    checked={theme === t.id}
+                    onChoose={() => choose(t.id)}
+                  />
+                ))}
+              </div>
+
+              <h3 id="settings-user-themes" className="settings__subhead">
+                Seus temas
+              </h3>
+              <div
+                className="themes"
+                role="radiogroup"
+                aria-labelledby="settings-user-themes"
+              >
+                {THEMES.filter((t) => t.id === "custom").map((t) => (
                   // O cartão do Personalizado mostra as cores que o usuário escolheu.
-                  const p = t.id === "custom" ? palette : t.palette;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={theme === t.id}
-                      className="theme-card"
-                      onClick={() => choose(t.id)}
-                    >
-                      <span
-                        className="theme-card__preview"
-                        style={{ background: p.chat }}
-                        aria-hidden="true"
-                      >
-                        <span
-                          className="theme-card__sidebar"
-                          style={{ background: p.sidebar }}
-                        />
-                        <span
-                          className="theme-card__bubble"
-                          style={{ background: p.bubble }}
-                        />
-                        <span
-                          className="theme-card__accent"
-                          style={{ background: p.accent }}
-                        />
-                      </span>
-                      <span className="theme-card__name">{t.label}</span>
-                      <span className="theme-card__desc">{t.description}</span>
-                    </button>
-                  );
-                })}
+                  <ThemeCard
+                    key={t.id}
+                    label={t.label}
+                    description={t.description}
+                    palette={palette}
+                    checked={theme === t.id}
+                    onChoose={() => choose(t.id)}
+                  />
+                ))}
               </div>
 
               {theme === "custom" && (

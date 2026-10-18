@@ -47,6 +47,15 @@ export function extractPlan(reply: string): { summary: string; plan: string } | 
   return { summary: reply.replace(match[0], "").trim(), plan: match[1].trim() };
 }
 
+/// O plano que já chegou até agora, enquanto o bloco `luna-plano` ainda está sendo escrito. Sem o bloco, devolve null.
+export function streamingPlan(reply: string): string | null {
+  const start = reply.indexOf("```luna-plano");
+  if (start < 0) return null;
+  const body = reply.slice(start).replace(/^```luna-plano[ \t]*\r?\n?/, "");
+  // Tira a cerca de fechamento, inteira ou parcial (ainda chegando).
+  return body.replace(/\n?`{0,3}\s*$/, "").trim();
+}
+
 /// O texto que vira plano na aba Plano, ou null. Vale para a resposta sem perguntas e para a que pede aprovação
 /// (a aprovação é a última pergunta do plano). Rodadas de perguntas não viram plano.
 export function planFromReply(reply: { text: string; questions: Question[] | null }, planning: boolean): string | null {

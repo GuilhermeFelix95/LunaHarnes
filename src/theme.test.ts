@@ -23,22 +23,8 @@ describe("theme", () => {
     document.documentElement.removeAttribute("style");
   });
 
-  it("tem os temas de cor, os de Claude e Codex, os de terminal e o personalizado", () => {
-    expect(THEMES.map((t) => t.id)).toEqual([
-      "noite",
-      "musgo",
-      "ametista",
-      "papel",
-      "oceano",
-      "grafite",
-      "claude",
-      "claude-claro",
-      "codex",
-      "terminal-verde",
-      "terminal-ambar",
-      "terminal-classico",
-      "custom",
-    ]);
+  it("tem Luna, Claude, Codex, Terminal, Pixel art e o personalizado, nessa ordem", () => {
+    expect(THEMES.map((t) => t.id)).toEqual(["luna", "claude", "codex", "terminal", "pixel", "custom"]);
   });
 
   it("o tamanho do texto multiplica a escala de tipo", () => {
@@ -96,32 +82,32 @@ describe("theme", () => {
     expect(THEMES.find((t) => t.id === "claude")?.palette.accent).toBe("#d97757");
   });
 
-  it("sem escolha salva, usa o Noite", () => {
-    expect(loadTheme()).toBe("noite");
+  it("sem escolha salva, usa o Luna", () => {
+    expect(loadTheme()).toBe("luna");
   });
 
-  it("valor salvo desconhecido, como o Luna antigo, volta para o padrão", () => {
-    localStorage.setItem(THEME_KEY, "luna");
-    expect(loadTheme()).toBe("noite");
+  it("tema removido salvo antes, como o Noite, volta para o Luna", () => {
+    localStorage.setItem(THEME_KEY, "noite");
+    expect(loadTheme()).toBe("luna");
     localStorage.setItem(THEME_KEY, "<script>");
-    expect(loadTheme()).toBe("noite");
+    expect(loadTheme()).toBe("luna");
   });
 
   it("salva e carrega o tema escolhido", () => {
-    saveTheme("papel");
-    expect(localStorage.getItem(THEME_KEY)).toBe("papel");
-    expect(loadTheme()).toBe("papel");
+    saveTheme("terminal");
+    expect(localStorage.getItem(THEME_KEY)).toBe("terminal");
+    expect(loadTheme()).toBe("terminal");
   });
 
   it("aplica o tema no data-theme, nas variáveis e avisa quem desenha cores próprias", () => {
     const listener = vi.fn();
     window.addEventListener("luna:theme", listener);
 
-    applyTheme("papel");
+    applyTheme("terminal");
     const style = document.documentElement.style;
-    expect(document.documentElement.getAttribute("data-theme")).toBe("papel");
-    expect(style.getPropertyValue("--bg")).toBe("#fbf8f1");
-    expect(style.getPropertyValue("--font-sans")).toContain("Georgia");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("terminal");
+    expect(style.getPropertyValue("--bg")).toBe("#051407");
+    expect(style.getPropertyValue("--font-sans")).toContain("Consolas");
     expect(listener).toHaveBeenCalledTimes(1);
     window.removeEventListener("luna:theme", listener);
   });
@@ -168,8 +154,8 @@ describe("theme", () => {
   });
 
   it("trocar de tema troca todas as cores de uma vez", () => {
-    applyTheme("musgo");
-    applyTheme("grafite");
-    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#1b1b1d");
+    applyTheme("pixel");
+    applyTheme("codex");
+    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#212121");
   });
 });

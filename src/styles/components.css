@@ -1211,19 +1211,23 @@ textarea:focus-visible {
   flex: 1 1 260px;
   gap: 14px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .usage__item {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-width: 150px;
+  min-width: 84px;
 }
 
 .usage__label {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .usage__bar {
@@ -1240,6 +1244,38 @@ textarea:focus-visible {
   border-radius: 999px;
   background: var(--accent);
   transition: width 0.3s ease;
+}
+
+/* Seletor de som: segue o tema (borda, fundo, texto e seta), e não a caixa padrão do sistema */
+.sound-select {
+  appearance: none;
+  min-height: 32px;
+  padding: 6px 30px 6px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--button-radius);
+  background-color: var(--glass);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--fg-muted) 50%),
+    linear-gradient(135deg, var(--fg-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.sound-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Subtítulo dentro de uma seção de Configurações (ex.: Seus temas) */
+.settings__subhead {
+  margin: 18px 0 8px;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--fg-muted);
 }
 
 /* Painel de alterações (direita) */

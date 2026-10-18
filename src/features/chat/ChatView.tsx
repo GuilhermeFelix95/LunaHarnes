@@ -27,7 +27,7 @@ import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
-import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { cacheKey } from "../../chat/responseCache";
@@ -321,7 +321,16 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         costRef.current += event.usd;
         setCostUsd(costRef.current);
       }
-      commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
+      // No plano, o texto do bloco luna-plano vai direto para o painel enquanto chega; o chat fica sem ele.
+      const planStream = event.kind === "textDelta" && turnPlanning.current ? streamingPlan(responseText.current) : null;
+      if (planStream !== null) {
+        planRef.current = planStream;
+        setPlan(planStream);
+        setSideOpen(true);
+        setSideTab("plan");
+      } else {
+        commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
+      }
       if (event.kind === "error") {
         void notifyIfUnfocused("Erro na resposta", "Uma resposta falhou. Abra a conversa para ver o motivo.");
         showToast({ kind: "error", title: "Erro na resposta", body: "Abra a conversa para ver o motivo." });
@@ -384,7 +393,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         const planParts = turnPlanning.current ? extractPlan(parsed.text) : null;
         if (planParts) {
           const last = messagesRef.current.at(-1);
-          if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: planParts.summary }]);
+          if (last?.role === "assistant" && !last.tool) {
+            commit([...messagesRef.current.slice(0, -1), { ...last, text: planParts.summary }]);
+          } else if (planParts.summary) {
+            // O plano chegou todo no painel: o resumo entra no chat como resposta nova.
+            commit(applyEvent(messagesRef.current, { kind: "textDelta", text: planParts.summary }, turnProvider.current, turnLabel.current));
+          }
         }
         const draft = planParts?.plan ?? planFromReply(parsed, turnPlanning.current);
         if (draft) {

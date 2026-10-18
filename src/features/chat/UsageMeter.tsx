@@ -23,11 +23,12 @@ interface UsageMeterProps {
 
 /// Uso da conta e do contexto, no rodapé do chat. Só mostra o que a CLI já informou.
 export function UsageMeter({ limits, context, windowHint }: UsageMeterProps) {
-  const windows: Array<[string, "fiveHour" | "sevenDay"]> = [
-    ["Sessão de 5 h", "fiveHour"],
-    ["Semana", "sevenDay"],
+  // Rótulos curtos para caber numa linha; o texto completo (com o reset) fica no title.
+  const windows: Array<[string, string, "fiveHour" | "sevenDay"]> = [
+    ["5 h", "Sessão de 5 h", "fiveHour"],
+    ["Semana", "Semana", "sevenDay"],
   ];
-  const known = windows.filter(([, key]) => limits[key]);
+  const known = windows.filter(([, , key]) => limits[key]);
 
   if (!context && known.length === 0) return null;
 
@@ -40,22 +41,22 @@ export function UsageMeter({ limits, context, windowHint }: UsageMeterProps) {
         </div>
       )}
       {context && context.windowSize !== undefined && (
-        <div className="usage__item" title="Janela de contexto do último turno">
-          <span className="usage__label">
-            Contexto · {formatTokens(context.tokens)} de {formatTokens(context.windowSize)} (
-            {contextPercent(context.tokens, context.windowSize)}%)
-          </span>
+        <div
+          className="usage__item"
+          title={`Janela de contexto do último turno: ${formatTokens(context.tokens)} de ${formatTokens(context.windowSize)}`}
+        >
+          <span className="usage__label">Contexto · {contextPercent(context.tokens, context.windowSize)}%</span>
           <Bar percent={contextPercent(context.tokens, context.windowSize)} />
         </div>
       )}
 
-      {known.map(([label, key]) => {
+      {known.map(([short, label, key]) => {
         const info = limits[key]!;
         const percent = utilizationPercent(info.utilization);
         return (
-          <div className="usage__item" key={key}>
+          <div className="usage__item" key={key} title={`${label} · ${percent}% · reseta ${formatReset(info.resetsAt, key)}`}>
             <span className="usage__label">
-              {label} · {percent}% · reseta {formatReset(info.resetsAt, key)}
+              {short} · {percent}%
             </span>
             <Bar percent={percent} />
           </div>

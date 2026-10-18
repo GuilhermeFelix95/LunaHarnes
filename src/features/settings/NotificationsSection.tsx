@@ -42,7 +42,7 @@ export function NotificationsSection() {
       <div className="settings__row">
         <label>
           Som ao responder
-          <select value={sound} onChange={(e) => changeSound(e.target.value as SoundChoice)}>
+          <select className="sound-select" value={sound} onChange={(e) => changeSound(e.target.value as SoundChoice)}>
             {SOUNDS.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.label}
