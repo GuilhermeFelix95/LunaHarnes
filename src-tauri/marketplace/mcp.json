@@ -1,0 +1,33 @@
+{
+  "servers": [
+    {
+      "id": "memoria",
+      "name": "Memória",
+      "description": "Guarda fatos entre conversas num grafo local de conhecimento.",
+      "author": "Model Context Protocol",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": []
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "description": "Lê repositórios, issues e pull requests do GitHub. Precisa de um token pessoal.",
+      "author": "Model Context Protocol",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": [{ "key": "GITHUB_PERSONAL_ACCESS_TOKEN", "label": "Token pessoal do GitHub" }]
+    },
+    {
+      "id": "context7",
+      "name": "Context7",
+      "description": "Traz a documentação atual de bibliotecas para o agente.",
+      "author": "Upstash",
+      "transport": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "env": []
+    }
+  ]
+}

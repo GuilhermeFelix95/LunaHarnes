@@ -4,6 +4,7 @@ pub mod changes;
 pub mod checkpoints;
 pub mod commands;
 pub mod conversations;
+pub mod mcp;
 pub mod models;
 pub mod plugins;
 pub mod providers;
@@ -52,6 +53,11 @@ pub fn run() {
             skills::load_skill_catalog,
             skills::install_skill,
             skills::uninstall_skill,
+            mcp::list_mcp_servers,
+            mcp::set_mcp_enabled,
+            mcp::remove_mcp_server,
+            mcp::load_mcp_catalog,
+            mcp::install_mcp_from_catalog,
             commands::save_attachment,
             commands::checkpoint_preview,
             commands::checkpoint_restore,

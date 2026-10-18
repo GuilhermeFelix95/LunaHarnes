@@ -381,3 +381,50 @@ export function installSkill(id: string): Promise<string[]> {
 export function uninstallSkill(id: string): Promise<void> {
   return invoke<void>("uninstall_skill", { id });
 }
+
+/// Servidor MCP gravado nas CLIs (ver src-tauri/src/mcp.rs).
+export interface McpServer {
+  name: string;
+  transport: "stdio" | "http";
+  command?: string;
+  args: string[];
+  url?: string;
+  env: Record<string, string>;
+  /** "claude" e/ou "codex"; vazio = desligado. */
+  engines: string[];
+  enabled: boolean;
+}
+
+export interface McpCatalogEntry {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  transport: "stdio" | "http";
+  command?: string;
+  args: string[];
+  url?: string;
+  env: { key: string; label: string }[];
+}
+
+export const MCP_CHANGED = "luna:mcp-changed";
+
+export function listMcpServers(): Promise<McpServer[]> {
+  return invoke<McpServer[]>("list_mcp_servers");
+}
+
+export function setMcpEnabled(name: string, enabled: boolean): Promise<void> {
+  return invoke<void>("set_mcp_enabled", { name, enabled });
+}
+
+export function removeMcpServer(name: string): Promise<void> {
+  return invoke<void>("remove_mcp_server", { name });
+}
+
+export function loadMcpCatalog(): Promise<{ servers: McpCatalogEntry[] }> {
+  return invoke<{ servers: McpCatalogEntry[] }>("load_mcp_catalog");
+}
+
+export function installMcpFromCatalog(id: string, values: Record<string, string>): Promise<void> {
+  return invoke<void>("install_mcp_from_catalog", { id, values });
+}

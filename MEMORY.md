@@ -83,3 +83,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Configurações em menu lateral (Aparência, Notificações, Conversa, Regras globais, Contas e modelos, Plugins); Contas e APIs virou Contas e modelos.
 2026-10-18 | Configurações: Contas e Provedores separados (AccountsSection.tsx, ApiProfilesSection.tsx com cartões e janela de formulário); Plugins com cartões e criação em janela (src/ui/Dialog.tsx).
 2026-10-18 | Plano aprovado para marketplace de skills e MCP (etapas: Configurações, skills, MCP), ainda não implementado; depende de aprovação de toml_edit.
+2026-10-18 | Skills: marketplace oficial embutido (src-tauri/marketplace/skills.json), instaladas em ~/.claude/skills e ~/.codex/skills (src-tauri/src/skills.rs, SkillsSection.tsx).
+2026-10-18 | MCP: gravado em ~/.claude.json (mcpServers) e ~/.codex/config.toml (toml_edit), com desligados em mcp-disabled.json (src-tauri/src/mcp.rs, McpSection.tsx). Catálogo oficial em marketplace/mcp.json; luna skills add e luna mcp add ainda não feitos.
