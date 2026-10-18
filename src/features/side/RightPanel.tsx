@@ -1,4 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { ListChecks, ScrollText } from "lucide-react";
+import { EmptyState } from "../../ui/EmptyState";
 import { Markdown } from "../chat/Markdown";
 import type { TodoItem } from "../../types";
 
@@ -139,7 +141,7 @@ export function RightPanel({
         {plan ? (
           <Markdown text={plan} />
         ) : (
-          <p className="side__empty">Ao planejar, o plano completo aparece aqui.</p>
+          <EmptyState icon={<ScrollText size={18} />}>Ao planejar, o plano completo aparece aqui.</EmptyState>
         )}
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "progress"}>
@@ -153,7 +155,7 @@ export function RightPanel({
             ))}
           </ol>
         ) : (
-          <p className="side__empty">Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</p>
+          <EmptyState icon={<ListChecks size={18} />}>Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</EmptyState>
         )}
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>

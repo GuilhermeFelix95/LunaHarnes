@@ -2,6 +2,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import lunaLogo from "../../assets/luna.svg";
 import type { ConversationSummary } from "../../types";
+import { EmptyState } from "../../ui/EmptyState";
 import { groupByProject } from "./groupByProject";
 
 export const SIDEBAR_WIDTH_KEY = "luna.sidebar.width";
@@ -175,11 +176,11 @@ export function Sidebar({
         {error && <p role="alert" className="sidebar__error">{error}</p>}
 
         {projects.length === 0 && (
-          <p className="sidebar__empty">
+          <EmptyState>
             {conversations.length === 0
               ? "Suas conversas aparecem aqui, agrupadas por projeto."
               : "Nenhuma conversa encontrada."}
-          </p>
+          </EmptyState>
         )}
 
         {projects.map((project) => (
@@ -261,7 +262,7 @@ export function Sidebar({
                           aria-label={`Excluir ${item.title}`}
                           onClick={() => onDelete(item.id)}
                         >
-                          ×
+                          <Trash2 size={13} aria-hidden="true" />
                         </button>
                       </li>
                     ),

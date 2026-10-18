@@ -1,3 +1,4 @@
+import { Folder } from "lucide-react";
 import { folderName } from "../sidebar/groupByProject";
 import { usePopover } from "../../ui/usePopover";
 
@@ -27,7 +28,7 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse }: Works
         disabled={disabled}
         onClick={() => setOpen((on) => !on)}
       >
-        <span aria-hidden="true">▢</span>
+        <Folder size={13} aria-hidden="true" />
         {folderName(cwd) || "Escolher pasta"}
       </button>
 

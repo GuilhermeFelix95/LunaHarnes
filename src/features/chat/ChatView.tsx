@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { GitCompare, Terminal } from "lucide-react";
+import { ArrowDown, GitCompare, Terminal } from "lucide-react";
 import lunaLogo from "../../assets/luna.svg";
 import {
   cancelPrompt,
@@ -723,7 +723,7 @@ ${outgoing}`
 
         {!stuck && messages.length > 0 && (
           <button type="button" className="chat__to-end" onClick={scrollToBottom}>
-            Ir para o fim ↓
+            Ir para o fim <ArrowDown size={13} aria-hidden="true" />
           </button>
         )}
 

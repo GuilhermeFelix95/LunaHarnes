@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { discardChange, getChanges, getFileDiff } from "../../api";
 import type { ChangedFile, Changes } from "../../types";
+import { EmptyState } from "../../ui/EmptyState";
 
 interface ChangesPanelProps {
   cwd: string;
@@ -105,7 +106,7 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
         <span className="changes__count">{changes.files.length}</span>
       </header>
 
-      {changes.files.length === 0 && <p className="changes__note">Nenhum arquivo alterado.</p>}
+      {changes.files.length === 0 && <EmptyState>Nenhum arquivo alterado.</EmptyState>}
 
       <ul className="changes__list">
         {changes.files.map((file) => (

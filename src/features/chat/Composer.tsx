@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, Square, X } from "lucide-react";
 import type { ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
@@ -115,7 +115,7 @@ export function Composer(props: ComposerProps) {
                 onClick={() => props.onRemoveAttachment?.(a.id)}
                 disabled={running}
               >
-                ×
+                <X size={12} aria-hidden="true" />
               </button>
             </li>
           ))}
