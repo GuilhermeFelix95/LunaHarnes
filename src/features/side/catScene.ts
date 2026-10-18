@@ -2,14 +2,18 @@ import * as THREE from "three";
 
 /// Cena 3D do gatinho lunar. Carregada sob demanda (import dinâmico em LunaCat.tsx), para o three.js
 /// não pesar a abertura do app. Tudo é montado em código, sem arquivos de modelo.
+/// Visual: gatinho roxo de traços arredondados, olhos grandes com brilho, laço no pescoço (prévia C).
 
-const FUR = 0x8f8a9c;
-const FUR_DARK = 0x4f4c5e;
-const FUR_LIGHT = 0xb4afc2;
-const EYE = 0x9fe6c2;
-const NOSE = 0xe59aa8;
+const FUR = 0xa78bfa;
+const FUR_DARK = 0x7c5ce0;
+const CREAM = 0xf3edff;
+const PINK = 0xffb3d1;
+const BLUSH = 0xff8fb3;
+const BOW = 0xff6b8b;
+const PUPIL = 0x2d2350;
+const STAR = 0xffd66b;
 
-/// Cor da lua: o --accent do tema. Se o valor não der para ler, fica um lilás.
+/// Cor da tela do notebook: o --accent do tema. Se o valor não der para ler, fica um lilás.
 function moonColor(): THREE.Color {
   const color = new THREE.Color(0xc9a6ff);
   const value = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
@@ -50,7 +54,7 @@ export function mountCatScene(host: HTMLElement, isWorking: () => boolean): () =
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
   camera.position.set(0, 1.4, 8.5);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x3a3a52, 1.5));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x3a3a52, 1.6));
   const key = new THREE.DirectionalLight(0xffffff, 2.2);
   key.position.set(3, 6, 5);
   key.castShadow = true;
@@ -66,21 +70,21 @@ export function mountCatScene(host: HTMLElement, isWorking: () => boolean): () =
   floor.receiveShadow = true;
   scene.add(floor);
 
-  const furMat = new THREE.MeshStandardMaterial({ color: FUR, roughness: 0.92 });
-  const lightMat = new THREE.MeshStandardMaterial({ color: FUR_LIGHT, roughness: 0.92 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: FUR_DARK, roughness: 0.95 });
-  const eyeMat = new THREE.MeshStandardMaterial({ color: EYE, emissive: EYE, emissiveIntensity: 0.7 });
-  const noseMat = new THREE.MeshStandardMaterial({ color: NOSE, roughness: 0.6 });
-  const moonMat = new THREE.MeshStandardMaterial({
-    color: moonColor(),
-    emissive: moonColor(),
-    emissiveIntensity: 1.2,
-  });
+  const furMat = new THREE.MeshStandardMaterial({ color: FUR, roughness: 0.7 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: FUR_DARK, roughness: 0.75 });
+  const creamMat = new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.6 });
+  const pinkMat = new THREE.MeshStandardMaterial({ color: PINK, roughness: 0.6 });
+  const blushMat = new THREE.MeshStandardMaterial({ color: BLUSH, roughness: 0.8, transparent: true, opacity: 0.85 });
+  const bowMat = new THREE.MeshStandardMaterial({ color: BOW, roughness: 0.5 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+  const pupilMat = new THREE.MeshStandardMaterial({ color: PUPIL, roughness: 0.3 });
+  const starMat = new THREE.MeshStandardMaterial({ color: STAR, emissive: STAR, emissiveIntensity: 0.6 });
   const screenMat = new THREE.MeshStandardMaterial({
     color: 0x1b1d2a,
     emissive: moonColor(),
     emissiveIntensity: 0.4,
   });
+  const laptopMat = new THREE.MeshStandardMaterial({ color: 0x3a3450, roughness: 0.6 });
 
   const mesh = (geometry: THREE.BufferGeometry, material: THREE.Material, parent: THREE.Object3D) => {
     const item = new THREE.Mesh(geometry, material);
@@ -92,72 +96,116 @@ export function mountCatScene(host: HTMLElement, isWorking: () => boolean): () =
   const cat = new THREE.Group();
   scene.add(cat);
 
-  const body = mesh(new THREE.SphereGeometry(1, 32, 24), furMat, cat);
-  body.scale.set(0.95, 0.7, 1.1);
-  body.position.set(0, -0.15, 0);
+  // Corpo redondo e baixinho, com barriga creme.
+  const body = mesh(new THREE.SphereGeometry(1, 40, 28), furMat, cat);
+  body.scale.set(0.85, 0.66, 0.9);
+  body.position.set(0, -0.35, 0);
+  const belly = mesh(new THREE.SphereGeometry(1, 32, 20), creamMat, cat);
+  belly.scale.set(0.5, 0.4, 0.28);
+  belly.position.set(0, -0.5, 0.72);
 
-  const haunches = [-0.45, 0.45].map((x) => {
-    const haunch = mesh(new THREE.SphereGeometry(0.36, 24, 16), darkMat, cat);
-    haunch.position.set(x, -0.6, -0.25);
+  // Patas traseiras, arredondadas.
+  const haunches = [-0.5, 0.5].map((x) => {
+    const haunch = mesh(new THREE.SphereGeometry(0.38, 24, 18), darkMat, cat);
+    haunch.position.set(x, -0.62, -0.18);
     return haunch;
   });
 
+  // Cabeça grande, como a de um mascote.
   const head = new THREE.Group();
-  head.position.set(0, 0.55, 0.55);
+  head.position.set(0, 0.5, 0.5);
   cat.add(head);
-  mesh(new THREE.SphereGeometry(0.5, 32, 24), furMat, head).scale.set(1, 0.9, 0.95);
-  for (const x of [-0.3, 0.3]) {
-    const ear = mesh(new THREE.ConeGeometry(0.18, 0.36, 16), furMat, head);
-    ear.position.set(x, 0.42, -0.05);
-    ear.rotation.z = -x * 0.6;
+  mesh(new THREE.SphereGeometry(0.62, 40, 30), furMat, head).scale.set(1, 0.92, 0.95);
+  for (const x of [-0.4, 0.4]) {
+    const ear = mesh(new THREE.ConeGeometry(0.2, 0.44, 20), furMat, head);
+    ear.position.set(x, 0.5, 0);
+    ear.rotation.z = -x * 0.55;
+    const inner = mesh(new THREE.ConeGeometry(0.11, 0.24, 16), pinkMat, head);
+    inner.position.set(x, 0.46, 0.1);
+    inner.rotation.z = -x * 0.55;
   }
-  mesh(new THREE.SphereGeometry(0.2, 24, 16), lightMat, head).position.set(0, -0.12, 0.42);
-  mesh(new THREE.SphereGeometry(0.05, 16, 12), noseMat, head).position.set(0, -0.04, 0.6);
+  mesh(new THREE.SphereGeometry(0.28, 28, 20), creamMat, head).position.set(0, -0.15, 0.46);
+  mesh(new THREE.SphereGeometry(0.06, 16, 12), pinkMat, head).position.set(0, -0.02, 0.66);
 
-  // Lua crescente na testa: uma esfera acesa com outra, da cor do pelo, cobrindo parte dela.
-  mesh(new THREE.SphereGeometry(0.1, 20, 14), moonMat, head).position.set(0, 0.36, 0.47);
-  mesh(new THREE.SphereGeometry(0.095, 20, 14), furMat, head).position.set(0.045, 0.37, 0.5);
+  // Bochechas.
+  for (const x of [-0.36, 0.36]) {
+    const blush = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.02, 24), blushMat, head);
+    blush.rotation.x = Math.PI / 2;
+    blush.position.set(x, -0.1, 0.56);
+  }
 
+  // Laço no pescoço: dois triângulos e um nó.
+  const bow = new THREE.Group();
+  bow.position.set(0, -0.56, 0.42);
+  head.add(bow);
+  for (const side of [-1, 1]) {
+    const wing = mesh(new THREE.ConeGeometry(0.16, 0.24, 20), bowMat, bow);
+    wing.position.set(side * 0.17, 0, 0);
+    wing.rotation.z = side * (Math.PI / 2);
+  }
+  mesh(new THREE.SphereGeometry(0.06, 16, 12), bowMat, bow);
+
+  // Estrelinha na testa, acesa.
+  mesh(new THREE.OctahedronGeometry(0.07, 0), starMat, head).position.set(0.42, 0.42, 0.28);
+
+  // Olhos grandes com brilho (abertos) e arcos felizes (fechados).
   const openEyes = new THREE.Group();
   const closedEyes = new THREE.Group();
   head.add(openEyes, closedEyes);
-  for (const x of [-0.2, 0.2]) {
-    const eye = mesh(new THREE.SphereGeometry(0.07, 16, 12), eyeMat, openEyes);
-    eye.position.set(x, 0.05, 0.44);
-    eye.scale.set(1, 1.3, 0.5);
-    const lid = mesh(new THREE.BoxGeometry(0.16, 0.03, 0.04), darkMat, closedEyes);
-    lid.position.set(x, 0.05, 0.46);
+  for (const x of [-0.24, 0.24]) {
+    mesh(new THREE.SphereGeometry(0.19, 24, 18), whiteMat, openEyes).position.set(x, 0.04, 0.48);
+    mesh(new THREE.SphereGeometry(0.12, 20, 16), pupilMat, openEyes).position.set(x, 0.02, 0.6);
+    mesh(new THREE.SphereGeometry(0.045, 12, 10), whiteMat, openEyes).position.set(x + 0.06, 0.09, 0.67);
+
+    const arc = mesh(new THREE.TorusGeometry(0.1, 0.022, 10, 20, Math.PI), pupilMat, closedEyes);
+    arc.position.set(x, -0.01, 0.66);
   }
   closedEyes.visible = false;
 
-  const paws = [-0.24, 0.24].map((x) => {
-    const paw = mesh(new THREE.CapsuleGeometry(0.1, 0.22, 6, 12), lightMat, cat);
+  // Focinho e boca.
+  const mouth = mesh(new THREE.TorusGeometry(0.08, 0.018, 10, 18, Math.PI), pupilMat, head);
+  mouth.rotation.z = Math.PI;
+  mouth.position.set(0, -0.26, 0.62);
+
+  // Bigodes finos.
+  for (const side of [-1, 1]) {
+    for (const angle of [-0.12, 0.12]) {
+      const whisker = mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.42, 6), pupilMat, head);
+      whisker.rotation.z = side * (Math.PI / 2 + angle);
+      whisker.position.set(side * 0.55, -0.16, 0.5);
+    }
+  }
+
+  const paws = [-0.26, 0.26].map((x) => {
+    const paw = mesh(new THREE.CapsuleGeometry(0.12, 0.2, 8, 16), furMat, cat);
     paw.rotation.x = Math.PI / 2;
-    paw.position.set(x, -0.78, 0.85);
+    paw.position.set(x, -0.8, 0.9);
     return paw;
   });
 
+  // Cauda grossinha, enrolada para cima.
   const tail = new THREE.Group();
   cat.add(tail);
   const tailCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, -0.7, -0.8),
     new THREE.Vector3(0, -0.8, -1.6),
     new THREE.Vector3(0.5, -0.8, -1.9),
-    new THREE.Vector3(0.9, -0.4, -1.6),
-    new THREE.Vector3(1.0, 0.2, -1.2),
+    new THREE.Vector3(0.95, -0.4, -1.6),
+    new THREE.Vector3(1.05, 0.25, -1.2),
   ]);
-  mesh(new THREE.TubeGeometry(tailCurve, 40, 0.09, 10, false), furMat, tail);
+  mesh(new THREE.TubeGeometry(tailCurve, 40, 0.14, 14, false), furMat, tail);
 
   // Notebook aberto à frente, com a tela voltada para o gato.
   const laptop = new THREE.Group();
-  laptop.position.set(0, -0.86, 2.3);
+  laptop.position.set(0, -1.0, 2.3);
+  laptop.scale.setScalar(0.75);
   scene.add(laptop);
-  mesh(new THREE.BoxGeometry(1.6, 0.06, 1.1), darkMat, laptop).position.set(0, 0, -0.55);
+  mesh(new THREE.BoxGeometry(1.6, 0.06, 1.1), laptopMat, laptop).position.set(0, 0, -0.55);
   const lid = new THREE.Group();
   lid.position.set(0, 0, -1.05);
   lid.rotation.x = -0.2;
   laptop.add(lid);
-  mesh(new THREE.BoxGeometry(1.35, 0.9, 0.05), darkMat, lid).position.set(0, 0.45, 0);
+  mesh(new THREE.BoxGeometry(1.35, 0.9, 0.05), laptopMat, lid).position.set(0, 0.45, 0);
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.75), screenMat);
   screen.position.set(0, 0.45, -0.03);
   screen.rotation.y = Math.PI;
@@ -173,14 +221,14 @@ export function mountCatScene(host: HTMLElement, isWorking: () => boolean): () =
   const frame = (t: number) => {
     const working = isWorking();
 
-    head.rotation.x = working ? 0.25 + 0.03 * Math.sin(t * 2) : 0.5;
-    head.position.y = working ? 0.55 : 0.42;
+    head.rotation.x = working ? 0.25 + 0.03 * Math.sin(t * 2) : 0.45;
+    head.position.y = working ? 0.6 : 0.46;
     openEyes.visible = working;
     closedEyes.visible = !working;
-    body.scale.y = working ? 0.7 : 0.62 + 0.02 * Math.sin(t * 1.8);
+    body.scale.y = working ? 0.66 : 0.6 + 0.02 * Math.sin(t * 1.8);
     tail.rotation.y = working ? 0.35 * Math.sin(t * 3) : 1.1;
     paws.forEach((paw, i) => {
-      paw.position.y = working ? -0.78 + 0.04 * Math.abs(Math.sin(t * 16 + i * Math.PI)) : -0.82;
+      paw.position.y = working ? -0.8 + 0.04 * Math.abs(Math.sin(t * 16 + i * Math.PI)) : -0.84;
     });
     haunches.forEach((haunch) => (haunch.scale.y = working ? 1 : 0.9));
 
