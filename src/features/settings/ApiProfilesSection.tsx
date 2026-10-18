@@ -64,6 +64,9 @@ export function ApiProfilesSection() {
   const [refreshing, setRefreshing] = useState(false);
   const [testResult, setTestResult] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState<string | undefined>(undefined);
+  // Lista de onde se escolhe os modelos do perfil (a da API, a do preset ou a salva); a busca filtra esta lista.
+  const [catalog, setCatalog] = useState<string[]>([]);
+  const [modelQuery, setModelQuery] = useState("");
 
   async function reload() {
     try {
@@ -95,6 +98,7 @@ export function ApiProfilesSection() {
       modelScope: profile.modelScope ?? "all",
       contexts: profile.contextWindows ?? {},
     });
+    setCatalog(profile.models);
     setApiKey("");
     setStatus(undefined);
     setError(undefined);
@@ -123,6 +127,7 @@ export function ApiProfilesSection() {
       if (apiKey.trim()) await setApiProfileKey(saved.id, apiKey);
       setApiKey("");
       setForm({ ...EMPTY_FORM, preset: form.preset });
+      setCatalog([]);
       setStatus(apiKey.trim() ? "Perfil salvo e chave guardada no cofre do Windows." : "Perfil salvo.");
       announceChange();
       await reload();
@@ -168,6 +173,7 @@ export function ApiProfilesSection() {
       models: info && info.suggestedModels.length > 0 ? info.suggestedModels.join(", ") : form.models,
       defaultModel: info?.defaultModel ?? form.defaultModel,
     });
+    if (info && info.suggestedModels.length > 0) setCatalog(info.suggestedModels);
   }
 
   /// Põe a lista que a API devolveu no formulário. O padrão fica se ainda estiver na lista; senão vai o mais barato.
@@ -178,6 +184,16 @@ export function ApiProfilesSection() {
       defaultModel: result.ids.includes(current.defaultModel) ? current.defaultModel : result.cheapest ?? result.ids[0],
       contexts: result.contexts,
     }));
+    setCatalog(result.ids);
+  }
+
+  /// Liga ou desliga um modelo da lista do perfil, sem perder os outros.
+  function toggleModel(id: string) {
+    setForm((current) => {
+      const ids = current.models.split(",").map((m) => m.trim()).filter(Boolean);
+      const next = ids.includes(id) ? ids.filter((m) => m !== id) : [...ids, id];
+      return { ...current, models: next.join(", ") };
+    });
   }
 
   /// Atualizar: com a chave na tela, usa ela; sem chave e com perfil salvo, usa a chave guardada.
@@ -334,6 +350,36 @@ export function ApiProfilesSection() {
             placeholder="ex.: deepseek-flash, deepseek-v4-pro"
           />
         </label>
+        {catalog.length > 8 && (
+          <div className="model-picker">
+            <input
+              type="search"
+              aria-label="Buscar na lista de modelos"
+              placeholder="Buscar modelo"
+              value={modelQuery}
+              onChange={(e) => setModelQuery(e.target.value)}
+            />
+            <div className="model-picker__list">
+              {catalog
+                .filter((id) => id.toLowerCase().includes(modelQuery.trim().toLowerCase()))
+                .slice(0, 60)
+                .map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="model-picker__item"
+                    aria-pressed={form.models.split(",").some((m) => m.trim() === id)}
+                    onClick={() => toggleModel(id)}
+                  >
+                    {id}
+                  </button>
+                ))}
+            </div>
+            <p className="settings__hint">
+              {form.models.split(",").filter((m) => m.trim()).length} de {catalog.length} modelos no perfil. Mostra até 60 resultados por busca.
+            </p>
+          </div>
+        )}
         {form.preset === "openRouter" && (
           <fieldset className="settings__scope">
             <legend>Modelos do OpenRouter</legend>

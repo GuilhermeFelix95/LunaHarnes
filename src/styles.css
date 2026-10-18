@@ -2010,3 +2010,28 @@ textarea:focus-visible {
   font-size: 12px;
   color: var(--muted);
 }
+
+.model-picker {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.model-picker__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.model-picker__item {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.model-picker__item[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-fg);
+}

@@ -137,4 +137,22 @@ describe("ApiProfilesSection", () => {
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/sem chave/)).toBeTruthy();
   });
+
+  it("com lista grande, a busca filtra e clicar liga ou desliga o modelo no perfil", async () => {
+    const ids = Array.from({ length: 12 }, (_, i) => `vendor/modelo-${i}`);
+    vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids, cheapest: ids[0], contexts: {} });
+    render(<ApiProfilesSection />);
+    fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
+    fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
+    await waitFor(() => expect(screen.getByLabelText("Buscar na lista de modelos")).toBeTruthy());
+
+    fireEvent.change(screen.getByLabelText("Buscar na lista de modelos"), { target: { value: "modelo-7" } });
+    const items = Array.from(document.querySelectorAll(".model-picker__item")).map((b) => b.textContent);
+    expect(items).toEqual(["vendor/modelo-7"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "vendor/modelo-7" }));
+    expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe(
+      ids.filter((id) => id !== "vendor/modelo-7").join(", "),
+    );
+  });
 });

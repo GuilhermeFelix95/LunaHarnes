@@ -124,16 +124,16 @@ impl Preset {
                 "Z.ai (GLM)",
                 ProviderKind::Claude,
                 "https://api.z.ai/api/anthropic",
-                &["glm-4.7-flash", "glm-5.3-flash", "glm-5.2", "glm-5.1"],
-                "glm-4.7-flash",
+                &["glm-5.3-flash", "glm-5.3", "glm-5.2"],
+                "glm-5.3-flash",
             ),
-            // Moonshot/Kimi: o endereço e o modelo ainda precisam de confirmação na documentação oficial.
+            // Moonshot/Kimi: endereço e modelos conferidos na documentação oficial (kimi-k3 é o recomendado).
             Preset::Moonshot => (
                 "Moonshot / Kimi",
                 ProviderKind::Claude,
                 "https://api.moonshot.ai/anthropic",
-                &["kimi-k2.6", "kimi-k2.7-code", "kimi-k3"],
-                "kimi-k2.6",
+                &["kimi-k3", "kimi-k2.7-code", "kimi-k2.6"],
+                "kimi-k3",
             ),
             Preset::OpenCodeGo => (
                 "OpenCode Go",
@@ -672,6 +672,17 @@ mod tests {
         assert_eq!(info.default_base_url, "https://opencode.ai/zen/go");
         assert_eq!(info.default_model, "minimax-m3");
         assert_eq!(info.engine, ProviderKind::Claude);
+    }
+
+    #[test]
+    fn moonshot_and_zai_use_the_documented_endpoints_and_defaults() {
+        let moonshot = Preset::Moonshot.info();
+        assert_eq!(moonshot.default_base_url, "https://api.moonshot.ai/anthropic");
+        assert_eq!(moonshot.default_model, "kimi-k3");
+
+        let zai = Preset::Zai.info();
+        assert_eq!(zai.default_base_url, "https://api.z.ai/api/anthropic");
+        assert_eq!(zai.default_model, "glm-5.3-flash");
     }
 
     #[test]

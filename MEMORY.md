@@ -33,3 +33,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-17 | Rodada de 8 ajustes: lista completa do OpenRouter com escopo todos/gratuitos e janela de contexto por modelo; medidor de contexto para APIs; busca no seletor de modelo; seletor de perguntas com X e só no modo Conversar (antes Perguntar); escrita atômica das conversas; janela 1280x820; OpenCode Go no lugar do Zen; Kimi atualizado. Seletores nativos estilizados por CSS (não trocados por componente) para manter os testes.
 2026-10-17 | Seletor de perguntas volta ao modo Planejar (bloco luna-perguntas no prompt de planejamento); aparece em Planejar e Conversar.
 2026-10-17 | OpenCode Go: lista pública de 37 modelos marcada no preset (36 não compatíveis com Claude Code, só minimax-m3 pronto); confirmar com chave.
+2026-10-17 | Kimi e Z.ai conferidos na documentação oficial (padrões kimi-k3 e glm-5.3-flash); busca na lista de modelos da tela de configurações.
