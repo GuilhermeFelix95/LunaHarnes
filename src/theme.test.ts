@@ -11,8 +11,8 @@ describe("theme", () => {
     expect(THEMES.map((t) => t.id)).toEqual(["system", "light", "dark", "luna", "aurora", "duna", "grafite"]);
   });
 
-  it("sem escolha salva, segue o sistema", () => {
-    expect(loadTheme()).toBe("system");
+  it("sem escolha salva, usa o Luna, tema assinatura", () => {
+    expect(loadTheme()).toBe("luna");
   });
 
   it("salva e carrega o tema escolhido", () => {
@@ -21,9 +21,9 @@ describe("theme", () => {
     expect(loadTheme()).toBe("aurora");
   });
 
-  it("valor salvo desconhecido volta para o sistema", () => {
+  it("valor salvo desconhecido volta para o padrão", () => {
     localStorage.setItem(THEME_KEY, "<script>");
-    expect(loadTheme()).toBe("system");
+    expect(loadTheme()).toBe("luna");
   });
 
   it("aplica o tema no atributo data-theme e avisa quem desenha cores próprias", () => {

@@ -1,4 +1,4 @@
-/// Temas do app. As cores ficam em src/styles.css, num bloco `:root[data-theme="<id>"]` por tema.
+/// Temas do app. As cores ficam em src/styles/themes.css, num bloco `:root[data-theme="<id>"]` por tema.
 
 export type ThemeId = "system" | "light" | "dark" | "luna" | "aurora" | "duna" | "grafite";
 
@@ -33,7 +33,7 @@ export const THEMES: ThemeInfo[] = [
     id: "luna",
     label: "Luna",
     description: "Noite índigo com prata lunar.",
-    preview: { bg: "#141826", sidebar: "#0f1320", bubble: "#232b42", accent: "#8fa8ff" },
+    preview: { bg: "#0d1120", sidebar: "#0a0e1a", bubble: "#1b2238", accent: "#b9a8ff" },
   },
   {
     id: "aurora",
@@ -63,14 +63,17 @@ function isTheme(value: unknown): value is ThemeId {
   return THEMES.some((t) => t.id === value);
 }
 
+/** Padrão de quem ainda não escolheu: o Luna, tema assinatura. */
+export const DEFAULT_THEME: ThemeId = "luna";
+
 export function loadTheme(): ThemeId {
   try {
     const saved = localStorage.getItem(THEME_KEY);
     if (isTheme(saved)) return saved;
   } catch {
-    // Armazenamento indisponível: segue o sistema.
+    // Armazenamento indisponível: usa o padrão.
   }
-  return "system";
+  return DEFAULT_THEME;
 }
 
 export function saveTheme(id: ThemeId) {

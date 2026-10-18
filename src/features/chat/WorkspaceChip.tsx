@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { folderName } from "../sidebar/groupByProject";
+import { usePopover } from "../../ui/usePopover";
 
 interface WorkspaceChipProps {
   cwd: string;
@@ -12,25 +12,9 @@ interface WorkspaceChipProps {
 
 /// Mostra a pasta em que o agente trabalha, no rodapé do composer. Abre um menu para trocar.
 export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse }: WorkspaceChipProps) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
+  const { open, setOpen, root } = usePopover();
   const others = recent.filter((path) => path !== cwd);
 
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent) {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
 
   return (
     <div className="workspace-chip" ref={root}>

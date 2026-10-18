@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { ModelOption } from "../../types";
+import { usePopover } from "../../ui/usePopover";
 
 interface ModelMenuProps {
   models: ModelOption[];
@@ -13,31 +14,14 @@ const SEARCH_FROM = 8;
 
 /// Seletor de modelo com nome e descrição, no estilo do Claude Desktop.
 export function ModelMenu({ models, value, onChange, disabled }: ModelMenuProps) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const root = useRef<HTMLDivElement>(null);
+  const { open, setOpen, root } = usePopover();
   const current = models.find((m) => m.id === value);
   const term = query.trim().toLowerCase();
   const shown = term
     ? models.filter((m) => m.id.toLowerCase().includes(term) || m.label.toLowerCase().includes(term))
     : models;
 
-  // Fecha ao clicar fora ou apertar Esc.
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent) {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
 
   function choose(id: string) {
     onChange(id);

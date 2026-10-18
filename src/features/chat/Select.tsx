@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { usePopover } from "../../ui/usePopover";
 
 export interface SelectOption {
   value: string;
@@ -16,26 +16,9 @@ interface SelectProps {
 
 /// Seletor em pílula com painel próprio, no mesmo estilo do seletor de modelo. Substitui o <select> nativo.
 export function Select({ label, value, options, onChange, disabled }: SelectProps) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
+  const { open, setOpen, root } = usePopover();
   const current = options.find((o) => o.value === value);
 
-  // Fecha ao clicar fora ou apertar Esc.
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent) {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
 
   function choose(next: string) {
     onChange(next);

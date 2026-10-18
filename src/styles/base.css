@@ -1,0 +1,244 @@
+/* Base: reset, tipografia e os componentes que o resto da interface reaproveita. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  /* Brilho suave no canto de cima: a cor do tema por trás do fundo. */
+  background: radial-gradient(1100px 620px at 18% -12%, var(--glow), transparent 62%), var(--bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+button,
+select,
+textarea,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Foco visível em tudo, com o acento do tema */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Botões: um estilo só, com variantes. Os seletores antigos continuam funcionando. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: var(--text-base);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.btn--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.btn--danger {
+  color: var(--error);
+}
+
+.btn--sm {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: var(--text-sm);
+}
+
+/* Botão só de ícone: sempre com aria-label */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+/* Estado vazio: ícone, título e uma linha. Mesmo visual em todas as telas. */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.empty__icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.empty__title {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.empty__text {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+/* Erro em cartão, com o mesmo visual em qualquer tela */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--error) 9%, transparent);
+  color: var(--error);
+  font-size: var(--text-base);
+}
+
+/* Diálogos e menus flutuantes: o mesmo fundo e sombra */
+.popover {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+/* Abas em segmento: um só padrão para o painel direito e as configurações */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--hover);
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: var(--text-base);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.segmented button:hover {
+  color: var(--fg);
+}
+
+.segmented button[aria-selected="true"],
+.segmented button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-1);
+}
+
+/* Diálogo de confirmação (src/ui/ConfirmDialog.tsx) */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 45%);
+  backdrop-filter: blur(3px);
+}
+
+.dialog {
+  width: min(440px, 100%);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-3);
+}
+
+.dialog__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.dialog__body {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-base);
+  color: var(--fg-muted);
+}
+
+.dialog__body ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

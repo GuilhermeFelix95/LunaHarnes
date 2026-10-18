@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   cliStatus,
   deleteConversation,
@@ -13,6 +13,16 @@ import { SettingsView } from "./features/settings/SettingsView";
 import { SetupScreen } from "./features/setup/SetupScreen";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { CliStatus, Conversation, ConversationSummary } from "./types";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
+
+/// Ação pendente de confirmação: o diálogo mostra o texto e roda `run` se o usuário confirmar.
+interface Confirm {
+  title: string;
+  body?: ReactNode;
+  label: string;
+  danger?: boolean;
+  run: () => Promise<void>;
+}
 
 /// Conversa aberta na barra. Cada uma fica montada: uma resposta em andamento segue
 /// mesmo quando o usuário troca de conversa (ver `hidden` abaixo).
@@ -38,6 +48,7 @@ export function App() {
 
   // CLIs que faltam no computador: abre a tela de instalação por cima do app (só na abertura).
   const [missingCli, setMissingCli] = useState<CliStatus[] | null>(null);
+  const [confirming, setConfirming] = useState<Confirm | null>(null);
 
   useEffect(() => {
     void refreshList();
@@ -105,16 +116,23 @@ export function App() {
       setListError(`"${title}" ainda está respondendo. Espere a resposta terminar para excluir.`);
       return;
     }
-    if (!window.confirm(`Excluir "${title}"? Essa ação não pode ser desfeita.`)) return;
-    try {
-      await deleteConversation(id);
-      const gone = chats.filter((c) => chatIds.current[c.key] === id);
-      setChats((current) => current.filter((c) => !gone.includes(c)));
-      if (activeId === id) newConversation();
-      await refreshList();
-    } catch (e) {
-      setListError(String(e));
-    }
+    setConfirming({
+      title: `Excluir "${title}"?`,
+      body: "Essa ação não pode ser desfeita.",
+      label: "Excluir",
+      danger: true,
+      run: async () => {
+        try {
+          await deleteConversation(id);
+          const gone = chats.filter((c) => chatIds.current[c.key] === id);
+          setChats((current) => current.filter((c) => !gone.includes(c)));
+          if (activeId === id) newConversation();
+          await refreshList();
+        } catch (e) {
+          setListError(String(e));
+        }
+      },
+    });
   }
 
   async function renameSelected(id: string, title: string) {
@@ -134,17 +152,24 @@ export function App() {
       setListError(`Espere as respostas de "${name}" terminarem para remover o projeto.`);
       return;
     }
-    if (!window.confirm(`Remover o projeto "${name}" e apagar ${ids.length} conversa(s)? Essa ação não pode ser desfeita.`)) return;
-    try {
-      for (const id of ids) await deleteConversation(id);
-      const gone = chats.filter((c) => ids.includes(chatIds.current[c.key] ?? ""));
-      setChats((current) => current.filter((c) => !gone.includes(c)));
-      if (activeId && ids.includes(activeId)) newConversation();
-      await refreshList();
-    } catch (e) {
-      setListError(String(e));
-      await refreshList();
-    }
+    setConfirming({
+      title: `Remover o projeto "${name}"?`,
+      body: `Isso apaga ${ids.length} conversa(s) deste projeto. Essa ação não pode ser desfeita.`,
+      label: "Remover",
+      danger: true,
+      run: async () => {
+        try {
+          for (const id of ids) await deleteConversation(id);
+          const gone = chats.filter((c) => ids.includes(chatIds.current[c.key] ?? ""));
+          setChats((current) => current.filter((c) => !gone.includes(c)));
+          if (activeId && ids.includes(activeId)) newConversation();
+          await refreshList();
+        } catch (e) {
+          setListError(String(e));
+          await refreshList();
+        }
+      },
+    });
   }
 
   function onPersist(key: number, conversation: Conversation) {
@@ -168,6 +193,20 @@ export function App() {
   return (
     <div className="app">
       {missingCli && <SetupScreen statuses={missingCli} onSkip={() => setMissingCli(null)} />}
+      {confirming && (
+        <ConfirmDialog
+          title={confirming.title}
+          body={confirming.body}
+          confirmLabel={confirming.label}
+          danger={confirming.danger}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => {
+            const run = confirming.run;
+            setConfirming(null);
+            void run();
+          }}
+        />
+      )}
       <Sidebar
         conversations={summaries}
         activeId={activeId}

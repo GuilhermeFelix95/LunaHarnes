@@ -52,6 +52,7 @@ import { MessageList } from "./MessageList";
 import { QuestionPicker } from "./QuestionPicker";
 import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 
 const TITLE_MAX_CHARS = 60;
 
@@ -116,6 +117,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     onRunning?.(conversationId, running);
   }, [running]);
   const [notes, setNotes] = useState<string[]>([]);
+  /// Volta no tempo esperando a confirmação do usuário.
+  const [pendingRewind, setPendingRewind] = useState<{ index: number; checkpoint: string; text: string } | null>(null);
   const [host] = useState(() => new PluginHost());
   // Modos que os plugins oferecem; o escolhido vale só para o próximo envio.
   const [modes, setModes] = useState<PluginMode[]>([]);
@@ -384,7 +387,8 @@ ${cliPrompt}`;
     setTasks([]);
     setQuestions(null);
     turnPlanning.current = plan;
-    turnAsk.current = plan || mode?.id === "ask";
+    // Perguntas: o modo diz se quer perguntas. "ask" continua valendo para o plugin antigo, que não declarava o campo.
+    turnAsk.current = plan || (mode?.questions ?? mode?.id === "ask");
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
@@ -526,11 +530,15 @@ ${outgoing}`
       setNotes([String(e)]);
       return;
     }
-    const question =
+    const text =
       plan.removed.length + plan.restored.length === 0
-        ? "Voltar até aqui? Nenhum arquivo muda; a conversa volta a este ponto."
-        : `Voltar até aqui? ${plan.restored.length} arquivo(s) voltam ao que eram e ${plan.removed.length} criado(s) depois serão apagados. As mensagens a partir daqui saem da conversa.`;
-    if (!window.confirm(question)) return;
+        ? "Nenhum arquivo muda; a conversa volta a este ponto."
+        : `${plan.restored.length} arquivo(s) voltam ao que eram e ${plan.removed.length} criado(s) depois serão apagados. As mensagens a partir daqui saem da conversa.`;
+    setPendingRewind({ index, checkpoint, text });
+  }
+
+  /// Depois da confirmação: restaura os arquivos e corta a conversa no ponto escolhido.
+  async function doRewind({ index, checkpoint }: { index: number; checkpoint: string }) {
     try {
       await checkpointRestore(cwd, checkpoint);
     } catch (e) {
@@ -594,6 +602,20 @@ ${outgoing}`
 
   return (
     <div className="chat">
+      {pendingRewind && (
+        <ConfirmDialog
+          title="Voltar até aqui?"
+          body={pendingRewind.text}
+          confirmLabel="Voltar"
+          danger
+          onCancel={() => setPendingRewind(null)}
+          onConfirm={() => {
+            const target = pendingRewind;
+            setPendingRewind(null);
+            void doRewind(target);
+          }}
+        />
+      )}
       <header className="chat__header">
         <h2 className="chat__title">{messages.length > 0 ? titleOf(messages) : "Nova conversa"}</h2>
         {host.commandNames().length > 0 && (

@@ -1,0 +1,59 @@
+/* Tokens que não mudam com o tema: escala de tipo, espaço, raio, sombra e movimento.
+   As cores ficam em themes.css. */
+:root {
+  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, "SFMono-Regular", monospace;
+  --font-display: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 28px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+  /* Nomes antigos, mantidos para o que ainda os usa */
+  --radius: var(--radius-lg);
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 12%);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 18%);
+  --shadow-3: 0 18px 48px rgb(0 0 0 / 34%);
+  --shadow: var(--shadow-2);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  /* Cabeçalho e lista de conversas: a largura de leitura do chat */
+  --reading-width: 760px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
