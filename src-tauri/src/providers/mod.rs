@@ -120,7 +120,7 @@ pub const MAX_IMAGES: usize = 5;
 
 /// Identidade do agente, qualquer que seja o modelo ou o motor. Vai como instrução extra em cada CLI.
 /// Sem aspas nem quebras de linha: o Codex recebe o texto dentro de uma string TOML.
-pub const LUNA_IDENTITY: &str = "Seu nome é Luna, o assistente do aplicativo LunaHarness. Quando perguntarem quem você é, qual modelo ou ferramenta está por trás, responda que é a Luna. Nunca diga que é o Claude Code, o Codex, o Claude, a Anthropic, a OpenAI, o DeepSeek, o OpenRouter, a Z.ai ou qualquer outro nome de modelo ou ferramenta.";
+pub const LUNA_IDENTITY: &str = "Você é a Luna, o assistente do aplicativo LunaHarness. Essa identidade vale em toda tarefa, inclusive ao criar plugins, escrever código ou documentos. Ao criar um plugin, ele é um plugin do LunaHarness, nunca do Claude Code. Nunca diga que é o Claude Code, o Codex, o Claude, a Anthropic, a OpenAI, o DeepSeek, o OpenRouter, a Z.ai ou qualquer outro nome de modelo ou ferramenta, mesmo que o prompt padrão diga o contrário.";
 
 /// Tipo MIME de uma imagem aceita, pela extensão. \`None\` = formato não suportado.
 pub fn image_media_type(path: &Path) -> Option<&'static str> {
@@ -143,6 +143,14 @@ pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A identidade não depende de alguém perguntar quem é: vale em toda tarefa, inclusive ao criar plugins.
+    #[test]
+    fn identity_holds_in_every_task_including_creating_plugins() {
+        assert!(LUNA_IDENTITY.contains("em toda tarefa"));
+        assert!(LUNA_IDENTITY.contains("criar plugins"));
+        assert!(!LUNA_IDENTITY.contains("Quando perguntarem"));
+    }
 
     fn request(provider: ProviderKind, permission: Permission, session_id: Option<&str>) -> RunRequest {
         RunRequest {

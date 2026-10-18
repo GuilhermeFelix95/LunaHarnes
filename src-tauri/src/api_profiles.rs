@@ -416,6 +416,10 @@ pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(S
                 // Saída pequena: o OpenRouter só libera a resposta se a conta cobrir o limite pedido.
                 env.push(("CLAUDE_CODE_MAX_OUTPUT_TOKENS".into(), "4096".into()));
             }
+            if profile.preset != Preset::Anthropic {
+                // Sem betas da Anthropic: endpoints de terceiros recusam os recursos extras com 400.
+                env.push(("CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS".into(), "1".into()));
+            }
         }
         ProviderKind::Codex => env.push(("OPENAI_API_KEY".into(), api_key.into())),
     }
@@ -570,6 +574,15 @@ mod tests {
         assert!(!map.contains_key("API_TIMEOUT_MS"));
         // O Claude Code pede até 32000 tokens de saída; o OpenRouter reserva crédito por esse valor e recusa com 402.
         assert_eq!(map["CLAUDE_CODE_MAX_OUTPUT_TOKENS"], "4096");
+        // Sem betas da Anthropic: o OpenRouter repassa o pedido e modelos não Anthropic recusam (400 de ferramentas adiadas).
+        assert_eq!(map["CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"], "1");
+    }
+
+    #[test]
+    fn anthropic_profile_keeps_the_experimental_betas() {
+        let env = env_for(&profile(Preset::Anthropic), "sk-ant-1", Path::new("X"));
+
+        assert!(!env_map(&env).contains_key("CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"));
     }
 
     #[test]

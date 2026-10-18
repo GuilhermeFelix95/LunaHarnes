@@ -18,6 +18,19 @@ import type { PluginManifest } from "../../plugins/host";
 
 type Tab = "installed" | "market";
 
+/// Versão do catálogo mais nova que a instalada, comparando números (0.10.0 > 0.9.0). Sem instalada, não é atualização.
+function isNewerVersion(catalog: string, installed: string | undefined): boolean {
+  if (installed === undefined) return false;
+  const a = catalog.split(".").map((p) => Number(p) || 0);
+  const b = installed.split(".").map((p) => Number(p) || 0);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
 /// Explica cada permissão em português, para o diálogo de instalação.
 const PERMISSION_TEXT: Record<string, string> = {
   commands: "registra comandos com barra, como /nome",
@@ -111,6 +124,19 @@ export function PluginsSection() {
     }
   }
 
+  /// Troca o plugin instalado pela versão do catálogo. Sem diálogo: a permissão não muda entre versões.
+  async function update(id: string) {
+    setError(undefined);
+    try {
+      await installCatalogPlugin(source, id);
+      setStatus("Plugin atualizado. Ele vale no próximo envio.");
+      announceChange();
+      await reloadInstalled();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   async function addSource(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(undefined);
@@ -141,6 +167,7 @@ export function PluginsSection() {
   }
 
   const installedIds = new Set(installed.map((p) => p.id));
+  const installedVersions = new Map(installed.map((p) => [p.id, p.version]));
 
   return (
     <section className="settings__section" aria-labelledby="settings-plugins">
@@ -235,13 +262,15 @@ export function PluginsSection() {
                 </div>
                 <p className="settings__hint">{p.description}</p>
                 <div className="profile__actions">
-                  <button
-                    type="button"
-                    disabled={installedIds.has(p.id)}
-                    onClick={() => setPending(p)}
-                  >
-                    {installedIds.has(p.id) ? "Instalado" : "Instalar"}
-                  </button>
+                  {isNewerVersion(p.version, installedVersions.get(p.id)) ? (
+                    <button type="button" onClick={() => void update(p.id)}>
+                      Atualizar
+                    </button>
+                  ) : (
+                    <button type="button" disabled={installedIds.has(p.id)} onClick={() => setPending(p)}>
+                      {installedIds.has(p.id) ? "Instalado" : "Instalar"}
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

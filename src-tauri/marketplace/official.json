@@ -6,7 +6,7 @@
       "name": "Modo Conversar",
       "description": "Modo só de conversa: o agente explica e responde, sem alterar arquivos.",
       "author": "LunaHarness",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "entry": "index.js",
       "permissions": [
         "modes"

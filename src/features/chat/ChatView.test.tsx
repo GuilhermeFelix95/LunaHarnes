@@ -76,18 +76,23 @@ describe("ChatView: continuidade e envio", () => {
     expect(await screen.findByText("Haiku 5.5")).toBeTruthy();
   });
 
-  it("conversa nova começa na entrevista, e pular desliga o modo plano", async () => {
+  it("conversa nova começa com o modo plano desligado, e só liga com o clique", async () => {
     render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
-    expect(await screen.findByText(/Modo de planejamento/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Pular entrevista" }));
-
+    expect(screen.getByLabelText("Modo de planejamento").getAttribute("aria-pressed")).toBe("false");
     expect(screen.queryByText(/Modo de planejamento/)).toBeNull();
+
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
+
+    expect(screen.getByLabelText("Modo de planejamento").getAttribute("aria-pressed")).toBe("true");
+    expect(await screen.findByText(/Modo de planejamento/)).toBeTruthy();
   });
 
   it("no modo plano, a resposta vai para a aba Plano do painel e abre a aba", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
 
     await send("quero um app de tarefas");
     emit({ kind: "textDelta", text: "## Plano\n\nPasso 1: criar a tela." });
@@ -102,7 +107,6 @@ describe("ChatView: continuidade e envio", () => {
   it("fora do modo Conversar, perguntas não viram seletor", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
-    fireEvent.click(screen.getByRole("button", { name: "Pular entrevista" }));
     await send("crie uma tela de login");
     emit({
       kind: "textDelta",
@@ -117,6 +121,7 @@ describe("ChatView: continuidade e envio", () => {
   it("Gerar spec manda o pedido de spec em modo somente leitura", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
     await send("quero um app de tarefas");
     emit({ kind: "textDelta", text: "Plano curto." });
     emit({ kind: "done", ok: true });
@@ -133,7 +138,6 @@ describe("ChatView: continuidade e envio", () => {
   it("sugestões da tela vazia preenchem a caixa sem enviar", async () => {
     render(<ChatView onPersist={() => {}} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Pular entrevista" }));
     fireEvent.click(await screen.findByRole("button", { name: "Encontre bugs" }));
 
     expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).value).toBe("Encontre bugs");
@@ -166,7 +170,6 @@ describe("ChatView: continuidade e envio", () => {
 
   it("envia o sessionId da primeira resposta na segunda mensagem", async () => {
     render(<ChatView onPersist={() => {}} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Pular entrevista" }));
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("primeira");
@@ -187,7 +190,6 @@ describe("ChatView: continuidade e envio", () => {
 
   it("troca de agente no meio da conversa sem perder contexto", async () => {
     render(<ChatView onPersist={() => {}} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Pular entrevista" }));
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("crie a landing page");

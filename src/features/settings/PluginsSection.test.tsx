@@ -75,4 +75,26 @@ describe("PluginsSection", () => {
 
     expect(api.installCatalogPlugin).toHaveBeenCalledWith("oficial", "ask-mode");
   });
+
+  it("versão nova no catálogo vira botão Atualizar, que troca sem abrir diálogo", async () => {
+    vi.mocked(api.loadCatalog).mockResolvedValue({ ...ASK_CATALOG, plugins: [{ ...ASK_CATALOG.plugins[0], version: "0.2.0" }] });
+    render(<PluginsSection />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Marketplace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Atualizar" }));
+
+    expect(api.installCatalogPlugin).toHaveBeenCalledWith("oficial", "ask-mode");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("mesma versão continua mostrando Instalado, sem Atualizar", async () => {
+    vi.mocked(api.loadCatalog).mockResolvedValue(ASK_CATALOG);
+    render(<PluginsSection />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Marketplace" }));
+    const button = await screen.findByRole("button", { name: "Instalado" });
+
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Atualizar" })).toBeNull();
+  });
 });

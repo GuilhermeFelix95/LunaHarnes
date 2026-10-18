@@ -310,7 +310,7 @@ pub async fn load_catalog(app: AppHandle, source: String) -> Result<Catalog, Str
     catalog_of(&app, &source).await
 }
 
-/// Baixa os arquivos do plugin, confere os hashes e instala na pasta de plugins.
+/// Baixa os arquivos do plugin, confere os hashes e instala na pasta de plugins (ou troca por versão mais nova).
 #[tauri::command]
 pub async fn install_catalog_plugin(app: AppHandle, source: String, id: String) -> Result<(), String> {
     let catalog = catalog_of(&app, &source).await?;
@@ -329,7 +329,7 @@ pub async fn install_catalog_plugin(app: AppHandle, source: String, id: String) 
         };
         contents.push((file.path.clone(), bytes));
     }
-    marketplace::install_files(&plugins_dir(&app)?, &plugin, &contents)
+    marketplace::update_files(&plugins_dir(&app)?, &plugin, &contents)
 }
 
 #[tauri::command]

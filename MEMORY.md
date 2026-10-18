@@ -36,3 +36,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-17 | Kimi e Z.ai conferidos na documentação oficial (padrões kimi-k3 e glm-5.3-flash); busca na lista de modelos da tela de configurações.
 2026-10-17 | Componente Select estilizado (provedor, esforço, permissão) substitui os selects nativos do composer; testes do Composer e do ChatView adaptados.
 2026-10-17 | Testes da alça da sidebar; identidade Luna e developer_instructions do Codex conferidos (sem mudança de código).
+2026-10-17 | Ajustes do chat: Planejar desligado por padrão; identidade Luna incondicional; beta desligado em perfis não Anthropic (hipótese do 400); atualização do plugin oficial ask-mode para 0.2.0 com botão Atualizar; seletor de perguntas acima do composer.

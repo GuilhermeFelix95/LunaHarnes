@@ -78,7 +78,7 @@ Oferece um modo no composer, como chip ao lado de "Planejar". O modo é `{ id, l
 export function activate(api) {
   api.registerMode({
     id: "ask",
-    label: "Perguntar",
+    label: "Conversar",
     description: "Só explica, sem editar arquivos",
     instruction: "Responda só com explicações e perguntas. Não edite arquivos.",
     permission: "readOnly",
@@ -101,8 +101,8 @@ Formato do catálogo:
   "plugins": [
     {
       "id": "ask-mode",
-      "name": "Modo Ask",
-      "description": "Modo Perguntar",
+      "name": "Modo Conversar",
+      "description": "Modo Conversar",
       "author": "Fulano",
       "version": "0.1.0",
       "entry": "index.js",

@@ -248,6 +248,54 @@ pub fn uninstall(plugins_dir: &Path, id: &str) -> Result<(), String> {
     fs::remove_dir_all(&target).map_err(|e| format!("não foi possível remover `{id}`: {e}"))
 }
 
+/// Versão instalada (campo `version` do manifest.json da pasta), se o plugin estiver instalado.
+pub fn installed_version(plugins_dir: &Path, id: &str) -> Option<String> {
+    let text = fs::read_to_string(plugins_dir.join(id).join("manifest.json")).ok()?;
+    let manifest: serde_json::Value = serde_json::from_str(&text).ok()?;
+    manifest.get("version")?.as_str().map(String::from)
+}
+
+/// Compara versões pelos números: 0.10.0 é mais nova que 0.9.0. Parte que não é número conta como 0.
+pub fn is_newer(candidate: &str, current: &str) -> bool {
+    let parts = |v: &str| -> Vec<u64> { v.split('.').map(|p| p.parse().unwrap_or(0)).collect() };
+    let (a, b) = (parts(candidate), parts(current));
+    for i in 0..a.len().max(b.len()) {
+        let (x, y) = (a.get(i).copied().unwrap_or(0), b.get(i).copied().unwrap_or(0));
+        if x != y {
+            return x > y;
+        }
+    }
+    false
+}
+
+/// Instala ou atualiza. Um plugin já instalado só é trocado por versão mais nova.
+/// A pasta antiga fica de lado até a nova estar no lugar; se a troca falhar, ela volta.
+pub fn update_files(plugins_dir: &Path, plugin: &CatalogPlugin, contents: &[(String, Vec<u8>)]) -> Result<(), String> {
+    let Some(current) = installed_version(plugins_dir, &plugin.id) else {
+        return install_files(plugins_dir, plugin, contents);
+    };
+    if !is_newer(&plugin.version, &current) {
+        return Err(format!("o plugin `{}` já está na versão {current}", plugin.id));
+    }
+    validate_plugin(plugin)?;
+
+    let target = plugins_dir.join(&plugin.id);
+    let backup = plugins_dir.parent().unwrap_or(plugins_dir).join(format!("plugin-backup-{}", plugin.id));
+    let _ = fs::remove_dir_all(&backup);
+    fs::rename(&target, &backup).map_err(|e| format!("não foi possível trocar `{}`: {e}", plugin.id))?;
+    match install_files(plugins_dir, plugin, contents) {
+        Ok(()) => {
+            let _ = fs::remove_dir_all(&backup);
+            Ok(())
+        }
+        Err(e) => {
+            let _ = fs::remove_dir_all(&target);
+            fs::rename(&backup, &target).map_err(|r| format!("{e}; e a versão anterior não pôde ser restaurada: {r}"))?;
+            Err(e)
+        }
+    }
+}
+
 fn read_json<T: Default + for<'de> Deserialize<'de>>(path: &Path) -> Result<T, String> {
     match fs::read_to_string(path) {
         Ok(text) => serde_json::from_str(&text).map_err(|e| format!("{} está corrompido: {e}", path.display())),
@@ -392,6 +440,54 @@ mod tests {
 
         let err = install_files(&plugins, &item, &[("index.js".into(), content.as_bytes().to_vec())]).unwrap_err();
         assert!(err.contains("já está instalado"));
+        let _ = fs::remove_dir_all(plugins.parent().unwrap());
+    }
+
+    #[test]
+    fn versions_compare_by_number_not_by_text() {
+        assert!(is_newer("0.10.0", "0.9.0"));
+        assert!(is_newer("0.2.0", "0.1.0"));
+        assert!(!is_newer("0.2.0", "0.2.0"));
+        assert!(!is_newer("0.1.0", "0.2.0"));
+    }
+
+    #[test]
+    fn update_replaces_an_older_install_and_removes_the_backup() {
+        let plugins = temp_dir("update").join("plugins");
+        install_files(&plugins, &plugin("antigo"), &[("index.js".into(), b"antigo".to_vec())]).unwrap();
+        let mut newer = plugin("novo");
+        newer.version = "0.2.0".into();
+
+        update_files(&plugins, &newer, &[("index.js".into(), b"novo".to_vec())]).unwrap();
+
+        assert_eq!(fs::read_to_string(plugins.join("exemplo").join("index.js")).unwrap(), "novo");
+        assert_eq!(installed_version(&plugins, "exemplo").as_deref(), Some("0.2.0"));
+        assert!(!plugins.parent().unwrap().join("plugin-backup-exemplo").exists());
+        let _ = fs::remove_dir_all(plugins.parent().unwrap());
+    }
+
+    #[test]
+    fn update_keeps_the_old_install_when_the_new_files_fail_the_hash() {
+        let plugins = temp_dir("update-fail").join("plugins");
+        install_files(&plugins, &plugin("antigo"), &[("index.js".into(), b"antigo".to_vec())]).unwrap();
+        let mut newer = plugin("novo");
+        newer.version = "0.2.0".into();
+
+        assert!(update_files(&plugins, &newer, &[("index.js".into(), b"adulterado".to_vec())]).is_err());
+
+        assert_eq!(fs::read_to_string(plugins.join("exemplo").join("index.js")).unwrap(), "antigo");
+        let _ = fs::remove_dir_all(plugins.parent().unwrap());
+    }
+
+    #[test]
+    fn update_refuses_the_same_version() {
+        let plugins = temp_dir("update-same").join("plugins");
+        install_files(&plugins, &plugin("antigo"), &[("index.js".into(), b"antigo".to_vec())]).unwrap();
+
+        let err = update_files(&plugins, &plugin("novo"), &[("index.js".into(), b"novo".to_vec())]).unwrap_err();
+
+        assert!(err.contains("já está na versão 0.1.0"));
+        assert_eq!(fs::read_to_string(plugins.join("exemplo").join("index.js")).unwrap(), "antigo");
         let _ = fs::remove_dir_all(plugins.parent().unwrap());
     }
 

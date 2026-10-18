@@ -85,8 +85,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [cwd, setCwd] = useState(initial?.cwd ?? startCwd ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
   const [effort, setEffort] = useState(initial?.effort ?? "");
-  // Conversa nova começa na entrevista (modo plano); "Pular entrevista" desliga.
-  const [planning, setPlanning] = useState(initial?.planning ?? !initial);
+  // Modo plano começa desligado: só liga com o clique em Planejar.
+  const [planning, setPlanning] = useState(initial?.planning ?? false);
   // Último plano da conversa: a resposta do modo plano (ou da spec) fica no painel.
   const [plan, setPlan] = useState<string | undefined>(initial?.plan);
   const planRef = useRef(plan);
@@ -706,15 +706,17 @@ ${outgoing}`
           </div>
         )}
 
-        {questions && !running && (
-          <QuestionPicker
-            key={questionsRound}
-            questions={questions}
-            onAnswer={(text) => void answerQuestions(text)}
-            onDismiss={() => setQuestions(null)}
-          />
-        )}
       </div>
+
+      {/* Acima da caixa de mensagem, como no Claude Desktop: fica fora da lista de mensagens. */}
+      {questions && !running && (
+        <QuestionPicker
+          key={questionsRound}
+          questions={questions}
+          onAnswer={(text) => void answerQuestions(text)}
+          onDismiss={() => setQuestions(null)}
+        />
+      )}
 
       <Composer
         draft={draft}

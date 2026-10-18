@@ -1902,7 +1902,9 @@ textarea:focus-visible {
 .qpick {
   display: grid;
   gap: 12px;
-  margin: 12px 0;
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto 10px;
   padding: 14px 16px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
