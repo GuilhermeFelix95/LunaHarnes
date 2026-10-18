@@ -1,0 +1,88 @@
+/* Camadas dos temas que mudam a interface, além das cores: Pixel art e Terminal.
+   As regras usam !important nos tamanhos de texto porque as variáveis de tipo vêm inline do JavaScript. */
+
+/* Cartão de criar um tema novo: tracejado, no lugar de um tema salvo */
+.theme-card--new {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--fg-muted);
+}
+
+.theme-card__plus {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Pixel art: fonte pixel nos títulos e botões, cantos retos, degraus no lugar de sombra */
+:root[data-theme="pixel"] {
+  --text-xs: 14px !important;
+  --text-sm: 16px !important;
+  --text-base: 19px !important;
+  --text-md: 20px !important;
+  --text-lg: 23px !important;
+  --text-xl: 26px !important;
+  --text-2xl: 32px !important;
+}
+
+:root[data-theme="pixel"] *,
+:root[data-theme="pixel"] *::before,
+:root[data-theme="pixel"] *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
+:root[data-theme="pixel"] h1,
+:root[data-theme="pixel"] h2,
+:root[data-theme="pixel"] h3,
+:root[data-theme="pixel"] .btn,
+:root[data-theme="pixel"] button,
+:root[data-theme="pixel"] .theme-card__name {
+  font-family: var(--font-pixel) !important;
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+:root[data-theme="pixel"] h1,
+:root[data-theme="pixel"] h2 {
+  font-size: 13px !important;
+}
+
+:root[data-theme="pixel"] .btn,
+:root[data-theme="pixel"] button {
+  font-size: 9px !important;
+}
+
+:root[data-theme="pixel"] .btn,
+:root[data-theme="pixel"] button,
+:root[data-theme="pixel"] .theme-card,
+:root[data-theme="pixel"] .composer,
+:root[data-theme="pixel"] input,
+:root[data-theme="pixel"] textarea,
+:root[data-theme="pixel"] select {
+  border: 2px solid var(--fg-subtle);
+}
+
+:root[data-theme="pixel"] .btn:hover:not(:disabled),
+:root[data-theme="pixel"] .theme-card:hover {
+  border-color: var(--accent);
+}
+
+:root[data-theme="pixel"] .luna-cat img,
+:root[data-theme="pixel"] .sidebar__brand img,
+:root[data-theme="pixel"] .chat__logo {
+  image-rendering: pixelated;
+}
+
+/* Terminal: linhas de varredura por cima da tela inteira, sem tirar o clique */
+:root[data-theme="terminal"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 22%) 2px 3px);
+  z-index: 999;
+}

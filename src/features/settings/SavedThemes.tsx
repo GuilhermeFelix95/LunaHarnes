@@ -1,47 +1,28 @@
 import { useState } from "react";
-import type { ThemePalette } from "../../theme";
-import { loadSavedThemes, parseShareCode, saveSavedThemes, shareCode, type SavedTheme } from "../../themeShare";
+import { parseShareCode, shareCode, type SavedTheme } from "../../themeShare";
 
 interface SavedThemesProps {
-  /** Cores que estão sendo editadas agora: é o que "Salvar" grava. */
-  palette: ThemePalette;
-  onApply: (palette: ThemePalette) => void;
+  /** Tema que está sendo editado agora. Compartilhar gera o código dele. */
+  active: SavedTheme | null;
+  /** Recebe um tema importado de um código: a tela salva e aplica. */
+  onImport: (theme: SavedTheme) => void;
 }
 
-/// Temas personalizados salvos com nome, com ações de aplicar, compartilhar e excluir, e importação de um código.
-export function SavedThemes({ palette, onApply }: SavedThemesProps) {
-  const [themes, setThemes] = useState<SavedTheme[]>(loadSavedThemes);
-  const [name, setName] = useState("");
-  const [sharing, setSharing] = useState<{ name: string; code: string } | null>(null);
+/// Compartilhar o tema ativo e importar um código recebido. A lista dos temas fica nos cartões acima.
+export function SavedThemes({ active, onImport }: SavedThemesProps) {
   const [importText, setImportText] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [code, setCode] = useState<string | undefined>(undefined);
 
-  /// Grava a lista; um tema com o mesmo nome é substituído.
-  function store(next: SavedTheme[]) {
-    setThemes(next);
-    saveSavedThemes(next);
+  function share() {
+    if (!active) return;
+    setCode(shareCode(active));
+    setStatus(undefined);
   }
 
-  function save() {
-    const cleanName = name.trim();
-    if (!cleanName) {
-      setError("Dê um nome ao tema antes de salvar.");
-      return;
-    }
-    store([...themes.filter((t) => t.name !== cleanName), { name: cleanName, palette }]);
-    setName("");
-    setError(undefined);
-    setStatus(`Tema "${cleanName}" salvo.`);
-  }
-
-  function remove(target: SavedTheme) {
-    store(themes.filter((t) => t.name !== target.name));
-    if (sharing?.name === target.name) setSharing(null);
-    setStatus(`Tema "${target.name}" excluído.`);
-  }
-
-  async function copy(code: string) {
+  async function copy() {
+    if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
       setStatus("Código copiado.");
@@ -56,7 +37,7 @@ export function SavedThemes({ palette, onApply }: SavedThemesProps) {
       setError("Esse código não é um tema do LunaHarness.");
       return;
     }
-    store([...themes.filter((t) => t.name !== imported.name), imported]);
+    onImport(imported);
     setImportText("");
     setError(undefined);
     setStatus(`Tema "${imported.name}" importado.`);
@@ -64,51 +45,22 @@ export function SavedThemes({ palette, onApply }: SavedThemesProps) {
 
   return (
     <div className="saved-themes">
-      <h3 className="settings__sub">Temas salvos</h3>
-      <p className="settings__hint">Salve as cores atuais com um nome. Compartilhe o código com outra pessoa, que o importa aqui.</p>
+      <h3 className="settings__sub">Compartilhar e importar</h3>
+      <p className="settings__hint">Compartilhe o código de um tema com outra pessoa, que o importa aqui.</p>
 
       <div className="api-form__actions">
-        <input
-          aria-label="Nome do tema"
-          placeholder="Nome do tema"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <button type="button" onClick={save}>
-          Salvar tema atual
+        <button type="button" disabled={!active} onClick={share}>
+          Gerar código do tema atual
         </button>
       </div>
-
-      {themes.length === 0 && <p className="settings__hint">Nenhum tema salvo ainda.</p>}
-      <ul className="profiles">
-        {themes.map((t) => (
-          <li key={t.name} className="profile">
-            <div className="profile__head">
-              <strong>{t.name}</strong>
-            </div>
-            <div className="profile__actions">
-              <button type="button" aria-label={`Aplicar ${t.name}`} onClick={() => onApply(t.palette)}>
-                Aplicar
-              </button>
-              <button type="button" aria-label={`Compartilhar ${t.name}`} onClick={() => setSharing({ name: t.name, code: shareCode(t) })}>
-                Compartilhar
-              </button>
-              <button type="button" aria-label={`Excluir ${t.name}`} onClick={() => remove(t)}>
-                Excluir
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {sharing && (
+      {code && (
         <div className="saved-themes__share">
           <label>
-            Código de "{sharing.name}"
-            <textarea aria-label="Código do tema" readOnly rows={4} value={sharing.code} />
+            Código do tema
+            <textarea aria-label="Código do tema" readOnly rows={4} value={code} />
           </label>
           <div className="api-form__actions">
-            <button type="button" onClick={() => void copy(sharing.code)}>
+            <button type="button" onClick={() => void copy()}>
               Copiar código
             </button>
           </div>
@@ -118,12 +70,7 @@ export function SavedThemes({ palette, onApply }: SavedThemesProps) {
       <div className="saved-themes__import">
         <label>
           Importar um código recebido
-          <textarea
-            aria-label="Código para importar"
-            rows={3}
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-          />
+          <textarea aria-label="Código para importar" rows={3} value={importText} onChange={(e) => setImportText(e.target.value)} />
         </label>
         <div className="api-form__actions">
           <button type="button" disabled={!importText.trim()} onClick={importCode}>

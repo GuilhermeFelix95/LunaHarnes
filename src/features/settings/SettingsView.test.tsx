@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { THEME_KEY } from "../../theme";
+import { DEFAULT_PALETTE, THEME_KEY } from "../../theme";
 import { SettingsView } from "./SettingsView";
 
 vi.mock("../../api", () => ({
@@ -36,13 +36,28 @@ describe("SettingsView", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("lista os temas de fábrica, depois a seção Seus temas com o Personalizado, e marca o atual", () => {
+  it("lista os 12 temas de fábrica, depois Seus temas com cartão de cada tema salvo e o botão Novo tema", () => {
     localStorage.setItem(THEME_KEY, "terminal");
+    localStorage.setItem("luna.savedThemes", JSON.stringify([{ name: "Mar", palette: { ...DEFAULT_PALETTE, accent: "#2a9d8f" } }]));
     render(<SettingsView onClose={() => {}} />);
 
     expect(screen.getAllByRole("radio")).toHaveLength(13);
-    expect(screen.getByRole("radiogroup", { name: "Seus temas" }).textContent).toContain("Personalizado");
+    const mine = screen.getByRole("radiogroup", { name: "Seus temas" });
+    expect(mine.textContent).toContain("Mar");
+    expect(mine.textContent).toContain("Novo tema");
     expect(screen.getByRole("radio", { name: /Terminal/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("Novo tema cria um cartão com preview e abre o editor com ele ativo", () => {
+    localStorage.setItem(THEME_KEY, "luna");
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
+
+    const saved = JSON.parse(localStorage.getItem("luna.savedThemes")!);
+    expect(saved[0].name).toBe("Tema 1");
+    expect(screen.getByRole("radio", { name: /Tema 1/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByLabelText("Fonte")).toBeTruthy();
   });
 
   it("o editor do Personalizado troca a fonte e o formato na hora", () => {

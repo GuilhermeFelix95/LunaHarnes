@@ -61,3 +61,25 @@ describe("LunaCat", () => {
     expect(img.getAttribute("src")).toBe("/luna/cat-04.png");
   });
 });
+
+describe("LunaCat: ações do turno", () => {
+  it("ao começar o turno acena com a bandeira, e ao terminar dá beijo", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<LunaCat working={false} />);
+    const img = screen.getByRole("img", { name: "Gatinho lunar dormindo" });
+
+    rerender(<LunaCat working />);
+    expect(img.getAttribute("src")).toBe("/luna/hello-00.png");
+
+    rerender(<LunaCat working={false} />);
+    expect(img.getAttribute("src")).toBe("/luna/kiss-00.png");
+
+    // Cada quadro da ação espera o render anterior, então avança um por vez.
+    for (let i = 0; i < 6; i++) {
+      act(() => {
+        vi.advanceTimersByTime(220);
+      });
+    }
+    expect(img.getAttribute("src")).toBe("/luna/cat-04.png");
+  });
+});

@@ -9,6 +9,7 @@ import {
   saveTheme,
   SHAPES,
   TEXT_SIZES,
+  DEFAULT_THEME,
   THEMES,
   type FontId,
   type ShapeId,
@@ -25,6 +26,7 @@ import { RulesSection } from "./RulesSection";
 import { McpSection } from "./McpSection";
 import { SkillsSection } from "./SkillsSection";
 import { SavedThemes } from "./SavedThemes";
+import { loadSavedThemes, saveSavedThemes, type SavedTheme } from "../../themeShare";
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -54,6 +56,25 @@ const SECTIONS: Array<[SettingsSection, string]> = [
 ];
 
 const SECTION_KEY = "luna.settings.section";
+const ACTIVE_THEME_KEY = "luna.activeCustomTheme";
+
+/// Nome do tema personalizado que está sendo editado. Sem valor, o editor vale só para o tema ativo sem cartão.
+function loadActiveName(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveActiveName(name: string | null) {
+  try {
+    if (name) localStorage.setItem(ACTIVE_THEME_KEY, name);
+    else localStorage.removeItem(ACTIVE_THEME_KEY);
+  } catch {
+    // Só a lembrança do tema ativo se perde.
+  }
+}
 
 /// Última seção aberta. Sem valor salvo (ou inválido), abre em Aparência.
 function loadSection(): SettingsSection {
@@ -136,6 +157,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const [theme, setTheme] = useState<ThemeId>(loadTheme);
   const [palette, setPalette] = useState<ThemePalette>(loadCustomPalette);
   const [section, setSection] = useState<SettingsSection>(loadSection);
+  const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(loadSavedThemes);
+  const [activeName, setActiveName] = useState<string | null>(loadActiveName);
 
   function open(id: SettingsSection) {
     setSection(id);
@@ -157,16 +180,47 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     setPalette(next);
     saveCustomPalette(next);
     applyPalette(next);
+    // O tema ativo acompanha a edição, então o cartão dele mostra as cores novas.
+    if (activeName) storeSaved(savedThemes.map((t) => (t.name === activeName ? { ...t, palette: next } : t)));
   }
 
-  /// Aplicar um tema salvo: vira o Personalizado com aquelas cores.
-  function applySaved(next: ThemePalette) {
+  function storeSaved(next: SavedTheme[]) {
+    setSavedThemes(next);
+    saveSavedThemes(next);
+  }
+
+  /// Aplicar um tema salvo: vira o tema ativo, com as cores dele.
+  function applySaved(saved: SavedTheme) {
     setTheme("custom");
     saveTheme("custom");
+    saveCustomPalette(saved.palette);
     applyTheme("custom");
-    setPalette(next);
-    saveCustomPalette(next);
-    applyPalette(next);
+    setPalette(saved.palette);
+    setActiveName(saved.name);
+    saveActiveName(saved.name);
+  }
+
+  /// Novo tema: começa com as cores atuais e já vira o tema ativo, com cartão na lista.
+  function createTheme() {
+    let index = savedThemes.length + 1;
+    while (savedThemes.some((t) => t.name === `Tema ${index}`)) index++;
+    const created: SavedTheme = { name: `Tema ${index}`, palette };
+    storeSaved([...savedThemes, created]);
+    applySaved(created);
+  }
+
+  function importTheme(imported: SavedTheme) {
+    storeSaved([...savedThemes.filter((t) => t.name !== imported.name), imported]);
+    applySaved(imported);
+  }
+
+  /// Exclui o tema ativo e volta para o Luna.
+  function deleteActive() {
+    if (!activeName) return;
+    storeSaved(savedThemes.filter((t) => t.name !== activeName));
+    setActiveName(null);
+    saveActiveName(null);
+    choose(DEFAULT_THEME);
   }
 
   return (
@@ -225,17 +279,21 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 role="radiogroup"
                 aria-labelledby="settings-user-themes"
               >
-                {THEMES.filter((t) => t.id === "custom").map((t) => (
-                  // O cartão do Personalizado mostra as cores que o usuário escolheu.
+                {savedThemes.map((t) => (
                   <ThemeCard
-                    key={t.id}
-                    label={t.label}
-                    description={t.description}
-                    palette={palette}
-                    checked={theme === t.id}
-                    onChoose={() => choose(t.id)}
+                    key={t.name}
+                    label={t.name}
+                    description="Seu tema"
+                    palette={t.palette}
+                    checked={theme === "custom" && activeName === t.name}
+                    onChoose={() => applySaved(t)}
                   />
                 ))}
+                <button type="button" className="theme-card theme-card--new" onClick={createTheme}>
+                  <span className="theme-card__plus" aria-hidden="true">+</span>
+                  <span className="theme-card__name">Novo tema</span>
+                  <span className="theme-card__desc">Começa com as cores atuais do editor</span>
+                </button>
               </div>
 
               {theme === "custom" && (
@@ -344,7 +402,17 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                     </label>
                   </fieldset>
 
-                  <SavedThemes palette={palette} onApply={applySaved} />
+                  {activeName && (
+                    <div className="api-form__actions">
+                      <button type="button" className="btn btn--danger" onClick={deleteActive}>
+                        Excluir "{activeName}"
+                      </button>
+                    </div>
+                  )}
+                  <SavedThemes
+                    active={activeName ? { name: activeName, palette } : null}
+                    onImport={importTheme}
+                  />
                 </div>
               )}
             </section>

@@ -382,6 +382,7 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
     "--shadow": dark ? "0 10px 40px rgb(0 0 0 / 45%)" : "0 10px 30px rgb(0 0 0 / 10%)",
     "--font-sans": FONTS[p.font].stack,
     "--font-display": FONTS[p.font].stack,
+    "--font-pixel": FONTS.press.stack,
     "--radius-sm": shape.sm,
     "--radius-md": shape.md,
     "--radius-lg": shape.lg,
