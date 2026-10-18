@@ -50,6 +50,7 @@ pub fn run() {
             commands::api_profile_has_key,
             commands::test_api_profile,
             commands::refresh_api_models,
+            commands::list_provider_models,
             commands::list_catalog_sources,
             commands::add_catalog_source,
             commands::remove_catalog_source,

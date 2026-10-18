@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::api_profiles::{self, ApiProfile, PresetInfo};
+use crate::api_profiles::{self, ApiProfile, Preset, PresetInfo, RemoteModels};
 use crate::changes::{self, Changes};
 use crate::checkpoints;
 use crate::conversations;
@@ -188,14 +188,28 @@ pub fn api_profile_has_key(id: String) -> Result<bool, String> {
     api_profiles::read_key(&id).map(|key| key.is_some())
 }
 
-/// Atualiza a lista de modelos do perfil a partir da API. Não grava nada: a tela decide o que salvar.
+/// Atualiza a lista de modelos de um perfil salvo, com a chave guardada. Não grava nada: a tela decide.
 #[tauri::command]
-pub async fn refresh_api_models(app: AppHandle, id: String) -> Result<Vec<String>, String> {
+pub async fn refresh_api_models(app: AppHandle, id: String) -> Result<RemoteModels, String> {
     let dir = app_data_dir(&app)?;
     let profile = load_profile(&dir, &id)?;
     let key = api_profiles::read_key(&id)?
         .ok_or_else(|| format!("o perfil \"{}\" ainda não tem chave. Cole a chave antes de atualizar.", profile.name))?;
-    api_profiles::fetch_model_ids(&profile, &key).await
+    let base = profile
+        .effective_base_url()
+        .ok_or_else(|| "este provedor não tem endereço de API para listar modelos".to_string())?;
+    api_profiles::fetch_models(&base, &key).await
+}
+
+/// Lista os modelos de um provedor com a chave que está na tela, antes de salvar o perfil.
+/// A chave vai só para a requisição; não é gravada nem devolvida.
+#[tauri::command]
+pub async fn list_provider_models(preset: Preset, base_url: String, api_key: String) -> Result<RemoteModels, String> {
+    if api_key.trim().is_empty() {
+        return Err("cole a chave da API para listar os modelos".into());
+    }
+    let base = api_profiles::base_url_for(preset, &base_url)?;
+    api_profiles::fetch_models(&base, api_key.trim()).await
 }
 
 /// Manda um prompt mínimo pelo perfil e devolve a resposta: prova que a chave, a URL e o modelo funcionam.

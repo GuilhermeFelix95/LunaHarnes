@@ -8,10 +8,11 @@ import {
   PROFILES_CHANGED,
   saveApiProfile,
   setApiProfileKey,
+  listProviderModels,
   refreshApiModels,
   testApiProfile,
 } from "../../api";
-import type { ApiPreset, ApiProfile, ProviderKind } from "../../types";
+import type { ApiPreset, ApiProfile, ProviderKind, RemoteModels } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 
 interface FormState {
@@ -153,25 +154,57 @@ export function ApiProfilesSection() {
     });
   }
 
-  /// Atualizar: troca a lista pela que a API devolve. O padrão só muda se estiver vazio.
+  /// Põe a lista que a API devolveu no formulário. O padrão fica se ainda estiver na lista; senão vai o mais barato.
+  function applyModels(result: RemoteModels) {
+    setForm((current) => ({
+      ...current,
+      models: result.ids.join(", "),
+      defaultModel: result.ids.includes(current.defaultModel) ? current.defaultModel : result.cheapest ?? result.ids[0],
+    }));
+  }
+
+  /// Atualizar: com a chave na tela, usa ela; sem chave e com perfil salvo, usa a chave guardada.
   async function refreshModels() {
-    if (!form.id) return;
+    const typedKey = apiKey.trim();
+    if (!typedKey && !form.id) return;
     setRefreshing(true);
     setError(undefined);
     try {
-      const ids = await refreshApiModels(form.id);
-      setForm((current) => ({
-        ...current,
-        models: ids.join(", "),
-        defaultModel: current.defaultModel || ids[0],
-      }));
-      setStatus(`${ids.length} modelo(s) atualizados da API. Salve para guardar a lista.`);
+      const result = typedKey
+        ? await listProviderModels(form.preset, form.baseUrl, typedKey)
+        : await refreshApiModels(form.id ?? "");
+      applyModels(result);
+      setStatus(`${result.ids.length} modelo(s) encontrados na API. Salve para guardar a lista.`);
     } catch (err) {
       setError(String(err));
     } finally {
       setRefreshing(false);
     }
   }
+
+  // Com a chave colada, a lista vem sozinha: basta escolher o provedor e colar a chave.
+  useEffect(() => {
+    const key = apiKey.trim();
+    if (key.length < 8) return;
+    let stale = false;
+    const timer = setTimeout(() => {
+      listProviderModels(form.preset, form.baseUrl, key)
+        .then((result) => {
+          if (stale) return;
+          setError(undefined);
+          if (result.ids.length > 0) applyModels(result);
+        })
+        .catch((err) => {
+          if (!stale) setError(String(err));
+        });
+    }, 600);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+    // applyModels só usa o setForm do React, que não muda entre renderizações.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, form.preset, form.baseUrl]);
 
   return (
     <section className="settings__section" aria-labelledby="settings-accounts">
@@ -281,10 +314,16 @@ export function ApiProfilesSection() {
             placeholder="ex.: deepseek-flash, deepseek-v4-pro"
           />
         </label>
-        <button type="button" disabled={!form.id || refreshing} onClick={() => void refreshModels()}>
+        <button
+          type="button"
+          disabled={(!apiKey.trim() && !form.id) || refreshing}
+          onClick={() => void refreshModels()}
+        >
           {refreshing ? "Atualizando…" : "Atualizar lista de modelos"}
         </button>
-        {!form.id && <p className="settings__hint">Salve o perfil com a chave para atualizar a lista da API.</p>}
+        {!apiKey.trim() && !form.id && (
+          <p className="settings__hint">Cole a chave: a lista de modelos vem da API sozinha.</p>
+        )}
         <label>
           Modelo padrão
           <input value={form.defaultModel} onChange={(e) => setForm({ ...form, defaultModel: e.target.value })} />

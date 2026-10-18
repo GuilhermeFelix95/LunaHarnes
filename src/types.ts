@@ -34,6 +34,12 @@ export interface ApiProfile {
 }
 
 /// Provedor pronto para criar um perfil (ver `api_profiles::presets`).
+/// Modelos que a API do provedor devolve. `cheapest` é null quando a API não informa preço.
+export interface RemoteModels {
+  ids: string[];
+  cheapest: string | null;
+}
+
 export interface ApiPreset {
   preset: string;
   label: string;

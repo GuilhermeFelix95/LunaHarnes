@@ -9,7 +9,8 @@ vi.mock("../../api", () => ({
   deleteApiProfile: vi.fn(async () => {}),
   listApiProfiles: vi.fn(async () => []),
   PROFILES_CHANGED: "luna:profiles-changed",
-  refreshApiModels: vi.fn(async () => ["deepseek-flash", "deepseek-v4-pro"]),
+  refreshApiModels: vi.fn(async () => ({ ids: ["deepseek-flash", "deepseek-v4-pro"], cheapest: "deepseek-flash" })),
+  listProviderModels: vi.fn(async () => ({ ids: [], cheapest: null })),
   saveApiProfile: vi.fn(async () => ({})),
   setApiProfileKey: vi.fn(async () => {}),
   testApiProfile: vi.fn(async () => "ok"),
@@ -60,6 +61,30 @@ describe("ApiProfilesSection", () => {
 
     expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe("deepseek-flash, deepseek-v4-pro");
     expect((screen.getByLabelText("Modelo padrão") as HTMLInputElement).value).toBe("deepseek-flash");
+  });
+
+  it("Atualizar lista usa a chave colada, mesmo antes de salvar o perfil", async () => {
+    render(<ApiProfilesSection />);
+    fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
+    fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Atualizar lista de modelos" }));
+
+    await waitFor(() =>
+      expect(api.listProviderModels).toHaveBeenCalledWith("openRouter", "", "sk-or-teste-123"),
+    );
+  });
+
+  it("ao colar a chave, a lista de modelos vem da API e o padrão é o mais barato", async () => {
+    vi.mocked(api.listProviderModels).mockResolvedValueOnce({ ids: ["a/x:free", "b/y"], cheapest: "a/x:free" });
+    render(<ApiProfilesSection />);
+    fireEvent.click(await screen.findByRole("radio", { name: /OpenRouter/ }));
+    fireEvent.change(screen.getByLabelText("Chave da API"), { target: { value: "sk-or-teste-123" } });
+
+    await waitFor(() =>
+      expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe("a/x:free, b/y"),
+    );
+    expect((screen.getByLabelText("Modelo padrão") as HTMLInputElement).value).toBe("a/x:free");
   });
 
   it("Atualizar lista troca os modelos pelos que a API devolve", async () => {

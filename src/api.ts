@@ -12,6 +12,7 @@ import type {
   ModelOption,
   ProviderEvent,
   ProviderKind,
+  RemoteModels,
   RunRequest,
 } from "./types";
 
@@ -200,9 +201,14 @@ export function testApiProfile(id: string): Promise<string> {
   return invoke("test_api_profile", { id });
 }
 
-/// Busca a lista de modelos do perfil na API. Não grava nada: a tela decide.
-export function refreshApiModels(id: string): Promise<string[]> {
+/// Busca a lista de modelos do perfil salvo na API. Não grava nada: a tela decide.
+export function refreshApiModels(id: string): Promise<RemoteModels> {
   return invoke("refresh_api_models", { id });
+}
+
+/// Busca a lista de modelos com a chave que está na tela, antes de salvar. A chave não é gravada.
+export function listProviderModels(preset: string, baseUrl: string, apiKey: string): Promise<RemoteModels> {
+  return invoke("list_provider_models", { preset, baseUrl, apiKey });
 }
 
 /// Avisa as telas que a lista de perfis mudou (ver ApiProfilesSection e ChatView).

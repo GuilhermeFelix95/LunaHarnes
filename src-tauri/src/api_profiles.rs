@@ -126,30 +126,68 @@ pub fn presets() -> Vec<PresetInfo> {
 /// Tempo máximo para listar modelos. A lista é só um botão de atualizar, então falha rápido.
 const MODELS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-/// Ids de modelo da resposta de `GET /v1/models`. Descarta o que não passa na validação de nome.
-pub fn parse_model_ids(body: &serde_json::Value) -> Vec<String> {
-    let mut ids: Vec<String> = body
+/// Modelos que a API devolve. `cheapest` é o de menor preço de entrada; `None` quando a API não informa preço.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteModels {
+    pub ids: Vec<String>,
+    pub cheapest: Option<String>,
+}
+
+/// Modelos de `GET /v1/models` (formato da Anthropic e do OpenRouter). Descarta ids que não passam na validação de nome.
+pub fn parse_models(body: &serde_json::Value) -> RemoteModels {
+    let mut priced: Vec<(String, f64)> = body
         .get("data")
         .and_then(|data| data.as_array())
         .map(|items| {
             items
                 .iter()
-                .filter_map(|item| item.get("id").and_then(|id| id.as_str()))
-                .filter(|id| is_model_token(id))
-                .map(str::to_string)
+                .filter_map(|item| {
+                    let id = item.get("id").and_then(|id| id.as_str()).filter(|id| is_model_token(id))?;
+                    Some((id.to_string(), prompt_price(item)))
+                })
                 .collect()
         })
         .unwrap_or_default();
-    ids.sort();
-    ids.dedup();
-    ids
+    priced.sort_by(|a, b| a.0.cmp(&b.0));
+    priced.dedup_by(|a, b| a.0 == b.0);
+    let cheapest = priced
+        .iter()
+        .filter(|(_, price)| price.is_finite())
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(id, _)| id.clone());
+    RemoteModels {
+        ids: priced.into_iter().map(|(id, _)| id).collect(),
+        cheapest,
+    }
 }
 
-/// Busca a lista de modelos do provedor. A chave vai só nos cabeçalhos; os erros citam o endereço, nunca a chave.
-pub async fn fetch_model_ids(profile: &ApiProfile, api_key: &str) -> Result<Vec<String>, String> {
-    let base = profile
-        .effective_base_url()
-        .ok_or_else(|| "este provedor não tem endereço de API para listar modelos".to_string())?;
+/// Preço de entrada por token. O OpenRouter manda texto ("0"); sem preço vira infinito.
+fn prompt_price(item: &serde_json::Value) -> f64 {
+    let parsed = match item.get("pricing").and_then(|p| p.get("prompt")) {
+        Some(serde_json::Value::String(text)) => text.parse::<f64>().ok(),
+        Some(serde_json::Value::Number(number)) => number.as_f64(),
+        _ => None,
+    };
+    parsed.unwrap_or(f64::INFINITY)
+}
+
+/// Endereço para listar modelos: o que o usuário digitou (validado) ou o padrão do preset.
+pub fn base_url_for(preset: Preset, base_url: &str) -> Result<String, String> {
+    let own = base_url.trim();
+    if !own.is_empty() {
+        validate_base_url(own)?;
+        return Ok(own.to_string());
+    }
+    let default = preset.info().default_base_url;
+    if default.is_empty() {
+        return Err("informe o endereço da API deste provedor".into());
+    }
+    Ok(default.to_string())
+}
+
+/// Busca a lista de modelos num endereço de API. A chave vai só nos cabeçalhos; os erros citam o endereço, nunca a chave.
+pub async fn fetch_models(base: &str, api_key: &str) -> Result<RemoteModels, String> {
     let url = format!("{}/v1/models", base.trim_end_matches('/'));
     let client = reqwest::Client::builder()
         .timeout(MODELS_TIMEOUT)
@@ -172,11 +210,11 @@ pub async fn fetch_model_ids(profile: &ApiProfile, api_key: &str) -> Result<Vec<
         .map_err(|e| format!("falha ao ler a resposta de {url}: {e}"))?;
     let body: serde_json::Value =
         serde_json::from_str(&text).map_err(|e| format!("a resposta de {url} não é JSON: {e}"))?;
-    let ids = parse_model_ids(&body);
-    if ids.is_empty() {
+    let models = parse_models(&body);
+    if models.ids.is_empty() {
         return Err(format!("{url} não devolveu modelos"));
     }
-    Ok(ids)
+    Ok(models)
 }
 
 /// Perfil salvo. Não há campo de chave: o tipo não consegue carregar o segredo.
@@ -527,8 +565,30 @@ mod tests {
             ]
         });
 
-        assert_eq!(parse_model_ids(&body), vec!["deepseek-flash", "qwen/qwen3-coder:free"]);
-        assert!(parse_model_ids(&serde_json::json!({"erro": "x"})).is_empty());
+        assert_eq!(parse_models(&body).ids, vec!["deepseek-flash", "qwen/qwen3-coder:free"]);
+        assert!(parse_models(&serde_json::json!({"erro": "x"})).ids.is_empty());
+    }
+
+    #[test]
+    fn cheapest_model_comes_from_pricing_and_skips_unpriced() {
+        let body = serde_json::json!({
+            "data": [
+                {"id": "paga/grande", "pricing": {"prompt": "0.000003"}},
+                {"id": "gratis/x:free", "pricing": {"prompt": "0"}},
+                {"id": "sem/preco"}
+            ]
+        });
+
+        assert_eq!(parse_models(&body).cheapest.as_deref(), Some("gratis/x:free"));
+        assert_eq!(parse_models(&serde_json::json!({"data": [{"id": "sem/preco"}]})).cheapest, None);
+    }
+
+    #[test]
+    fn base_url_comes_from_the_preset_or_the_typed_address() {
+        assert_eq!(base_url_for(Preset::OpenRouter, "").unwrap(), "https://openrouter.ai/api");
+        assert_eq!(base_url_for(Preset::OpenRouter, "https://meu.proxy/api").unwrap(), "https://meu.proxy/api");
+        // Nome de modelo digitado no campo de endereço é recusado, como aconteceu na tela.
+        assert!(base_url_for(Preset::OpenRouter, "poolside/laguna-s-2.1:free").is_err());
     }
 
     #[test]
