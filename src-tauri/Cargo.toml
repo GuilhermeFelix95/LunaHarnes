@@ -13,7 +13,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-dialog = "2"
 # Avisos do sistema quando a janela não está em foco (resposta pronta, erro, plano).
 tauri-plugin-notification = "=2.5.1"

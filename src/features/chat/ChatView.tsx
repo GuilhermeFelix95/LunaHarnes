@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, GitCompare, Terminal } from "lucide-react";
+import { ArrowDown, GitCompare, Globe, Terminal } from "lucide-react";
 import {
   cancelPrompt,
   checkAuth,
@@ -60,6 +60,7 @@ import type {
 import { applyTaskEvent, displayTodos, toTodos, type TaskEntry } from "../../chat/tasks";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
+import { BrowserPanel } from "../side/BrowserPanel";
 import { loadOpen, RightPanel, saveOpen, type SideTab } from "../side/RightPanel";
 import { TerminalPanel } from "../terminal/TerminalPanel";
 import { Composer, PROVIDER_LABELS } from "./Composer";
@@ -927,6 +928,15 @@ ${outgoing}`
           >
             <Terminal size={14} aria-hidden="true" /> Terminal
           </button>
+          <button
+            type="button"
+            className="chat__tool"
+            aria-pressed={sideOpen && sideTab === "browser"}
+            title="Navegador"
+            onClick={() => toggleSide("browser")}
+          >
+            <Globe size={14} aria-hidden="true" /> Navegador
+          </button>
         </div>
       </header>
 
@@ -1130,6 +1140,7 @@ ${outgoing}`
         todos={displayTodos(toTodos(tasks), running)}
         running={running}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
+        browser={<BrowserPanel active={sideOpen && sideTab === "browser"} />}
       />
       </div>
     </div>

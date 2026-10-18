@@ -1,5 +1,6 @@
 pub mod api_profiles;
 pub mod auth;
+pub mod browser;
 pub mod changes;
 pub mod worktrees;
 pub mod checkpoints;
@@ -37,6 +38,15 @@ pub fn run() {
                 }
                 Err(e) => eprintln!("não foi possível localizar a pasta de dados para o guia de plugins: {e}"),
             }
+            // Navegador do agente: servidor local e configuração MCP. Sem ele o agente não vê as ferramentas do navegador.
+            match app.path().app_data_dir() {
+                Ok(dir) => {
+                    if let Err(e) = browser::start(app.handle().clone(), &dir) {
+                        eprintln!("{e}");
+                    }
+                }
+                Err(e) => eprintln!("não foi possível localizar a pasta de dados para o navegador: {e}"),
+            }
             // Plugins padrão (cache de tokens). Falha só vira aviso no terminal: o app abre sem eles.
             match app.path().app_data_dir() {
                 Ok(dir) => {
@@ -59,6 +69,14 @@ pub fn run() {
             worktrees::list_git_branches,
             worktrees::create_git_worktree,
             reload::config_fingerprint,
+            browser::browser_open,
+            browser::browser_set_bounds,
+            browser::browser_show,
+            browser::browser_navigate,
+            browser::browser_history,
+            browser::browser_reload,
+            browser::browser_close,
+            browser::browser_read,
             commands::get_file_diff,
             commands::discard_change,
             commands::checkpoint_take,

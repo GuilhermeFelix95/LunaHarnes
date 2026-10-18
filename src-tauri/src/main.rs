@@ -7,5 +7,9 @@ fn main() {
     if args.get(1).map(String::as_str) == Some("mcp") {
         std::process::exit(lunaharness::mcp::cli(&args[2..]));
     }
+    // `lunaharness browser-mcp` é o servidor MCP do navegador: o Claude o inicia e fala por stdin/stdout.
+    if args.get(1).map(String::as_str) == Some("browser-mcp") {
+        std::process::exit(lunaharness::browser::mcp_stdio());
+    }
     lunaharness::run();
 }

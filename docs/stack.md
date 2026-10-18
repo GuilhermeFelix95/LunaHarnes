@@ -19,6 +19,7 @@ Harness desktop leve que controla os CLIs oficiais do Claude Code e do Codex e a
   - Claude Code: `claude -p --output-format stream-json`
   - Codex: `codex exec --json`
 - **Plugins:** pasta com `manifest.json` e um módulo JavaScript de um arquivo (TypeScript fica para depois). A API exposta ao plugin é filtrada pelas permissões do manifesto. O manifesto é controle de API, não fronteira de segurança.
+- **Navegador integrado:** webview filha da janela principal (`add_child`, feature `unstable` do Tauri), na aba Navegador ao lado do Terminal (`src/features/side/BrowserPanel.tsx`, comandos `browser_*` em `src-tauri/src/browser.rs`). O agente usa o mesmo executável em modo `browser-mcp` (servidor MCP por stdio) que fala com o app por HTTP em 127.0.0.1 com token. Só o Claude recebe a configuração (`--mcp-config`, `--allowedTools mcp__luna-browser`); o Codex ainda não. Só http e https. A webview não tem acesso aos comandos do app (não está nas capabilities).
 - **Cache de respostas:** em memória, compartilhado pelas conversas da sessão (`src/chat/responseCache.ts`). O envio consulta o cache em `ChatView.send`; a permissão `cache` e o objeto `api.cache` ficam no host de plugins. O núcleo conta consultas com o cache ligado, e o plugin de exemplo mostra a taxa de acerto na barra lateral (permissão `ui`). Contadores só na sessão. Sem gravação em disco.
 
 ## Pastas
@@ -40,6 +41,11 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Navegador integrado (2026-10-18):
+  - Aba Navegador no painel lateral, com barra de endereço, voltar, avançar e recarregar. A página só aparece quando a aba está à vista (`browser_show`). Não há botão de fechar a página ainda.
+  - Ferramentas do agente: `browser_navigate`, `browser_read`, `browser_click` e `browser_type` (`mcp__luna-browser__*`). Como essas chamadas aparecem na conversa ainda não foi conferido.
+  - Limitações: a webview fica por cima da interface, então um diálogo do app que cruze a área do navegador é coberto. A barra de endereço não acompanha cliques dentro da página. Não verificado com o Claude CLI real nem com `tauri dev` nesta rodada.
+  - Testes do módulo `browser::` precisam do manifesto do comctl32 v6 nos binários de teste (`src-tauri/build.rs`); sem ele, o binário de teste não inicia no Windows.
 - Rodada de tela, plano, compactação e regras (2026-10-18):
   - Gatinho lunar: quadros PNG com fundo transparente em `public/luna/cat-01.png` a `cat-12.png`, extraídos do spritesheet enviado pelo usuário (pés alinhados num canvas 160x170). `src/features/side/LunaCat.tsx` troca de quadro a cada 180 ms enquanto anda e mantém o quadro `cat-04` (olhos fechados) para dormir. Sem three.js, sem WebGL, sem Rive. Os keyframes ficam em `src/styles/components.css`. Conferido numa prévia no navegador; não foi conferido num `tauri dev`.
   - Aviso na tela: `src/ui/toast.ts` (pub/sub) e `src/ui/Toaster.tsx`, montado em `App.tsx`. Liga e desliga em Configurações > Notificações (`luna.toast`). Clicar no aviso ainda não abre a conversa.

@@ -40,6 +40,11 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     if let Some(dir) = crate::plugins::guide::dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);
     }
+    // Ferramentas do navegador integrado (MCP local). Liberadas sem perguntar: o agente só age na página aberta.
+    if let Some(config) = crate::browser::mcp_config() {
+        args.extend(["--mcp-config".to_string(), config.display().to_string()]);
+        args.extend(["--allowedTools".to_string(), "mcp__luna-browser".to_string()]);
+    }
     // Onde a Luna cria rascunhos de plugin para a pessoa instalar pelo cartão no chat.
     if let Some(dir) = crate::plugins::guide::drafts_dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);

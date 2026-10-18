@@ -114,3 +114,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Worktree por branch: menu da pasta lista as branches e cria worktree (ou branch nova) em pasta irmã do repositório; conversa troca para ela.
 2026-10-18 | Recarregar depois de instalar: turno que muda MCP, skill ou plugin avisa as listas e mostra o botão Recarregar (impressão digital da configuração em reload.rs).
 2026-10-18 | Cache de prompt: medição por turno no núcleo, cache de respostas removido, plugin Cache de Tokens v1.0 instalado por padrão, opção de cache de 1 h para chave Anthropic (spec/cache-de-prompt.md).
+2026-10-18 | Navegador integrado: aba Navegador no painel lateral (webview filha, feature unstable do Tauri) e ferramentas MCP do agente (navegar, ler, clicar, digitar) para o Claude; build.rs põe o manifesto do comctl32 v6 nos testes.

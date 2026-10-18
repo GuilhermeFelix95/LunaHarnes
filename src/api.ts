@@ -200,6 +200,40 @@ export function terminalClose(id: string): Promise<void> {
   return invoke("terminal_close", { id });
 }
 
+/// Retângulo da página do navegador, em pixels lógicos e relativo à janela.
+export interface BrowserBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/// Abre a página na webview do navegador, ou só navega se ela já existe.
+export function browserOpen(url: string, bounds: BrowserBounds): Promise<void> {
+  return invoke("browser_open", { url, bounds });
+}
+
+export function browserSetBounds(bounds: BrowserBounds): Promise<void> {
+  return invoke("browser_set_bounds", { bounds });
+}
+
+/// Mostra ou esconde a página. Sem navegador aberto, esconder não faz nada.
+export function browserShow(visible: boolean): Promise<void> {
+  return invoke("browser_show", { visible });
+}
+
+export function browserNavigate(url: string): Promise<string> {
+  return invoke("browser_navigate", { url });
+}
+
+export function browserHistory(direction: "back" | "forward"): Promise<void> {
+  return invoke("browser_history", { direction });
+}
+
+export function browserReload(): Promise<void> {
+  return invoke("browser_reload");
+}
+
 export interface TerminalDataEvent {
   id: string;
   data: string;

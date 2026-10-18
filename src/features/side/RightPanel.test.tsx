@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TodoItem } from "../../types";
-import { clampWidth, loadOpen, OPEN_KEY, RightPanel, saveOpen, WIDTH_KEY } from "./RightPanel";
+import { clampWidth, loadOpen, OPEN_KEY, RightPanel, saveOpen, WIDTH_KEY, type SideTab } from "./RightPanel";
 
-function setup(tab: "changes" | "plan" | "progress" | "terminal" = "changes", plan?: string, todos: TodoItem[] = []) {
+function setup(tab: SideTab = "changes", plan?: string, todos: TodoItem[] = []) {
   const onTab = vi.fn();
   const onClose = vi.fn();
   render(
@@ -17,6 +17,7 @@ function setup(tab: "changes" | "plan" | "progress" | "terminal" = "changes", pl
       todos={todos}
       running={false}
       terminal={<p>shell</p>}
+      browser={<p>página do navegador</p>}
     />,
   );
   return { onTab, onClose };
@@ -41,6 +42,21 @@ describe("RightPanel", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Terminal" }));
 
     expect(onTab).toHaveBeenCalledWith("terminal");
+  });
+
+  it("a aba Navegador fica depois do Terminal e avisa quando é escolhida", () => {
+    const { onTab } = setup("terminal");
+
+    const names = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(names.slice(-2)).toEqual(["Terminal", "Navegador"]);
+    fireEvent.click(screen.getByRole("tab", { name: "Navegador" }));
+    expect(onTab).toHaveBeenCalledWith("browser");
+  });
+
+  it("o navegador continua montado quando outra aba está à mostra", () => {
+    setup("changes");
+
+    expect(screen.getByText("página do navegador")).toBeTruthy();
   });
 
   it("arrastar a alça muda a largura e salva", () => {

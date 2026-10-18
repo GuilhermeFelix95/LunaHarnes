@@ -6,7 +6,7 @@ import { LunaAtom } from "./LunaAtom";
 import { ProgressTimeline } from "./ProgressTimeline";
 import type { TodoItem } from "../../types";
 
-export type SideTab = "changes" | "plan" | "progress" | "terminal";
+export type SideTab = "changes" | "plan" | "progress" | "terminal" | "browser";
 
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 320;
@@ -72,6 +72,7 @@ interface RightPanelProps {
   /** A Luna está respondendo: o gatinho digita; parado, ele dorme. */
   running: boolean;
   terminal: ReactNode;
+  browser: ReactNode;
 }
 
 const TABS: Array<[SideTab, string]> = [
@@ -79,6 +80,7 @@ const TABS: Array<[SideTab, string]> = [
   ["plan", "Plano"],
   ["progress", "Progresso"],
   ["terminal", "Terminal"],
+  ["browser", "Navegador"],
 ];
 
 /// Painel à direita do chat, com abas e largura ajustável pela alça na borda esquerda.
@@ -92,6 +94,7 @@ export function RightPanel({
   todos,
   running,
   terminal,
+  browser,
 }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -178,6 +181,9 @@ export function RightPanel({
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>
         {terminal}
+      </div>
+      <div className="side__body side__body--browser" role="tabpanel" hidden={tab !== "browser"}>
+        {browser}
       </div>
     </aside>
   );
