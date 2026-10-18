@@ -715,6 +715,7 @@ ${outgoing}`
             messages={messages}
             fallbackProvider={legacyProvider.current}
             running={running}
+            pending={{ provider, label: agentLabel }}
             onRewind={(m) => {
               const index = messagesRef.current.indexOf(m);
               if (index >= 0 && m.checkpoint) void rewind(index, m.checkpoint);

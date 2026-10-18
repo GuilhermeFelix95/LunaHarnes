@@ -19,6 +19,8 @@ interface MessageListProps {
   running: boolean;
   /** Volta a conversa e os arquivos ao ponto deste pedido (só mensagens do usuário com checkpoint). */
   onRewind?: (message: ChatMessage) => void;
+  /** Agente que está respondendo: autor do indicador "Pensando…" enquanto a resposta não chega. */
+  pending?: { provider: ProviderKind; label: string };
 }
 
 type Tool = NonNullable<ChatMessage["tool"]>;
@@ -85,8 +87,10 @@ function toolSummary(tools: Tool[]): string {
 
 /// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
 /// ferramentas recolhidas e o texto em destaque.
-export function MessageList({ messages, fallbackProvider, running, onRewind }: MessageListProps) {
+export function MessageList({ messages, fallbackProvider, running, onRewind, pending }: MessageListProps) {
   const items = group(messages, fallbackProvider);
+  // Pedido enviado e nenhuma resposta ainda: o agente aparece "pensando" até o primeiro pedaço chegar.
+  const waiting = running && items.at(-1)?.kind === "user";
 
   return (
     <ol className="messages" aria-live="polite">
@@ -157,6 +161,27 @@ export function MessageList({ messages, fallbackProvider, running, onRewind }: M
           )}
         </li>
       ))}
+
+      {waiting && (
+        <li className="message message--assistant">
+          <div className="message__reply">
+            <span className="message__author">
+              <span className="message__avatar" aria-hidden="true">
+                <ProviderIcon provider={pending?.provider ?? fallbackProvider} />
+              </span>
+              {pending?.label ?? PROVIDER_LABELS[pending?.provider ?? fallbackProvider]}
+            </span>
+            <p className="typing" role="status">
+              <span className="typing__dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              Pensando…
+            </p>
+          </div>
+        </li>
+      )}
     </ol>
   );
 }

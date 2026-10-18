@@ -54,6 +54,34 @@ describe("MessageList", () => {
     expect(screen.getByText(/Trabalhando…/)).toBeTruthy();
   });
 
+  it("depois do pedido, enquanto nada chega, mostra Pensando… com o agente", () => {
+    const asked: ChatMessage[] = [{ role: "user", text: "oi" }];
+    render(
+      <MessageList messages={asked} fallbackProvider="claude" running pending={{ provider: "codex", label: "Codex" }} />,
+    );
+
+    expect(screen.getByRole("status").textContent).toContain("Pensando…");
+    expect(screen.getByText("Codex")).toBeTruthy();
+  });
+
+  it("o Pensando… some quando a resposta começa e quando a conversa para", () => {
+    const asked: ChatMessage[] = [{ role: "user", text: "oi" }];
+    const { rerender } = render(<MessageList messages={asked} fallbackProvider="claude" running />);
+    expect(screen.queryByRole("status")).toBeTruthy();
+
+    rerender(
+      <MessageList
+        messages={[...asked, { role: "assistant", text: "Olá!", provider: "claude" }]}
+        fallbackProvider="claude"
+        running
+      />,
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+
+    rerender(<MessageList messages={asked} fallbackProvider="claude" running={false} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("respostas de agentes diferentes mostram cada nome", () => {
     const messages: ChatMessage[] = [
       ...turn,
