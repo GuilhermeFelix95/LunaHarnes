@@ -42,6 +42,16 @@ describe("ModelMenu", () => {
     expect(screen.getByRole("option", { name: /claude-sonnet-5.5/ }).textContent).toContain("1M de contexto");
   });
 
+  it("a lista de modelos fica dentro da área com rolagem; a busca fica fora dela", () => {
+    render(<ModelMenu models={MANY} value={MANY[0].id} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Modelo" }));
+
+    const list = document.querySelector(".model-menu__list");
+    expect(list?.querySelectorAll("[role='option']")).toHaveLength(MANY.length);
+    expect(list?.querySelector("input")).toBeNull();
+  });
+
   it("com poucos modelos não mostra campo de busca", () => {
     render(<ModelMenu models={MANY.slice(0, 3)} value={MANY[0].id} onChange={vi.fn()} />);
 

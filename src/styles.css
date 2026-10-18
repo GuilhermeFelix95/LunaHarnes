@@ -1169,6 +1169,15 @@ textarea:focus-visible {
   min-width: 260px;
 }
 
+/* Altura máxima de cerca de 6 modelos; passou disso, rola. */
+.model-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 390px;
+  overflow-y: auto;
+}
+
 .model-menu__item {
   display: flex;
   flex-direction: column;
