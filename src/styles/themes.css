@@ -28,8 +28,9 @@
   --terminal-bg: #1f1e1d;
   --terminal-fg: #f0eee6;
   --glow: rgb(42 111 151 / 14%);
-  --glass: color-mix(in srgb, var(--surface) 72%, transparent);
-  --glass-border: color-mix(in srgb, var(--fg) 12%, transparent);
+  /* Neutro e plano, como o Claude desktop: superfícies sólidas e borda de 1px, sem vidro */
+  --glass: var(--surface);
+  --glass-border: var(--border);
   --shadow: 0 10px 30px rgb(0 0 0 / 10%);
   color-scheme: light;
 }
