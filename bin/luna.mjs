@@ -1,21 +1,12 @@
 #!/usr/bin/env node
-// Comando `luna`: abre o LunaHarness a partir de qualquer pasta.
-// Usa o executável já compilado (`npm run build:app`); não recompila nada.
+// Comando `luna`: abre o LunaHarness em modo de desenvolvimento, com hot reload e sempre com o código atual.
+// Roda neste terminal: os logs aparecem aqui e Ctrl+C fecha o app.
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const exeName = process.platform === "win32" ? "lunaharness.exe" : "lunaharness";
-const exe = join(root, "src-tauri", "target", "release", exeName);
 
-if (!existsSync(exe)) {
-  console.error(
-    `O LunaHarness ainda não foi compilado. Rode "npm run build:app" em ${root}.`,
-  );
-  process.exit(1);
-}
-
-// Desvinculado do terminal: o app continua aberto mesmo depois de fechar este shell.
-spawn(exe, { detached: true, stdio: "ignore" }).unref();
+// `shell` é preciso no Windows, onde o npm é um .cmd.
+const child = spawn("npm", ["run", "dev:app"], { cwd: root, stdio: "inherit", shell: true });
+child.on("exit", (code) => process.exit(code ?? 0));

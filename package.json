@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:app": "scripts\\with-msvc.cmd npx tauri build --no-bundle",
+    "dev:app": "scripts\\with-msvc.cmd npx tauri dev",
     "test": "vitest run",
     "tauri": "tauri",
     "test:rust": "scripts\\with-msvc.cmd cargo test --manifest-path src-tauri\\Cargo.toml",
