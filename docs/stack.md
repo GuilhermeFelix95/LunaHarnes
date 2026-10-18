@@ -18,7 +18,7 @@ Harness desktop leve que controla os CLIs oficiais do Claude Code e do Codex e a
 - **Integração:** subprocesso com saída JSON em streaming.
   - Claude Code: `claude -p --output-format stream-json`
   - Codex: `codex exec --json`
-- **Plugins:** pasta com `manifest.json` e módulo JS/TS. A API exposta ao plugin é filtrada pelas permissões do manifesto. O manifesto é controle de API, não fronteira de segurança.
+- **Plugins:** pasta com `manifest.json` e um módulo JavaScript de um arquivo (TypeScript fica para depois). A API exposta ao plugin é filtrada pelas permissões do manifesto. O manifesto é controle de API, não fronteira de segurança.
 
 ## Pastas
 
@@ -61,7 +61,7 @@ docs/                stack, contrato de plugins
   - Layout: `App.tsx` (barra lateral + chat). `ChatView` persiste a conversa ao fim de cada turno.
   - Componentes em `src/features/`: `chat/` (Composer, MessageList, Markdown), `sidebar/` (Sidebar, groupByDay), `auth/` (LoginPrompt).
   - Markdown: `react-markdown` + `remark-gfm`, sem `rehype-raw`. Links não navegam dentro do app.
-  - Tema: tokens em `src/styles.css` (claro, escuro por sistema e por `data-theme`).
+  - Tema: tokens em `src/styles/tokens.css` (escala de tipo, espaço, raio, sombra, movimento) e cores por tema em `src/styles/themes.css` (Sistema, Claro, Escuro, Luna padrão, Aurora, Duna, Grafite). Estilos base e componentes em `src/styles/base.css` e `src/styles/components.css`.
 - Fase A (funcionamento):
   - Executável resolvido só com `.exe`, `.cmd` ou `.bat` no Windows (o script sem extensão instalado pelo npm dava erro 193).
   - Processos sem janela de console (`hidden_command`). stderr capturado; se o CLI sair sem `Done`, a app emite erro com o motivo.
@@ -89,7 +89,7 @@ docs/                stack, contrato de plugins
   - Respostas agrupadas (`MessageList.tsx`): o nome do agente aparece uma vez por resposta e as ferramentas seguidas viram uma linha recolhível com a contagem.
   - Rolagem que segue o fim da resposta (`src/chat/useStickToBottom.ts`). Ao rolar para cima, para onde o usuário está e aparece "Ir para o fim".
   - Painel direito com abas Alterações e Terminal e largura ajustável pela alça (`src/features/side/RightPanel.tsx`). Largura entre 240 px e 60% da janela, salva em `luna.rightPanel.width`. O terminal fica montado ao trocar de aba.
-  - Configurações (`SettingsView.tsx`) com temas: Sistema, Claro, Escuro, Luna, Aurora, Duna e Grafite (`src/theme.ts`, cores em `styles.css`). A escolha fica em `luna.theme` e é aplicada em `main.tsx` antes do primeiro render.
+  - Configurações (`SettingsView.tsx`) com temas: Sistema, Claro, Escuro, Luna, Aurora, Duna e Grafite (`src/theme.ts`, cores em `src/styles/themes.css`). A escolha fica em `luna.theme` e é aplicada em `main.tsx` antes do primeiro render.
   - Pendente: o fundo do terminal ainda é preto fixo (não segue o tema). Troca Claude → Codex ainda não testada ponta a ponta, porque o Codex não está logado.
 - Fase F (em andamento):
   - Etapa 1 (ajustes): ícone novo; modelo padrão é o mais barato (Haiku 5.5 no Claude; `gpt-6-luna` no Codex, pela família "luna"/"mini"/"nano"), marcado com `default` em `models.rs`; clicar de novo num arquivo de Alterações fecha o diff; contexto e uso em k/M (`formatTokens`: "44k", "1,2M").
@@ -114,3 +114,4 @@ docs/                stack, contrato de plugins
 - Oito ajustes (2026-10-18): OpenRouter lista sem `anthropic-version` (com o cabeçalho ele devolve só 20 ids no formato Anthropic); `fetch_models` recebe o provedor. Barra lateral só rola a lista de projetos (`.sidebar__list`), rodapé fixo. Renomear conversa na barra lateral (`rename_conversation`, campo `titleLocked`: salvar de novo não troca o nome). Remover projeto apaga as conversas da pasta, com confirmação (`App.removeProject`). Primeira abertura checa Claude Code e Codex (`src-tauri/src/setup.rs`, `cli_status` e `install_cli`): acha a CLI no PATH e nas pastas dos instaladores oficiais, instala só o que falta, com clique, pelo script oficial (claude.ai/install.ps1 e chatgpt.com/codex/install.ps1); tela `SetupScreen` por cima do app. Janela 1440x900 centralizada. Sem "Gerar spec": o pedido de aprovação manda criar spec/<funcionalidade>.md no modelo to-spec (Problem Statement, Solution, User Stories, Implementation Decisions, Testing Decisions, Out of Scope, Further Notes). Aba Progresso em tempo real: Claude com CLAUDE_CODE_ENABLE_TODO_TOOLS=true, que liga TaskCreate/TaskUpdate (formato medido numa execução real; o id da tarefa volta no resultado da ferramenta) e mantém a ordem de criação (`src/chat/tasks.ts`). Codex: todo_list pela documentação, sem execução real (login pendente nesta máquina).
 - Seletor de modelos (2026-10-18): a lista rola dentro de uma altura máxima de cerca de 6 modelos (`.model-menu__list`, `ModelMenu.tsx`); a busca fica fixa no topo. O OpenRouter tem centenas de modelos.
 - Windows e o shim `claude.cmd` (2026-10-18): argumento com quebra de linha, aspas ou % faz o cmd recusar a chamada ("batch file arguments are invalid"). A identidade e a instrução de tarefas vão numa linha só em `--append-system-prompt`; teste `no_argument_has_line_breaks_or_quotes_that_break_the_cmd_shim` trava isso.
+- Visual Lunar escuro (2026-10-18): CSS em `src/styles/`; componentes reaproveitados em `src/ui/` (`ConfirmDialog.tsx`, `usePopover.ts`); plugins: instalação de pasta (`src-tauri/src/plugins/local.rs`), modelo de plugin, timeout de 10 s no host, `questions` no modo. Estudo do motor em `docs/motor-proprio.md`.
