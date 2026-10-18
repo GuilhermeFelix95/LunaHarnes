@@ -1,5 +1,7 @@
 /// Modo plano: o agente entrevista, planeja e só depois edita. Vale para qualquer CLI,
 /// porque o Codex não tem modo de plano próprio: a regra vai no prompt e a sandbox fica só leitura.
+import type { Question } from "./questions";
+
 /// Meta padrão: o plano só sai quando o agente diz que tem pelo menos este tanto do contexto.
 export const DEFAULT_PLAN_TARGET = 80;
 export const PLAN_TARGET_KEY = "luna.planTarget";
@@ -33,6 +35,14 @@ export function planInstruction(target: number): string {
     "5. Ao apresentar o plano, liste os arquivos a alterar e pergunte se pode aprovar, com o bloco de perguntas e as opções \"Aprovar e executar\" e \"Ainda não\".",
     "6. Só comece a executar depois que o usuário aprovar.",
   ].join("\n");
+}
+
+/// O texto que vira plano na aba Plano, ou null. Vale para a resposta sem perguntas e para a que pede aprovação
+/// (a aprovação é a última pergunta do plano). Rodadas de perguntas não viram plano.
+export function planFromReply(reply: { text: string; questions: Question[] | null }, planning: boolean): string | null {
+  if (!planning || !reply.text.trim()) return null;
+  const asksApproval = reply.questions?.some((q) => q.options.includes(APPROVE_OPTION)) ?? false;
+  return !reply.questions || asksApproval ? reply.text : null;
 }
 
 /// Lê "Contexto entendido: X%" da resposta. Sem a linha, devolve null.

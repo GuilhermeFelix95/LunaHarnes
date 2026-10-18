@@ -5,6 +5,7 @@ import {
   DEFAULT_PLAN_TARGET,
   loadPlanTarget,
   PLAN_TARGET_KEY,
+  planFromReply,
   planInstruction,
   QUESTION_PROTOCOL,
   savePlanTarget,
@@ -24,6 +25,23 @@ describe("modo plano", () => {
 
     expect(text).toContain("65%");
     expect(text).toContain("Contexto entendido: X%");
+  });
+
+  it("a resposta com a pergunta de aprovação vira o plano na aba Plano", () => {
+    const approval = {
+      text: "Plano: editar o host e o ChatView.",
+      questions: [{ question: "Aprovar o plano?", options: ["Aprovar e executar", "Ainda não"], multiple: false }],
+    };
+
+    expect(planFromReply(approval, true)).toBe("Plano: editar o host e o ChatView.");
+  });
+
+  it("rodada de perguntas não vira plano, e resposta sem planejamento também não", () => {
+    const round = { text: "Contexto entendido: 30%", questions: [{ question: "Banco?", options: ["A", "B"], multiple: false }] };
+
+    expect(planFromReply(round, true)).toBeNull();
+    expect(planFromReply({ text: "Plano pronto", questions: null }, false)).toBeNull();
+    expect(planFromReply({ text: "  ", questions: null }, true)).toBeNull();
   });
 
   it("lê a % marcada pelo agente, limitada a 100", () => {

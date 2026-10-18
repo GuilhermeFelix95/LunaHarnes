@@ -1754,34 +1754,144 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
-.side__todos {
+/* Progresso: linha do tempo com um nó por etapa. */
+.timeline {
+  display: grid;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.timeline__summary {
+  display: grid;
+  gap: 6px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.timeline__bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.timeline__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--dur) var(--ease);
+}
+
+.timeline__steps {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 8px;
 }
 
-.side__todo {
+.timeline__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  padding-bottom: 18px;
+}
+
+/* Fio que liga um nó ao próximo. */
+.timeline__step::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 24px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline__step:last-child {
+  padding-bottom: 0;
+}
+
+.timeline__step:last-child::before {
+  display: none;
+}
+
+.timeline__step--completed::before {
+  background: var(--accent);
+}
+
+.timeline__node {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-sidebar);
+  color: var(--fg-muted);
+}
+
+.timeline__step--completed .timeline__node {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.timeline__step--in_progress .timeline__node {
+  border-color: var(--accent);
+  animation: timeline-ring 1.6s var(--ease) infinite;
+}
+
+.timeline__spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: timeline-spin 0.9s linear infinite;
+}
+
+.timeline__body {
   display: grid;
   gap: 2px;
-  font-size: 13px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  min-width: 0;
+  padding-top: 1px;
 }
 
-.side__todo-status {
-  color: var(--muted);
+.timeline__label {
+  color: var(--fg-muted);
   font-size: 11px;
 }
 
-.side__todo--in_progress {
-  border-color: var(--accent, var(--fg));
+.timeline__text {
+  overflow-wrap: anywhere;
 }
 
-.side__todo--completed {
-  color: var(--muted);
+.timeline__step--pending .timeline__text {
+  color: var(--fg-muted);
+}
+
+.timeline__step--in_progress .timeline__text {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.timeline__step--in_progress .timeline__label {
+  color: var(--accent);
+}
+
+@keyframes timeline-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes timeline-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
 }
 
 .chat__skip {

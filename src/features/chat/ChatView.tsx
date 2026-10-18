@@ -25,7 +25,7 @@ import {
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, loadPlanTarget, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
@@ -302,10 +302,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           setQuestions(parsed.questions);
           setQuestionsRound((n) => n + 1);
         }
-        // Só vira plano a resposta sem perguntas: antes disso o agente ainda está entendendo o contexto.
-        if (turnPlanning.current && !parsed.questions && parsed.text.trim()) {
-          planRef.current = parsed.text;
-          setPlan(parsed.text);
+        // Vira plano a resposta sem perguntas, ou a que pede a aprovação (a aprovação é a última pergunta do plano).
+        // Rodadas de perguntas não mexem no plano: o agente ainda está entendendo o contexto.
+        const draft = planFromReply(parsed, turnPlanning.current);
+        if (draft) {
+          planRef.current = draft;
+          setPlan(draft);
           setSideOpen(true);
           setSideTab("plan");
         }

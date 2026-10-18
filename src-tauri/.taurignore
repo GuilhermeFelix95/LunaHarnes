@@ -1,0 +1,6 @@
+# Observado pelo `tauri dev` (npm run dev:app / luna). Sem isto, qualquer edição em Rust reinicia o app
+# inteiro e fecha a conversa em andamento. O React continua com recarga a quente.
+# Depois de mudar Rust, reinicie o luna para o backend pegar a mudança.
+src/
+target/
+gen/

@@ -92,7 +92,7 @@ describe("RightPanel", () => {
     const items = screen.getAllByRole("listitem").map((item) => item.textContent);
     expect(items).toEqual([
       "ConcluídaConcluir a tela",
-      "PendenteCriar o teste",
+      "Na filaCriar o teste",
       "Em andamentoLigar o evento",
     ]);
   });

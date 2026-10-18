@@ -2,15 +2,10 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode
 import { ListChecks, ScrollText } from "lucide-react";
 import { EmptyState } from "../../ui/EmptyState";
 import { Markdown } from "../chat/Markdown";
+import { ProgressTimeline } from "./ProgressTimeline";
 import type { TodoItem } from "../../types";
 
 export type SideTab = "changes" | "plan" | "progress" | "terminal";
-
-const STATUS_LABEL: Record<TodoItem["status"], string> = {
-  pending: "Pendente",
-  in_progress: "Em andamento",
-  completed: "Concluída",
-};
 
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 320;
@@ -146,14 +141,7 @@ export function RightPanel({
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "progress"}>
         {todos.length ? (
-          <ol className="side__todos" aria-label="Progresso da tarefa">
-            {todos.map((todo, index) => (
-              <li key={`${index}-${todo.content}`} className={`side__todo side__todo--${todo.status}`}>
-                <span className="side__todo-status">{STATUS_LABEL[todo.status]}</span>
-                <span>{todo.content}</span>
-              </li>
-            ))}
-          </ol>
+          <ProgressTimeline todos={todos} />
         ) : (
           <EmptyState icon={<ListChecks size={18} />}>Quando o agente montar as etapas da tarefa, elas aparecem em ordem nesta aba.</EmptyState>
         )}
