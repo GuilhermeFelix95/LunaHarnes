@@ -313,8 +313,9 @@
 
 .sidebar h2 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -534,11 +535,10 @@
 
 .message__bubble {
   max-width: 80%;
-  padding: 10px 14px;
-  border: 1px solid var(--glass-border);
+  padding: 9px 13px;
+  border: none;
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  backdrop-filter: blur(12px);
+  background: var(--user-bubble);
   white-space: pre-wrap;
 }
 
@@ -581,9 +581,9 @@
   display: inline-flex;
   max-width: 100%;
   padding: 3px 10px;
-  border: 1px solid var(--glass-border);
+  border: none;
   border-radius: 999px;
-  background: var(--glass);
+  background: var(--bg-sidebar);
   cursor: pointer;
   overflow: hidden;
   white-space: nowrap;
@@ -710,8 +710,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
   background: var(--glass);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
@@ -762,9 +762,9 @@
 .composer__mode,
 .composer__plan {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: var(--glass);
+  background: transparent;
   color: var(--fg-muted);
   font-size: var(--text-sm);
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
@@ -857,7 +857,7 @@ textarea:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--fg);
 }
 

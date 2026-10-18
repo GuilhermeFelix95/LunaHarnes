@@ -152,7 +152,7 @@ export function Sidebar({
       </div>
 
       <div className="sidebar__top">
-        <button type="button" className="sidebar__new btn btn--primary" onClick={() => onNew()}>
+        <button type="button" className="sidebar__new" onClick={() => onNew()}>
           <Plus size={15} aria-hidden="true" />
           Nova conversa
         </button>
