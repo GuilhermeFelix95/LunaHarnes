@@ -9,9 +9,81 @@ import * as fs from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as readline from "node:readline/promises";
+import { homedir } from "node:os";
 import { modeFrom, pickExecutable } from "./luna-lib.mjs";
+import { checkSkill, extensionFrom, installMcp, installSkill, invalidValues, mcpCommands } from "./luna-extensions.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/// `luna skills add <id>` e `luna mcp add <id>`: instala do marketplace do app e devolve o código de saída.
+async function runExtension(argv) {
+  let parsed;
+  try {
+    parsed = extensionFrom(argv);
+  } catch (error) {
+    console.error(error.message);
+    return 2;
+  }
+  const catalogFile = join(root, "src-tauri", "marketplace", parsed.kind === "skill" ? "skills.json" : "mcp.json");
+  const catalog = JSON.parse(fs.readFileSync(catalogFile, "utf8"));
+
+  if (parsed.kind === "skill") {
+    try {
+      const entry = checkSkill({ skills: catalog.skills }, parsed.id);
+      const dirs = installSkill({ home: homedir(), entry, fs });
+      console.log(`Skill "${entry.name}" instalada em:\n${dirs.join("\n")}\nAparece no menu / na próxima conversa.`);
+      return 0;
+    } catch (error) {
+      console.error(`luna: ${error.message}`);
+      return 1;
+    }
+  }
+
+  const entry = catalog.servers.find((s) => s.id === parsed.id);
+  if (!entry) {
+    console.error(`luna: o servidor "${parsed.id}" não está no catálogo`);
+    return 1;
+  }
+  // Valor que já está no ambiente (ex.: GITHUB_PERSONAL_ACCESS_TOKEN) não é pedido de novo.
+  const values = {};
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    for (const field of entry.env) {
+      values[field.key] = process.env[field.key] ?? (await rl.question(`${field.label} (${field.key}): `)).trim();
+    }
+    const bad = invalidValues(entry, values);
+    if (bad.length > 0) {
+      console.error(`luna: valor inválido para ${bad.join(", ")} (sem espaços nem caracteres como & ou aspas)`);
+      return 1;
+    }
+    // Mostra o comando com os valores escondidos; a instalação usa os valores de verdade.
+    const hidden = Object.fromEntries(Object.keys(values).map((key) => [key, "***"]));
+    const shown = mcpCommands(entry, hidden);
+    console.log(`\nServidor "${entry.name}" será adicionado às duas CLIs com:`);
+    console.log(`  claude ${shown.claude.join(" ")}`);
+    console.log(`  codex ${shown.codex.join(" ")}`);
+    const answer = (await rl.question("\nInstalar? (s/N) ")).trim().toLowerCase();
+    if (answer !== "s") {
+      console.log("luna: cancelado. Nada foi alterado.");
+      return 0;
+    }
+  } finally {
+    rl.close();
+  }
+
+  const results = installMcp({
+    entry,
+    values,
+    run: (engine, args) => spawnSync(engine, args, { stdio: "inherit", shell: true, env: process.env }),
+  });
+  for (const [engine, result] of Object.entries(results)) console.log(`${engine}: ${result}`);
+  return Object.values(results).every((r) => r === "ok") ? 0 : 1;
+}
+
+if (["skills", "mcp"].includes(process.argv[2])) {
+  process.exit(await runExtension(process.argv.slice(2)));
+}
 
 let mode;
 try {
