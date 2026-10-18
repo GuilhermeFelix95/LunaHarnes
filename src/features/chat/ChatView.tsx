@@ -246,6 +246,14 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     toggleSide("terminal");
   }
 
+  /// Parar não depende do CLI: se ele travou, nenhum `done` chega. A tela destrava já; o backend encerra o processo.
+  function stopRun() {
+    setRunning(false);
+    cancelPrompt(conversationId).catch((err) => {
+      setNotes((current) => [...current, `Não foi possível parar a execução: ${String(err)}`]);
+    });
+  }
+
   // O StrictMode roda este efeito duas vezes em desenvolvimento: a carga dos plugins acontece uma vez só,
   // senão o mesmo modo seria registrado duas vezes no host.
   const pluginsLoad = useRef<Promise<void> | null>(null);
@@ -1075,7 +1083,7 @@ ${outgoing}`
         files={files}
         onPickFile={pickFile}
         onSend={() => void send()}
-        onStop={() => void cancelPrompt(conversationId)}
+        onStop={stopRun}
         running={running}
         blocked={blocked}
         agent={agentK}

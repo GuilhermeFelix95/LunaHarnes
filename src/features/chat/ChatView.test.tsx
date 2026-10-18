@@ -417,4 +417,16 @@ describe("ChatView: recarregar depois de instalar MCP, skill ou plugin", () => {
 
     expect(screen.queryByRole("button", { name: "Recarregar" })).toBeNull();
   });
+
+  it("Parar destrava a tela mesmo quando o CLI não manda o fim da resposta", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("oi");
+    // O CLI travou na inicialização: nenhum evento `done` chega.
+    fireEvent.click(screen.getByLabelText("Parar"));
+
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+    expect(api.cancelPrompt).toHaveBeenCalled();
+  });
 });

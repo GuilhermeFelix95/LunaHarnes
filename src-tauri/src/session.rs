@@ -2,20 +2,25 @@ use std::env;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStderr, ChildStdout, Command, ExitStatus, Stdio};
+use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
 
 use crate::providers::{cli_args, cli_name, label, parse_line, stdin_input, ProviderEvent, ProviderKind, RunRequest};
 
 /// Quantidade máxima de stderr guardada para mostrar ao usuário em caso de falha.
 const STDERR_TAIL_BYTES: usize = 4096;
+/// Depois da resposta, o CLI deve sair sozinho. Passado este prazo, a árvore de processos é encerrada.
+const CHILD_GRACE: Duration = Duration::from_secs(5);
+/// Tempo máximo para esperar o stderr: um neto que escapou da árvore pode segurar o pipe.
+const STDERR_GRACE: Duration = Duration::from_secs(2);
 
 /// Processo filho de uma execução de CLI.
 /// `pump` lê a saída numa thread; `cancel_handle` permite matar o processo de outra thread.
 pub struct Session {
     child: Arc<Mutex<Child>>,
     stdout: Option<ChildStdout>,
-    stderr: Option<JoinHandle<String>>,
+    stderr: Option<Receiver<String>>,
 }
 
 /// Cópia leve para cancelar a execução sem precisar do `Session` inteiro.
@@ -118,18 +123,23 @@ impl Session {
                 )
             })?;
 
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(prompt.as_bytes())
-                .map_err(|e| format!("falha ao enviar prompt para {}: {e}", kind_label(kind)))?;
-        }
-
-        // stderr é lido em thread própria; se ficasse sem leitura, o CLI travaria ao encher o pipe.
+        // stderr é lido em thread própria desde já: se ficasse sem leitura, o CLI travaria ao encher o pipe.
         let stdout = child.stdout.take();
-        let stderr = child
-            .stderr
-            .take()
-            .map(|pipe| std::thread::spawn(move || collect_stderr_tail(pipe)));
+        let stderr = child.stderr.take().map(|pipe| {
+            let (tx, rx) = mpsc::channel();
+            std::thread::spawn(move || {
+                let _ = tx.send(collect_stderr_tail(pipe));
+            });
+            rx
+        });
+        // O prompt vai em thread própria: se o CLI parar de ler o stdin, quem chamou não pode ficar parado.
+        // Uma falha de escrita não é tratada aqui: o CLI morrendo sem `result` já cai no fallback do comando.
+        if let Some(mut stdin) = child.stdin.take() {
+            let prompt = prompt.as_bytes().to_vec();
+            std::thread::spawn(move || {
+                let _ = stdin.write_all(&prompt);
+            });
+        }
         Ok(Self {
             child: Arc::new(Mutex::new(child)),
             stdout,
@@ -144,7 +154,7 @@ impl Session {
     }
 
     /// Lê o stdout linha a linha, traduz para eventos e chama `on_event`.
-    /// Bloqueia até o processo fechar a saída.
+    /// Para no evento `Done`: o turno acabou, e um neto que segure o pipe não pode prender a leitura.
     pub fn pump(&mut self, kind: ProviderKind, mut on_event: impl FnMut(ProviderEvent)) {
         let Some(stdout) = self.stdout.take() else {
             on_event(ProviderEvent::Error {
@@ -153,10 +163,27 @@ impl Session {
             return;
         };
 
-        for line in BufReader::new(stdout).lines() {
-            match line {
-                Ok(line) if line.trim().is_empty() => {}
-                Ok(line) => parse_line(kind, &line).into_iter().for_each(&mut on_event),
+        let mut reader = BufReader::new(stdout);
+        let mut buf = Vec::new();
+        loop {
+            buf.clear();
+            match reader.read_until(b'\n', &mut buf) {
+                Ok(0) => break,
+                Ok(_) => {
+                    // Uma linha com byte fora do UTF-8 (ex.: acento de outra codificação) não derruba a leitura.
+                    let text = String::from_utf8_lossy(&buf);
+                    let line = text.trim_end_matches(['\r', '\n']);
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    for event in parse_line(kind, line) {
+                        let done = matches!(event, ProviderEvent::Done { .. });
+                        on_event(event);
+                        if done {
+                            return;
+                        }
+                    }
+                }
                 Err(e) => {
                     on_event(ProviderEvent::Error {
                         message: format!("erro ao ler saída de {}: {e}", kind_label(kind)),
@@ -168,14 +195,30 @@ impl Session {
     }
 
     /// Espera o processo terminar e devolve o código de saída e o fim do stderr.
+    /// Nunca fica preso: passado o prazo, a árvore é encerrada e o stderr é lido só até ali.
     pub fn finish(&mut self) -> std::io::Result<(ExitStatus, String)> {
-        let status = self.child.lock().expect("lock do processo").wait()?;
+        let status = self.wait_child()?;
         let stderr = self
             .stderr
             .take()
-            .and_then(|handle| handle.join().ok())
+            .and_then(|rx| rx.recv_timeout(STDERR_GRACE).ok())
             .unwrap_or_default();
         Ok((status, stderr))
+    }
+
+    fn wait_child(&self) -> std::io::Result<ExitStatus> {
+        let started = Instant::now();
+        loop {
+            if let Some(status) = self.child.lock().expect("lock do processo").try_wait()? {
+                return Ok(status);
+            }
+            if started.elapsed() >= CHILD_GRACE {
+                // O CLI não saiu depois da resposta: encerra a árvore para não prender a conversa.
+                let _ = self.cancel_handle().cancel();
+                return self.child.lock().expect("lock do processo").wait();
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
     }
 }
 
@@ -358,5 +401,60 @@ mod tests {
         };
         assert!(message.contains("não foi possível iniciar"));
         assert!(message.contains("Codex"));
+    }
+
+    /// Regressão do travamento: o CLI emite `result`, mas um neto herda o stdout e segura o pipe.
+    /// O pump precisa devolver o controle no `result`, sem esperar o neto morrer.
+    #[test]
+    #[cfg(windows)]
+    fn pump_returns_at_done_even_when_a_grandchild_keeps_stdout_open() {
+        let fixture = format!("{}\\tests\\fixtures\\claude_partial.jsonl", env!("CARGO_MANIFEST_DIR"));
+        let mut session = Session::spawn(
+            ProviderKind::Claude,
+            "",
+            "C:\\Windows\\System32\\cmd.exe",
+            vec!["/C".into(), format!("start /b ping -n 30 127.0.0.1 & type {fixture}")],
+            None,
+            &[],
+        )
+        .expect("cmd.exe deve existir");
+
+        let started = std::time::Instant::now();
+        let mut events = Vec::new();
+        session.pump(ProviderKind::Claude, |e| events.push(e));
+        let waited = started.elapsed();
+
+        // Limpeza: mata a árvore (inclusive o ping) para o finish não ficar preso no stderr herdado.
+        session.cancel_handle().cancel().ok();
+        let _ = session.finish();
+
+        assert_eq!(events.last(), Some(&ProviderEvent::Done { ok: true }));
+        assert!(waited < std::time::Duration::from_secs(10), "pump esperou o neto por {waited:?}");
+    }
+
+    /// Regressão do travamento: o CLI enche o stderr antes de ler o stdin. Com prompt grande, o
+    /// envio ficava bloqueado para sempre (e, no comando síncrono, travava a thread principal).
+    #[test]
+    #[cfg(windows)]
+    fn spawn_does_not_block_when_the_cli_fills_stderr_before_reading_stdin() {
+        let big_prompt = "x".repeat(256 * 1024);
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let result = Session::spawn(
+                ProviderKind::Claude,
+                &big_prompt,
+                "C:\\Windows\\System32\\cmd.exe",
+                vec![
+                    "/C".into(),
+                    "for /L %i in (1,1,3000) do @echo 0123456789012345678901234567890123456789012345678901234567890123456789 1>&2".into(),
+                ],
+                None,
+                &[],
+            );
+            let _ = tx.send(result.is_ok() || result.is_err());
+        });
+
+        rx.recv_timeout(std::time::Duration::from_secs(20))
+            .expect("spawn não deve travar ao enviar o prompt");
     }
 }

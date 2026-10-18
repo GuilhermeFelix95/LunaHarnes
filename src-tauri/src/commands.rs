@@ -116,6 +116,10 @@ pub fn send_prompt(
             let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event });
         });
 
+        // O turno já acabou (ou o stdout fechou): libera a conversa antes de esperar o processo sair.
+        let runs = app.state::<ActiveRuns>();
+        runs.0.lock().expect("lock das execuções ativas").remove(&run_id);
+
         let outcome = session.finish();
         if !saw_done {
             // O CLI morreu sem fechar o turno: o usuário precisa ver o motivo e o botão destrava.
@@ -127,9 +131,6 @@ pub fn send_prompt(
                 let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event });
             }
         }
-
-        let runs = app.state::<ActiveRuns>();
-        runs.0.lock().expect("lock das execuções ativas").remove(&run_id);
     });
 
     Ok(())
