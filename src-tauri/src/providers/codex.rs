@@ -269,6 +269,7 @@ mod tests {
                 effort: None,
                 profile: None,
                 context_window: None,
+                long_cache: false,
                 images: Vec::new(),
             };
 
@@ -294,6 +295,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            long_cache: false,
             images: vec![
                 std::path::PathBuf::from("C:\\a\\1.png"),
                 std::path::PathBuf::from("C:\\a\\2.jpg"),

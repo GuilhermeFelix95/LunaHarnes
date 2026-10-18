@@ -67,7 +67,11 @@ pub fn send_prompt(
         Some(id) => {
             let dir = app_data_dir(&app)?;
             let profile = load_profile(&dir, id)?;
-            profile_env(&dir, &profile, request.provider)?
+            let mut env = profile_env(&dir, &profile, request.provider)?;
+            if request.long_cache {
+                env.extend(api_profiles::long_cache_env(&profile));
+            }
+            env
         }
         None => Vec::new(),
     };
@@ -246,6 +250,7 @@ pub async fn test_api_profile(app: AppHandle, id: String) -> Result<String, Stri
             effort: None,
             profile: Some(profile.id.clone()),
             context_window: None,
+            long_cache: false,
             images: Vec::new(),
         };
         let mut session = Session::start_with_env(&request, &env)?;

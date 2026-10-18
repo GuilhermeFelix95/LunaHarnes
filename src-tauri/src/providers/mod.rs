@@ -48,6 +48,9 @@ pub struct RunRequest {
     /// Tamanho da janela de contexto do modelo escolhido, em tokens. Ausente = o app não sabe.
     #[serde(default)]
     pub context_window: Option<u64>,
+    /// Cache de prompt de 1 h (só perfis de chave Anthropic). Ausente/false = o TTL padrão de 5 min.
+    #[serde(default)]
+    pub long_cache: bool,
 }
 
 impl RunRequest {
@@ -239,6 +242,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            long_cache: false,
             images: Vec::new(),
         }
     }

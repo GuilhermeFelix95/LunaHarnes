@@ -18,6 +18,8 @@ export interface RunRequest {
   effort?: string;
   /** Janela de contexto do modelo, em tokens. Entra na identidade para a Luna saber responder. */
   contextWindow?: number;
+  /** Cache de prompt de 1 h (só chave da Anthropic). Ausente = o padrão de 5 min. */
+  longCache?: boolean;
   /** Perfil de API (id em api-profiles.json). Ausente = login da própria CLI. A chave fica no cofre. */
   profile?: string;
   /** Caminhos das imagens anexadas, salvas pelo app (save_attachment). */

@@ -36,6 +36,7 @@ import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, extractPlan, loadPl
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { cacheKey } from "../../chat/responseCache";
+import { longCacheEnabled } from "../../chat/cacheSettings";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
@@ -619,6 +620,7 @@ ${cliPrompt}`;
         model: model || undefined,
         effort: effort || undefined,
         contextWindow: models.find((m) => m.id === model)?.contextWindow,
+        longCache: longCacheEnabled(),
       }, conversationId);
     } catch (e) {
       setRunning(false);

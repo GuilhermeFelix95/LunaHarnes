@@ -400,6 +400,15 @@ fn new_id() -> String {
 }
 
 /// Variáveis de ambiente que o CLI recebe só nesta execução. Não toca em `~/.claude` nem `~/.codex`.
+/// Cache de prompt de 1 h do Claude Code. Só vale para chave da própria Anthropic: nos outros endpoints o TTL é o que o provedor define.
+pub fn long_cache_env(profile: &ApiProfile) -> Vec<(String, String)> {
+    if profile.engine() == ProviderKind::Claude && profile.preset == Preset::Anthropic {
+        vec![("ENABLE_PROMPT_CACHING_1H".into(), "1".into())]
+    } else {
+        Vec::new()
+    }
+}
+
 pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(String, String)> {
     let mut env = Vec::new();
     match profile.engine() {
@@ -790,5 +799,11 @@ mod tests {
             );
             assert!(info.suggested_models.iter().all(|m| is_model_token(m)));
         }
+    }
+
+    #[test]
+    fn long_cache_is_only_for_anthropic_keys() {
+        assert_eq!(long_cache_env(&profile(Preset::Anthropic)), vec![("ENABLE_PROMPT_CACHING_1H".to_string(), "1".to_string())]);
+        assert!(long_cache_env(&profile(Preset::OpenRouter)).is_empty());
     }
 }

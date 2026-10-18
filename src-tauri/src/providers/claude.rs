@@ -300,6 +300,7 @@ mod tests {
             effort: None,
             profile: Some("p1".into()),
             context_window: None,
+            long_cache: false,
             images: Vec::new(),
         };
 
@@ -415,6 +416,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            long_cache: false,
             images: vec![],
         };
 
@@ -501,6 +503,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            long_cache: false,
             images: vec![path.clone()],
         };
 
@@ -530,6 +533,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            long_cache: false,
             images: Vec::new(),
         };
         assert_eq!(input(&request).unwrap(), "oi");
