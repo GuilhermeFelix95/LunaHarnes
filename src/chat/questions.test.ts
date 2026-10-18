@@ -52,6 +52,31 @@ describe("extractQuestions", () => {
     expect(parts.questions).toBeNull();
   });
 
+  it("a opção recomendada vem marcada e aparece na lista mesmo se o agente a deixou de fora", () => {
+    const parts = extractQuestions(
+      '```luna-perguntas\n[{"pergunta": "Banco?", "opcoes": ["Postgres", "MySQL"], "recomendada": "SQLite"}]\n```',
+    );
+
+    expect(parts.questions?.[0].recommended).toBe("SQLite");
+    expect(parts.questions?.[0].options).toEqual(["SQLite", "Postgres", "MySQL"]);
+  });
+
+  it("recomendada que já está entre as opções não duplica nem muda a ordem", () => {
+    const parts = extractQuestions(
+      '```luna-perguntas\n[{"pergunta": "Banco?", "opcoes": ["Postgres", "SQLite"], "recomendada": "SQLite"}]\n```',
+    );
+
+    expect(parts.questions?.[0].options).toEqual(["Postgres", "SQLite"]);
+    expect(parts.questions?.[0].recommended).toBe("SQLite");
+  });
+
+  it("com 6 opções, a recomendada entra no lugar da última para o limite continuar valendo", () => {
+    const options = JSON.stringify(["a", "b", "c", "d", "e", "f"]);
+    const parts = extractQuestions('```luna-perguntas\n[{"pergunta": "Letra?", "opcoes": ' + options + ', "recomendada": "z"}]\n```');
+
+    expect(parts.questions?.[0].options).toEqual(["z", "a", "b", "c", "d", "e"]);
+  });
+
   it("multipla ausente vale false", () => {
     const parts = extractQuestions('```luna-perguntas\n[{"pergunta": "Cor?", "opcoes": ["Azul", "Verde"]}]\n```');
 

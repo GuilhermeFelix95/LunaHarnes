@@ -18,7 +18,9 @@ import {
 } from "../../theme";
 import { ApiProfilesSection } from "./ApiProfilesSection";
 import { NotificationsSection } from "./NotificationsSection";
+import { PlanSection } from "./PlanSection";
 import { PluginsSection } from "./PluginsSection";
+import { SavedThemes } from "./SavedThemes";
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -71,6 +73,16 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   // Cada mudança no editor vale na hora: salva e aplica no mesmo gesto.
   function changeField(field: keyof ThemePalette, value: ThemePalette[keyof ThemePalette]) {
     const next = { ...palette, [field]: value } as ThemePalette;
+    setPalette(next);
+    saveCustomPalette(next);
+    applyPalette(next);
+  }
+
+  /// Aplicar um tema salvo: vira o Personalizado com aquelas cores.
+  function applySaved(next: ThemePalette) {
+    setTheme("custom");
+    saveTheme("custom");
+    applyTheme("custom");
     setPalette(next);
     saveCustomPalette(next);
     applyPalette(next);
@@ -222,9 +234,13 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                     <span>Vidro translúcido</span>
                   </label>
                 </fieldset>
+
+                <SavedThemes palette={palette} onApply={applySaved} />
               </div>
             )}
           </section>
+
+          <PlanSection />
 
           <NotificationsSection />
         </>

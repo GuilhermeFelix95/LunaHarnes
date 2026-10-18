@@ -68,6 +68,7 @@ export function QuestionPicker({ questions, onAnswer, onDismiss }: QuestionPicke
               onClick={() => toggle(step, option, q.multiple)}
             >
               {option}
+              {option === q.recommended && <span className="qpick__badge">Recomendada</span>}
             </button>
           ))}
         </div>

@@ -280,6 +280,8 @@ pub fn list_plugins(app: AppHandle) -> Result<PluginScan, String> {
 /// Devolve o código do plugin para o frontend carregar como módulo.
 #[tauri::command]
 pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
+    // Plugin desligado não sai do disco: o host nunca recebe o código dele.
+    marketplace::ensure_enabled(&app_data_dir(&app)?, &id)?;
     loader::read_entry(&plugins_dir(&app)?, &id)
 }
 

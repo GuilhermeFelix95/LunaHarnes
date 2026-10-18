@@ -101,6 +101,7 @@ api.registerMode({
 
 - Comandos e hooks têm **10 segundos**. Passou disso, o resultado é ignorado, o erro vai para os avisos e o envio segue sem ele.
 - Um erro num handler aparece nos avisos com o nome do plugin; os outros plugins continuam.
+- Plugin desligado em **Configurações > Plugins** deixa de valer na hora, até no meio de uma resposta. O código dele nem é lido do disco.
 
 ## O que a API NÃO faz (hoje)
 

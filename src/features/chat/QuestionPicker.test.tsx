@@ -66,6 +66,15 @@ describe("QuestionPicker", () => {
     expect(screen.getByRole("button", { name: "SQLite" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("marca a opção recomendada no seletor", () => {
+    const withRecommended = [{ question: "Banco?", options: ["SQLite", "Postgres"], multiple: false, recommended: "SQLite" }];
+    render(<QuestionPicker questions={withRecommended} onAnswer={vi.fn()} onDismiss={vi.fn()} />);
+
+    const sqlite = screen.getByRole("button", { name: /SQLite/ });
+    expect(sqlite.textContent).toContain("Recomendada");
+    expect(screen.getByRole("button", { name: /Postgres/ }).textContent).not.toContain("Recomendada");
+  });
+
   it("o X fecha o seletor sem enviar nada", () => {
     const onAnswer = vi.fn();
     const onDismiss = vi.fn();

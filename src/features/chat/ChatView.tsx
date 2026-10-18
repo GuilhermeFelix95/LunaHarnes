@@ -25,7 +25,7 @@ import {
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
-import { APPROVAL_PROMPT, APPROVE_OPTION, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
+import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, loadPlanTarget, QUESTION_PROTOCOL, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { useStickToBottom } from "../../chat/useStickToBottom";
@@ -114,6 +114,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Perguntas do agente, mostradas no seletor. `questionsRound` muda a cada conjunto novo e recria o seletor.
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [questionsRound, setQuestionsRound] = useState(0);
+  /// Quanto do contexto o agente diz já ter, lido da última resposta do modo plano ("Contexto entendido: X%").
+  const [understood, setUnderstood] = useState<number | null>(null);
   useEffect(() => {
     onRunning?.(conversationId, running);
   }, [running]);
@@ -196,10 +198,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     void verifyLogin();
   }, [provider, profileId]);
 
-  // Configurações instalou, removeu ou ligou/desligou um plugin: recarrega sem mexer numa resposta em andamento.
+  // Configurações instalou, removeu ou ligou/desligou um plugin: recarrega na hora, mesmo com resposta em andamento.
+  // Um plugin desligado não pode ficar ativo até o fim da resposta: o reset já tira os hooks dele.
   useEffect(() => {
     const reload = () => {
-      if (live.current.running) return;
       host.reset();
       void loadInstalledPlugins(host).then(() => {
         setModes(host.modeList());
@@ -293,6 +295,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           ? extractQuestions(responseText.current)
           : { text: responseText.current, questions: null };
         if (parsed.warning) setNotes((current) => [...current, parsed.warning!]);
+        if (turnPlanning.current) setUnderstood(contextUnderstood(responseText.current));
         if (parsed.questions) {
           const last = messagesRef.current.at(-1);
           if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: parsed.text }]);
@@ -389,6 +392,7 @@ ${cliPrompt}`;
     // Cada resposta monta o próprio checklist; o da resposta anterior não fica na aba.
     setTasks([]);
     setQuestions(null);
+    setUnderstood(null);
     turnPlanning.current = plan;
     // Perguntas: o modo diz se quer perguntas. "ask" continua valendo para o plugin antigo, que não declarava o campo.
     turnAsk.current = plan || (mode?.questions ?? mode?.id === "ask");
@@ -423,7 +427,7 @@ ${cliPrompt}`;
         images,
         prompt: withContext(
           preamble,
-          plan ? withPlanInstruction(cliPrompt) : mode ? mode.instruction + "\n\n" + QUESTION_PROTOCOL + "\n\n" + cliPrompt : cliPrompt,
+          plan ? withPlanInstruction(cliPrompt, loadPlanTarget()) : mode ? mode.instruction + "\n\n" + QUESTION_PROTOCOL + "\n\n" + cliPrompt : cliPrompt,
         ),
         sessionId,
         cwd,
@@ -734,6 +738,11 @@ ${outgoing}`
 
         {planning && lastIsReply && !running && (
           <div className="plan-approval" role="region" aria-label="Aprovação do plano">
+            <p className="plan-approval__context">
+              {understood === null
+                ? "Contexto entendido: o agente não informou."
+                : `Contexto entendido: ${understood}% de ${loadPlanTarget()}% necessários para o plano.`}
+            </p>
             <p>Quando o plano estiver pronto, aprove para o agente começar a editar os arquivos.</p>
             <button type="button" onClick={() => void approvePlan()} disabled={blocked}>
               Aprovar e executar

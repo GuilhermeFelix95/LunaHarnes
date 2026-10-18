@@ -24,6 +24,42 @@ describe("PluginHost", () => {
     expect(host.commandNames()).toEqual(["ola"]);
   });
 
+  it("não ativa um plugin que estava carregando quando a lista foi recarregada", async () => {
+    const host = new PluginHost();
+    let finishLoading!: () => void;
+    const loading = host.load(manifest(), async () => {
+      await new Promise<void>((resolve) => (finishLoading = resolve));
+      return { activate: (api) => api.registerCommand("ola", () => "x") };
+    });
+
+    // Recarregar (ex.: plugin desligado nas Configurações) enquanto a carga ainda não terminou.
+    host.reset();
+    finishLoading();
+
+    expect(await loading).toBe(false);
+    expect(host.commandNames()).toEqual([]);
+    expect(host.loaded).toEqual([]);
+  });
+
+  it("não registra nada de uma ativação que terminou depois de um reset", async () => {
+    const host = new PluginHost();
+    let finishActivate!: () => void;
+    const loading = host.load(manifest(), async () => ({
+      activate: async (api) => {
+        await new Promise<void>((resolve) => (finishActivate = resolve));
+        api.registerCommand("ola", () => "x");
+      },
+    }));
+
+    await vi.waitFor(() => expect(finishActivate).toBeTypeOf("function"));
+    host.reset();
+    finishActivate();
+
+    expect(await loading).toBe(false);
+    expect(host.commandNames()).toEqual([]);
+    expect(host.errors).toEqual([]);
+  });
+
   it("deixa a entrada seguir o fluxo normal quando não há comando", async () => {
     const host = new PluginHost();
     expect(await host.handleCommand("/desconhecido")).toEqual({ handled: false });

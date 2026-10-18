@@ -60,16 +60,23 @@ export class PluginHost {
   private modes = new Map<string, { pluginId: string; mode: PluginMode }>();
   readonly loaded: string[] = [];
   readonly errors: string[] = [];
+  /** Sobe a cada reset. Uma carga que começou antes do reset não pode ativar nada depois dele. */
+  private generation = 0;
 
   /** Ativa um plugin. Falhas ficam em `errors` e não afetam os demais. */
   async load(manifest: PluginManifest, loadModule: () => Promise<PluginModule>): Promise<boolean> {
+    const generation = this.generation;
     try {
       const module = await loadModule();
-      const api = this.createApi(manifest);
+      if (generation !== this.generation) return false;
+      const api = this.createApi(manifest, generation);
       await module.activate(api);
+      if (generation !== this.generation) return false;
       this.loaded.push(manifest.id);
       return true;
     } catch (e) {
+      // Carga que já ficou para trás: o reset que a invalidou já limpou tudo, e o erro não interessa.
+      if (generation !== this.generation) return false;
       // Ativação pela metade: o que o plugin já registrou sai junto, para não ficar ativo sem o resto.
       this.forget(manifest.id);
       this.errors.push(`${manifest.id}: ${errorMessage(e)}`);
@@ -137,6 +144,7 @@ export class PluginHost {
 
   /** Esvazia tudo, para recarregar os plugins depois de instalar, desinstalar ou ligar/desligar um. */
   reset() {
+    this.generation++;
     this.commands.clear();
     this.beforeSendHooks = [];
     this.afterResponseHooks = [];
@@ -145,11 +153,15 @@ export class PluginHost {
     this.errors.length = 0;
   }
 
-  private createApi(manifest: PluginManifest): PluginApi {
+  private createApi(manifest: PluginManifest, generation: number): PluginApi {
     const { id, permissions } = manifest;
     const require = (permission: (typeof PERMISSIONS)[number]) => {
       if (!permissions.includes(permission)) {
         throw new Error(`plugin ${id} não tem a permissão "${permission}" no manifesto`);
+      }
+      // Ativação que ficou para trás não registra nada no host novo.
+      if (generation !== this.generation) {
+        throw new Error(`plugin ${id} foi recarregado durante a ativação; esta ativação foi ignorada`);
       }
     };
 

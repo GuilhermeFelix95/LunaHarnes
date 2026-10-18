@@ -1,12 +1,51 @@
-import { describe, expect, it } from "vitest";
-import { APPROVAL_PROMPT, PLAN_INSTRUCTION, QUESTION_PROTOCOL, withPlanInstruction } from "./planning";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  APPROVAL_PROMPT,
+  contextUnderstood,
+  DEFAULT_PLAN_TARGET,
+  loadPlanTarget,
+  PLAN_TARGET_KEY,
+  planInstruction,
+  QUESTION_PROTOCOL,
+  savePlanTarget,
+  withPlanInstruction,
+} from "./planning";
 
 describe("modo plano", () => {
   it("mantém o pedido do usuário depois da instrução de planejamento", () => {
     const prompt = withPlanInstruction("crie um login");
 
-    expect(prompt.startsWith(PLAN_INSTRUCTION)).toBe(true);
+    expect(prompt.startsWith(planInstruction(DEFAULT_PLAN_TARGET))).toBe(true);
     expect(prompt.endsWith("crie um login")).toBe(true);
+  });
+
+  it("a meta de contexto aparece na instrução, e o agente tem de marcar a % em toda resposta", () => {
+    const text = planInstruction(65);
+
+    expect(text).toContain("65%");
+    expect(text).toContain("Contexto entendido: X%");
+  });
+
+  it("lê a % marcada pelo agente, limitada a 100", () => {
+    expect(contextUnderstood("Contexto entendido: 42%\n\nPerguntas abaixo.")).toBe(42);
+    expect(contextUnderstood("contexto entendido:  120 %")).toBe(100);
+    expect(contextUnderstood("sem a linha")).toBeNull();
+  });
+
+  describe("meta de contexto salva", () => {
+    afterEach(() => localStorage.removeItem(PLAN_TARGET_KEY));
+
+    it("vale o padrão até o usuário escolher", () => {
+      expect(loadPlanTarget()).toBe(DEFAULT_PLAN_TARGET);
+    });
+
+    it("guarda a escolha e recusa valores fora de 50 a 100", () => {
+      savePlanTarget(90);
+      expect(loadPlanTarget()).toBe(90);
+
+      localStorage.setItem(PLAN_TARGET_KEY, "10");
+      expect(loadPlanTarget()).toBe(DEFAULT_PLAN_TARGET);
+    });
   });
 
   it("o modo plano ensina o bloco de perguntas, que vira seletor", () => {
@@ -17,8 +56,8 @@ describe("modo plano", () => {
   });
 
   it("a instrução proíbe editar antes da aprovação", () => {
-    expect(PLAN_INSTRUCTION).toContain("Não altere arquivos");
-    expect(PLAN_INSTRUCTION).toContain("Só comece a executar depois que o usuário aprovar");
+    expect(planInstruction(DEFAULT_PLAN_TARGET)).toContain("Não altere arquivos");
+    expect(planInstruction(DEFAULT_PLAN_TARGET)).toContain("Só comece a executar depois que o usuário aprovar");
   });
 
   it("a aprovação pede execução, sem a instrução de planejamento", () => {

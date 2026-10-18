@@ -241,7 +241,7 @@ const shapeOrNull = (value: unknown): ShapeId | null =>
   Object.keys(SHAPES).includes(value as string) ? (value as ShapeId) : null;
 
 /// Lê a paleta salva. Paletas antigas ganham os campos novos com valores que mantêm o visual de antes.
-function readPalette(value: unknown): ThemePalette | null {
+export function readPalette(value: unknown): ThemePalette | null {
   if (!value || typeof value !== "object") return null;
   const p = value as Record<string, unknown>;
   if (!COLOR_KEYS.every((k) => typeof p[k] === "string" && HEX.test(p[k] as string))) return null;

@@ -336,6 +336,14 @@ pub fn set_enabled(app_dir: &Path, id: &str, enabled: bool) -> Result<PluginsSta
     Ok(state)
 }
 
+/// Recusa a leitura do código de um plugin desligado. É a última barreira: o host também não carrega.
+pub fn ensure_enabled(app_dir: &Path, id: &str) -> Result<(), String> {
+    if load_state(app_dir)?.disabled.iter().any(|d| d == id) {
+        return Err(format!("o plugin `{id}` está desligado"));
+    }
+    Ok(())
+}
+
 pub fn load_sources(app_dir: &Path) -> Result<CatalogSources, String> {
     read_json(&app_dir.join(SOURCES_FILE))
 }
@@ -563,6 +571,20 @@ mod tests {
 
         assert!(set_enabled(&dir, "ask-mode", true).unwrap().disabled.is_empty());
         assert!(set_enabled(&dir, "../x", false).is_err());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_disabled_plugin_refuses_to_have_its_code_read() {
+        let dir = temp_dir("ensure-enabled");
+        set_enabled(&dir, "ask-mode", false).unwrap();
+
+        let err = ensure_enabled(&dir, "ask-mode").unwrap_err();
+        assert!(err.contains("desligado"), "{err}");
+        assert!(ensure_enabled(&dir, "outro").is_ok());
+
+        set_enabled(&dir, "ask-mode", true).unwrap();
+        assert!(ensure_enabled(&dir, "ask-mode").is_ok());
         let _ = fs::remove_dir_all(&dir);
     }
 }

@@ -5,6 +5,8 @@ export interface Question {
   question: string;
   options: string[];
   multiple: boolean;
+  /** Opção que o agente recomenda. Sempre está em `options`, marcada no seletor. */
+  recommended?: string;
 }
 
 export interface ReplyParts {
@@ -37,20 +39,28 @@ export function extractQuestions(reply: string): ReplyParts {
 }
 
 /// Confere a forma do JSON: uma lista de perguntas, cada uma com 2 a 6 opções em texto.
+/// A opção `recomendada` entra na lista se faltar: o usuário sempre a vê, marcada.
 function parseQuestions(raw: unknown): Question[] | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
   const questions: Question[] = [];
   for (const item of raw) {
     if (!item || typeof item !== "object") return null;
-    const { pergunta, opcoes, multipla } = item as Record<string, unknown>;
+    const { pergunta, opcoes, multipla, recomendada } = item as Record<string, unknown>;
     if (typeof pergunta !== "string" || !pergunta.trim()) return null;
     if (!Array.isArray(opcoes) || opcoes.length < 2 || opcoes.length > MAX_OPTIONS) return null;
     if (!opcoes.every((option) => typeof option === "string" && option.trim())) return null;
-    questions.push({
-      question: pergunta.trim(),
-      options: (opcoes as string[]).map((option) => option.trim()),
-      multiple: multipla === true,
-    });
+    const options = (opcoes as string[]).map((option) => option.trim());
+    const question: Question = { question: pergunta.trim(), options, multiple: multipla === true };
+    if (typeof recomendada === "string" && recomendada.trim()) {
+      const recommended = recomendada.trim();
+      if (!options.includes(recommended)) {
+        // Lista cheia: a recomendada troca a última opção, para o limite de 6 continuar valendo.
+        if (options.length === MAX_OPTIONS) options.pop();
+        options.unshift(recommended);
+      }
+      question.recommended = recommended;
+    }
+    questions.push(question);
   }
   return questions;
 }
