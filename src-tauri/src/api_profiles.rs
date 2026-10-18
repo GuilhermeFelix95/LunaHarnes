@@ -30,6 +30,7 @@ pub enum Preset {
     OpenRouter,
     DeepSeek,
     Zai,
+    Moonshot,
     OpenCodeZen,
     CustomAnthropic,
     OpenAi,
@@ -57,8 +58,8 @@ impl Preset {
                 "Anthropic (chave)",
                 ProviderKind::Claude,
                 "",
-                &["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
-                "claude-sonnet-5-5",
+                &["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"],
+                "claude-haiku-5-5",
             ),
             Preset::OpenRouter => (
                 "OpenRouter",
@@ -78,10 +79,19 @@ impl Preset {
                 "Z.ai (GLM)",
                 ProviderKind::Claude,
                 "https://api.z.ai/api/anthropic",
-                &["glm-5.2", "glm-5.1"],
-                "glm-5.2",
+                &["glm-4.7-flash", "glm-5.3-flash", "glm-5.2", "glm-5.1"],
+                "glm-4.7-flash",
             ),
-            Preset::OpenCodeZen => ("OpenCode Zen", ProviderKind::Claude, "https://opencode.ai/zen", &[], ""),
+            // Moonshot/Kimi: o endereço e o modelo ainda precisam de confirmação na documentação oficial.
+            Preset::Moonshot => ("Moonshot / Kimi", ProviderKind::Claude, "https://api.moonshot.ai/anthropic", &["kimi-k3"], "kimi-k3"),
+            // Só os modelos que o Zen expõe em /v1/messages: o Claude Code não fala chat/completions.
+            Preset::OpenCodeZen => (
+                "OpenCode Zen",
+                ProviderKind::Claude,
+                "https://opencode.ai/inference/anthropic",
+                &["claude-haiku-4-5", "claude-sonnet-4-6", "qwen3.6-plus"],
+                "claude-haiku-4-5",
+            ),
             Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, "", &[], ""),
             Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, "", &[], ""),
         };
@@ -103,6 +113,7 @@ pub fn presets() -> Vec<PresetInfo> {
         Preset::OpenRouter,
         Preset::DeepSeek,
         Preset::Zai,
+        Preset::Moonshot,
         Preset::OpenCodeZen,
         Preset::CustomAnthropic,
         Preset::OpenAi,
@@ -110,6 +121,62 @@ pub fn presets() -> Vec<PresetInfo> {
     .into_iter()
     .map(Preset::info)
     .collect()
+}
+
+/// Tempo máximo para listar modelos. A lista é só um botão de atualizar, então falha rápido.
+const MODELS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// Ids de modelo da resposta de `GET /v1/models`. Descarta o que não passa na validação de nome.
+pub fn parse_model_ids(body: &serde_json::Value) -> Vec<String> {
+    let mut ids: Vec<String> = body
+        .get("data")
+        .and_then(|data| data.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.get("id").and_then(|id| id.as_str()))
+                .filter(|id| is_model_token(id))
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default();
+    ids.sort();
+    ids.dedup();
+    ids
+}
+
+/// Busca a lista de modelos do provedor. A chave vai só nos cabeçalhos; os erros citam o endereço, nunca a chave.
+pub async fn fetch_model_ids(profile: &ApiProfile, api_key: &str) -> Result<Vec<String>, String> {
+    let base = profile
+        .effective_base_url()
+        .ok_or_else(|| "este provedor não tem endereço de API para listar modelos".to_string())?;
+    let url = format!("{}/v1/models", base.trim_end_matches('/'));
+    let client = reqwest::Client::builder()
+        .timeout(MODELS_TIMEOUT)
+        .build()
+        .map_err(|e| format!("não foi possível preparar a conexão: {e}"))?;
+    let response = client
+        .get(&url)
+        .bearer_auth(api_key)
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .send()
+        .await
+        .map_err(|e| format!("falha ao listar modelos em {url}: {e}"))?;
+    if !response.status().is_success() {
+        return Err(format!("{url} respondeu {} ao listar modelos", response.status()));
+    }
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("falha ao ler a resposta de {url}: {e}"))?;
+    let body: serde_json::Value =
+        serde_json::from_str(&text).map_err(|e| format!("a resposta de {url} não é JSON: {e}"))?;
+    let ids = parse_model_ids(&body);
+    if ids.is_empty() {
+        return Err(format!("{url} não devolveu modelos"));
+    }
+    Ok(ids)
 }
 
 /// Perfil salvo. Não há campo de chave: o tipo não consegue carregar o segredo.
@@ -443,8 +510,25 @@ mod tests {
     #[test]
     fn presets_list_has_one_entry_per_preset_with_engine() {
         let list = presets();
-        assert_eq!(list.len(), 7);
+        assert_eq!(list.len(), 8);
         assert_eq!(list.iter().find(|p| p.preset == Preset::OpenAi).unwrap().engine, ProviderKind::Codex);
+    }
+
+    #[test]
+    fn model_list_keeps_valid_ids_sorted_and_unique() {
+        let body = serde_json::json!({
+            "data": [
+                {"id": "qwen/qwen3-coder:free"},
+                {"id": "deepseek-flash"},
+                {"id": "deepseek-flash"},
+                {"id": "--help"},
+                {"id": "com espaço"},
+                {"nome": "sem id"}
+            ]
+        });
+
+        assert_eq!(parse_model_ids(&body), vec!["deepseek-flash", "qwen/qwen3-coder:free"]);
+        assert!(parse_model_ids(&serde_json::json!({"erro": "x"})).is_empty());
     }
 
     #[test]

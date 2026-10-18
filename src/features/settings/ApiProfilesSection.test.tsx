@@ -9,6 +9,7 @@ vi.mock("../../api", () => ({
   deleteApiProfile: vi.fn(async () => {}),
   listApiProfiles: vi.fn(async () => []),
   PROFILES_CHANGED: "luna:profiles-changed",
+  refreshApiModels: vi.fn(async () => ["deepseek-flash", "deepseek-v4-pro"]),
   saveApiProfile: vi.fn(async () => ({})),
   setApiProfileKey: vi.fn(async () => {}),
   testApiProfile: vi.fn(async () => "ok"),
@@ -59,6 +60,22 @@ describe("ApiProfilesSection", () => {
 
     expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe("deepseek-flash, deepseek-v4-pro");
     expect((screen.getByLabelText("Modelo padrão") as HTMLInputElement).value).toBe("deepseek-flash");
+  });
+
+  it("Atualizar lista troca os modelos pelos que a API devolve", async () => {
+    vi.mocked(api.listApiProfiles).mockResolvedValueOnce([
+      { id: "p1", name: "DeepSeek", preset: "openRouter", baseUrl: "", models: ["velho"], defaultModel: null },
+    ]);
+    render(<ApiProfilesSection />);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
+    await screen.findByDisplayValue("velho");
+
+    fireEvent.click(screen.getByRole("button", { name: "Atualizar lista de modelos" }));
+
+    await waitFor(() => expect(api.refreshApiModels).toHaveBeenCalledWith("p1"));
+    expect((screen.getByLabelText("Modelos (separados por vírgula)") as HTMLInputElement).value).toBe(
+      "deepseek-flash, deepseek-v4-pro",
+    );
   });
 
   it("testar conexão mostra a resposta do modelo", async () => {

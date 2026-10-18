@@ -49,6 +49,7 @@ pub fn run() {
             commands::set_api_profile_key,
             commands::api_profile_has_key,
             commands::test_api_profile,
+            commands::refresh_api_models,
             commands::list_catalog_sources,
             commands::add_catalog_source,
             commands::remove_catalog_source,

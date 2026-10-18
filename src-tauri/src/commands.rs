@@ -188,6 +188,16 @@ pub fn api_profile_has_key(id: String) -> Result<bool, String> {
     api_profiles::read_key(&id).map(|key| key.is_some())
 }
 
+/// Atualiza a lista de modelos do perfil a partir da API. Não grava nada: a tela decide o que salvar.
+#[tauri::command]
+pub async fn refresh_api_models(app: AppHandle, id: String) -> Result<Vec<String>, String> {
+    let dir = app_data_dir(&app)?;
+    let profile = load_profile(&dir, &id)?;
+    let key = api_profiles::read_key(&id)?
+        .ok_or_else(|| format!("o perfil \"{}\" ainda não tem chave. Cole a chave antes de atualizar.", profile.name))?;
+    api_profiles::fetch_model_ids(&profile, &key).await
+}
+
 /// Manda um prompt mínimo pelo perfil e devolve a resposta: prova que a chave, a URL e o modelo funcionam.
 #[tauri::command]
 pub async fn test_api_profile(app: AppHandle, id: String) -> Result<String, String> {

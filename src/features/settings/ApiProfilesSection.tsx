@@ -8,6 +8,7 @@ import {
   PROFILES_CHANGED,
   saveApiProfile,
   setApiProfileKey,
+  refreshApiModels,
   testApiProfile,
 } from "../../api";
 import type { ApiPreset, ApiProfile, ProviderKind } from "../../types";
@@ -47,6 +48,7 @@ export function ApiProfilesSection() {
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [testing, setTesting] = useState<string | undefined>(undefined);
+  const [refreshing, setRefreshing] = useState(false);
   const [testResult, setTestResult] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState<string | undefined>(undefined);
 
@@ -151,6 +153,26 @@ export function ApiProfilesSection() {
     });
   }
 
+  /// Atualizar: troca a lista pela que a API devolve. O padrão só muda se estiver vazio.
+  async function refreshModels() {
+    if (!form.id) return;
+    setRefreshing(true);
+    setError(undefined);
+    try {
+      const ids = await refreshApiModels(form.id);
+      setForm((current) => ({
+        ...current,
+        models: ids.join(", "),
+        defaultModel: current.defaultModel || ids[0],
+      }));
+      setStatus(`${ids.length} modelo(s) atualizados da API. Salve para guardar a lista.`);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <section className="settings__section" aria-labelledby="settings-accounts">
       <h2 id="settings-accounts">Contas e APIs</h2>
@@ -249,6 +271,10 @@ export function ApiProfilesSection() {
             placeholder="ex.: deepseek-flash, deepseek-v4-pro"
           />
         </label>
+        <button type="button" disabled={!form.id || refreshing} onClick={() => void refreshModels()}>
+          {refreshing ? "Atualizando…" : "Atualizar lista de modelos"}
+        </button>
+        {!form.id && <p className="settings__hint">Salve o perfil com a chave para atualizar a lista da API.</p>}
         <label>
           Modelo padrão
           <input value={form.defaultModel} onChange={(e) => setForm({ ...form, defaultModel: e.target.value })} />

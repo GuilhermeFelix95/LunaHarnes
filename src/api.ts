@@ -200,6 +200,11 @@ export function testApiProfile(id: string): Promise<string> {
   return invoke("test_api_profile", { id });
 }
 
+/// Busca a lista de modelos do perfil na API. Não grava nada: a tela decide.
+export function refreshApiModels(id: string): Promise<string[]> {
+  return invoke("refresh_api_models", { id });
+}
+
 /// Avisa as telas que a lista de perfis mudou (ver ApiProfilesSection e ChatView).
 export const PROFILES_CHANGED = "luna:profiles-changed";
 /// Avisa o chat que a lista de plugins mudou (instalar, desinstalar, ligar ou desligar).
