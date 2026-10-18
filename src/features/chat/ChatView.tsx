@@ -92,7 +92,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const planRef = useRef(plan);
   // O turno em andamento é de planejamento? Só a resposta desse turno vira plano.
   const turnPlanning = useRef(false);
-  // Só o turno do modo Conversar mostra perguntas no seletor; nos outros modos, as perguntas ficam como texto.
+  // Só turnos de planejamento e do modo Conversar mostram perguntas no seletor; nos outros, ficam como texto.
   const turnAsk = useRef(false);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
@@ -375,7 +375,7 @@ ${cliPrompt}`;
     responseText.current = "";
     setQuestions(null);
     turnPlanning.current = plan;
-    turnAsk.current = mode?.id === "ask";
+    turnAsk.current = plan || mode?.id === "ask";
     turnProvider.current = provider;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;

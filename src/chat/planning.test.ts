@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APPROVAL_PROMPT, PLAN_INSTRUCTION, withPlanInstruction } from "./planning";
+import { APPROVAL_PROMPT, PLAN_INSTRUCTION, QUESTION_PROTOCOL, withPlanInstruction } from "./planning";
 
 describe("modo plano", () => {
   it("mantém o pedido do usuário depois da instrução de planejamento", () => {
@@ -7,6 +7,13 @@ describe("modo plano", () => {
 
     expect(prompt.startsWith(PLAN_INSTRUCTION)).toBe(true);
     expect(prompt.endsWith("crie um login")).toBe(true);
+  });
+
+  it("o modo plano ensina o bloco de perguntas, que vira seletor", () => {
+    const prompt = withPlanInstruction("crie um login");
+
+    expect(prompt).toContain(QUESTION_PROTOCOL);
+    expect(prompt).toContain("luna-perguntas");
   });
 
   it("a instrução proíbe editar antes da aprovação", () => {
