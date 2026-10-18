@@ -122,31 +122,31 @@
 
 /* Luna: o tema assinatura. Noite índigo, destaque prata-lilás com brilho lunar. Padrão de quem ainda não escolheu. */
 :root[data-theme="luna"] {
-  --bg: #0d1120;
-  --bg-sidebar: #0a0e1a;
-  --surface: #161c2e;
-  --fg: #e8ecf7;
-  --fg-muted: #98a2bf;
-  --fg-subtle: #7d87a6;
-  --border: #242c44;
-  --border-strong: #35405f;
-  --accent: #b9a8ff;
-  --accent-fg: #0d1120;
-  --accent-soft: rgb(185 168 255 / 16%);
+  --bg: #0f1620;
+  --bg-sidebar: #111a24;
+  --surface: #172230;
+  --fg: #e2ecf7;
+  --fg-muted: #9fb1c6;
+  --fg-subtle: #7d91a8;
+  --border: #243447;
+  --border-strong: #34465e;
+  --accent: #8cc4e8;
+  --accent-fg: #0f1620;
+  --accent-soft: rgb(140 196 232 / 16%);
   --success: #7fd6a4;
   --warning: #f2c46d;
   --error: #ff8a9a;
   --diff-add: #7fd6a4;
   --diff-del: #ff8a9a;
-  --focus-ring: #b9a8ff;
-  --user-bubble: #1b2238;
-  --code-bg: #0a0e1a;
-  --hover: #1d2540;
-  --terminal-bg: #080b15;
-  --terminal-fg: #c9d1e6;
-  --glow: rgb(185 168 255 / 20%);
+  --focus-ring: #8cc4e8;
+  --user-bubble: #223347;
+  --code-bg: #0d141c;
+  --hover: #1d2b3c;
+  --terminal-bg: #0a1018;
+  --terminal-fg: #c6d6e8;
+  --glow: rgb(140 196 232 / 18%);
   --glass: color-mix(in srgb, var(--surface) 72%, transparent);
-  --glass-border: rgb(232 236 247 / 9%);
+  --glass-border: rgb(226 236 247 / 9%);
   --shadow: 0 10px 40px rgb(0 0 0 / 45%);
   color-scheme: dark;
 }

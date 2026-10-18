@@ -32,8 +32,8 @@ export const THEMES: ThemeInfo[] = [
   {
     id: "luna",
     label: "Luna",
-    description: "Noite índigo com prata lunar.",
-    preview: { bg: "#0d1120", sidebar: "#0a0e1a", bubble: "#1b2238", accent: "#b9a8ff" },
+    description: "Ardósia azulada com a luz da Terra.",
+    preview: { bg: "#0f1620", sidebar: "#111a24", bubble: "#223347", accent: "#8cc4e8" },
   },
   {
     id: "aurora",
