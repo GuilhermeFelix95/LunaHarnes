@@ -1,7 +1,6 @@
 // Host de plugins. Cada plugin exporta `activate(api)` e recebe só as APIs
 // liberadas no manifesto. Permissão recusada vira erro registrado, não quebra os outros plugins.
 
-import { responseCache, type CacheStats, type ResponseCache } from "../chat/responseCache";
 import type { CacheSummary } from "../chat/promptCache";
 import { PluginUi, type PluginUiApi } from "./ui";
 
@@ -32,14 +31,10 @@ export interface PluginMode {
   questions?: boolean;
 }
 
-/// Cache de respostas do núcleo, exposto ao plugin com permissão `cache`.
+/// Cache de prompt da conversa, exposto ao plugin com permissão `cache`. Só leitura.
 export interface PluginCacheApi {
-  /** Liga ou desliga o cache. Desligado, nenhuma resposta é devolvida nem guardada. */
-  setEnabled(enabled: boolean): void;
-  /** Esvazia as respostas guardadas. */
-  clear(): void;
-  /** Acertos e respostas guardadas na sessão. */
-  stats(): CacheStats;
+  /** Resumo medido pelo núcleo. null até o primeiro turno com medição. */
+  stats(): CacheSummary | null;
   /** Mostra um aviso local no chat. Não é enviado ao provedor. */
   notify(text: string): void;
 }
@@ -89,7 +84,6 @@ export class PluginHost {
   private generation = 0;
 
   /// O cache é o da sessão por padrão; testes passam um próprio.
-  constructor(readonly cache: ResponseCache = responseCache) {}
 
   /** Ativa um plugin. Falhas ficam em `errors` e não afetam os demais. */
   async load(manifest: PluginManifest, loadModule: () => Promise<PluginModule>): Promise<boolean> {
@@ -194,9 +188,6 @@ export class PluginHost {
     this.ui.clear();
     this.loaded.length = 0;
     this.errors.length = 0;
-    // O cache volta desligado e vazio: quem o quer ligar é um plugin recarregado.
-    this.cache.setEnabled(false);
-    this.cache.clear();
     this.notices = [];
   }
 
@@ -214,9 +205,7 @@ export class PluginHost {
 
     // Objeto construído uma vez: as funções usam o host por arrow, sem depender de `this` do objeto.
     const cacheApi: PluginCacheApi = {
-      setEnabled: (enabled) => this.cache.setEnabled(enabled),
-      clear: () => this.cache.clear(),
-      stats: () => this.cache.stats(),
+      stats: () => this.getCacheSummary(),
       notify: (text) => {
         this.notices.push(text);
       },

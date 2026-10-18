@@ -503,7 +503,6 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     setCwd(path);
     saveLastWorkspace(path);
     sessions.current = {};
-    host.cache.clear();
     cacheTurns.current = [];
     host.setCacheSummary(null);
     commit([]);

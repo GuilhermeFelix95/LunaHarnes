@@ -67,6 +67,8 @@ describe("resumo do cache da conversa", () => {
     const s = summarize(turns, { provider: "claude", longTtl: false, now: at(14) });
     expect(s.session).toBeCloseTo(0.9);
     expect(s.readTotal).toBe(900 * 14);
+    expect(s.freshTotal).toBe(100 * 14);
+    expect(s.writeTotal).toBe(0);
     expect(s.history).toHaveLength(12);
     expect(s.last?.rate).toBeCloseTo(0.9);
   });

@@ -52,6 +52,8 @@ export class PluginUi {
       if (mount.el) continue;
       const slot = document.querySelector<HTMLElement>(`[data-plugin-slot="${mount.slot}"]`);
       if (!slot) continue;
+      // Um bloco por plugin em cada ponto: com várias conversas abertas, a primeira monta e as outras esperam.
+      if (Array.from(slot.children).some((child) => (child as HTMLElement).dataset.plugin === mount.pluginId)) continue;
       const el = document.createElement("div");
       el.dataset.plugin = mount.pluginId;
       slot.appendChild(el);

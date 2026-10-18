@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ResponseCache } from "../chat/responseCache";
 import { PLUGIN_TIMEOUT_MS, PluginHost, type PluginApi, type PluginManifest, type PluginModule } from "./host";
 
 const manifest = (overrides: Partial<PluginManifest> = {}): PluginManifest => ({
@@ -286,69 +285,49 @@ describe("PluginHost: limites e ativação parcial", () => {
 });
 
 describe("PluginHost: cache", () => {
+  const resumo = {
+    session: 0.5,
+    readTotal: 10,
+    freshTotal: 10,
+    writeTotal: 0,
+    last: null,
+    history: [0.5],
+    warm: { state: "sem-dados" as const },
+    tip: null,
+  };
+
   it("recusa api.cache sem a permissão cache", async () => {
-    const host = new PluginHost(new ResponseCache());
-    const ok = await host.load(manifest({ permissions: ["commands"] }), plugin((api) => api.cache.setEnabled(true)));
+    const host = new PluginHost();
+    const ok = await host.load(manifest({ permissions: ["commands"] }), plugin((api) => void api.cache.stats()));
 
     expect(ok).toBe(false);
     expect(host.errors[0]).toContain('não tem a permissão "cache"');
   });
 
-  it("o cache só responde depois que o plugin liga, e conta acertos e entradas", async () => {
-    const cache = new ResponseCache();
-    const host = new PluginHost(cache);
+  it("stats devolve null antes do primeiro turno e o resumo da conversa depois", async () => {
+    const host = new PluginHost();
     let api!: PluginApi;
-    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => {
-      api = a;
-    }));
+    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => { api = a; }));
 
-    cache.set("pedido", "resposta");
-    expect(cache.get("pedido")).toBeUndefined();
-
-    api.cache.setEnabled(true);
-    cache.set("pedido", "resposta");
-    expect(cache.get("pedido")).toBe("resposta");
-    expect(api.cache.stats()).toEqual({ hits: 1, lookups: 1, stored: 1 });
+    expect(api.cache.stats()).toBeNull();
+    host.setCacheSummary(resumo);
+    expect(api.cache.stats()).toEqual(resumo);
   });
 
-  it("clear esvazia as respostas guardadas", async () => {
-    const cache = new ResponseCache();
-    const host = new PluginHost(cache);
+  it("a API é só leitura: não expõe ações que liguem, desliguem ou limpem o cache", async () => {
+    const host = new PluginHost();
     let api!: PluginApi;
-    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => {
-      api = a;
-    }));
-    api.cache.setEnabled(true);
-    cache.set("pedido", "resposta");
+    await host.load(manifest({ permissions: ["cache"] }), plugin((a) => { api = a; }));
 
-    api.cache.clear();
-
-    expect(api.cache.stats().stored).toBe(0);
-    expect(cache.get("pedido")).toBeUndefined();
+    expect("setEnabled" in api.cache).toBe(false);
+    expect("clear" in api.cache).toBe(false);
   });
 
-  it("notify mostra aviso local, sem virar pedido ao provedor", async () => {
-    const host = new PluginHost(new ResponseCache());
-    await host.load(manifest({ permissions: ["cache"] }), plugin((api) => api.cache.notify("Cache ligado.")));
+  it("notify vira aviso local, sem ir ao agente", async () => {
+    const host = new PluginHost();
+    await host.load(manifest({ permissions: ["cache"] }), plugin((api) => api.cache.notify("cache ok")));
 
-    expect(host.messages()).toEqual(["Cache ligado."]);
-    expect(await host.runBeforeSend("oi")).toBe("oi");
-  });
-
-  it("reset desliga o cache, esvazia as respostas e limpa os avisos", async () => {
-    const cache = new ResponseCache();
-    const host = new PluginHost(cache);
-    await host.load(manifest({ permissions: ["cache"] }), plugin((api) => {
-      api.cache.setEnabled(true);
-      api.cache.notify("aviso");
-    }));
-    cache.set("pedido", "resposta");
-
-    host.reset();
-
-    expect(cache.enabled).toBe(false);
-    expect(cache.get("pedido")).toBeUndefined();
-    expect(host.messages()).toEqual([]);
+    expect(host.messages()).toContain("cache ok");
   });
 });
 
@@ -412,5 +391,30 @@ describe("PluginHost: ui", () => {
     expect(slot.querySelector('[data-plugin="hello"]')?.textContent).toBe("chat");
     host.reset();
     expect(slot.querySelector('[data-plugin="hello"]')).toBeNull();
+  });
+});
+
+describe("PluginHost: um bloco por plugin e por ponto", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("duas conversas com o mesmo plugin mostram um bloco; o outro assume quando o primeiro fecha", async () => {
+    const slot = document.createElement("div");
+    slot.dataset.pluginSlot = "sidebar";
+    document.body.appendChild(slot);
+    const mount = plugin((api) => api.ui.mount("sidebar", (el) => { el.textContent = "painel"; }));
+    const primeira = new PluginHost();
+    const segunda = new PluginHost();
+    await primeira.load(manifest({ permissions: ["ui"] }), mount);
+    await segunda.load(manifest({ permissions: ["ui"] }), mount);
+
+    expect(slot.querySelectorAll('[data-plugin="hello"]').length).toBe(1);
+
+    primeira.reset();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(slot.querySelectorAll('[data-plugin="hello"]').length).toBe(1);
+    expect(slot.textContent).toContain("painel");
   });
 });

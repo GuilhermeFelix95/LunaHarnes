@@ -13,12 +13,24 @@ export interface PluginMode {
   questions?: boolean;
 }
 
-/** Cache de respostas da sessão. Requer `cache`. Começa desligado. */
+/** Resumo do cache de prompt da conversa (medido pelo núcleo a cada turno). */
+export interface CacheSummary {
+  /** Taxa da sessão, pesada pelos tokens (0 a 1). null sem leitura do provedor. */
+  session: number | null;
+  readTotal: number;
+  freshTotal: number;
+  writeTotal: number;
+  last: { rate: number | null; diagnosis: "aquecendo" | "sessao-nova" | "modelo-trocado" | "prompt-mudou" | "pausa" | "desconhecido" | null; model: string } | null;
+  /** Taxas dos últimos 12 turnos, do mais antigo ao mais novo. */
+  history: (number | null)[];
+  warm: { state: "quente"; remainingMs: number } | { state: "frio" } | { state: "sem-ttl" } | { state: "sem-dados" };
+  tip: string | null;
+}
+
+/** Cache de prompt da conversa. Requer `cache`. Só leitura: o plugin não muda o cache. */
 export interface PluginCacheApi {
-  setEnabled(enabled: boolean): void;
-  clear(): void;
-  /** Acertos, consultas com o cache ligado e respostas guardadas, desde o início da sessão. */
-  stats(): { hits: number; lookups: number; stored: number };
+  /** Resumo da conversa. null até o primeiro turno com medição. */
+  stats(): CacheSummary | null;
   /** Aviso local no chat. Não é enviado ao agente. */
   notify(text: string): void;
 }

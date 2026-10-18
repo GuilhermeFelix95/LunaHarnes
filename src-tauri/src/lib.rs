@@ -37,6 +37,15 @@ pub fn run() {
                 }
                 Err(e) => eprintln!("não foi possível localizar a pasta de dados para o guia de plugins: {e}"),
             }
+            // Plugins padrão (cache de tokens). Falha só vira aviso no terminal: o app abre sem eles.
+            match app.path().app_data_dir() {
+                Ok(dir) => {
+                    if let Err(e) = plugins::seed::install_defaults(&dir) {
+                        eprintln!("{e}");
+                    }
+                }
+                Err(e) => eprintln!("não foi possível localizar a pasta de dados para os plugins padrão: {e}"),
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

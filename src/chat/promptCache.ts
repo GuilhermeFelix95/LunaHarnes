@@ -1,5 +1,5 @@
 // Cache de prefixo do provedor: quantos tokens de entrada de cada turno vieram do cache.
-// Diferente do cache de respostas (responseCache.ts), aqui o provedor cobra menos pelo que lê do cache.
+// O provedor cobra menos pelo que lê desse prefixo: é o cache que importa para o custo.
 
 /// Tokens de entrada de um turno. `null` = o provedor não informou aquele campo (não é zero).
 export interface CacheUsage {
@@ -68,6 +68,9 @@ export interface CacheSummary {
   session: number | null;
   /// Total de tokens de entrada lidos do cache na conversa.
   readTotal: number;
+  /// Total de tokens novos (sem cache) e gravados no cache, na conversa.
+  freshTotal: number;
+  writeTotal: number;
   /// Último turno, com o motivo do acerto baixo (se houver).
   last: { rate: number | null; diagnosis: Diagnosis; model: string } | null;
   /// Taxas dos últimos 12 turnos, do mais antigo ao mais novo.
@@ -85,6 +88,8 @@ export function summarize(
   const { provider, longTtl, now } = options;
   const usages = turns.map((t) => t.usage);
   const readTotal = usages.reduce((sum, u) => sum + (u.read ?? 0), 0);
+  const freshTotal = usages.reduce((sum, u) => sum + (u.fresh ?? 0), 0);
+  const writeTotal = usages.reduce((sum, u) => sum + (u.write ?? 0), 0);
   const lastTurn = turns.at(-1) ?? null;
   const previous = turns.length > 1 ? turns[turns.length - 2] : null;
   const diagnosis = lastTurn ? diagnose(previous, lastTurn, longTtl) : null;
@@ -109,6 +114,8 @@ export function summarize(
   return {
     session: aggregateRate(usages),
     readTotal,
+    freshTotal,
+    writeTotal,
     last: lastTurn ? { rate: hitRate(lastTurn.usage), diagnosis, model: lastTurn.model } : null,
     history: turns.slice(-12).map((t) => hitRate(t.usage)),
     warm,

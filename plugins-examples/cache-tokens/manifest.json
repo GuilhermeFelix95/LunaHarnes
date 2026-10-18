@@ -1,7 +1,12 @@
 {
   "id": "cache-tokens",
   "name": "Cache de Tokens",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "entry": "index.js",
-  "permissions": ["cache", "commands", "hooks", "ui"]
+  "permissions": [
+    "cache",
+    "commands",
+    "hooks",
+    "ui"
+  ]
 }

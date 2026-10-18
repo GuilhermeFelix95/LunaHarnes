@@ -107,24 +107,18 @@ api.registerMode({
 
 ### `api.cache`: permissão `cache`
 
-Controla o cache de respostas da sessão. Quando ligado, um pedido repetido recebe a resposta guardada, sem chamar o provedor, e a resposta aparece no chat marcada como "do cache".
+Dá acesso só de leitura ao cache de prompt da conversa. O cache de prompt é o do provedor: a Anthropic e a OpenAI guardam o começo do pedido e cobram menos pelos tokens que reaproveitam. O núcleo mede isso a cada turno. O plugin não liga, desliga nem limpa nada.
 
-Acessar `api.cache` sem a permissão `cache` recusa o plugin. O objeto tem quatro operações:
+Acessar `api.cache` sem a permissão `cache` recusa o plugin. O objeto tem duas operações:
 
-- `api.cache.setEnabled(true | false)`: liga ou desliga o cache. Começa desligado.
-- `api.cache.clear()`: esvazia as respostas guardadas.
-- `api.cache.stats()`: devolve `{ hits, lookups, stored }`, com os acertos, as consultas com o cache ligado e as respostas guardadas na sessão. A taxa de acerto é `hits / lookups`. Esvaziar o cache não zera os contadores.
+- `api.cache.stats()`: devolve o resumo da conversa (`CacheSummary` em `luna-plugin.d.ts`), ou `null` antes do primeiro turno medido. Traz a taxa da sessão (`session`), os tokens lidos, novos e gravados (`readTotal`, `freshTotal`, `writeTotal`), o último turno com o motivo de um acerto baixo (`last.diagnosis`), o histórico dos últimos 12 turnos, o estado do cache agora (`warm`) e uma dica (`tip`).
 - `api.cache.notify(texto)`: mostra um aviso local no chat. O texto **não** vai ao agente.
 
-Regras que o núcleo aplica (não dá para mudar pelo plugin):
+O resumo atualiza ao fim de cada turno, antes dos ganchos `onAfterResponse`. Cada conversa tem o próprio resumo; trocar de pasta zera o da conversa.
 
-- Só a primeira mensagem de uma conversa usa o cache. Com histórico, a mesma pergunta pode pedir resposta diferente.
-- Não usa o cache com anexos, imagens, arquivos citados com `@`, nem nos modos que planejam ou perguntam.
-- O pedido só acerta se o texto final, o agente, o perfil de API, o modelo, o esforço, a permissão, o modo e a pasta forem os mesmos.
-- Só guarda a resposta de um turno que terminou sem erro, numa pasta que é repositório git, e sem alterar arquivos. Trocar de pasta esvazia o cache.
-- Recarregar os plugins desliga e esvazia o cache.
+O estado `warm` depende do provedor: no Claude, `quente` com o tempo que falta para o cache expirar (5 min, ou 1 h com o cache longo ligado em Configurações > Conversa), e `frio` depois disso. No Codex o app não recebe o tempo de vida, então é `sem-ttl`. Sem leitura do cache no turno, é `sem-dados`. Nunca aparece 0% por falta de dado.
 
-O cache conta acertos, não tokens economizados: o app não tem a contagem exata de tokens por turno.
+A taxa é `lidos / (lidos + gravados + novos)`, em tokens de entrada. Ela mede o que o provedor reaproveitou, não o dinheiro economizado.
 
 ### `api.ui`: permissão `ui`
 
