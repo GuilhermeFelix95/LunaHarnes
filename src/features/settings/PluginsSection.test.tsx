@@ -51,6 +51,16 @@ describe("PluginsSection", () => {
     vi.mocked(api.listPlugins).mockResolvedValue({ plugins: [ASK_INSTALLED], errors: [] });
   });
 
+  it("traz o guia para criar plugins, com o contrato de entrada que o agente também lê", async () => {
+    render(<PluginsSection />);
+
+    await screen.findByRole("button", { name: "Desligar" });
+    const guide = document.querySelector(".plugin-guide");
+    expect(guide?.textContent).toContain("Guia para criar plugins");
+    expect(guide?.textContent).toContain("export function activate(api)");
+    expect(guide?.textContent).toContain("manifest.json");
+  });
+
   it("desliga um plugin instalado e avisa o chat", async () => {
     const announced = vi.fn();
     window.addEventListener("luna:plugins-changed", announced);

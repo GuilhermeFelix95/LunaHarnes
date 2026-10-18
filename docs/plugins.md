@@ -1,121 +1,186 @@
-# Plugins do LunaHarness
+# Guia para criar plugins do LunaHarness
 
-Um plugin é uma pasta com dois arquivos: `manifest.json` e um módulo JavaScript (ES module) de um arquivo só. Código em TypeScript e vários arquivos ainda não são suportados.
+Este guia vale para a Luna (o agente) e para quem usa o app. Ele vem embutido no LunaHarness e é gravado a cada abertura numa pasta de dados. Ao criar um plugin, leia este arquivo inteiro antes de escrever código.
 
-## Onde instalar
+## Para a Luna: leia primeiro
 
-Há três caminhos, todos em **Configurações > Plugins**:
+**O que é o LunaHarness.** É um app desktop que controla as CLIs do Claude Code e do Codex. O usuário conversa com o agente numa janela de chat, com seletores de modelo, permissão e projeto. Um plugin acrescenta comportamento a esse chat. Ele não controla o computador.
 
-1. **Instalar de uma pasta:** escolha a pasta do plugin no computador. O app lê o manifesto, mostra as permissões e só copia depois da sua confirmação. O nome da pasta de origem pode ser qualquer um: o que vale é o `id`.
-2. **Criar um plugin:** veja a seção abaixo.
-3. **Marketplace:** veja a seção Marketplace.
+**Onde criar.** Um plugin é uma pasta chamada `plugins/<id>/` dentro da pasta de dados do app. Essa pasta fica ao lado da pasta `docs` onde este guia está gravado: se o caminho deste arquivo for `...\docs\plugins.md`, a pasta de plugins é `...\plugins\<id>\`. Crie plugins só nessa pasta, a menos que o usuário peça outra.
 
-Por baixo, a pasta do plugin fica em `plugins/<id-do-plugin>/` dentro da pasta de dados do app (no Windows, `%APPDATA%\dev.lunaharness.app`). Ligar ou desligar vale a partir do próximo envio.
+**O que entregar.** Dois arquivos, e só esses:
+- `manifest.json`: metadados e permissões.
+- `index.js`: um módulo ES de um arquivo só, que exporta `activate(api)`.
 
-## Criar um plugin
+Não use TypeScript, não use `import` de outros arquivos nem de URLs, não use pacotes npm e não crie subpastas de código. O módulo é carregado como um blob, então qualquer `import` relativo falha.
 
-Em **Configurações > Plugins > Novo plugin**, informe um id e um nome. O app cria a pasta com um `manifest.json` e um `index.js` de modelo, que já aparece na lista.
+**Depois de criar.** Diga ao usuário que o plugin aparece em **Configurações > Plugins**, que ele vale a partir de uma nova conversa ou do próximo envio, e que pode ser desligado na mesma tela.
 
-Para editar, abra o `index.js` e salve. O exemplo completo está em `plugins-examples/hello-world/`, e os tipos da API em `plugins-examples/luna-plugin.d.ts`.
+**Se o pedido estiver fora da API.** Diga isso com clareza e proponha o que é possível. Não invente funções, módulos ou permissões. A lista exata de chamadas está na seção "API" abaixo.
+
+**Como conferir o que escreveu.** Confirme que o `index.js` contém `export function activate(api)`, que cada chamada está na seção "API" e que o `manifest.json` é JSON válido. Se houver Node.js, copie o `index.js` para um arquivo `.mjs` temporário fora da pasta do plugin e rode `node --check` nele.
 
 ## Manifesto (`manifest.json`)
 
 ```json
 {
-  "id": "hello-world",
-  "name": "Hello World",
+  "id": "resumir-conversa",
+  "name": "Resumir conversa",
   "version": "0.1.0",
   "entry": "index.js",
-  "permissions": ["commands", "hooks"]
+  "permissions": ["commands"]
 }
 ```
 
 | Campo | Regra |
 |---|---|
-| `id` | Letras minúsculas, números e hífen. Não pode começar com hífen. Máximo de 64 caracteres. |
+| `id` | Minúsculas, números e hífen. Não pode começar com hífen. Máximo de 64 caracteres. Tem de ser igual ao nome da pasta. |
 | `name` | Obrigatório, não pode ser vazio. |
-| `version` | Texto livre (recomendado: semver). |
-| `entry` | Caminho relativo dentro da pasta do plugin. Não pode sair dela (`../` é recusado). |
-| `permissions` | Lista com `commands`, `hooks` e/ou `modes`. Outro valor recusa o plugin. |
+| `version` | Texto livre; recomenda-se semver (`0.1.0`). |
+| `entry` | Caminho relativo dentro da pasta. Não pode sair dela (`../` é recusado). Use `index.js`. |
+| `permissions` | Lista com `commands`, `hooks` e/ou `modes`. Qualquer outro valor recusa o plugin. |
 
-Um plugin inválido aparece na lista de avisos do app e não impede os outros de carregar. O arquivo de entrada precisa caber em 512 KB quando a pasta é copiada do computador.
+Um plugin com manifesto inválido aparece na lista de avisos e não impede os outros de carregar. O arquivo de entrada precisa caber em 512 KB.
 
-## Código do plugin
-
-O módulo precisa exportar `activate(api)`. Ele é chamado uma vez, na inicialização do app.
+## Módulo (`index.js`)
 
 ```js
 export function activate(api) {
-  api.registerCommand("ola", (args) => `Cumprimente ${args} em uma frase.`);
-  api.onBeforeSend((prompt) => `Responda em português.\n\n${prompt}`);
+  api.registerCommand("resumir", (args) => `Resuma a conversa em três tópicos. ${args}`.trim());
+  api.onBeforeSend((prompt) => `Responda em português do Brasil.\n\n${prompt}`);
 }
 ```
 
-## API disponível
+- `activate(api)` é chamado quando o plugin é carregado: ao abrir o app, ao ligar o plugin ou ao mudar a lista de plugins. Pode ser `async`.
+- Se `activate` lançar erro, tudo que o plugin já registrou é desfeito. O erro aparece nos avisos do chat, com o nome do plugin.
+- Um plugin não enxerga o estado de outros plugins nem da conversa, a não ser pelo que recebe nos handlers.
 
-### `registerCommand(nome, handler)`: permissão `commands`
+## API
 
-Registra `/nome` no chat. `nome` usa letras minúsculas, números e hífen, e não pode repetir um comando já existente.
+Só estas chamadas existem. Qualquer outra é erro.
 
-O `handler` recebe o texto depois do comando:
+### `api.registerCommand(nome, handler)`: permissão `commands`
 
-- Se devolver uma **string**, ela é enviada ao provedor como o pedido.
-- Se devolver **nada**, o comando só executa uma ação local.
+Registra `/nome` no chat. O `nome` começa com letra minúscula e usa só minúsculas, números e hífen. Não pode repetir um comando já existente, nem de outro plugin.
 
-### `onBeforeSend(hook)`: permissão `hooks`
+O `handler(args)` recebe o texto digitado depois do comando (uma string, talvez vazia). Ele pode ser `async`.
 
-Roda antes de cada envio, na ordem em que os plugins foram carregados. Se o hook devolver uma string, ela substitui o texto a ser enviado. Se devolver nada, o texto segue sem alteração.
+- Se devolver **texto**, esse texto vai ao agente como pedido. É o uso principal: o comando vira um atalho para uma instrução.
+- Se devolver **nada**, o comando só roda o código local. Não há resposta visível para o usuário, então prefira devolver texto.
 
-Comandos também passam por esse hook, sobre o texto que o comando gerou.
+### `api.onBeforeSend(hook)`: permissão `hooks`
 
-### `onAfterResponse(hook)`: permissão `hooks`
+`hook(prompt)` roda antes de cada envio, na ordem em que os plugins carregaram. Se devolver texto, esse texto substitui o pedido. Se devolver nada, o pedido segue igual. Comandos também passam por esse hook, sobre o texto que o comando gerou.
 
-Recebe o texto completo da resposta quando ela termina. Não altera a resposta exibida.
+### `api.onAfterResponse(hook)`: permissão `hooks`
 
-### `registerMode(modo)`: permissão `modes`
+`hook(text)` recebe o texto completo da resposta quando ela termina. Serve para registrar, contar ou reagir. Não altera a resposta que aparece no chat.
 
-Oferece um modo no composer, como chip ao lado de "Planejar". O modo é `{ id, label, description, instruction, permission: "readOnly", questions? }`.
+### `api.registerMode(modo)`: permissão `modes`
 
-- `questions: true` faz o agente perguntar antes de agir, pelo seletor de perguntas do chat. Sem o campo, o modo não pergunta. O id `ask` só vale como compatibilidade com o plugin Modo Conversar 0.2.0.
+Oferece um modo no composer, como um chip ao lado de "Planejar". O modo é um objeto:
 
-- `permission` **precisa** ser `"readOnly"`. Um modo só restringe: nunca dá mais permissão do que o composer já tem.
-- Ligado, o modo roda o envio em só leitura e põe `instruction` na frente do pedido.
-- Os modos são exclusivos: ligar um desliga o outro.
+```js
+api.registerMode({
+  id: "so-explicar",
+  label: "Só explicar",
+  description: "Explica, sem editar arquivos",
+  instruction: "Responda só com explicações. Não edite arquivos.",
+  permission: "readOnly",
+  questions: false,
+});
+```
+
+- `permission` **precisa** ser `"readOnly"`. Um modo só restringe; nunca dá mais permissão do que o composer já tem.
+- Ligado, o modo roda o envio só com leitura e põe `instruction` na frente do pedido.
+- `questions: true` faz o agente perguntar antes de agir, pelo seletor de perguntas. Sem o campo, o modo não pergunta. (O id `ask` é exceção por compatibilidade com a versão antiga do plugin oficial.)
+- Só um modo fica ligado por vez: ligar um desliga o anterior.
+- `id` e `label` são obrigatórios; `id` segue a regra dos comandos (começa com letra), e não pode repetir um modo já existente.
+
+## Limites
+
+- Comandos e hooks têm **10 segundos**. Passou disso, o resultado é ignorado, o erro vai para os avisos e o envio segue sem ele.
+- Um erro num handler aparece nos avisos com o nome do plugin; os outros plugins continuam.
+
+## O que a API NÃO faz (hoje)
+
+Esta lista é importante para não prometer o que não existe:
+
+- não lê nem grava arquivos do computador ou do projeto;
+- não executa comandos do sistema;
+- não faz requisições de rede;
+- não cria painéis, botões ou janelas;
+- não lê nem envia chaves de API;
+- um hook não consegue alterar a resposta exibida, só o texto enviado.
+
+Quando o pedido precisar de uma dessas coisas, a resposta certa é dizer que a API não tem esse recurso ainda, e descrever o que o plugin consegue fazer. Plugins que precisam desses recursos dependem de uma nova versão da API, com permissões próprias e isolamento.
+
+## Receitas
+
+**Atalho que pede resposta em tópicos**
+
+```js
+export function activate(api) {
+  api.registerCommand("topicos", (args) => `Responda em tópicos curtos: ${args}`.trim());
+}
+```
+
+**Responder sempre em português**
+
+```js
+export function activate(api) {
+  api.onBeforeSend((prompt) => `Responda em português do Brasil.\n\n${prompt}`);
+}
+```
+
+**Modo que só explica**
 
 ```js
 export function activate(api) {
   api.registerMode({
-    id: "ask",
-    label: "Conversar",
+    id: "explicar",
+    label: "Explicar",
     description: "Só explica, sem editar arquivos",
-    instruction: "Responda só com explicações e perguntas. Não edite arquivos.",
+    instruction: "Responda só com explicações. Não edite arquivos.",
     permission: "readOnly",
-    questions: true,
+    questions: false,
   });
 }
 ```
 
-## Marketplace
+**Registrar o tamanho da última resposta**
 
-Em **Configurações > Plugins > Marketplace** você instala plugins de um catálogo.
+```js
+export function activate(api) {
+  api.onAfterResponse((text) => {
+    console.info(`Luna: resposta com ${text.length} caracteres`);
+  });
+}
+```
 
-- **Catálogo oficial:** embutido no app (`src-tauri/marketplace/official.json`). Funciona sem internet.
-- **Catálogo por URL:** cole um endereço `https` de um `marketplace.json`. O app baixa e confere o catálogo antes de guardar a URL.
+## Compartilhar um plugin
 
-Formato do catálogo:
+Hoje um plugin é só uma pasta com `manifest.json` e `index.js`. Para enviar a alguém:
+
+1. Compacte a pasta do plugin em um ZIP e envie.
+2. Quem recebe extrai o ZIP e usa **Configurações > Plugins > Instalar de uma pasta**.
+
+Antes de instalar um plugin de outra pessoa, leia o `index.js`. Plugins rodam na mesma janela do app e não há sandbox ainda: a lista de permissões controla a API oferecida, não o que o código faz.
+
+**Publicar para muitos usuários.** Um catálogo é um arquivo `marketplace.json` hospedado em `https`. O usuário cola o endereço em **Configurações > Plugins > Marketplace**.
 
 ```json
 {
   "name": "Meu catálogo",
   "plugins": [
     {
-      "id": "ask-mode",
-      "name": "Modo Conversar",
-      "description": "Modo Conversar",
-      "author": "Fulano",
+      "id": "topicos",
+      "name": "Tópicos",
+      "description": "Atalho /topicos",
+      "author": "Seu nome",
       "version": "0.1.0",
       "entry": "index.js",
-      "permissions": ["modes"],
+      "permissions": ["commands"],
       "files": [
         { "path": "index.js", "sha256": "<hash do conteúdo>", "content": "export function activate(api) { /* ... */ }" }
       ]
@@ -124,48 +189,34 @@ Formato do catálogo:
 }
 ```
 
-Regras de instalação:
+- `sha256` é o hash hexadecimal do conteúdo exato do arquivo. No Windows: `Get-FileHash -Algorithm SHA256 index.js`. No Linux ou macOS: `sha256sum index.js`.
+- Cada arquivo tem `content` (embutido) **ou** `url` (https), não os dois.
+- Um hash diferente recusa a instalação inteira.
+- O `manifest.json` não entra em `files`: o app gera o manifesto a partir dos campos do catálogo.
+- Ids repetidos recusam o catálogo inteiro.
+- O hash confere o conteúdo, mas não prova quem publicou. Assinatura de catálogo ainda não existe.
 
-- Cada arquivo precisa de `sha256` (hash hexadecimal do conteúdo exato) e de **um** entre `content` (embutido) e `url` (https).
-- Hash diferente do esperado recusa a instalação inteira.
-- Limite de 1 MB por arquivo. Caminhos com `../` ou absolutos são recusados.
-- O `manifest.json` não entra na lista `files`: o app gera o manifesto a partir dos campos do catálogo. Dois plugins com o mesmo `id` recusam o catálogo inteiro.
-- A instalação grava numa pasta temporária e só depois troca pelo nome final. Um plugin que já existe não é sobrescrito: desinstale antes.
-- Antes de instalar, o diálogo mostra as permissões pedidas.
-- Atualizar troca a versão instalada. Se a versão nova pedir uma permissão que a instalada não tinha, o diálogo mostra a permissão nova e só atualiza depois da sua confirmação.
+## Boas práticas
 
-Onde ficam as coisas (pasta de dados do app):
+- Use nomes de comando em minúsculas, sem espaço.
+- Devolva instruções claras para o agente, no idioma em que o usuário conversa.
+- Não coloque chaves de API, senhas ou tokens no plugin.
+- Mantenha os handlers rápidos: o limite de 10 segundos vale para cada um.
+- Um plugin faz uma coisa bem feita. Prefira dois plugins pequenos a um grande.
 
-- pasta plugins/<id>/: cada plugin instalado.
-- `plugins-state.json`: quais plugins estão desligados.
-- `catalogs.json`: as URLs de catálogo adicionadas.
+## Erros comuns
 
-Desinstalar remove só a pasta daquele plugin e o estado ligado/desligado dele. Ligar ou desligar vale a partir do próximo envio.
+- Campo obrigatório faltando no manifesto, ou `permissions` com valor fora da lista.
+- `entry` apontando para fora da pasta (`../`).
+- `import` de outro arquivo: o módulo é um arquivo só.
+- `id` com letras maiúsculas ou espaços.
+- `registerMode` com `permission` diferente de `"readOnly"`.
+- Chamar uma função que a API não tem, como `api.readFile`. Ela não existe.
 
-## Erros
+## Fora da API (planejado)
 
-Se a ativação ou um hook falhar, a mensagem aparece na lista de avisos do chat, com o nome do plugin. Os demais plugins continuam funcionando.
-
-- Uma ativação que falha no meio desfaz o que o plugin já tinha registrado: nada fica ativo pela metade.
-- Comandos e hooks têm **10 segundos**. Passou disso, o resultado é ignorado, o erro vai para a lista de avisos e o envio segue sem ele.
-
-## Limites de segurança (leia antes de instalar um plugin)
-
-As permissões são **controle da API oferecida ao plugin**, não uma barreira de segurança. O código do plugin roda na mesma janela do app e pode, em tese, chamar qualquer recurso que a janela já tenha. Por isso:
-
-- instale só plugins cujo código você leu ou confia;
-- não espere que a lista de permissões limite o que o código faz de fato.
-
-Um sandbox real (WASM ou processo isolado) está previsto para depois do MVP.
-
-## Fora do MVP
-
+- Permissões de sistema de arquivos e rede, com isolamento real (sandbox).
 - Painéis de interface (`registerPanel`).
-- Permissões de sistema de arquivos e rede.
-- Atualização automática de plugins instalados (atualize pelo marketplace ou reinstale a pasta).
-- Sandbox de verdade, TypeScript e plugins com vários arquivos.
-- Assinatura de catálogos. O hash confere o conteúdo, mas não prova quem publicou.
-
-## Exemplo
-
-Veja `plugins-examples/hello-world/`.
+- Plugins com vários arquivos e TypeScript.
+- Assinatura de catálogos.
+- Atualização automática de plugins instalados.

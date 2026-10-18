@@ -21,6 +21,8 @@ import {
   type CatalogPlugin,
 } from "../../api";
 import type { PluginManifest } from "../../plugins/host";
+import { Markdown } from "../chat/Markdown";
+import guide from "../../../docs/plugins.md?raw";
 
 type Tab = "installed" | "market";
 
@@ -276,7 +278,7 @@ export function PluginsSection() {
           </div>
           <form className="api-form" onSubmit={(e) => void createNew(e)}>
             <h3 className="settings__sub">Novo plugin</h3>
-            <p className="settings__hint">Cria uma pasta com manifest.json e index.js, pronta para editar. Guia em docs/plugins.md.</p>
+            <p className="settings__hint">Cria uma pasta com manifest.json e index.js, pronta para editar. O guia está logo abaixo.</p>
             <label>
               Id (letras minúsculas, números e hífen)
               <input aria-label="Id do novo plugin" value={newId} onChange={(e) => setNewId(e.target.value)} placeholder="meu-plugin" required />
@@ -324,6 +326,10 @@ export function PluginsSection() {
               {message}
             </p>
           ))}
+          <details className="plugin-guide">
+            <summary>Guia para criar plugins</summary>
+            <Markdown text={guide} />
+          </details>
         </>
       )}
 

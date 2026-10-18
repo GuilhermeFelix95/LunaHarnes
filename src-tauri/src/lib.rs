@@ -19,6 +19,19 @@ pub fn run() {
         .manage(terminal::Terminals::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .setup(|app| {
+            use tauri::Manager;
+            // Grava o guia de plugins para a Luna ler. Sem ele o app segue, só sem o guia.
+            match app.path().app_data_dir() {
+                Ok(dir) => {
+                    if let Err(e) = plugins::guide::install(&dir) {
+                        eprintln!("não foi possível gravar o guia de plugins em {}: {e}", dir.display());
+                    }
+                }
+                Err(e) => eprintln!("não foi possível localizar a pasta de dados para o guia de plugins: {e}"),
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
             commands::cancel_prompt,

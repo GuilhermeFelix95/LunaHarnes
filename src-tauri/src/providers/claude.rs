@@ -36,6 +36,10 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     // Acrescenta a identidade ao prompt padrão, que diz que o agente é o Claude Code.
     // Uma linha só: quebra de linha num argumento quebra o .cmd do Windows.
     args.extend(["--append-system-prompt".to_string(), format!("{} {TASK_INSTRUCTION}", identity_for(request))]);
+    // Deixa o agente ler o guia de plugins, e só essa pasta. Sempre seguido de uma flag, pois --add-dir aceita vários valores.
+    if let Some(dir) = crate::plugins::guide::dir() {
+        args.extend(["--add-dir".to_string(), dir.display().to_string()]);
+    }
     if let Some(model) = &request.model {
         args.extend(["--model".to_string(), model.clone()]);
     }

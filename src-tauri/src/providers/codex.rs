@@ -33,6 +33,10 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     }
     // Identidade da Luna como instrução do desenvolvedor, nos dois casos (novo e retomada).
     args.extend(["-c".to_string(), format!("developer_instructions=\"{}\"", identity_for(request))]);
+    // Deixa o agente ler o guia de plugins, e só essa pasta.
+    if let Some(dir) = crate::plugins::guide::dir() {
+        args.extend(["--add-dir".to_string(), dir.display().to_string()]);
+    }
 
     match &request.session_id {
         None => args.push("-".into()),

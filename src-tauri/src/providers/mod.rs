@@ -155,7 +155,12 @@ pub fn identity_for(request: &RunRequest) -> String {
         Some(tokens) => format!(" Janela de contexto: {tokens} tokens."),
         None => String::new(),
     };
-    format!("{LUNA_IDENTITY} {model}{effort}{window}")
+    // Caminho do guia, para o agente ler antes de criar um plugin (ver plugins/guide.rs).
+    let guide = match crate::plugins::guide::dir() {
+        Some(dir) => format!(" Guia de plugins: {}.", dir.join("plugins.md").display()),
+        None => String::new(),
+    };
+    format!("{LUNA_IDENTITY} {model}{effort}{window}{guide}")
 }
 
 /// Tipo MIME de uma imagem aceita, pela extensão. \`None\` = formato não suportado.
