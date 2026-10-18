@@ -52,6 +52,7 @@ export function LunaCat({ working }: LunaCatProps) {
         {/* Notebook: base, tela e linhas de código */}
         <g className="luna-cat__laptop">
           <rect x="44" y="164" width="132" height="13" rx="6.5" fill="#d9d3f2" />
+          <rect x="66" y="166" width="88" height="8" rx="3" fill="#b9afe0" />
           <rect x="66" y="124" width="88" height="46" rx="8" fill="#3a3450" />
           <rect x="72" y="130" width="76" height="34" rx="5" fill={`url(#${screen})`} />
           <g className="luna-cat__code">
@@ -63,8 +64,8 @@ export function LunaCat({ working }: LunaCatProps) {
 
         {/* Patinhas sobre o teclado */}
         <g className="luna-cat__paws">
-          <ellipse className="luna-cat__paw luna-cat__paw--left" cx="88" cy="166" rx="14" ry="8" fill="#a78bfa" />
-          <ellipse className="luna-cat__paw luna-cat__paw--right" cx="132" cy="166" rx="14" ry="8" fill="#a78bfa" />
+          <ellipse className="luna-cat__paw luna-cat__paw--left" cx="86" cy="165" rx="12" ry="7" fill="#c4b2ff" stroke="#8b6ef0" strokeWidth="2.5" />
+          <ellipse className="luna-cat__paw luna-cat__paw--right" cx="134" cy="165" rx="12" ry="7" fill="#c4b2ff" stroke="#8b6ef0" strokeWidth="2.5" />
         </g>
 
         {/* Cabeça grande, inclinada quando dorme */}

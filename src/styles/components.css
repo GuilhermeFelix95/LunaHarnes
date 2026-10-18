@@ -1383,11 +1383,11 @@ textarea:focus-visible {
 }
 
 .luna-cat--working .luna-cat__paw--left {
-  animation: luna-type 0.5s ease-in-out infinite alternate;
+  animation: luna-type 0.5s ease-in-out infinite;
 }
 
 .luna-cat--working .luna-cat__paw--right {
-  animation: luna-type 0.5s ease-in-out 0.25s infinite alternate;
+  animation: luna-type 0.5s ease-in-out 0.25s infinite;
 }
 
 .luna-cat--working .luna-cat__code {
@@ -1435,8 +1435,8 @@ textarea:focus-visible {
 }
 
 @keyframes luna-type {
-  from { transform: translateY(0); }
-  to { transform: translateY(-3px); }
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(3px) scaleY(0.8); }
 }
 
 @keyframes luna-code {
