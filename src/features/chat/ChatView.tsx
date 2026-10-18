@@ -22,6 +22,8 @@ import {
   openLogin,
   pickWorkspace,
   sendPrompt,
+  listGitBranches,
+  createGitWorktree,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
 import { profileModelOptions } from "../../chat/models";
@@ -147,6 +149,20 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [questionsRound, setQuestionsRound] = useState(0);
   /// Quanto do contexto o agente diz já ter, lido da última resposta do modo plano ("Contexto entendido: X%").
   const [understood, setUnderstood] = useState<number | null>(null);
+  // Branches da pasta, para o menu de pasta. Fora de um repositório git a lista fica vazia.
+  const [branches, setBranches] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve()
+      .then(() => listGitBranches(cwd))
+      .then(
+        (list) => alive && setBranches(list),
+        () => alive && setBranches([]),
+      );
+    return () => {
+      alive = false;
+    };
+  }, [cwd]);
   useEffect(() => {
     onRunning?.(conversationId, running);
   }, [running]);
@@ -481,6 +497,16 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   async function browseWorkspace() {
     const picked = await pickWorkspace(cwd);
     if (picked) switchWorkspace(picked);
+  }
+
+  /// Trabalhar numa branch: cria a worktree dela (ou a branch nova, a partir da atual) e troca a conversa para a pasta nova.
+  async function pickBranch(branch: string, isNew: boolean) {
+    try {
+      const path = await createGitWorktree(cwd, branch, isNew);
+      switchWorkspace(path);
+    } catch (e) {
+      showToast({ kind: "error", title: "Worktree não criada", body: String(e) });
+    }
   }
 
   /// Envia um turno. `shown` aparece na conversa; `cliPrompt` é o que o CLI recebe.
@@ -1028,6 +1054,8 @@ ${outgoing}`
           disabled={running}
           onPick={switchWorkspace}
           onBrowse={() => void browseWorkspace()}
+          branches={branches}
+          onPickBranch={(branch, isNew) => void pickBranch(branch, isNew)}
         />
         {provider === "claude" && (
           <UsageMeter

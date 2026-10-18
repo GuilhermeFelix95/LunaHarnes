@@ -368,6 +368,16 @@ export interface SkillCatalogEntry {
   version: string;
 }
 
+/// Branches locais do repositório da pasta. Pasta sem git dá erro: a tela trata como lista vazia.
+export function listGitBranches(cwd: string): Promise<string[]> {
+  return invoke<string[]>("list_git_branches", { cwd });
+}
+
+/// Cria a worktree numa branch existente (ou numa nova, a partir da atual) e devolve a pasta dela.
+export function createGitWorktree(cwd: string, branch: string, newBranch: boolean): Promise<string> {
+  return invoke<string>("create_git_worktree", { cwd, branch, newBranch });
+}
+
 export const SKILLS_CHANGED = "luna:skills-changed";
 
 export function listSkills(): Promise<InstalledSkill[]> {

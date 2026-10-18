@@ -39,4 +39,53 @@ describe("WorkspaceChip", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Downloads" }));
     expect(props.onPick).toHaveBeenCalledWith("C:\\Users\\guilh\\Downloads");
   });
+
+  it("sem repositório git não há seção de branch", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: /LunaHarnes/ }));
+
+    expect(screen.queryByText("Trabalhar numa branch")).toBeNull();
+    expect(screen.queryByLabelText("Nova branch")).toBeNull();
+  });
+
+  it("escolher uma branch existente pede a worktree dela, sem criar branch", () => {
+    const onPickBranch = vi.fn();
+    render(
+      <WorkspaceChip
+        cwd="C:\\Users\\guilh\\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={["feature/x", "main"]}
+        onPickBranch={onPickBranch}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /LunaHarnes/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "feature/x" }));
+
+    expect(onPickBranch).toHaveBeenCalledWith("feature/x", false);
+  });
+
+  it("criar uma branch nova usa o nome digitado e a cria a partir da atual", () => {
+    const onPickBranch = vi.fn();
+    render(
+      <WorkspaceChip
+        cwd="C:\\Users\\guilh\\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={["main"]}
+        onPickBranch={onPickBranch}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /LunaHarnes/ }));
+    const input = screen.getByLabelText("Nova branch");
+    const create = screen.getByRole("button", { name: "Criar" });
+
+    expect((create as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(input, { target: { value: "  nova  " } });
+    fireEvent.click(create);
+
+    expect(onPickBranch).toHaveBeenCalledWith("nova", true);
+  });
 });

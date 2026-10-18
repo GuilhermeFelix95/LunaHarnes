@@ -98,7 +98,7 @@ fn git(cwd: &Path) -> Result<std::process::Command, String> {
     Ok(cmd)
 }
 
-fn run_git(cwd: &Path, args: &[&str]) -> Result<Option<String>, String> {
+pub(crate) fn run_git(cwd: &Path, args: &[&str]) -> Result<Option<String>, String> {
     let output = git(cwd)?
         .args(args)
         .output()

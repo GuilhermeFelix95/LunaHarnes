@@ -1,6 +1,7 @@
 pub mod api_profiles;
 pub mod auth;
 pub mod changes;
+pub mod worktrees;
 pub mod checkpoints;
 pub mod commands;
 pub mod conversations;
@@ -45,6 +46,8 @@ pub fn run() {
             commands::check_auth,
             commands::list_models,
             commands::get_changes,
+            worktrees::list_git_branches,
+            worktrees::create_git_worktree,
             commands::get_file_diff,
             commands::discard_change,
             commands::checkpoint_take,
