@@ -61,7 +61,6 @@
   border-color: var(--accent);
 }
 
-:root[data-theme="pixel"] .luna-cat img,
 :root[data-theme="pixel"] .sidebar__brand img,
 :root[data-theme="pixel"] .chat__logo {
   image-rendering: pixelated;

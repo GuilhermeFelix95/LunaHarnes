@@ -1368,21 +1368,76 @@ textarea:focus-visible {
   min-height: 0;
 }
 
-/* Gatinho lunar (spritesheet em public/luna): anda com ciclo de poses quando a Luna trabalha; dorme com zZ quando para */
-.luna-cat {
+/* Mascote da Luna (SVG em LunaCat.tsx): balança e acena quando a Luna trabalha; dorme com zZ quando para */
+.luna-bot {
   position: relative;
-  width: 200px;
+  width: 160px;
   margin: 16px auto 0;
 }
 
-.luna-cat img {
+.luna-bot svg {
   display: block;
   width: 100%;
   height: auto;
+  overflow: visible;
   user-select: none;
 }
 
-.luna-cat__z {
+.luna-bot__body,
+.luna-bot__tip,
+.luna-bot__arm,
+.luna-bot__leg {
+  fill: var(--accent, #7fd1b9);
+}
+
+.luna-bot__antenna {
+  stroke: var(--accent, #7fd1b9);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.luna-bot__arm,
+.luna-bot__leg {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.luna-bot__eye,
+.luna-bot__mouth,
+.luna-bot__eye-closed {
+  fill: none;
+  stroke: var(--bg-sidebar, #1b1a18);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.luna-bot__eye {
+  fill: var(--bg-sidebar, #1b1a18);
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: luna-blink 4.5s infinite;
+}
+
+.luna-bot__eye-closed,
+.luna-bot__cheek {
+  display: none;
+}
+
+.luna-bot__cheek {
+  fill: #ff8fa3;
+  opacity: 0.45;
+}
+
+.luna-bot--sleeping .luna-bot__eye {
+  display: none;
+}
+
+.luna-bot--sleeping .luna-bot__eye-closed {
+  display: inline;
+}
+
+.luna-bot__z {
   position: absolute;
   top: 6%;
   right: 6%;
@@ -1394,32 +1449,65 @@ textarea:focus-visible {
   display: none;
 }
 
-.luna-cat__z--second {
+.luna-bot__z--second {
   right: 0;
   font-size: 20px;
 }
 
-.luna-cat--sleeping .luna-cat__z {
+.luna-bot--sleeping .luna-bot__z {
   display: inline;
   animation: luna-z 2.8s ease-in infinite;
 }
 
-.luna-cat--sleeping .luna-cat__z--second {
+.luna-bot--sleeping .luna-bot__z--second {
   animation-delay: 1.4s;
 }
 
-.luna-cat--working img {
-  animation: luna-hop 0.36s ease-in-out infinite alternate;
+.luna-bot--working svg {
+  animation: luna-bob 0.5s ease-in-out infinite alternate;
 }
 
-.luna-cat--sleeping img {
+.luna-bot--working .luna-bot__arm--right {
+  animation: luna-wave 0.5s ease-in-out infinite alternate;
+}
+
+.luna-bot--sleeping svg {
   transform-origin: 50% 100%;
   animation: luna-breathe 3s ease-in-out infinite;
 }
 
-@keyframes luna-hop {
+.luna-bot--hello .luna-bot__arm--right {
+  animation: luna-hello 1.2s ease-in-out;
+}
+
+.luna-bot--happy svg {
+  animation: luna-jump 0.6s ease-out;
+}
+
+@keyframes luna-bob {
   from { transform: translateY(0); }
-  to { transform: translateY(-4px); }
+  to { transform: translateY(-6px); }
+}
+
+@keyframes luna-wave {
+  from { transform: rotate(-12deg); }
+  to { transform: rotate(14deg); }
+}
+
+@keyframes luna-hello {
+  0%, 100% { transform: rotate(0deg); }
+  30%, 70% { transform: rotate(-150deg); }
+  50% { transform: rotate(-125deg); }
+}
+
+@keyframes luna-jump {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-18px); }
+}
+
+@keyframes luna-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
 }
 
 @keyframes luna-breathe {
@@ -1434,12 +1522,14 @@ textarea:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .luna-cat img,
-  .luna-cat__z {
+  .luna-bot svg,
+  .luna-bot__arm,
+  .luna-bot__eye,
+  .luna-bot__z {
     animation: none !important;
   }
 
-  .luna-cat--sleeping .luna-cat__z {
+  .luna-bot--sleeping .luna-bot__z {
     opacity: 1;
   }
 }
