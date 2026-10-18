@@ -12,21 +12,19 @@ import { fileURLToPath } from "node:url";
 import * as readline from "node:readline/promises";
 import { homedir } from "node:os";
 import { modeFrom, pickExecutable } from "./luna-lib.mjs";
-import {
-  appDataDir,
-  checkPlugin,
-  checkSkill,
-  extensionFrom,
-  installMcp,
-  installPlugin,
-  installSkill,
-  invalidValues,
-  mcpCommands,
-} from "./luna-extensions.mjs";
+import { appDataDir, checkPlugin, checkSkill, extensionFrom, installPlugin, installSkill } from "./luna-extensions.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const CATALOG_FILES = { skill: "skills.json", mcp: "mcp.json", plugin: "official.json" };
+const CATALOG_FILES = { skill: "skills.json", plugin: "official.json" };
+
+/// Executável que o `luna` compilou (o mesmo que ele abre). Usa o do modo estável se existir.
+function lunaExecutable() {
+  const name = process.platform === "win32" ? "lunaharness.exe" : "lunaharness";
+  return [join(root, "src-tauri", "target", "luna", "debug", name), join(root, "src-tauri", "target", "debug", name)].find((p) =>
+    fs.existsSync(p),
+  );
+}
 
 /// `luna skills|mcp|plugin add <id>`: instala do marketplace do app e devolve o código de saída.
 async function runExtension(argv) {
@@ -37,6 +35,7 @@ async function runExtension(argv) {
     console.error(error.message);
     return 2;
   }
+  if (parsed.kind === "mcp") return addMcp(parsed.id);
   const catalogFile = join(root, "src-tauri", "marketplace", CATALOG_FILES[parsed.kind]);
   const catalog = JSON.parse(fs.readFileSync(catalogFile, "utf8"));
 
@@ -87,46 +86,20 @@ async function runExtension(argv) {
     }
   }
 
-  const entry = catalog.servers.find((s) => s.id === parsed.id);
-  if (!entry) {
-    console.error(`luna: o servidor "${parsed.id}" não está no catálogo`);
+  return 1;
+}
+
+/// MCP: quem grava é o próprio app (`lunaharness mcp add`), com a mesma lógica da tela. O luna não pede
+/// nem grava valores: as variáveis são lidas do ambiente do usuário pela CLI.
+function addMcp(id) {
+  const exe = lunaExecutable();
+  if (!exe) {
+    console.error("luna: o app ainda não foi compilado. Rode `luna` uma vez e depois `luna mcp add <id>`.");
     return 1;
   }
-  // Valor que já está no ambiente (ex.: GITHUB_PERSONAL_ACCESS_TOKEN) não é pedido de novo.
-  const values = {};
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    for (const field of entry.env) {
-      values[field.key] = process.env[field.key] ?? (await rl.question(`${field.label} (${field.key}): `)).trim();
-    }
-    const bad = invalidValues(entry, values);
-    if (bad.length > 0) {
-      console.error(`luna: valor inválido para ${bad.join(", ")} (sem espaços nem caracteres como & ou aspas)`);
-      return 1;
-    }
-    // Mostra o comando com os valores escondidos; a instalação usa os valores de verdade.
-    const hidden = Object.fromEntries(Object.keys(values).map((key) => [key, "***"]));
-    const shown = mcpCommands(entry, hidden);
-    console.log(`\nServidor "${entry.name}" será adicionado às duas CLIs com:`);
-    console.log(`  claude ${shown.claude.join(" ")}`);
-    console.log(`  codex ${shown.codex.join(" ")}`);
-    const answer = (await rl.question("\nInstalar? (s/N) ")).trim().toLowerCase();
-    if (answer !== "s") {
-      console.log("luna: cancelado. Nada foi alterado.");
-      return 0;
-    }
-  } finally {
-    rl.close();
-  }
-
-  const results = installMcp({
-    entry,
-    values,
-    run: (engine, args) => spawnSync(engine, args, { stdio: "inherit", shell: true, env: process.env }),
-  });
-  for (const [engine, result] of Object.entries(results)) console.log(`${engine}: ${result}`);
-  return Object.values(results).every((r) => r === "ok") ? 0 : 1;
+  return spawnSync(exe, ["mcp", "add", id], { stdio: "inherit" }).status ?? 1;
 }
+
 
 if (["skills", "mcp", "plugin"].includes(process.argv[2])) {
   process.exit(await runExtension(process.argv.slice(2)));

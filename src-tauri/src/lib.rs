@@ -60,6 +60,7 @@ pub fn run() {
             mcp::list_mcp_servers,
             mcp::set_mcp_enabled,
             mcp::remove_mcp_server,
+            mcp::reconfigure_mcp_server,
             mcp::load_mcp_catalog,
             mcp::install_mcp_from_catalog,
             mcp::list_mcp_sources,

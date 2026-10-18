@@ -18,7 +18,7 @@
       "transport": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": [{ "key": "GITHUB_PERSONAL_ACCESS_TOKEN", "label": "Token pessoal do GitHub" }]
+      "env": [{ "key": "GITHUB_PERSONAL_ACCESS_TOKEN", "label": "Defina a variável GITHUB_PERSONAL_ACCESS_TOKEN com seu token pessoal do GitHub nas variáveis de ambiente do Windows e reinicie o app" }]
     },
     {
       "id": "context7",

@@ -10,6 +10,7 @@ import {
   listMcpSources,
   loadMcpCatalog,
   MCP_CHANGED,
+  reconfigureMcpServer,
   removeMcpServer,
   removeMcpSource,
   saveMcpServer,
@@ -30,31 +31,30 @@ function launchLine(server: { transport: string; command?: string; args: string[
   return [server.command, ...server.args].filter(Boolean).join(" ");
 }
 
-/// Campos do formulário manual. Argumentos separados por espaço; variáveis, uma por linha (CHAVE=valor).
+/// Nomes de variável separados por vírgula ou espaço. Só o nome: o valor é definido no ambiente do usuário.
+function parseNames(text: string): string[] {
+  const names = text.split(/[\s,]+/).filter(Boolean);
+  for (const name of names) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`Nome de variável inválido: "${name}". Use letras, números e _.`);
+  }
+  return names;
+}
+
+/// Campos do formulário manual. Argumentos separados por espaço; variáveis por nome, sem valor.
 interface ManualForm {
   name: string;
   transport: "stdio" | "http";
   command: string;
   args: string;
   url: string;
-  env: string;
+  envVars: string;
 }
 
-const EMPTY_FORM: ManualForm = { name: "", transport: "stdio", command: "", args: "", url: "", env: "" };
-
-/// Lê as linhas CHAVE=valor. Linha sem "=" é erro, para não gravar uma variável pela metade.
-function parseEnv(text: string): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const line of text.split("\n").map((l) => l.trim()).filter(Boolean)) {
-    const at = line.indexOf("=");
-    if (at <= 0) throw new Error(`Linha inválida em variáveis: "${line}". Use CHAVE=valor.`);
-    env[line.slice(0, at).trim()] = line.slice(at + 1).trim();
-  }
-  return env;
-}
+const EMPTY_FORM: ManualForm = { name: "", transport: "stdio", command: "", args: "", url: "", envVars: "" };
 
 /// Servidores MCP: ferramentas extras que o Claude Code e o Codex podem usar. Cada um roda um programa
 /// no seu computador (ou fala com um endereço), por isso a instalação mostra o comando antes de gravar.
+/// Segredos: o app grava só o nome da variável. O valor fica no ambiente do Windows e nunca passa pela tela.
 export function McpSection() {
   const [tab, setTab] = useState<Tab>("installed");
   const [installed, setInstalled] = useState<McpServer[]>([]);
@@ -64,12 +64,13 @@ export function McpSection() {
   const [catalog, setCatalog] = useState<McpCatalogEntry[] | undefined>(undefined);
   const [deleting, setDeleting] = useState<McpServer | undefined>(undefined);
   const [installing, setInstalling] = useState<McpCatalogEntry | undefined>(undefined);
-  const [values, setValues] = useState<Record<string, string>>({});
   const [understood, setUnderstood] = useState(false);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<ManualForm>(EMPTY_FORM);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
+  /** Erro da janela aberta (instalar ou adicionar), para não repetir o da página. */
+  const [dialogError, setDialogError] = useState<string | undefined>(undefined);
 
   async function reloadInstalled() {
     try {
@@ -105,6 +106,18 @@ export function McpSection() {
     }
   }
 
+  async function reconfigure(server: McpServer) {
+    setError(undefined);
+    try {
+      await reconfigureMcpServer(server.name);
+      setStatus(`${server.name} reconfigurado: agora lê ${server.literalEnv.join(", ")} do ambiente, sem valor gravado.`);
+      announceChange();
+      await reloadInstalled();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   async function remove(server: McpServer) {
     setError(undefined);
     try {
@@ -119,36 +132,35 @@ export function McpSection() {
   }
 
   function openInstall(entry: McpCatalogEntry) {
-    setValues({});
     setUnderstood(false);
-    setError(undefined);
+    setDialogError(undefined);
     setInstalling(entry);
   }
 
   async function install(entry: McpCatalogEntry) {
-    setError(undefined);
+    setDialogError(undefined);
     try {
-      await installMcpFromCatalog(entry.id, values, source || undefined);
+      await installMcpFromCatalog(entry.id, source || undefined);
       setInstalling(undefined);
-      setStatus(`${entry.name} instalado nas duas CLIs. Vale na próxima conversa.`);
+      setStatus(`${entry.name} instalado nas duas CLIs. Defina as variáveis no ambiente e reinicie o app.`);
       announceChange();
       await reloadInstalled();
     } catch (e) {
-      setError(String(e));
+      setDialogError(String(e));
     }
   }
 
   function openManual() {
     setForm(EMPTY_FORM);
     setUnderstood(false);
-    setError(undefined);
+    setDialogError(undefined);
     setAdding(true);
   }
 
   async function saveManual() {
-    setError(undefined);
+    setDialogError(undefined);
     try {
-      const env = parseEnv(form.env);
+      const envVars = parseNames(form.envVars);
       const args = form.args.split(/\s+/).filter(Boolean);
       await saveMcpServer({
         name: form.name.trim(),
@@ -156,14 +168,14 @@ export function McpSection() {
         command: form.transport === "stdio" ? form.command.trim() : undefined,
         args: form.transport === "stdio" ? args : [],
         url: form.transport === "http" ? form.url.trim() : undefined,
-        env,
+        envVars,
       });
       setAdding(false);
       setStatus(`${form.name.trim()} adicionado nas duas CLIs. Vale na próxima conversa.`);
       announceChange();
       await reloadInstalled();
     } catch (e) {
-      setError(String(e));
+      setDialogError(String(e));
     }
   }
 
@@ -184,7 +196,6 @@ export function McpSection() {
   }
 
   const installedNames = new Set(installed.map((s) => s.name));
-  const needsValues = installing?.env.some((f) => !(values[f.key] ?? "").trim()) ?? false;
   const manualReady =
     form.name.trim() !== "" &&
     (form.transport === "stdio" ? form.command.trim() !== "" : form.url.trim() !== "") &&
@@ -221,10 +232,25 @@ export function McpSection() {
                   </span>
                 </div>
                 <code className="settings-card__text">{launchLine(s)}</code>
+                {s.envVars.length > 0 && (
+                  <p className="settings-card__meta">Variáveis lidas do ambiente: {s.envVars.join(", ")}</p>
+                )}
+                {s.literalEnv.length > 0 && (
+                  <p role="alert" className="message__error">
+                    Segredo gravado em texto nas configurações: {s.literalEnv.join(", ")}. Defina a variável no ambiente e clique em
+                    Reconfigurar. Desligar e ligar ficam bloqueados até lá.
+                  </p>
+                )}
                 <div className="settings-actions">
-                  <button type="button" className="btn btn--sm" onClick={() => void toggle(s)}>
-                    {s.enabled ? "Desligar" : "Ligar"}
-                  </button>
+                  {s.literalEnv.length > 0 ? (
+                    <button type="button" className="btn btn--primary btn--sm" onClick={() => void reconfigure(s)}>
+                      Reconfigurar
+                    </button>
+                  ) : (
+                    <button type="button" className="btn btn--sm" onClick={() => void toggle(s)}>
+                      {s.enabled ? "Desligar" : "Ligar"}
+                    </button>
+                  )}
                   <button type="button" className="btn btn--danger btn--sm" onClick={() => setDeleting(s)}>
                     Excluir
                   </button>
@@ -279,24 +305,28 @@ export function McpSection() {
           <div className="api-form">
             <p className="settings__hint">Comando que será gravado nas duas CLIs:</p>
             <code className="settings-card__text">{launchLine(installing)}</code>
-            {installing.env.map((field) => (
-              <label key={field.key}>
-                {field.label}
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={values[field.key] ?? ""}
-                  onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
-                />
-              </label>
-            ))}
+            {installing.env.length > 0 && (
+              <>
+                <p className="settings__hint">
+                  O servidor lê estas variáveis do seu ambiente. Defina-as nas variáveis de ambiente do usuário no Windows e
+                  reinicie o app. O LunaHarness não pede nem guarda o valor.
+                </p>
+                <ul>
+                  {installing.env.map((field) => (
+                    <li key={field.key}>
+                      <code>{field.key}</code>: {field.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <label className="settings__check">
               <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
               Entendo que este servidor roda esse comando no meu computador.
             </label>
-            {error && (
+            {dialogError && (
               <p role="alert" className="message__error">
-                {error}
+                {dialogError}
               </p>
             )}
             <div className="api-form__actions">
@@ -306,7 +336,7 @@ export function McpSection() {
               <button
                 type="button"
                 className="btn btn--primary"
-                disabled={!understood || needsValues}
+                disabled={!understood}
                 onClick={() => void install(installing)}
               >
                 Instalar
@@ -355,23 +385,24 @@ export function McpSection() {
                 <input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
               </label>
             )}
-            <label>
-              Variáveis (uma por linha, CHAVE=valor)
-              <textarea
-                aria-label="Variáveis"
-                rows={3}
-                autoComplete="off"
-                value={form.env}
-                onChange={(e) => setForm({ ...form, env: e.target.value })}
-              />
-            </label>
+            {form.transport === "stdio" && (
+              <label>
+                Variáveis lidas do ambiente (só os nomes, separados por vírgula)
+                <input
+                  aria-label="Variáveis do ambiente"
+                  placeholder="TOKEN_X, OUTRA_VAR"
+                  value={form.envVars}
+                  onChange={(e) => setForm({ ...form, envVars: e.target.value })}
+                />
+              </label>
+            )}
             <label className="settings__check">
               <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
               Entendo que este servidor roda esse comando no meu computador.
             </label>
-            {error && (
+            {dialogError && (
               <p role="alert" className="message__error">
-                {error}
+                {dialogError}
               </p>
             )}
             <div className="api-form__actions">

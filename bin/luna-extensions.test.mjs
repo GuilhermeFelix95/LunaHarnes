@@ -8,12 +8,8 @@ import {
   checkPlugin,
   checkSkill,
   extensionFrom,
-  installMcp,
   installPlugin,
   installSkill,
-  invalidValues,
-  mcpCommands,
-  missingEnv,
   sha256,
 } from "./luna-extensions.mjs";
 
@@ -45,36 +41,6 @@ describe("luna skills add", () => {
     expect(readFileSync(join(home, ".claude/skills/x/SKILL.md"), "utf8")).toBe(content);
     expect(existsSync(join(home, ".codex/skills/x/SKILL.md"))).toBe(true);
     expect(() => installSkill({ home, entry: skill, fs: realFs })).toThrow(/já está/);
-  });
-});
-
-describe("luna mcp add", () => {
-  const stdio = { id: "github", transport: "stdio", command: "npx", args: ["-y", "srv"], env: [{ key: "GITHUB_TOKEN", label: "Token" }] };
-  const http = { id: "context7", transport: "http", url: "https://mcp.context7.com/mcp", env: [] };
-
-  it("monta o comando de cada CLI com as variáveis", () => {
-    const commands = mcpCommands(stdio, { GITHUB_TOKEN: "abc" });
-    expect(commands.claude).toEqual(["mcp", "add", "--scope", "user", "-e", "GITHUB_TOKEN=abc", "github", "--", "npx", "-y", "srv"]);
-    expect(commands.codex).toEqual(["mcp", "add", "github", "--env", "GITHUB_TOKEN=abc", "--", "npx", "-y", "srv"]);
-  });
-
-  it("servidor remoto usa a URL nas duas CLIs", () => {
-    const commands = mcpCommands(http, {});
-    expect(commands.claude).toContain("https://mcp.context7.com/mcp");
-    expect(commands.codex).toEqual(["mcp", "add", "context7", "--url", "https://mcp.context7.com/mcp"]);
-  });
-
-  it("aponta variável faltando e valor com caractere perigoso", () => {
-    expect(missingEnv(stdio, {}).map((f) => f.key)).toEqual(["GITHUB_TOKEN"]);
-    expect(invalidValues(stdio, { GITHUB_TOKEN: "a&b" })).toEqual(["GITHUB_TOKEN"]);
-    expect(invalidValues(stdio, { GITHUB_TOKEN: "ghp_abc123" })).toEqual([]);
-  });
-
-  it("uma CLI ausente não impede a outra, e cada resultado é informado", () => {
-    const run = (engine) => (engine === "claude" ? { status: 0 } : { error: { code: "ENOENT" } });
-    const results = installMcp({ entry: http, values: {}, run });
-    expect(results.claude).toBe("ok");
-    expect(results.codex).toMatch(/não está instalado/);
   });
 });
 

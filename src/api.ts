@@ -402,7 +402,10 @@ export interface McpServer {
   command?: string;
   args: string[];
   url?: string;
-  env: Record<string, string>;
+  /** Nomes das variáveis que o servidor lê do ambiente do usuário. Os valores nunca chegam ao app. */
+  envVars: string[];
+  /** Variáveis com valor escrito nos arquivos (formato antigo). Só o nome; o botão Reconfigurar troca. */
+  literalEnv: string[];
   /** "claude" e/ou "codex"; vazio = desligado. */
   engines: string[];
   enabled: boolean;
@@ -438,8 +441,14 @@ export function loadMcpCatalog(source?: string): Promise<{ servers: McpCatalogEn
   return invoke<{ servers: McpCatalogEntry[] }>("load_mcp_catalog", { source: source ?? null });
 }
 
-export function installMcpFromCatalog(id: string, values: Record<string, string>, source?: string): Promise<void> {
-  return invoke<void>("install_mcp_from_catalog", { id, values, source: source ?? null });
+/// Instala do catálogo. Não recebe valores: a variável é definida no ambiente do usuário.
+export function installMcpFromCatalog(id: string, source?: string): Promise<void> {
+  return invoke<void>("install_mcp_from_catalog", { id, source: source ?? null });
+}
+
+/// Troca o valor escrito no arquivo por referência ao nome da variável (ver mcp.rs).
+export function reconfigureMcpServer(name: string): Promise<void> {
+  return invoke<void>("reconfigure_mcp_server", { name });
 }
 
 export function listMcpSources(): Promise<string[]> {
@@ -454,7 +463,7 @@ export function removeMcpSource(url: string): Promise<string[]> {
   return invoke<string[]>("remove_mcp_source", { url });
 }
 
-/// Grava um servidor escrito à mão, nas duas CLIs.
-export function saveMcpServer(server: Omit<McpServer, "engines" | "enabled">): Promise<void> {
-  return invoke<void>("save_mcp_server", { server: { ...server, engines: [], enabled: true } });
+/// Grava um servidor escrito à mão, nas duas CLIs. Só os nomes das variáveis entram.
+export function saveMcpServer(server: Pick<McpServer, "name" | "transport" | "command" | "args" | "url" | "envVars">): Promise<void> {
+  return invoke<void>("save_mcp_server", { server: { ...server, literalEnv: [], engines: [], enabled: true } });
 }

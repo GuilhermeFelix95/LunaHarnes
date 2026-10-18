@@ -1,22 +1,19 @@
 // Comandos `luna skills add <id>`, `luna mcp add <id>` e `luna plugin add <id>`, com as regras separadas do
 // terminal para dar para testar. Usam os mesmos catálogos do app (src-tauri/marketplace).
-// Skill grava as pastas nas duas CLIs. MCP usa `claude mcp add` e `codex mcp add`, os comandos oficiais de cada CLI.
-// Plugin grava na pasta de dados do app, do mesmo jeito que a instalação pela tela.
+// Skill grava as pastas nas duas CLIs. MCP não é gravado aqui: o `luna mcp add` chama o app (lunaharness.exe mcp add),
+// que grava só o nome das variáveis, nunca o valor. Plugin grava na pasta de dados do app, como a instalação pela tela.
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 export const EXTENSIONS_USAGE = [
   "Uso:",
   "  luna skills add <id>   instala uma skill do marketplace nas duas CLIs",
-  "  luna mcp add <id>      instala um servidor MCP com `claude mcp add` e `codex mcp add`",
+  "  luna mcp add <id>      instala um servidor MCP pelo app (só grava o nome das variáveis de ambiente)",
   "  luna plugin add <id>   instala um plugin do marketplace na pasta de dados do app",
 ].join("\n");
 
 const APP_ID = "dev.lunaharness.app";
 const SKILL_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const ENV_KEY = /^[A-Z_][A-Z0-9_]*$/;
-// Valores digitados pelo usuário: só caracteres que o shell não interpreta. Assim não precisa de aspas.
-const SAFE_VALUE = /^[A-Za-z0-9_\-.:\/+=@]+$/;
 const SAFE_PATH = /^[A-Za-z0-9_\-./]+$/;
 
 const KINDS = { skills: "skill", mcp: "mcp", plugin: "plugin" };
@@ -122,46 +119,3 @@ export function installPlugin({ appDir, entry, fs }) {
   return target;
 }
 
-/// Campos de ambiente pedidos pelo catálogo que ainda não têm valor.
-export function missingEnv(entry, values) {
-  return entry.env.filter((field) => !values[field.key]);
-}
-
-/// Chaves com nome ou valor que não podem ir para o comando (ou que o catálogo não pediu).
-export function invalidValues(entry, values) {
-  return Object.entries(values)
-    .filter(([key, value]) => !ENV_KEY.test(key) || !SAFE_VALUE.test(value) || !entry.env.some((f) => f.key === key))
-    .map(([key]) => key);
-}
-
-/// Argumentos do `claude mcp add` e do `codex mcp add` para este servidor.
-export function mcpCommands(entry, values) {
-  const envFor = (flag) => Object.entries(values).flatMap(([key, value]) => [flag, `${key}=${value}`]);
-  if (entry.transport === "http") {
-    return {
-      claude: ["mcp", "add", "--transport", "http", "--scope", "user", entry.id, entry.url],
-      codex: ["mcp", "add", entry.id, "--url", entry.url],
-    };
-  }
-  return {
-    claude: ["mcp", "add", "--scope", "user", ...envFor("-e"), entry.id, "--", entry.command, ...entry.args],
-    codex: ["mcp", "add", entry.id, ...envFor("--env"), "--", entry.command, ...entry.args],
-  };
-}
-
-/// Roda o comando de cada CLI. `run(engine, args)` devolve { status, error }. Uma CLI ausente não impede a outra.
-export function installMcp({ entry, values, run }) {
-  const commands = mcpCommands(entry, values);
-  const results = {};
-  for (const engine of ["claude", "codex"]) {
-    const result = run(engine, commands[engine]);
-    if (result.error?.code === "ENOENT") {
-      results[engine] = `${engine} não está instalado; o servidor não foi adicionado nesta CLI`;
-    } else if (result.status !== 0) {
-      results[engine] = `${engine} recusou o comando (código ${result.status})`;
-    } else {
-      results[engine] = "ok";
-    }
-  }
-  return results;
-}
