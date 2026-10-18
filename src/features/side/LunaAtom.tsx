@@ -73,17 +73,61 @@ export function LunaAtom({ working }: LunaAtomProps) {
   return (
     <figure className={className}>
       <svg viewBox="0 0 1024 1024" role="img" aria-label={working ? "Mascote da Luna trabalhando" : "Mascote da Luna dormindo"}>
-        {orbits.map((angle, i) => (
+        <defs>
+          {/* Luz vinda do canto superior esquerdo: o corpo ganha volume com degradê, aro escuro e brilho. */}
+          <radialGradient id="luna-atom-body" cx="0.36" cy="0.3" r="0.85">
+            <stop offset="0" stopColor="#e6eaff" />
+            <stop offset="0.38" stopColor="#aab6f5" />
+            <stop offset="0.78" stopColor="#6f7ed6" />
+            <stop offset="1" stopColor="#4a56ad" />
+          </radialGradient>
+          <radialGradient id="luna-atom-rim" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0.72" stopColor="#1d2466" stopOpacity="0" />
+            <stop offset="1" stopColor="#1d2466" stopOpacity="0.38" />
+          </radialGradient>
+          <radialGradient id="luna-atom-ground" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#000" stopOpacity="0.34" />
+            <stop offset="1" stopColor="#000" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="luna-atom-e0" cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#fff6dd" />
+            <stop offset="0.5" stopColor="#ffd27a" />
+            <stop offset="1" stopColor="#d9963c" />
+          </radialGradient>
+          <radialGradient id="luna-atom-e1" cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#e6fff6" />
+            <stop offset="0.5" stopColor="#7fd1b9" />
+            <stop offset="1" stopColor="#3f9c84" />
+          </radialGradient>
+          <radialGradient id="luna-atom-e2" cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#ffe9f3" />
+            <stop offset="0.5" stopColor="#ff9ec7" />
+            <stop offset="1" stopColor="#c95e90" />
+          </radialGradient>
+        </defs>
+        {/* Sombra no chão: o Átomo flutua, então a sombra fica embaixo, desfocada. */}
+        <ellipse className="luna-atom__ground" cx="512" cy="860" rx="210" ry="44" />
+        {orbits.map((angle) => (
           <g key={angle} transform={`rotate(${angle} 512 512)`}>
             <ellipse className="luna-atom__orbit" cx="512" cy="512" rx="330" ry="110" />
-            <circle className={`luna-atom__electron luna-atom__electron--${i}`} r="34" cx="842" cy="512">
-              <animateMotion dur={orbitDur} repeatCount="indefinite" path={loop} begin={`-${electronStart[i]}s`} />
-            </circle>
           </g>
         ))}
         <path className="luna-atom__arm luna-atom__arm--left" d="M330 560 L262 470" />
         <path className="luna-atom__arm luna-atom__arm--right" d="M694 560 L762 470" />
         <circle className="luna-atom__body" cx="512" cy="512" r="200" />
+        <circle className="luna-atom__rim" cx="512" cy="512" r="200" />
+        <ellipse className="luna-atom__gloss" cx="430" cy="380" rx="62" ry="32" transform="rotate(-28 430 380)" />
+        {/* Metade da frente de cada órbita passa por cima do corpo: dá a sensação de volta em volta do núcleo. */}
+        {orbits.map((angle) => (
+          <path key={angle} className="luna-atom__orbit-front" d="M182 512 A330 110 0 0 0 842 512" transform={`rotate(${angle} 512 512)`} />
+        ))}
+        {orbits.map((angle, i) => (
+          <g key={angle} transform={`rotate(${angle} 512 512)`}>
+            <circle className={`luna-atom__electron luna-atom__electron--${i}`} r="34" cx="842" cy="512">
+              <animateMotion dur={orbitDur} repeatCount="indefinite" path={loop} begin={`-${electronStart[i]}s`} />
+            </circle>
+          </g>
+        ))}
         <ellipse className="luna-atom__eye luna-atom__eye--left" cx="440" cy="480" rx="30" ry="40" />
         <ellipse className="luna-atom__eye luna-atom__eye--right" cx="584" cy="480" rx="30" ry="40" />
         <circle className="luna-atom__shine luna-atom__shine--left" cx="449" cy="466" r="10" />

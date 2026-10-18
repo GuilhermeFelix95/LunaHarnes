@@ -1384,7 +1384,31 @@ textarea:focus-visible {
 }
 
 .luna-atom__body {
-  fill: var(--accent, #8fa1f5);
+  fill: url(#luna-atom-body);
+}
+
+.luna-atom__rim {
+  fill: url(#luna-atom-rim);
+  pointer-events: none;
+}
+
+.luna-atom__gloss {
+  fill: #fff;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.luna-atom__ground {
+  fill: url(#luna-atom-ground);
+  pointer-events: none;
+}
+
+.luna-atom__orbit-front {
+  fill: none;
+  stroke: var(--fg-subtle, #a7b4ff);
+  stroke-width: 14;
+  stroke-linecap: round;
+  opacity: 0.9;
 }
 
 .luna-atom__orbit {
@@ -1394,9 +1418,9 @@ textarea:focus-visible {
   opacity: 0.6;
 }
 
-.luna-atom__electron--0 { fill: #ffd27a; }
-.luna-atom__electron--1 { fill: #7fd1b9; }
-.luna-atom__electron--2 { fill: #ff9ec7; }
+.luna-atom__electron--0 { fill: url(#luna-atom-e0); }
+.luna-atom__electron--1 { fill: url(#luna-atom-e1); }
+.luna-atom__electron--2 { fill: url(#luna-atom-e2); }
 
 .luna-atom__arm {
   fill: none;
@@ -1856,9 +1880,10 @@ textarea:focus-visible {
   margin-top: 8px;
 }
 
+/* Botões sem classe de variante. Os .btn (primário, fantasma) mantêm a própria cor: esta regra não os pode sobrescrever. */
 .profile__actions button,
-.api-form__actions button,
-.api-form button[type="submit"] {
+.api-form__actions button:not(.btn),
+.api-form button[type="submit"]:not(.btn) {
   padding: 6px 12px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
@@ -1896,12 +1921,13 @@ textarea:focus-visible {
   color: var(--muted);
 }
 
+/* Campos usam o fundo da conversa, não o da janela, para se distinguir dela em qualquer tema. */
 .api-form input,
 .api-form select {
   padding: 8px 10px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  background: var(--bg);
   color: var(--fg);
   font-size: 14px;
 }
