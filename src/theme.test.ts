@@ -63,8 +63,8 @@ describe("theme", () => {
     expect(document.documentElement.style.getPropertyValue("--bg")).toBe("");
   });
 
-  it("sem escolha salva, usa o Luna, tema assinatura", () => {
-    expect(loadTheme()).toBe("luna");
+  it("sem escolha salva, usa o Escuro, o padrão do Claude desktop", () => {
+    expect(loadTheme()).toBe("dark");
   });
 
   it("salva e carrega o tema escolhido", () => {
@@ -75,7 +75,7 @@ describe("theme", () => {
 
   it("valor salvo desconhecido volta para o padrão", () => {
     localStorage.setItem(THEME_KEY, "<script>");
-    expect(loadTheme()).toBe("luna");
+    expect(loadTheme()).toBe("dark");
   });
 
   it("aplica o tema no atributo data-theme e avisa quem desenha cores próprias", () => {

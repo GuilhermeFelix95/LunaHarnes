@@ -70,8 +70,8 @@ function isTheme(value: unknown): value is ThemeId {
   return THEMES.some((t) => t.id === value);
 }
 
-/** Padrão de quem ainda não escolheu: o Luna, tema assinatura. */
-export const DEFAULT_THEME: ThemeId = "luna";
+/** Padrão de quem ainda não escolheu: o Escuro, neutro, no padrão do Claude desktop. O Luna continua disponível. */
+export const DEFAULT_THEME: ThemeId = "dark";
 
 export function loadTheme(): ThemeId {
   try {
