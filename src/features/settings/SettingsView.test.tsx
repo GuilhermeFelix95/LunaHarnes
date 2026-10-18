@@ -33,13 +33,25 @@ describe("SettingsView", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("lista os temas e marca o atual", () => {
-    localStorage.setItem(THEME_KEY, "duna");
+  it("lista os seis temas, o Personalizado e marca o atual", () => {
+    localStorage.setItem(THEME_KEY, "papel");
     render(<SettingsView onClose={() => {}} />);
 
-    expect(screen.getAllByRole("radio")).toHaveLength(8);
+    expect(screen.getAllByRole("radio")).toHaveLength(7);
     expect(screen.getByRole("radio", { name: /Personalizado/ })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: /Duna/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: /Papel/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("o editor do Personalizado troca a fonte e o formato na hora", () => {
+    localStorage.setItem(THEME_KEY, "custom");
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.change(screen.getByLabelText("Fonte"), { target: { value: "consolas" } });
+    fireEvent.change(screen.getByLabelText("Componentes"), { target: { value: "square" } });
+
+    expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Consolas");
+    expect(document.documentElement.style.getPropertyValue("--radius-lg")).toBe("4px");
+    expect(JSON.parse(localStorage.getItem("luna.customTheme") ?? "{}").font).toBe("consolas");
   });
 
   it("escolher um tema aplica na hora e salva", () => {

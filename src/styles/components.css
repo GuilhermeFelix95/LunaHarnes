@@ -139,12 +139,19 @@
 /* Editor de cores do tema Personalizado */
 .custom-palette {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.custom-palette fieldset {
+  display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
-  margin-top: 12px;
+  margin: 0;
   padding: 12px 16px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .custom-palette legend {
@@ -157,6 +164,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-size: 13px;
+}
+
+.custom-palette__select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--fg);
   font-size: 13px;
 }
 
@@ -539,6 +555,7 @@
   border: none;
   border-radius: var(--radius-lg);
   background: var(--user-bubble);
+  color: var(--user-fg);
   white-space: pre-wrap;
 }
 

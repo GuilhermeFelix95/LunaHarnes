@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  applyCustomPalette,
+  applyPalette,
   applyTheme,
   CUSTOM_KEY,
   DEFAULT_PALETTE,
@@ -10,7 +10,10 @@ import {
   saveTheme,
   THEME_KEY,
   THEMES,
+  type ThemePalette,
 } from "./theme";
+
+const CUSTOM: ThemePalette = { ...DEFAULT_PALETTE, accent: "#40a0ff" };
 
 describe("theme", () => {
   beforeEach(() => {
@@ -19,15 +22,56 @@ describe("theme", () => {
     document.documentElement.removeAttribute("style");
   });
 
-  it("tem sistema, claro, escuro, os quatro temas exclusivos e o personalizado", () => {
-    expect(THEMES.map((t) => t.id)).toEqual(["system", "light", "dark", "luna", "aurora", "duna", "grafite", "custom"]);
+  it("tem seis temas novos e o personalizado, e nenhum dos antigos", () => {
+    expect(THEMES.map((t) => t.id)).toEqual(["noite", "musgo", "ametista", "papel", "oceano", "grafite", "custom"]);
   });
 
-  it("o destaque do claro e do escuro não é laranja", () => {
-    const light = THEMES.find((t) => t.id === "light");
-    const dark = THEMES.find((t) => t.id === "dark");
-    expect(light?.preview.accent).toBe("#2a6f97");
-    expect(dark?.preview.accent).toBe("#8cc4e8");
+  it("nenhum tema usa laranja como destaque", () => {
+    for (const t of THEMES) expect(t.palette.accent).not.toMatch(/^#(d9|b2|ae|f2)/i);
+  });
+
+  it("sem escolha salva, usa o Noite", () => {
+    expect(loadTheme()).toBe("noite");
+  });
+
+  it("valor salvo desconhecido, como o Luna antigo, volta para o padrão", () => {
+    localStorage.setItem(THEME_KEY, "luna");
+    expect(loadTheme()).toBe("noite");
+    localStorage.setItem(THEME_KEY, "<script>");
+    expect(loadTheme()).toBe("noite");
+  });
+
+  it("salva e carrega o tema escolhido", () => {
+    saveTheme("papel");
+    expect(localStorage.getItem(THEME_KEY)).toBe("papel");
+    expect(loadTheme()).toBe("papel");
+  });
+
+  it("aplica o tema no data-theme, nas variáveis e avisa quem desenha cores próprias", () => {
+    const listener = vi.fn();
+    window.addEventListener("luna:theme", listener);
+
+    applyTheme("papel");
+    const style = document.documentElement.style;
+    expect(document.documentElement.getAttribute("data-theme")).toBe("papel");
+    expect(style.getPropertyValue("--bg")).toBe("#fbf8f1");
+    expect(style.getPropertyValue("--font-sans")).toContain("Georgia");
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener("luna:theme", listener);
+  });
+
+  it("o formato escolhido vira os raios dos componentes", () => {
+    applyPalette({ ...DEFAULT_PALETTE, shape: "square" });
+    expect(document.documentElement.style.getPropertyValue("--radius-lg")).toBe("4px");
+
+    applyPalette({ ...DEFAULT_PALETTE, shape: "bubbly" });
+    expect(document.documentElement.style.getPropertyValue("--radius-lg")).toBe("22px");
+  });
+
+  it("a cor do texto do balão e a cor do texto valem para o tema", () => {
+    applyPalette({ ...DEFAULT_PALETTE, bubbleText: "#ff0000", text: "#00ff00" });
+    expect(document.documentElement.style.getPropertyValue("--user-fg")).toBe("#ff0000");
+    expect(document.documentElement.style.getPropertyValue("--fg")).toBe("#00ff00");
   });
 
   it("personalizado sem cores salvas usa a paleta padrão", () => {
@@ -39,55 +83,27 @@ describe("theme", () => {
     expect(loadCustomPalette()).toEqual(DEFAULT_PALETTE);
   });
 
-  it("aplica as quatro cores do personalizado como variáveis no html", () => {
-    saveCustomPalette({ sidebar: "#101010", chat: "#202020", bubble: "#303030", accent: "#40a0ff" });
-    applyTheme("custom");
-
-    const style = document.documentElement.style;
-    expect(document.documentElement.getAttribute("data-theme")).toBe("custom");
-    expect(style.getPropertyValue("--bg-sidebar")).toBe("#101010");
-    expect(style.getPropertyValue("--bg")).toBe("#202020");
-    expect(style.getPropertyValue("--user-bubble")).toBe("#303030");
-    expect(style.getPropertyValue("--accent")).toBe("#40a0ff");
+  it("paleta antiga, só com as quatro cores, ganha texto e fonte padrão", () => {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify({ sidebar: "#101010", chat: "#202020", bubble: "#303030", accent: "#40a0ff" }));
+    const loaded = loadCustomPalette();
+    expect(loaded.chat).toBe("#202020");
+    expect(loaded.font).toBe("inter");
+    expect(loaded.shape).toBe("soft");
+    expect(loaded.text).toMatch(/^#/);
   });
 
-  it("alterar uma cor do personalizado troca na hora, sem reabrir o tema", () => {
+  it("alterar uma cor do personalizado troca na hora", () => {
+    saveCustomPalette(CUSTOM);
     applyTheme("custom");
-    applyCustomPalette({ ...DEFAULT_PALETTE, accent: "#ff00aa" });
+    expect(document.documentElement.style.getPropertyValue("--accent")).toBe("#40a0ff");
+
+    applyPalette({ ...CUSTOM, accent: "#ff00aa" });
     expect(document.documentElement.style.getPropertyValue("--accent")).toBe("#ff00aa");
   });
 
-  it("escolher outro tema tira as cores do personalizado", () => {
-    applyTheme("custom");
-    applyTheme("luna");
-    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("");
-  });
-
-  it("sem escolha salva, usa o Escuro, o padrão do Claude desktop", () => {
-    expect(loadTheme()).toBe("dark");
-  });
-
-  it("salva e carrega o tema escolhido", () => {
-    saveTheme("aurora");
-    expect(localStorage.getItem(THEME_KEY)).toBe("aurora");
-    expect(loadTheme()).toBe("aurora");
-  });
-
-  it("valor salvo desconhecido volta para o padrão", () => {
-    localStorage.setItem(THEME_KEY, "<script>");
-    expect(loadTheme()).toBe("dark");
-  });
-
-  it("aplica o tema no atributo data-theme e avisa quem desenha cores próprias", () => {
-    const listener = vi.fn();
-    window.addEventListener("luna:theme", listener);
-
-    applyTheme("luna");
-    expect(document.documentElement.getAttribute("data-theme")).toBe("luna");
-
-    applyTheme("system");
-    expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
-    expect(listener).toHaveBeenCalledTimes(2);
-    window.removeEventListener("luna:theme", listener);
+  it("trocar de tema troca todas as cores de uma vez", () => {
+    applyTheme("musgo");
+    applyTheme("grafite");
+    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#1b1b1d");
   });
 });
