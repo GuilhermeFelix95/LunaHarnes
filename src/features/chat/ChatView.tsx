@@ -396,7 +396,7 @@ ${cliPrompt}`;
     turnAgent.current = agentKey(provider, profileId);
     turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
     const history = messagesRef.current;
-    const userMsg: ChatMessage = { role: "user", text: shown };
+    const userMsg: ChatMessage = { role: "user", text: shown, at: Date.now() };
     commit([...history, userMsg]);
     // Quem envia quer ver a resposta: volta a seguir o fim.
     scrollToBottom();

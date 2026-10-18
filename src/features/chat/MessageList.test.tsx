@@ -110,6 +110,35 @@ describe("MessageList com perfil de API", () => {
   });
 });
 
+describe("MessageList: ações da mensagem", () => {
+  it("mostra a hora do envio e a da resposta, com copiar", () => {
+    const at = new Date(2026, 9, 18, 14, 32).getTime();
+    render(
+      <MessageList
+        messages={[
+          { role: "user", text: "opa", at },
+          { role: "assistant", text: "tudo bem", provider: "claude", at: at + 60_000 },
+        ]}
+        fallbackProvider="claude"
+        running={false}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: "Copiar mensagem" })).toHaveLength(2);
+    expect(screen.getByText("14:32")).toBeTruthy();
+    expect(screen.getByText("14:33")).toBeTruthy();
+  });
+
+  it("copiar põe o texto da resposta na área de transferência", () => {
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<MessageList messages={[{ role: "assistant", text: "Olá", provider: "claude" }]} fallbackProvider="claude" running={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copiar mensagem" }));
+    expect(writeText).toHaveBeenCalledWith("Olá");
+  });
+});
+
 describe("MessageList: voltar até aqui", () => {
   it("oferece voltar só em pedidos com checkpoint e devolve a mensagem", () => {
     const onRewind = vi.fn();

@@ -120,6 +120,8 @@ export interface ChatMessage {
   agent?: string;
   /** Estado dos arquivos antes deste turno (só em mensagens do usuário, em repositório git). */
   checkpoint?: string;
+  /** Hora do envio (usuário) ou da primeira parte da resposta, em ms. Ausente em mensagens antigas. */
+  at?: number;
 }
 
 /// Sessão nativa de um agente e quantas mensagens do histórico ele já viu (ver src/chat/handoff.ts).

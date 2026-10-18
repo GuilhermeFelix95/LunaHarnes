@@ -1599,18 +1599,52 @@ textarea:focus-visible {
   cursor: not-allowed;
 }
 
-.message__rewind {
-  margin-top: 4px;
-  font-size: 12px;
+.message__user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 100%;
+}
+
+/* Ações da mensagem: ícones discretos, com a hora ao lado. Aparecem abaixo do balão ou da resposta. */
+.message__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
   color: var(--muted);
-  background: none;
+}
+
+.message__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
   border: none;
-  padding: 2px 4px;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
   cursor: pointer;
 }
 
-.message__rewind:hover:not(:disabled) {
-  color: var(--accent);
+.message__action:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.message__action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.message__time {
+  margin-left: 6px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .composer__files,

@@ -263,8 +263,8 @@ describe("ChatView: continuidade e envio", () => {
     expect(saved.title).toBe("pergunta");
     expect(saved.cwd).toBe("C:\\projeto");
     expect(saved.messages).toEqual([
-      { role: "user", text: "pergunta" },
-      { role: "assistant", text: "resposta final", provider: "claude" },
+      { role: "user", text: "pergunta", at: expect.any(Number) },
+      { role: "assistant", text: "resposta final", provider: "claude", at: expect.any(Number) },
     ]);
     expect(saved.sessions).toEqual({ claude: { id: "sess-9", seen: 2 } });
   });

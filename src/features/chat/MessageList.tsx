@@ -1,4 +1,5 @@
-import { AlertCircle, Bot, FilePen, FileText, Search, Sparkles, SquareTerminal, Wrench, type LucideIcon } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, Bot, Check, Copy, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
@@ -85,6 +86,47 @@ function toolSummary(tools: Tool[]): string {
   return `${tools.length} ações · ${names}`;
 }
 
+/// Hora curta no formato do usuário, ex.: 14:32.
+function formatTime(at: number): string {
+  return new Date(at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+/// Barra de ações sob a mensagem: voltar (quando há checkpoint), copiar e a hora.
+function MessageActions({ text, at, onRewind, disabled }: { text: string; at?: number; onRewind?: () => void; disabled?: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    void navigator.clipboard?.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <div className="message__actions">
+      {onRewind && (
+        <button type="button" className="message__action" aria-label="Voltar até aqui" title="Voltar até aqui" disabled={disabled} onClick={onRewind}>
+          <Undo2 size={14} aria-hidden="true" />
+        </button>
+      )}
+      <button type="button" className="message__action" aria-label="Copiar mensagem" title="Copiar" onClick={copy}>
+        {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+      </button>
+      {at !== undefined && (
+        <time className="message__time" dateTime={new Date(at).toISOString()}>
+          {formatTime(at)}
+        </time>
+      )}
+    </div>
+  );
+}
+
+/// Ações da resposta: copia o texto dela inteiro e mostra a hora da última parte de texto.
+function ReplyActions({ parts }: { parts: Part[] }) {
+  const texts = parts.flatMap((p) => (p.kind === "text" && p.message.text ? [p.message] : []));
+  if (texts.length === 0) return null;
+  return <MessageActions text={texts.map((m) => m.text).join("\n\n")} at={texts.at(-1)?.at} />;
+}
+
 /// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
 /// ferramentas recolhidas e o texto em destaque.
 export function MessageList({ messages, fallbackProvider, running, onRewind, pending }: MessageListProps) {
@@ -97,19 +139,15 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
       {items.map((item, i) => (
         <li key={i} className={`message message--${item.kind === "user" ? "user" : "assistant"}`}>
           {item.kind === "user" ? (
-            <>
+            <div className="message__user">
               <div className="message__bubble">{item.message.text}</div>
-              {onRewind && item.message.checkpoint && (
-                <button
-                  type="button"
-                  className="message__rewind"
-                  disabled={running}
-                  onClick={() => onRewind(item.message)}
-                >
-                  Voltar até aqui
-                </button>
-              )}
-            </>
+              <MessageActions
+                text={item.message.text}
+                at={item.message.at}
+                disabled={running}
+                onRewind={onRewind && item.message.checkpoint ? () => onRewind(item.message) : undefined}
+              />
+            </div>
           ) : (
             <div className="message__reply">
               <span className="message__author">
@@ -157,6 +195,7 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                   </div>
                 );
               })}
+              <ReplyActions parts={item.parts} />
             </div>
           )}
         </li>

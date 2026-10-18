@@ -10,7 +10,7 @@ describe("applyEvent", () => {
 
     expect(afterSecond).toEqual([
       { role: "user", text: "oi" },
-      { role: "assistant", text: "Olá, tudo bem?" },
+      { role: "assistant", text: "Olá, tudo bem?", at: expect.any(Number) },
     ]);
   });
 
@@ -30,7 +30,7 @@ describe("applyEvent", () => {
       message: "codex indisponível",
     });
 
-    expect(result[1]).toEqual({ role: "assistant", text: "", error: "codex indisponível" });
+    expect(result[1]).toEqual({ role: "assistant", text: "", error: "codex indisponível", at: expect.any(Number) });
   });
 
   it("ferramenta vira linha própria e o texto depois dela começa uma nova resposta", () => {
@@ -40,8 +40,8 @@ describe("applyEvent", () => {
 
     expect(messages).toEqual([
       { role: "user", text: "liste" },
-      { role: "assistant", text: "", tool: { name: "Bash", detail: "dir" } },
-      { role: "assistant", text: "Pronto." },
+      { role: "assistant", text: "", tool: { name: "Bash", detail: "dir" }, at: expect.any(Number) },
+      { role: "assistant", text: "Pronto.", at: expect.any(Number) },
     ]);
   });
 
@@ -56,6 +56,6 @@ describe("applyEvent com agente de perfil", () => {
   it("marca a resposta com o provedor e o nome do perfil", () => {
     const result = applyEvent([{ role: "user", text: "oi" }], { kind: "textDelta", text: "Olá" }, "claude", "DeepSeek · via Claude Code");
 
-    expect(result[1]).toEqual({ role: "assistant", text: "Olá", provider: "claude", agent: "DeepSeek · via Claude Code" });
+    expect(result[1]).toEqual({ role: "assistant", text: "Olá", provider: "claude", agent: "DeepSeek · via Claude Code", at: expect.any(Number) });
   });
 });

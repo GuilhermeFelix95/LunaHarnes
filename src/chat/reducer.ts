@@ -22,19 +22,19 @@ export function applyEvent(
       if (reply) {
         return [...messages.slice(0, -1), { ...reply, text: reply.text + event.text }];
       }
-      return [...messages, { role: "assistant", text: event.text, ...by }];
+      return [...messages, { role: "assistant", text: event.text, at: Date.now(), ...by }];
     }
     case "toolUse":
       return [
         ...messages,
-        { role: "assistant", text: "", tool: { name: event.name, detail: event.detail }, ...by },
+        { role: "assistant", text: "", tool: { name: event.name, detail: event.detail }, at: Date.now(), ...by },
       ];
     case "error": {
       const reply = lastTextReply(messages);
       if (reply) {
         return [...messages.slice(0, -1), { ...reply, error: event.message }];
       }
-      return [...messages, { role: "assistant", text: "", error: event.message, ...by }];
+      return [...messages, { role: "assistant", text: "", error: event.message, at: Date.now(), ...by }];
     }
     case "sessionStarted":
     case "done":
