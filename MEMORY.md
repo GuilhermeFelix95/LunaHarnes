@@ -110,3 +110,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Mascote da Luna com cara de gato (orelhas, bigodes, rabo), dormindo com boca aberta, piscando, pulando de alegria e fazendo caretas ociosas.
 2026-10-18 | Areia removido; Luna noturno (padrão) e Luna claro; liquid glass opcional em Aparência; cartões e campos de texto com formato próprio por tema.
 2026-10-18 | Mascote Átomo substitui o gato no painel, na marca da barra lateral, no logo do chat e no ícone do app; lista de progresso fecha quando o plano termina.
+2026-10-18 | Cache: evento cacheUsage nos provedores (Claude pelo resultado, Codex pelo turn.completed) e diagnóstico de acerto baixo em src/chat/promptCache.ts.

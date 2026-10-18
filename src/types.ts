@@ -112,6 +112,8 @@ export type ProviderEvent =
   | { kind: "taskUpdated"; id: string; status: string | null; subject: string | null }
   | { kind: "rateLimit"; window: "fiveHour" | "sevenDay"; utilization: number; resetsAt: number }
   | { kind: "context"; tokens: number; windowSize: number | null }
+  /** Tokens de entrada do turno: novos, lidos do cache e gravados. null = o provedor não informou. */
+  | { kind: "cacheUsage"; fresh: number | null; read: number | null; write: number | null }
   | { kind: "cost"; usd: number }
   | { kind: "error"; message: string }
   | { kind: "done"; ok: boolean };

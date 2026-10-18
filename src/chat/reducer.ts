@@ -40,6 +40,7 @@ export function applyEvent(
     case "done":
     case "rateLimit":
     case "context":
+    case "cacheUsage":
     case "cost":
     case "todos":
     case "taskCreated":

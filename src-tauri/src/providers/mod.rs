@@ -112,6 +112,9 @@ pub enum ProviderEvent {
     RateLimit { window: LimitWindow, utilization: f64, resets_at: i64 },
     /// Tokens que ocupam a janela de contexto no último turno, e o tamanho dessa janela.
     Context { tokens: u64, window_size: Option<u64> },
+    /// Tokens de entrada do turno, separados em novos, lidos do cache e gravados no cache.
+    /// `None` quando o provedor não informa o campo: é diferente de zero.
+    CacheUsage { fresh: Option<u64>, read: Option<u64>, write: Option<u64> },
     /// Custo do turno em dólares, quando a CLI informa (uso com API). Com assinatura, a CLI não informa.
     Cost { usd: f64 },
     Error { message: String },

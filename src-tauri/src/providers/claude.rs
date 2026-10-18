@@ -143,6 +143,7 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 events.push(ProviderEvent::Error { message });
             }
             events.extend(context_event(&value));
+            events.extend(cache_usage_event(&value));
             // Com API, a CLI informa o custo do turno. Com assinatura, o campo não vem.
             if let Some(usd) = value.get("total_cost_usd").and_then(Value::as_f64) {
                 events.push(ProviderEvent::Cost { usd });
@@ -190,6 +191,17 @@ fn context_event(value: &Value) -> Option<ProviderEvent> {
         .sum();
 
     Some(ProviderEvent::Context { tokens, window_size })
+}
+
+/// Tokens de entrada do turno, do `usage` do resultado: novos, lidos do cache e gravados no cache.
+fn cache_usage_event(value: &Value) -> Option<ProviderEvent> {
+    let usage = value.get("usage").filter(|u| !u.is_null())?;
+    let field = |key: &str| usage.get(key).and_then(Value::as_u64);
+    Some(ProviderEvent::CacheUsage {
+        fresh: field("input_tokens"),
+        read: field("cache_read_input_tokens"),
+        write: field("cache_creation_input_tokens"),
+    })
 }
 
 /// Linha de ferramenta e, quando a ferramenta mexe no checklist, o evento de tarefa correspondente.
@@ -253,6 +265,26 @@ fn tool_detail(input: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A entrada do turno é separada em novos, lidos e gravados no cache.
+    #[test]
+    fn cache_usage_splits_the_turn_input() {
+        let value = json!({ "usage": { "input_tokens": 12, "cache_read_input_tokens": 900, "cache_creation_input_tokens": 40 } });
+        assert_eq!(
+            cache_usage_event(&value),
+            Some(ProviderEvent::CacheUsage { fresh: Some(12), read: Some(900), write: Some(40) })
+        );
+    }
+
+    /// Campo que a CLI não manda fica sem valor, e não vira zero.
+    #[test]
+    fn cache_usage_missing_fields_stay_none() {
+        let value = json!({ "usage": { "input_tokens": 5 } });
+        assert_eq!(
+            cache_usage_event(&value),
+            Some(ProviderEvent::CacheUsage { fresh: Some(5), read: None, write: None })
+        );
+    }
     use crate::providers::{ProviderKind, LUNA_IDENTITY};
 
     /// A identidade vai junto de cada pedido, acrescentada ao prompt padrão (nunca substitui).

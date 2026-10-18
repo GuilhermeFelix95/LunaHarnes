@@ -137,7 +137,18 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 _ => vec![],
             }
         }
-        Some("turn.completed") => vec![ProviderEvent::Done { ok: true }],
+        Some("turn.completed") => {
+            // O Codex informa a entrada total e quantos tokens vieram do cache. Não informa gravação no cache.
+            let usage = &value["usage"];
+            let mut events = Vec::new();
+            if let Some(input) = usage["input_tokens"].as_u64() {
+                let read = usage["cached_input_tokens"].as_u64();
+                let fresh = input.saturating_sub(read.unwrap_or(0));
+                events.push(ProviderEvent::CacheUsage { fresh: Some(fresh), read, write: None });
+            }
+            events.push(ProviderEvent::Done { ok: true });
+            events
+        }
         Some("turn.failed") => {
             let message = value["error"]["message"]
                 .as_str()
@@ -222,6 +233,17 @@ mod tests {
                 name: "Editar".into(),
                 detail: "a.ts, b.ts".into()
             }]
+        );
+    }
+
+    #[test]
+    fn turn_completed_reports_cached_input_before_done() {
+        assert_eq!(
+            parse_line(r#"{"type":"turn.completed","usage":{"input_tokens":1000,"cached_input_tokens":800,"output_tokens":30}}"#),
+            vec![
+                ProviderEvent::CacheUsage { fresh: Some(200), read: Some(800), write: None },
+                ProviderEvent::Done { ok: true },
+            ]
         );
     }
 
