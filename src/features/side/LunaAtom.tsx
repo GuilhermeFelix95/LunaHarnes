@@ -3,6 +3,8 @@ import { t } from "../../i18n";
 import { getThemeMedia, subscribeThemeMedia } from "../../plugins/themeRegistry";
 
 interface LunaAtomProps {
+  /** Versão pequena, para o cabeçalho do painel. */
+  compact?: boolean;
   /** Trabalhando: os elétrons correm rápido e o Átomo acena. Parado: dorme com os elétrons lentos. */
   working: boolean;
 }
@@ -20,7 +22,7 @@ type Face = (typeof FACES)[number];
 
 /// Mesma geometria do ícone do app (public/luna/atom.png): corpo, olhos, sorriso, bracinhos e 3 órbitas.
 /// Animação por CSS e SMIL (elétrons). Movimento reduzido desliga as animações em components.css.
-export function LunaAtom({ working }: LunaAtomProps) {
+export function LunaAtom({ working, compact = false }: LunaAtomProps) {
   const [action, setAction] = useState<Action | null>(null);
   const [face, setFace] = useState<Face | null>(null);
   const previous = useRef(working);
@@ -64,6 +66,7 @@ export function LunaAtom({ working }: LunaAtomProps) {
   const className = [
     "luna-atom",
     working ? "luna-atom--working" : "luna-atom--sleeping",
+    compact ? "luna-atom--compact" : "",
     action ? `luna-atom--${action}` : "",
     face && !working && !action ? `luna-atom--face-${face}` : "",
   ]

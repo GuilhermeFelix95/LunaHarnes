@@ -175,12 +175,14 @@ export function RightPanel({
       <div className="side__body side__progress" role="tabpanel" hidden={tab !== "progress"}>
         <div className="side__progress-list">
           {todos.length ? (
-            <ProgressTimeline todos={todos} />
+            <ProgressTimeline todos={todos} aside={<LunaAtom working={running} compact />} />
           ) : (
-            <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>
+            <div className="side__progress-empty">
+              <LunaAtom working={running} compact />
+              <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>
+            </div>
           )}
         </div>
-        <LunaAtom working={running} />
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>
         {terminal}

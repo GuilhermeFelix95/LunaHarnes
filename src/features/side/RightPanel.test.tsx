@@ -116,17 +116,21 @@ describe("RightPanel", () => {
     ]);
   });
 
-  it("progresso com muitas tarefas rola dentro da lista, e o mascote fica fora dela", () => {
+  it("progresso com muitas tarefas rola dentro da lista, e o mascote fica ao lado do resumo", () => {
     setup("progress", undefined, [
       { content: "Tarefa 1", status: "completed" },
       { content: "Tarefa 2", status: "pending" },
     ]);
 
     const list = screen.getAllByRole("listitem")[0].closest(".side__progress-list");
-    const atom = document.querySelector(".luna-atom");
     expect(list).toBeTruthy();
-    expect(atom).toBeTruthy();
-    expect(atom?.closest(".side__progress-list")).toBeNull();
+    expect(document.querySelector(".timeline__head .luna-atom--compact")).toBeTruthy();
+  });
+
+  it("sem tarefas, o mascote fica ao lado do texto de espera", () => {
+    setup("progress");
+
+    expect(document.querySelector(".side__progress-empty .luna-atom--compact")).toBeTruthy();
   });
 
   it("sem checklist, a aba Progresso explica como aparece", () => {

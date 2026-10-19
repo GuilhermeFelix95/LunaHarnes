@@ -2266,7 +2266,7 @@ textarea:focus-visible {
   overflow-y: auto;
 }
 
-/* A lista rola sozinha; o mascote fica fixo embaixo, sem ser empurrado para fora. */
+/* A lista rola sozinha. O mascote fica ao lado do resumo (ou do texto de espera), no cabeçalho. */
 .side__progress-list {
   flex: 1;
   min-height: 0;
@@ -2274,7 +2274,22 @@ textarea:focus-visible {
   padding: 12px 16px;
 }
 
-.side__progress .luna-atom {
+.timeline__head,
+.side__progress-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.timeline__head > .timeline__summary,
+.side__progress-empty > .empty {
+  flex: 1;
+  min-width: 0;
+}
+
+.luna-atom.luna-atom--compact {
+  width: 56px;
+  margin: 0;
   flex-shrink: 0;
 }
 

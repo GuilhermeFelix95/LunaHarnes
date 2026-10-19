@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Progresso (2026-10-18): o mascote compacto (`luna-atom--compact`) fica ao lado do resumo das tarefas (`timeline__head`) ou do texto de espera (`side__progress-empty`), no topo do painel.
+
 - Sidebar (2026-10-18): o slot `data-plugin-slot="sidebar"` tem no máximo 40% da altura e rola; o rodapé (Configurações) não encolhe. Regras no host, em `components.css`, sem mexer no plugin.
 
 - LunaFix (2026-10-18): plugin oficial em `plugins-examples/lunafix` (permissão `autofix`), ativo por padrão (`DEFAULT_PLUGINS` e `official.json`). `api.onTurnDone` recebe `{ text, ok, lastCommand, attempt }` e, se devolver texto, o `ChatView` manda a correção na mesma conversa, no máximo `AUTOFIX_MAX_ATTEMPTS` (2) por envio. Enquanto corrige, aviso e som ficam para o fim. Parar cancela o ciclo. Limites: a resposta com o erro continua visível no chat (não é recolhida); turnos de compactação passam pelo mesmo gancho. Testes em `host.test.ts`, `lunafix.test.ts` e `ChatView.test.tsx` (LunaFix).

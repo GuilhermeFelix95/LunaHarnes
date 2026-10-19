@@ -137,3 +137,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Verificação de comandos (LunaFix, 4a): o Claude e o Codex informam se cada comando do agente falhou e a saída do fim; a sessão entrega ao chat um evento commandResult. Só comandos Bash contam.
 2026-10-18 | LunaFix (4b-4d): permissão autofix e api.onTurnDone; o chat espera o fim do turno pelos plugins e pede correção (até 2 por envio) quando o plugin devolve texto; plugin oficial lunafix ativo por padrão.
 2026-10-18 | Sidebar: cards de plugin (slot sidebar) têm altura máxima com rolagem própria e botões que não encolhem; o rodapé com Configurações fica sempre visível.
+2026-10-18 | Progresso: o mascote compacto fica ao lado do resumo (ou do texto de espera) no topo, não mais no fim do painel.
