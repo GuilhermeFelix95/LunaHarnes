@@ -27,10 +27,12 @@ Checklist para publicar o LunaHarness. Cada item diz o que já está pronto e o 
 - Pelo menos um CLI instalado e com login feito.
 - Sem Node.js nem Rust para quem só usa o app.
 
-## Atualizações (planejado, ainda não implementado)
+## Atualizações
 
-- O atualizador usa o endereço `latest.json` nas releases do repositório público.
-- Antes de instalar uma atualização, o app encerra execuções e terminais em andamento.
+- Feito: o atualizador lê `latest.json` nas releases do repositório público, e Configurações > Sobre procura e instala sob pedido.
+- Feito: antes de instalar, o app encerra execuções e terminais em andamento.
+- Falta: checagem automática ao abrir o app, e a primeira atualização real de ponta a ponta (versão 0.1.0 instalada, depois 0.1.1 de teste).
+- Depende do autor: a chave privada (`TAURI_SIGNING_PRIVATE_KEY`) para o `npm run release:app`. Sem ela o build não gera o `.sig`.
 
 ## Passos para um release
 

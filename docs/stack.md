@@ -20,6 +20,7 @@ Harness desktop leve que controla os CLIs oficiais do Claude Code e do Codex e a
   - Codex: `codex exec --json`
 - **Plugins:** pasta com `manifest.json` e um módulo JavaScript de um arquivo (TypeScript fica para depois). A API exposta ao plugin é filtrada pelas permissões do manifesto. O manifesto é controle de API, não fronteira de segurança.
 - **Navegador integrado:** webview filha da janela principal (`add_child`, feature `unstable` do Tauri), na aba Navegador ao lado do Terminal (`src/features/side/BrowserPanel.tsx`, comandos `browser_*` em `src-tauri/src/browser.rs`). O agente usa o mesmo executável em modo `browser-mcp` (servidor MCP por stdio) que fala com o app por HTTP em 127.0.0.1 com token. Só o Claude recebe a configuração (`--mcp-config`, `--allowedTools mcp__luna-browser`); o Codex ainda não. Só http e https. A webview não tem acesso aos comandos do app (não está nas capabilities).
+- **Atualização:** `tauri-plugin-updater` (chave pública minisign em `tauri.conf.json`, endereço `latest.json` nas releases do GitHub) e `tauri-plugin-process` para reabrir o app. Verificação manual em Configurações > Sobre (`src/features/settings/AboutSection.tsx`, lógica em `src/updates.ts`). Antes de instalar, `stop_all_for_update` encerra execuções e terminais. O release usa `npm run release:app` (`src-tauri/tauri.release.conf.json`: NSIS, `createUpdaterArtifacts`); `scripts/make-latest-json.mjs` gera o `latest.json` a partir do `.sig`.
 - **Cache de respostas:** em memória, compartilhado pelas conversas da sessão (`src/chat/responseCache.ts`). O envio consulta o cache em `ChatView.send`; a permissão `cache` e o objeto `api.cache` ficam no host de plugins. O núcleo conta consultas com o cache ligado, e o plugin de exemplo mostra a taxa de acerto na barra lateral (permissão `ui`). Contadores só na sessão. Sem gravação em disco.
 - **Idioma da interface:** dicionário próprio em `src/i18n/` (`ptBR.ts` define as chaves, `en.ts` precisa ter todas, checado pelo TS). `t(chave, vars)` traduz e `useLocale()` re-renderiza quando o idioma muda. Escolha em Configurações > Geral (`luna.language`: `system`, `pt-BR` ou `en`). Padrão: idioma do sistema; sistema não suportado cai em inglês. Prompts do modelo (`src/chat/*.ts`), comandos `/compactar`, `/plano`, `/plugin` e mensagens de erro do Rust ficam em português.
 
@@ -29,6 +30,7 @@ Harness desktop leve que controla os CLIs oficiais do Claude Code e do Codex e a
 src/                 frontend React (chat, providers, host de plugins)
 src-tauri/src/       backend Rust (providers, sessão, plugins, config)
 plugins-examples/    plugins de referência
+scripts/             build de release (latest.json do atualizador)
 docs/                stack, contrato de plugins
 ```
 
@@ -43,6 +45,7 @@ docs/                stack, contrato de plugins
 ## Estado atual
 
 - Travamento ao enviar (2026-10-18): `session.rs` para o pump no evento `result`, escreve o prompt em thread própria, lê o stderr desde o início e limita o `finish` (5 s para o processo sair, depois encerra a árvore). `commands.rs` libera a execução antes de esperar o processo. Parar em `ChatView.tsx` destrava a tela sem depender do `done`. Testes em `session::tests` e no ChatView. Causa original do bloqueio: deadlock com prompt grande e pipe preso.
+- Atualização (2026-10-18): Configurações > Sobre mostra a versão e procura atualização sob pedido. Instalar encerra as execuções e os terminais, baixa, instala e reabre o app. Testes em `src/updates.test.ts`, `AboutSection.test.tsx` e `scripts/make-latest-json.test.mjs`. Ainda não feito: checagem automática ao abrir o app, e a primeira atualização real ponta a ponta (depende da chave privada e do repositório público).
 - README (2026-10-18): `README.md` na raiz explica o que é o LunaHarness, recursos, arquitetura, pré-requisitos, execução e estado atual. Há versões em 21 outros idiomas (`README.<código>.md`, por exemplo `README.en.md`, `README.zh-CN.md`), todas com a mesma barra de seleção no topo. Atualizar todas junto com recursos novos. Árabe e hebraico usam `<div dir="rtl">`.
 - Navegador integrado (2026-10-18):
   - Aba Navegador no painel lateral, com barra de endereço, voltar, avançar e recarregar. A página só aparece quando a aba está à vista (`browser_show`). Não há botão de fechar a página ainda.

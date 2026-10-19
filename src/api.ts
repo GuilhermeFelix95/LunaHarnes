@@ -54,6 +54,11 @@ export function readPluginAsset(id: string, path: string): Promise<{ mime: strin
   return invoke("read_plugin_asset", { id, path });
 }
 
+/** Encerra as execuções e os terminais em andamento, antes de instalar uma atualização. */
+export function stopAllForUpdate(): Promise<void> {
+  return invoke("stop_all_for_update");
+}
+
 export function readPluginEntry(id: string): Promise<string> {
   return invoke("read_plugin_entry", { id });
 }

@@ -28,6 +28,8 @@ pub fn run() {
         .manage(terminal::Terminals::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             use tauri::Manager;
             // Erros também vão para luna.log na pasta de logs do app.
@@ -69,6 +71,7 @@ pub fn run() {
             commands::list_plugins,
             commands::read_plugin_entry,
             commands::read_plugin_asset,
+            commands::stop_all_for_update,
             commands::check_auth,
             commands::list_models,
             commands::get_changes,

@@ -688,6 +688,20 @@ pub fn open_login(provider: ProviderKind) -> Result<(), String> {
     crate::auth::open_login(provider)
 }
 
+/// Encerra todas as execuções e terminais antes de instalar uma atualização (o instalador não troca arquivos em uso).
+#[tauri::command]
+pub fn stop_all_for_update(runs: State<'_, ActiveRuns>, terminals: State<'_, Terminals>) -> Result<(), String> {
+    for handle in runs.0.lock().expect("lock das execuções ativas").values() {
+        handle
+            .cancel()
+            .map_err(|e| format!("não foi possível parar uma execução antes da atualização: {e}"))?;
+    }
+    for (_, mut terminal) in terminals.0.lock().expect("lock dos terminais").drain() {
+        terminal.kill();
+    }
+    Ok(())
+}
+
 /// Para a execução de uma conversa, se houver.
 #[tauri::command]
 pub fn cancel_prompt(run_id: String, runs: State<'_, ActiveRuns>) -> Result<(), String> {
