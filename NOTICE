@@ -1,0 +1,8 @@
+LunaHarness
+Copyright 2026 Guilherme Felix
+
+Este produto é distribuído sob a Licença Apache, versão 2.0 (arquivo LICENSE).
+
+O LunaHarness não é afiliado, patrocinado nem aprovado pela Anthropic nem pela OpenAI.
+Claude e Claude Code são marcas da Anthropic. Codex é uma marca da OpenAI. O app só usa
+os CLIs oficiais que o usuário já instalou.

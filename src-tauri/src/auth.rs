@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use crate::providers::{cli_name, ProviderKind};
@@ -34,19 +35,30 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
     })
 }
 
+/// Programa e argumentos do login oficial. O programa vem já resolvido: logo após instalar o CLI,
+/// o PATH do app ainda não tem a pasta nova, e um nome puro não seria encontrado.
+fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(String, &'static [&'static str]), String> {
+    let (name, args): (&str, &'static [&'static str]) = match kind {
+        ProviderKind::Claude => ("claude", &["auth", "login"]),
+        ProviderKind::Codex => ("codex", &["login"]),
+    };
+    let program = resolved.ok_or_else(|| {
+        format!("{name} não encontrado no PATH. Instale o CLI antes de entrar na conta.")
+    })?;
+    Ok((program.to_string_lossy().into_owned(), args))
+}
+
 /// Abre uma janela do terminal com o fluxo de login oficial do CLI.
 /// O login é interativo (navegador), então roda na janela própria, não no chat.
 pub fn open_login(kind: ProviderKind) -> Result<(), String> {
     if !cfg!(windows) {
         return Err("o login pelo app é suportado só no Windows por enquanto".into());
     }
-    let (program, args): (&str, &[&str]) = match kind {
-        ProviderKind::Claude => ("claude", &["auth", "login"]),
-        ProviderKind::Codex => ("codex", &["login"]),
-    };
+    let (program, args) = login_invocation(kind, resolve_program(cli_name(kind)))?;
 
     Command::new("cmd")
-        .args(["/C", "start", "LunaHarness - login", "cmd", "/K", program])
+        .args(["/C", "start", "LunaHarness - login", "cmd", "/K"])
+        .arg(&program)
         .args(args)
         .spawn()
         .map(|_| ())
@@ -68,5 +80,23 @@ mod tests {
         assert!(!parse_claude_status(r#"{"loggedIn": false}"#));
         assert!(!parse_claude_status("not json at all"));
         assert!(!parse_claude_status(""));
+    }
+
+    #[test]
+    fn login_uses_the_resolved_path_not_the_bare_name() {
+        // Logo após instalar o CLI, o PATH do app ainda não tem a pasta nova: o login usa o caminho resolvido.
+        let resolved = Some(std::path::PathBuf::from(r"C:\Tools\claude.exe"));
+        let (program, args) = login_invocation(ProviderKind::Claude, resolved).unwrap();
+
+        assert_eq!(program, r"C:\Tools\claude.exe");
+        assert_eq!(args, ["auth", "login"]);
+    }
+
+    #[test]
+    fn login_reports_a_missing_cli_with_its_name() {
+        let err = login_invocation(ProviderKind::Codex, None).unwrap_err();
+
+        assert!(err.contains("codex"));
+        assert!(err.contains("não encontrado"));
     }
 }

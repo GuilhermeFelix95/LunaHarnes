@@ -127,3 +127,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Temas de plugin (Etapa 3d-1): seletor em Configurações > Aparência para escolher o tema de plugin; escolher um tema do app tira o de plugin.
 2026-10-18 | Temas de plugin (Etapas 3d-2 e 3e): exemplo gameboy-theme com teste; docs/plugins.md e luna-plugin.d.ts documentam api.theme. Assets e mascote de tema ficam para depois.
 2026-10-18 | Temas de plugin, assets (Etapa 3, parte de assets): read_plugin_asset valida caminho, tipo e tamanho; asset(assets/...) vira URL blob; CSP libera font-src e media-src só com blob: e data:. Sons e mascote ficam para depois.
+2026-10-18 | Distribuição (Etapa 5, parte de código): LICENSE Apache-2.0 e NOTICE; docs/privacidade.md e docs/distribuicao.md; login no primeiro uso usa o caminho resolvido do CLI. Atualizador, chave, repo público e SignPath ficam para depois.

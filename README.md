@@ -139,6 +139,10 @@ Em desenvolvimento, ainda não verificado no app de ponta a ponta:
 
 - **Navegador integrado:** a página aparece numa webview dentro da janela, e o Claude recebe as ferramentas de navegar, ler, clicar e digitar. Usa um recurso `unstable` do Tauri. O Codex ainda não recebe essas ferramentas.
 
+## Licença
+
+Apache-2.0. Veja [`LICENSE`](LICENSE) e [`NOTICE`](NOTICE). Dados e privacidade: [`docs/privacidade.md`](docs/privacidade.md). Distribuição e estado da publicação: [`docs/distribuicao.md`](docs/distribuicao.md).
+
 ## Contribuindo
 
 Os guias em `docs/` explicam o padrão do projeto. Mudanças de comportamento entram com teste, e a `docs/stack.md` e o `MEMORY.md` são atualizados junto com o código.
