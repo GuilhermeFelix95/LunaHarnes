@@ -11,7 +11,7 @@ Checklist para publicar o LunaHarness. Cada item diz o que já está pronto e o 
 
 ## Depende do autor
 
-- [ ] **Chave do atualizador:** a chave pública já está em `tauri.conf.json`. Falta guardar a privada fora do repositório, com cópia de segurança, e publicar a release assinada. Sem a privada não há release para o atualizador. Perder a chave impede atualizações para quem já instalou.
+- [x] **Chave do atualizador:** nova chave gerada em 2026-10-19 (a anterior foi perdida; nada tinha sido publicado). Privada em `%USERPROFILE%.tauriluna-updater.key`, fora do repositório, com `TAURI_SIGNING_PRIVATE_KEY` apontando para ela. Pública já trocada em `tauri.conf.json`. Falta fazer cópia de segurança da privada e publicar a release assinada.
 - [ ] **Repositório público:** antes de mudar a visibilidade, varrer o histórico atrás de segredos (tokens, chaves, `.env`, keystores) e mostrar o resultado ao autor. A mudança só acontece com autorização explícita.
 - [ ] **Assinatura de código:** pedir a SignPath Foundation (gratuito para código aberto). Até a aprovação, o instalador sai sem assinatura, e o Windows mostra o aviso do SmartScreen. Isso deve ser dito no README.
 

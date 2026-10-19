@@ -141,3 +141,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Plano: a pergunta de aprovação não vira seletor (o botão "Aprovar e executar" da barra é o único controle); o bloco some do chat do mesmo jeito.
 2026-10-18 | Atividade: cabeçalho do trabalho mostra passo atual e tempo decorrido; cada ação mostra ok ou falha (evento toolResult, ProviderEvent::ToolResult sem saída fora de comandos).
 2026-10-19 | Distribuição: checagem de atualização 5 s depois de abrir (aviso no toast, falha só no console); NOTICE com o nome completo do titular; checklist atualizado (push feito).
+2026-10-19 | Chave do atualizador trocada (a anterior se perdeu antes de publicar); pública nova em tauri.conf.json, privada fora do repositório.
