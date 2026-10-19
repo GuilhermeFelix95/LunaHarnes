@@ -19,7 +19,7 @@ Checklist para publicar o LunaHarness. Cada item diz o que já está pronto e o 
 
 Bloqueios para anunciar uma versão estável. Os itens marcados com (autor) dependem de ação sua.
 
-- [ ] (autor) Guardar a chave privada do atualizador e publicar a release 0.1.0 (pré-release) com `.exe`, `.sig` e `latest.json`.
+- [x] (autor) Publicar a release 0.1.0 (pré-release, tag `v0.1.0`) com `.exe`, `.sig` e `latest.json` (feito em 2026-10-19).
 - [ ] (autor) Publicar a 0.1.1 como release normal (latest): pré-release não entra no endereço `releases/latest` que o atualizador consulta.
 - [x] Enviar os commits locais ao GitHub (feito: `9ea03ee` em `origin/main`).
 - [ ] (autor) Testar atualização 0.1.0 → 0.1.1 de ponta a ponta: o aviso ao abrir aparece e a instalação funciona.

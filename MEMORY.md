@@ -142,3 +142,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Atividade: cabeçalho do trabalho mostra passo atual e tempo decorrido; cada ação mostra ok ou falha (evento toolResult, ProviderEvent::ToolResult sem saída fora de comandos).
 2026-10-19 | Distribuição: checagem de atualização 5 s depois de abrir (aviso no toast, falha só no console); NOTICE com o nome completo do titular; checklist atualizado (push feito).
 2026-10-19 | Chave do atualizador trocada (a anterior se perdeu antes de publicar); pública nova em tauri.conf.json, privada fora do repositório.
+2026-10-19 | Prévia 0.1.0 publicada como pré-release (tag v0.1.0); push de af82ddf e 9ec4b90 para origin/main.
