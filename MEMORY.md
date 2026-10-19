@@ -129,3 +129,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Temas de plugin, assets (Etapa 3, parte de assets): read_plugin_asset valida caminho, tipo e tamanho; asset(assets/...) vira URL blob; CSP libera font-src e media-src só com blob: e data:. Sons e mascote ficam para depois.
 2026-10-18 | Distribuição (Etapa 5, parte de código): LICENSE Apache-2.0 e NOTICE; docs/privacidade.md e docs/distribuicao.md; login no primeiro uso usa o caminho resolvido do CLI. Atualizador, chave, repo público e SignPath ficam para depois.
 2026-10-18 | Temas de plugin: mascote (imagem no lugar do átomo) e som de resposta (sounds.reply) com assets; validados como asset(assets/...).
+2026-10-18 | Registro de erros em arquivo: luna.log na pasta de logs do app (logfile.rs), usado pelo setup; docs/privacidade.md atualizado.

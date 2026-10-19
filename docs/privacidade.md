@@ -32,7 +32,7 @@ Plugins rodam com acesso amplo à interface e ao conteúdo das conversas, confor
 
 ## Registro de erros
 
-Hoje os erros vão para a saída do terminal que iniciou o app. Eles não são enviados a lugar nenhum. Um registro em arquivo ainda não existe; quando existir, este documento será atualizado.
+Os erros do app vão para o terminal e para o arquivo `luna.log`, na pasta de logs do app (`luna.old.log` guarda o anterior quando o arquivo passa de 1 MB). Eles não são enviados a lugar nenhum. O registro tem só a mensagem de erro, sem conteúdo de conversa nem chaves.
 
 ## Seus direitos e controle
 

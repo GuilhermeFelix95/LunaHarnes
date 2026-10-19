@@ -4,6 +4,7 @@ pub mod browser;
 pub mod changes;
 pub mod worktrees;
 pub mod checkpoints;
+pub mod logfile;
 pub mod commands;
 pub mod conversations;
 pub mod marketplace;
@@ -29,32 +30,36 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             use tauri::Manager;
+            // Erros também vão para luna.log na pasta de logs do app.
+            if let Ok(dir) = app.path().app_log_dir() {
+                logfile::start(&dir);
+            }
             // Grava o guia de plugins para a Luna ler. Sem ele o app segue, só sem o guia.
             match app.path().app_data_dir() {
                 Ok(dir) => {
                     if let Err(e) = plugins::guide::install(&dir) {
-                        eprintln!("não foi possível gravar o guia de plugins em {}: {e}", dir.display());
+                        logfile::error(&format!("não foi possível gravar o guia de plugins em {}: {e}", dir.display()));
                     }
                 }
-                Err(e) => eprintln!("não foi possível localizar a pasta de dados para o guia de plugins: {e}"),
+                Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para o guia de plugins: {e}")),
             }
             // Navegador do agente: servidor local e configuração MCP. Sem ele o agente não vê as ferramentas do navegador.
             match app.path().app_data_dir() {
                 Ok(dir) => {
                     if let Err(e) = browser::start(app.handle().clone(), &dir) {
-                        eprintln!("{e}");
+                        logfile::error(&format!("{e}"));
                     }
                 }
-                Err(e) => eprintln!("não foi possível localizar a pasta de dados para o navegador: {e}"),
+                Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para o navegador: {e}")),
             }
             // Plugins padrão (cache de tokens). Falha só vira aviso no terminal: o app abre sem eles.
             match app.path().app_data_dir() {
                 Ok(dir) => {
                     if let Err(e) = plugins::seed::install_defaults(&dir) {
-                        eprintln!("{e}");
+                        logfile::error(&format!("{e}"));
                     }
                 }
-                Err(e) => eprintln!("não foi possível localizar a pasta de dados para os plugins padrão: {e}"),
+                Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para os plugins padrão: {e}")),
             }
             Ok(())
         })
