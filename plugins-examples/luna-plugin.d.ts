@@ -42,6 +42,13 @@ export interface LunaPluginApi {
   onBeforeSend(hook: (prompt: string) => string | void | Promise<string | void>): void;
   /** Requer `hooks`. Recebe o texto completo da resposta. Não altera a resposta exibida. */
   onAfterResponse(hook: (text: string) => void | Promise<void>): void;
+  /** Requer `autofix`. Ao fim do turno, devolver um texto pede uma correção (até 2 por envio). Sem texto, a resposta é entregue. */
+  onTurnDone(hook: (turn: {
+    text: string;
+    ok: boolean;
+    lastCommand: { ok: boolean; output: string } | null;
+    attempt: number;
+  }) => string | void | Promise<string | void>): void;
   /** Requer `modes`. */
   registerMode(mode: PluginMode): void;
   /** Requer `cache`. Sem essa permissão, acessar `cache` recusa o plugin. */

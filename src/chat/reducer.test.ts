@@ -35,7 +35,7 @@ describe("applyEvent", () => {
 
   it("ferramenta vira linha própria e o texto depois dela começa uma nova resposta", () => {
     let messages: ChatMessage[] = [{ role: "user", text: "liste" }];
-    messages = applyEvent(messages, { kind: "toolUse", name: "Bash", detail: "dir" });
+    messages = applyEvent(messages, { kind: "toolUse", id: "", name: "Bash", detail: "dir" });
     messages = applyEvent(messages, { kind: "textDelta", text: "Pronto." });
 
     expect(messages).toEqual([

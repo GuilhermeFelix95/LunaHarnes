@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- LunaFix (2026-10-18): plugin oficial em `plugins-examples/lunafix` (permissão `autofix`), ativo por padrão (`DEFAULT_PLUGINS` e `official.json`). `api.onTurnDone` recebe `{ text, ok, lastCommand, attempt }` e, se devolver texto, o `ChatView` manda a correção na mesma conversa, no máximo `AUTOFIX_MAX_ATTEMPTS` (2) por envio. Enquanto corrige, aviso e som ficam para o fim. Parar cancela o ciclo. Limites: a resposta com o erro continua visível no chat (não é recolhida); turnos de compactação passam pelo mesmo gancho. Testes em `host.test.ts`, `lunafix.test.ts` e `ChatView.test.tsx` (LunaFix).
+
 - Resultado de comando (2026-10-18): `ToolUse` traz o `id` do chamado; os resultados de ferramenta viram `ToolResult` e `CommandTracker` (`providers/mod.rs`) só deixa passar o resultado de Bash como `CommandResult { ok, output }` (últimos 4000 caracteres). O Codex emite `CommandResult` direto do `item.completed` (`exit_code`). Captura real do Claude com `exit 3` está no teste `a_failed_bash_result_keeps_its_id_and_output`. Codex ainda sem captura real.
 
 - Estabilidade (2026-10-18): README com a seção de download nos 22 idiomas (releases, requisitos e aviso do SmartScreen). `ErrorBoundary` em `src/ui/` troca a tela branca por um aviso com Recarregar. Promessas de plugin, catálogo e `runAfterResponse` avisam por toast quando falham. `.gitignore` cobre `preview-gatos/` e os ícones android/ios.

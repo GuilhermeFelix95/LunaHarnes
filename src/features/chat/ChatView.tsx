@@ -38,7 +38,7 @@ import { applyEvent } from "../../chat/reducer";
 import { summarize, type CacheUsage, type TurnRecord } from "../../chat/promptCache";
 import { longCacheEnabled } from "../../chat/cacheSettings";
 import { useStickToBottom } from "../../chat/useStickToBottom";
-import { PluginHost, type PluginMode } from "../../plugins/host";
+import { AUTOFIX_MAX_ATTEMPTS, PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
 import { cliPrompt, filterSlash, LUNA_COMMANDS, parseLunaCommand, slashQuery, type SlashItem } from "../../chat/slash";
 import { extractPluginOffer } from "../../chat/pluginOffer";
@@ -156,6 +156,15 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     // compact só lê o estado da renderização atual; roda quando o turno termina.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
+  const [fixRound, setFixRound] = useState(0);
+  // Correção do LunaFix: roda depois da renderização do turno, com a conversa atual.
+  useEffect(() => {
+    const prompt = fixDue.current;
+    if (!prompt || fixRound === 0) return;
+    fixDue.current = null;
+    void run(t("autofix.shown"), prompt, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixRound]);
   // Perguntas do agente, mostradas no seletor. `questionsRound` muda a cada conjunto novo e recria o seletor.
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [questionsRound, setQuestionsRound] = useState(0);
@@ -224,6 +233,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // compactPending: o próximo turno concluído é o resumo. compactDue: o contexto encheu, compactar depois do turno.
   const compactPending = useRef(false);
   const compactDue = useRef(false);
+  // LunaFix: último comando do turno, correções pedidas neste envio, e a correção que espera a próxima rodada.
+  const lastCommandRef = useRef<{ ok: boolean; output: string } | null>(null);
+  const fixAttempts = useRef(0);
+  const fixDue = useRef<string | null>(null);
+  // Parar no meio do turno: a verificação que ainda chegar não pede correção.
+  const turnStopped = useRef(false);
   const body = useRef<HTMLDivElement>(null);
   const { stuck, scrollToBottom } = useStickToBottom(body, messages);
 
@@ -253,6 +268,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
 
   /// Parar não depende do CLI: se ele travou, nenhum `done` chega. A tela destrava já; o backend encerra o processo.
   function stopRun() {
+    turnStopped.current = true;
+    fixDue.current = null;
+    fixAttempts.current = AUTOFIX_MAX_ATTEMPTS;
     setRunning(false);
     cancelPrompt(conversationId).catch((err) => {
       setNotes((current) => [...current, t("chat.stopFailed", { error: String(err) })]);
@@ -332,6 +350,39 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   }, [provider, profileId, profiles]);
 
   useEffect(() => {
+    /// Fim do turno, depois dos plugins. Com correção pedida, o aviso e o som esperam a correção terminar.
+    const finishTurn = (fix: string | null, turn: { ok: boolean; lastCommand: { ok: boolean; output: string } | null }, subject: string) => {
+      if (fix && !turnStopped.current && fixAttempts.current < AUTOFIX_MAX_ATTEMPTS) {
+        fixAttempts.current += 1;
+        fixDue.current = fix;
+        setNotes((current) => [...current, t("autofix.fixing", { attempt: fixAttempts.current, max: AUTOFIX_MAX_ATTEMPTS })]);
+        setFixRound((n) => n + 1);
+        return;
+      }
+      // Sem correção possível, o aviso entra depois da lista de plugins: ela substitui as notas ao terminar.
+      const gaveUp = fix && !turnStopped.current ? t("autofix.gaveUp", { error: (turn.lastCommand?.output ?? "").slice(-300) }) : null;
+      void notifyIfUnfocused(
+        live.current.planning ? t("chat.planReady") : t("chat.replyReady"),
+        t("chat.finished", { subject }),
+      );
+      if (turn.ok) playReplySound();
+      if (turn.ok) {
+        showToast({
+          kind: "success",
+          title: live.current.planning ? t("chat.planReady") : t("chat.replyReady"),
+          body: t("chat.finished", { subject }),
+        });
+      }
+      setRunning(false);
+      const extra = gaveUp ? [gaveUp] : [];
+      void host.runAfterResponse(responseText.current).then(
+        () => setNotes([...host.messages(), ...extra]),
+        () => {
+          showToast({ kind: "error", title: t("chat.hookFailed") });
+          setNotes((current) => [...current, ...extra]);
+        },
+      );
+    };
     const unlisten = onProviderEvent(conversationId, (event) => {
       const turn = turnAgent.current;
       if (event.kind === "sessionStarted") {
@@ -375,6 +426,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       if (event.kind === "cacheUsage") {
         turnUsage.current = { fresh: event.fresh, read: event.read, write: event.write };
       }
+      if (event.kind === "commandResult") {
+        lastCommandRef.current = { ok: event.ok, output: event.output };
+      }
       if (event.kind === "error") {
         void notifyIfUnfocused(t("chat.errorTitle"), t("chat.errorBody"));
         showToast({ kind: "error", title: t("chat.errorTitle"), body: t("chat.errorToastBody") });
@@ -390,18 +444,6 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         }
         const firstUser = messagesRef.current.find((m) => m.role === "user");
         const subject = firstUser ? truncate(firstUser.text, 40) : t("chat.theConversation");
-        void notifyIfUnfocused(
-          live.current.planning ? t("chat.planReady") : t("chat.replyReady"),
-          t("chat.finished", { subject }),
-        );
-        if (event.ok) playReplySound();
-        if (event.ok) {
-          showToast({
-            kind: "success",
-            title: live.current.planning ? t("chat.planReady") : t("chat.replyReady"),
-            body: t("chat.finished", { subject }),
-          });
-        }
         const session = sessions.current[turn];
         // O agente viu tudo até o fim deste turno.
         if (session) sessions.current = { ...sessions.current, [turn]: { ...session, seen: messagesRef.current.length } };
@@ -415,7 +457,6 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
             setNotes((current) => [...current, t("chat.compacted")]);
           }
         }
-        setRunning(false);
         setChangesVersion((v) => v + 1);
         checkConfig();
         // O bloco de perguntas sai do texto e vira o seletor; o resto da resposta fica no chat.
@@ -458,9 +499,16 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           setSideTab("plan");
         }
         persist(messagesRef.current);
-        void host.runAfterResponse(responseText.current).then(
-          () => setNotes(host.messages()),
-          () => showToast({ kind: "error", title: t("chat.hookFailed") }),
+        const turnResult = {
+          text: responseText.current,
+          ok: event.ok,
+          lastCommand: lastCommandRef.current,
+          attempt: fixAttempts.current,
+        };
+        // Os plugins veem o fim do turno antes do aviso: uma correção segura a entrega até o agente terminar.
+        void host.runTurnDone(turnResult).then(
+          (fix) => finishTurn(fix, turnResult, subject),
+          () => finishTurn(null, turnResult, subject),
         );
       }
     });
@@ -587,6 +635,8 @@ ${cliPrompt}`;
       rewindNote.current = null;
     }
     responseText.current = "";
+    lastCommandRef.current = null;
+    turnStopped.current = false;
     // Cada resposta monta o próprio checklist; o da resposta anterior não fica na aba.
     // As tarefas são da conversa inteira (o Claude Code as mantém na sessão): não zeram a cada envio.
     // O painel abre no Progresso enquanto a Luna trabalha.
@@ -752,6 +802,8 @@ ${cliPrompt}`;
     // Só com anexo, o pedido vai com uma frase padrão; os arquivos entram na lista abaixo.
     const prompt = typed || t("chat.seeAttachments");
     setDraft("");
+    // Envio do usuário começa um ciclo novo de correções; a correção do LunaFix não passa por aqui.
+    fixAttempts.current = 0;
 
     // `/plano` liga o modo de planejamento e não vai ao provedor.
     // `/plugin instalar <pasta>` abre o mesmo cartão de instalação que a Luna mostra depois de criar um plugin.

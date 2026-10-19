@@ -42,6 +42,7 @@ export function applyEvent(
     case "context":
     case "cacheUsage":
     case "cost":
+    case "commandResult":
     case "todos":
     case "taskCreated":
     case "taskAssigned":

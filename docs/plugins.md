@@ -84,6 +84,10 @@ O `handler(args)` recebe o texto digitado depois do comando (uma string, talvez 
 
 `hook(text)` recebe o texto completo da resposta quando ela termina. Serve para registrar, contar ou reagir. Não altera a resposta que aparece no chat.
 
+### `api.onTurnDone(hook)`: permissão `autofix`
+
+`hook({ text, ok, lastCommand, attempt })` roda quando o turno termina, antes de a resposta sair como entregue (aviso, som). `lastCommand` é o último comando Bash do agente (`{ ok, output }`, com o fim da saída) ou `null`. Devolver um texto pede ao agente uma correção, que vira o próximo envio na mesma conversa. Até `AUTOFIX_MAX_ATTEMPTS` (2) correções por envio do usuário; depois disso a resposta sai com um aviso. Falha ou demora do hook (10 s) não segura a entrega. O LunaFix, plugin oficial e ativo por padrão, é o exemplo de referência (`plugins-examples/lunafix`).
+
 ### `api.registerMode(modo)`: permissão `modes`
 
 Oferece um modo no composer, como um chip ao lado de "Planejar". O modo é um objeto:

@@ -107,7 +107,7 @@ export interface TodoItem {
 export type ProviderEvent =
   | { kind: "sessionStarted"; sessionId: string }
   | { kind: "textDelta"; text: string }
-  | { kind: "toolUse"; name: string; detail: string }
+  | { kind: "toolUse"; id: string; name: string; detail: string }
   | { kind: "todos"; items: TodoItem[] }
   | { kind: "taskCreated"; key: string; subject: string }
   | { kind: "taskAssigned"; key: string; id: string }
@@ -117,6 +117,8 @@ export type ProviderEvent =
   /** Tokens de entrada do turno: novos, lidos do cache e gravados. null = o provedor não informou. */
   | { kind: "cacheUsage"; fresh: number | null; read: number | null; write: number | null }
   | { kind: "cost"; usd: number }
+  /** Resultado de um comando do agente (Bash): ok e a saída do fim. */
+  | { kind: "commandResult"; ok: boolean; output: string }
   | { kind: "error"; message: string }
   | { kind: "done"; ok: boolean };
 

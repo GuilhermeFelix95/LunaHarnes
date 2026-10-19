@@ -16,6 +16,21 @@ export type CommandHandler = (args: string) => string | void | Promise<string | 
 export type BeforeSendHook = (prompt: string) => string | void | Promise<string | void>;
 export type AfterResponseHook = (text: string) => void | Promise<void>;
 
+/** Resultado de um turno, como o plugin o recebe ao terminar. */
+export interface TurnDone {
+  text: string;
+  ok: boolean;
+  /** Último comando do agente no turno, ou null se nenhum rodou. */
+  lastCommand: { ok: boolean; output: string } | null;
+  /** Correções já pedidas para este envio do usuário (0 na primeira). */
+  attempt: number;
+}
+/** Devolver um texto pede uma correção: ele vira o próximo envio. Sem texto, o turno é entregue. */
+export type TurnDoneHook = (turn: TurnDone) => string | void | Promise<string | void>;
+
+/** Quantas correções automáticas o LunaFix pode pedir por envio do usuário. Passou disso, entrega com aviso. */
+export const AUTOFIX_MAX_ATTEMPTS = 2;
+
 /// Tempo máximo de um comando ou hook. Passou disso, o resultado é ignorado e o erro fica registrado.
 export const PLUGIN_TIMEOUT_MS = 10_000;
 
@@ -46,6 +61,8 @@ export interface PluginApi {
   onBeforeSend(hook: BeforeSendHook): void;
   /** Requer permissão `hooks`. Recebe o texto final da resposta. */
   onAfterResponse(hook: AfterResponseHook): void;
+  /** Requer permissão `autofix`. Ao terminar um turno, pode pedir uma correção (ver TurnDone). */
+  onTurnDone(hook: TurnDoneHook): void;
   /** Requer permissão `modes`. Só aceita modos de somente leitura. */
   registerMode(mode: PluginMode): void;
   /** Requer permissão `cache`. Sem ela, acessar `cache` falha a ativação. */
@@ -88,7 +105,7 @@ export interface CommandResult {
 }
 
 const COMMAND_NAME = /^[a-z][a-z0-9-]*$/;
-const PERMISSIONS = ["commands", "hooks", "modes", "cache", "ui", "theme"] as const;
+const PERMISSIONS = ["commands", "hooks", "modes", "cache", "ui", "theme", "autofix"] as const;
 const TOKEN_NAME = /^--[a-z0-9-]+$/;
 const TOKEN_VALUE_FORBIDDEN = /[;{}<>]/;
 const THEME_CSS_LIMIT = 64 * 1024;
@@ -99,6 +116,7 @@ export class PluginHost {
   private themes = new Map<string, { pluginId: string; theme: PluginTheme }>();
   private beforeSendHooks: { pluginId: string; hook: BeforeSendHook }[] = [];
   private afterResponseHooks: { pluginId: string; hook: AfterResponseHook }[] = [];
+  private turnDoneHooks: { pluginId: string; hook: TurnDoneHook }[] = [];
   /// Resumo do cache de prompt da conversa, atualizado a cada turno pelo ChatView.
   private cacheSummary: CacheSummary | null = null;
   private modes = new Map<string, { pluginId: string; mode: PluginMode }>();
@@ -164,6 +182,19 @@ export class PluginHost {
     return current;
   }
 
+  /** Pergunta aos plugins se o turno precisa de correção. O primeiro que devolve texto ganha. Falha de hook não segura a entrega. */
+  async runTurnDone(turn: TurnDone): Promise<string | null> {
+    for (const { pluginId, hook } of this.turnDoneHooks) {
+      try {
+        const fix = await withTimeout(hook(turn), "o hook de fim de turno");
+        if (typeof fix === "string" && fix.trim()) return fix;
+      } catch (e) {
+        this.errors.push(`${pluginId} (fim de turno): ${errorMessage(e)}`);
+      }
+    }
+    return null;
+  }
+
   async runAfterResponse(text: string): Promise<void> {
     for (const { pluginId, hook } of this.afterResponseHooks) {
       try {
@@ -209,6 +240,7 @@ export class PluginHost {
     for (const [name, entry] of this.themes) if (entry.pluginId === pluginId) this.themes.delete(name);
     this.beforeSendHooks = this.beforeSendHooks.filter((h) => h.pluginId !== pluginId);
     this.afterResponseHooks = this.afterResponseHooks.filter((h) => h.pluginId !== pluginId);
+    this.turnDoneHooks = this.turnDoneHooks.filter((h) => h.pluginId !== pluginId);
   }
 
   /** Esvazia tudo, para recarregar os plugins depois de instalar, desinstalar ou ligar/desligar um. */
@@ -218,6 +250,7 @@ export class PluginHost {
     this.themes.clear();
     this.beforeSendHooks = [];
     this.afterResponseHooks = [];
+    this.turnDoneHooks = [];
     this.modes.clear();
     this.ui.clear();
     this.loaded.length = 0;
@@ -305,6 +338,10 @@ export class PluginHost {
       onAfterResponse: (hook) => {
         require("hooks");
         this.afterResponseHooks.push({ pluginId: id, hook });
+      },
+      onTurnDone: (hook) => {
+        require("autofix");
+        this.turnDoneHooks.push({ pluginId: id, hook });
       },
       registerMode: (mode) => {
         require("modes");

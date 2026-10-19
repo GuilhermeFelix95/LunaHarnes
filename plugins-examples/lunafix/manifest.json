@@ -1,0 +1,7 @@
+{
+  "id": "lunafix",
+  "name": "LunaFix",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "permissions": ["autofix"]
+}

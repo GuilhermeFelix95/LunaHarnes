@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderEvent } from "../../types";
+import { PluginHost } from "../../plugins/host";
 import { ChatView } from "./ChatView";
 
 // Substitui a ponte com o Rust: o teste controla quando os eventos do CLI chegam.
@@ -346,6 +347,8 @@ describe("Progresso de um plano novo", () => {
     await send("primeiro pedido");
     emit({ kind: "todos", items: [{ content: "Etapa antiga", status: "in_progress" }] });
     emit({ kind: "done", ok: true });
+    // O fim do turno passa pelos plugins antes de liberar o envio.
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
     fireEvent.click(screen.getByRole("tab", { name: "Progresso" }));
     expect(screen.getByText("Etapa antiga")).toBeTruthy();
 
@@ -448,5 +451,48 @@ describe("ChatView: navegador só mostra a página na conversa visível", () => 
     fireEvent.click(screen.getByTitle("Navegador"));
     await act(async () => {});
     expect(api.browserShow).not.toHaveBeenCalledWith(true);
+  });
+});
+
+describe("ChatView: LunaFix (correção depois de comando que falhou)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /// Em cada fim de turno, o plugin pede (ou não) uma correção. O teste troca só essa resposta.
+  function plugin(answers: (string | null)[]) {
+    return vi.spyOn(PluginHost.prototype, "runTurnDone").mockImplementation(async () => answers.shift() ?? null);
+  }
+
+  it("comando que falhou e plugin pedindo correção: manda a correção na mesma conversa", async () => {
+    plugin(["corrija o teste", null]);
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("implemente a soma");
+    emit({ kind: "commandResult", ok: false, output: "Exit code 1" });
+    emit({ kind: "textDelta", text: "Pronto." });
+    emit({ kind: "done", ok: true });
+
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(api.sendPrompt).mock.calls[1][0].prompt).toContain("corrija o teste");
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+  });
+
+  it("depois de duas correções, entrega com aviso em vez de tentar de novo", async () => {
+    plugin(["corrija 1", "corrija 2", "corrija 3"]);
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("implemente a soma");
+    for (let turn = 0; turn < 3; turn++) {
+      emit({ kind: "commandResult", ok: false, output: "falha persistente" });
+      emit({ kind: "done", ok: true });
+      await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(Math.min(turn + 2, 3)));
+    }
+
+    expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(3);
+    expect(await screen.findByText(/não conseguiu corrigir o erro do último comando/)).toBeTruthy();
   });
 });

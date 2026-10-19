@@ -489,3 +489,52 @@ describe("PluginHost: temas de plugin", () => {
     expect(host.themeList()).toEqual([]);
   });
 });
+
+describe("onTurnDone (LunaFix)", () => {
+  const turn = { text: "pronto", ok: true, lastCommand: { ok: false, output: "Exit code 1" }, attempt: 0 };
+
+  it("exige a permissão autofix", async () => {
+    const host = new PluginHost();
+    const loaded = await host.load(
+      manifest({ permissions: ["hooks"] }),
+      plugin((api) => api.onTurnDone(() => "corrija")),
+    );
+
+    expect(loaded).toBe(false);
+    expect(host.errors.join(" ")).toContain('"autofix"');
+  });
+
+  it("devolve o prompt do primeiro plugin que pede correção, com o resultado do último comando", async () => {
+    const host = new PluginHost();
+    const seen: unknown[] = [];
+    await host.load(
+      manifest({ id: "lunafix", permissions: ["autofix"] }),
+      plugin((api) =>
+        api.onTurnDone((info) => {
+          seen.push(info);
+          return info.lastCommand && !info.lastCommand.ok ? `corrija: ${info.lastCommand.output}` : undefined;
+        }),
+      ),
+    );
+
+    expect(await host.runTurnDone(turn)).toBe("corrija: Exit code 1");
+    expect(seen).toEqual([turn]);
+  });
+
+  it("sem hook, não devolve nada; um hook que falha não segura a entrega", async () => {
+    const host = new PluginHost();
+    expect(await host.runTurnDone(turn)).toBeNull();
+
+    await host.load(
+      manifest({ id: "quebrado", permissions: ["autofix"] }),
+      plugin((api) =>
+        api.onTurnDone(() => {
+          throw new Error("falha");
+        }),
+      ),
+    );
+
+    expect(await host.runTurnDone(turn)).toBeNull();
+    expect(host.errors.join(" ")).toContain("falha");
+  });
+});

@@ -7,7 +7,7 @@ use std::path::Path;
 use super::marketplace::{self, Catalog};
 
 /// Ids do catálogo oficial que entram por padrão.
-pub const DEFAULT_PLUGINS: &[&str] = &["cache-tokens"];
+pub const DEFAULT_PLUGINS: &[&str] = &["cache-tokens", "lunafix"];
 
 /// Instala os plugins padrão que ainda não foram semeados. Falha de um não impede os outros.
 pub fn install_defaults(app_data: &Path) -> Result<(), String> {
@@ -96,6 +96,16 @@ mod tests {
         assert!(!app.join("plugins/cache-tokens").exists());
 
         let _ = fs::remove_dir_all(&app);
+    }
+
+    /// LunaFix vem ativo por padrão: a lista de padrões inclui o plugin e o catálogo oficial o traz.
+    #[test]
+    fn lunafix_is_a_default_plugin_shipped_in_the_catalog() {
+        assert!(DEFAULT_PLUGINS.contains(&"lunafix"));
+        let app = temp_app("lunafix-padrao");
+        let catalog = marketplace::official().unwrap();
+        install_from(&app, &catalog, &["lunafix"]).unwrap();
+        assert!(app.join("plugins/lunafix/index.js").is_file());
     }
 
     #[test]
