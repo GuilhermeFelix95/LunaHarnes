@@ -32,6 +32,8 @@ import { RulesSection } from "./RulesSection";
 import { McpSection } from "./McpSection";
 import { SkillsSection } from "./SkillsSection";
 import { SavedThemes } from "./SavedThemes";
+import { PluginThemePicker } from "./PluginThemePicker";
+import { applyPluginTheme, savePluginThemeKey } from "../../plugins/themeRegistry";
 import { loadSavedThemes, saveSavedThemes, type SavedTheme } from "../../themeShare";
 
 interface SettingsViewProps {
@@ -242,6 +244,9 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     setTheme(id);
     saveTheme(id);
     applyTheme(id);
+    // Um tema do app tira o de plugin, senão os tokens do plugin continuam por cima.
+    savePluginThemeKey(null);
+    applyPluginTheme(null);
   }
 
   // Cada mudança no editor vale na hora: salva e aplica no mesmo gesto.
@@ -368,6 +373,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                       </div>
                     </div>
                   ))}
+
+                  <PluginThemePicker />
 
                   <h3 id="settings-user-themes" className="settings__subhead">
                     {t("settings.appearance.yourThemes")}

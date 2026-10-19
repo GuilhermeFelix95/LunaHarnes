@@ -41,7 +41,8 @@ describe("SettingsView", () => {
     localStorage.setItem("luna.savedThemes", JSON.stringify([{ name: "Mar", palette: { ...DEFAULT_PALETTE, accent: "#2a9d8f" } }]));
     render(<SettingsView onClose={() => {}} />);
 
-    expect(screen.getAllByRole("radio")).toHaveLength(13);
+    // 13 = 12 temas de fábrica + "Padrão do app" dos temas de plugin.
+    expect(screen.getAllByRole("radio")).toHaveLength(14);
     const mine = screen.getByRole("radiogroup", { name: "Seus temas" });
     expect(mine.textContent).toContain("Mar");
     expect(mine.textContent).toContain("Novo tema");
@@ -86,7 +87,8 @@ describe("SettingsView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Voltar aos temas" }));
 
-    expect(screen.getAllByRole("radio")).toHaveLength(13);
+    // 13 = 12 temas de fábrica + "Padrão do app" dos temas de plugin.
+    expect(screen.getAllByRole("radio")).toHaveLength(14);
     expect(screen.queryByRole("button", { name: "Voltar aos temas" })).toBeNull();
   });
 
