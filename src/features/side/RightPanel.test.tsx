@@ -116,6 +116,19 @@ describe("RightPanel", () => {
     ]);
   });
 
+  it("progresso com muitas tarefas rola dentro da lista, e o mascote fica fora dela", () => {
+    setup("progress", undefined, [
+      { content: "Tarefa 1", status: "completed" },
+      { content: "Tarefa 2", status: "pending" },
+    ]);
+
+    const list = screen.getAllByRole("listitem")[0].closest(".side__progress-list");
+    const atom = document.querySelector(".luna-atom");
+    expect(list).toBeTruthy();
+    expect(atom).toBeTruthy();
+    expect(atom?.closest(".side__progress-list")).toBeNull();
+  });
+
   it("sem checklist, a aba Progresso explica como aparece", () => {
     setup("progress");
 

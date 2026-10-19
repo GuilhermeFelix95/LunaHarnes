@@ -172,12 +172,14 @@ export function RightPanel({
           <EmptyState icon={<ScrollText size={18} />}>{t("side.planEmpty")}</EmptyState>
         )}
       </div>
-      <div className="side__body" role="tabpanel" hidden={tab !== "progress"}>
-        {todos.length ? (
-          <ProgressTimeline todos={todos} />
-        ) : (
-          <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>
-        )}
+      <div className="side__body side__progress" role="tabpanel" hidden={tab !== "progress"}>
+        <div className="side__progress-list">
+          {todos.length ? (
+            <ProgressTimeline todos={todos} />
+          ) : (
+            <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>
+          )}
+        </div>
         <LunaAtom working={running} />
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>
