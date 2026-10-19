@@ -132,3 +132,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Registro de erros em arquivo: luna.log na pasta de logs do app (logfile.rs), usado pelo setup; docs/privacidade.md atualizado.
 2026-10-18 | Atualizador (Etapa 4): plugins updater e process registrados, capabilities liberadas; Configurações > Sobre procura e instala atualização; stop_all_for_update encerra execuções e terminais antes de instalar; scripts/make-latest-json.mjs gera latest.json; script release:app. Checagem ao abrir e atualização ponta a ponta ficam para depois.
 2026-10-18 | Painel Progresso: a lista de tarefas rola sozinha (.side__progress-list) e o mascote fica fixo embaixo, sem ser empurrado para fora.
+2026-10-18 | Mascote (Átomo): ids de gradiente únicos por instância (duas conversas abertas não apagam o corpo), elétrons com velocidade fixa, imagem de tema com flutuação; tema aplicado em sequência descarta downloads antigos.

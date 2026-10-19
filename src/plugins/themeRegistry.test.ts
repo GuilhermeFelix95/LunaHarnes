@@ -73,3 +73,18 @@ describe("temas de plugin", () => {
     expect(getThemeMedia()).toEqual({});
   });
 });
+
+describe("temas de plugin com assets", () => {
+  it("aplicar o mesmo tema duas vezes durante o download deixa um só estilo e revoga os blobs da primeira", async () => {
+    setPluginThemes([{ ...verde, css: ".chat { background: asset(assets/bg.png); }", pluginId: "hello" }]);
+
+    applyPluginTheme("plugin:hello/verde");
+    applyPluginTheme("plugin:hello/verde");
+    await vi.waitFor(() => expect(readPluginAsset).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.querySelectorAll("#luna-plugin-theme")).toHaveLength(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:teste");
+    applyPluginTheme(null);
+  });
+});

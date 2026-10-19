@@ -15,6 +15,8 @@ export interface RegisteredPluginTheme extends PluginTheme {
 const registry = new Map<string, RegisteredPluginTheme>();
 let applied: { key: string; tokens: string[] } | null = null;
 let blobs: string[] = [];
+/** Cada aplicação ganha um número. Download que termina depois de outra aplicação é descartado. */
+let generation = 0;
 
 /** Mídia do tema escolhido, já como URL blob: o mascote da Luna e o som de resposta. */
 export interface ThemeMedia {
@@ -110,6 +112,7 @@ function substitute(text: string, urls: Map<string, string>): string {
 
 /** Aplica o tema de plugin de `key`, ou tira o atual com `null`. Chave desconhecida também tira. */
 export function applyPluginTheme(key: string | null, root: HTMLElement = document.documentElement) {
+  const current = ++generation;
   if (applied) {
     for (const token of applied.tokens) root.style.removeProperty(token);
     document.getElementById(STYLE_ID)?.remove();
@@ -144,7 +147,7 @@ export function applyPluginTheme(key: string | null, root: HTMLElement = documen
   }
   blobUrls(theme)
     .then((urls) => {
-      if (applied?.key !== theme.key) {
+      if (current !== generation) {
         for (const url of urls.values()) URL.revokeObjectURL(url);
         return;
       }

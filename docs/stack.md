@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Mascote (2026-10-18): `LunaAtom` gera ids de gradiente com `useId` e põe o preenchimento em atributo `fill`, então várias conversas abertas não se apagam. Elétrons com velocidade fixa (sono só apaga). Mascote de tema flutua. `themeRegistry` descarta downloads de uma aplicação anterior (geração). Testes em `LunaAtom.test.tsx` e `themeRegistry.test.ts`.
+
 - Progresso (2026-10-18): a lista de tarefas rola dentro de `.side__progress-list` e o mascote fica fora dela, fixo no rodapé do painel. Teste em `RightPanel.test.tsx`.
 
 - Travamento ao enviar (2026-10-18): `session.rs` para o pump no evento `result`, escreve o prompt em thread própria, lê o stderr desde o início e limita o `finish` (5 s para o processo sair, depois encerra a árvore). `commands.rs` libera a execução antes de esperar o processo. Parar em `ChatView.tsx` destrava a tela sem depender do `done`. Testes em `session::tests` e no ChatView. Causa original do bloqueio: deadlock com prompt grande e pipe preso.

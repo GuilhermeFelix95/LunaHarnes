@@ -23,7 +23,7 @@ describe("LunaAtom", () => {
     expect(container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur")).toBe("1.6s");
   });
 
-  it("parado: dorme com olhos fechados, boca aberta roncando, elétrons lentos e zZ", () => {
+  it("parado: dorme com olhos fechados, boca aberta roncando, elétrons mais apagados e zZ", () => {
     const { container } = render(<LunaAtom working={false} />);
 
     expect(screen.getByRole("img", { name: "Mascote da Luna dormindo" })).toBeTruthy();
@@ -31,7 +31,41 @@ describe("LunaAtom", () => {
     expect(container.querySelectorAll(".luna-atom__z")).toHaveLength(2);
     expect(container.querySelector(".luna-atom__eye-closed")).toBeTruthy();
     expect(container.querySelector(".luna-atom__mouth-open")).toBeTruthy();
-    expect(container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur")).toBe("7s");
+    expect(container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur")).toBe("1.6s");
+  });
+
+  it("dois Átomos na tela (duas conversas abertas) não repetem ids, e cada preenchimento aponta para o seu SVG", () => {
+    const { container } = render(
+      <>
+        <LunaAtom working={false} />
+        <LunaAtom working />
+      </>,
+    );
+
+    const svgs = [...container.querySelectorAll("svg")];
+    expect(svgs).toHaveLength(2);
+    const ids = svgs.flatMap((svg) => [...svg.querySelectorAll("[id]")].map((el) => el.id));
+    expect(new Set(ids).size).toBe(ids.length);
+
+    for (const svg of svgs) {
+      const own = new Set([...svg.querySelectorAll("[id]")].map((el) => el.id));
+      const refs = [...svg.querySelectorAll("[fill]")]
+        .map((el) => el.getAttribute("fill") ?? "")
+        .map((fill) => /^url\(#(.+)\)$/.exec(fill)?.[1])
+        .filter((id): id is string => Boolean(id));
+      expect(refs.length).toBeGreaterThan(0);
+      for (const ref of refs) expect(own.has(ref)).toBe(true);
+    }
+  });
+
+  it("os elétrons correm na mesma velocidade dormindo ou trabalhando", () => {
+    const { container, rerender } = render(<LunaAtom working />);
+    const dur = () => container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur");
+    const busy = dur();
+
+    rerender(<LunaAtom working={false} />);
+
+    expect(dur()).toBe(busy);
   });
 
   it("não faz ação ao montar", () => {

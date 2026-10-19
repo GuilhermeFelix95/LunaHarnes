@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { t } from "../../i18n";
 import { getThemeMedia, subscribeThemeMedia } from "../../plugins/themeRegistry";
 
@@ -24,6 +24,9 @@ export function LunaAtom({ working }: LunaAtomProps) {
   const [action, setAction] = useState<Action | null>(null);
   const [face, setFace] = useState<Face | null>(null);
   const previous = useRef(working);
+  // Ids dos gradientes precisam ser únicos: há um Átomo por conversa aberta, e o CSS resolvia `url(#…)` para o primeiro do documento.
+  const uid = useId().replace(/:/g, "");
+  const gid = (name: string) => `${uid}-${name}`;
   // Mascote do tema escolhido, quando ele traz um. Sem ele, a Luna é o átomo padrão.
   const media = useSyncExternalStore(subscribeThemeMedia, getThemeMedia);
 
@@ -67,8 +70,8 @@ export function LunaAtom({ working }: LunaAtomProps) {
     .filter(Boolean)
     .join(" ");
 
-  // Uma volta do elétron: mais curta trabalhando, mais longa dormindo.
-  const orbitDur = working ? "1.6s" : "7s";
+  // Velocidade fixa: trocar o `dur` com a animação rodando faz o elétron pular de posição.
+  const orbitDur = "1.6s";
   const orbits = [0, 60, 120];
   const electronStart = [0.4, 2.7, 4.6];
   // Caminho de uma volta na elipse (330 x 110), começando em t = 0.
@@ -87,38 +90,38 @@ export function LunaAtom({ working }: LunaAtomProps) {
       <svg viewBox="0 0 1024 1024" role="img" aria-label={working ? t("luna.working") : t("luna.sleeping")}>
         <defs>
           {/* Luz vinda do canto superior esquerdo: o corpo ganha volume com degradê, aro escuro e brilho. */}
-          <radialGradient id="luna-atom-body" cx="0.36" cy="0.3" r="0.85">
+          <radialGradient id={gid("body")} cx="0.36" cy="0.3" r="0.85">
             <stop offset="0" stopColor="#e6eaff" />
             <stop offset="0.38" stopColor="#aab6f5" />
             <stop offset="0.78" stopColor="#6f7ed6" />
             <stop offset="1" stopColor="#4a56ad" />
           </radialGradient>
-          <radialGradient id="luna-atom-rim" cx="0.5" cy="0.5" r="0.5">
+          <radialGradient id={gid("rim")} cx="0.5" cy="0.5" r="0.5">
             <stop offset="0.72" stopColor="#1d2466" stopOpacity="0" />
             <stop offset="1" stopColor="#1d2466" stopOpacity="0.38" />
           </radialGradient>
-          <radialGradient id="luna-atom-ground" cx="0.5" cy="0.5" r="0.5">
+          <radialGradient id={gid("ground")} cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="#000" stopOpacity="0.34" />
             <stop offset="1" stopColor="#000" stopOpacity="0" />
           </radialGradient>
-          <radialGradient id="luna-atom-e0" cx="0.35" cy="0.3" r="0.8">
+          <radialGradient id={gid("e0")} cx="0.35" cy="0.3" r="0.8">
             <stop offset="0" stopColor="#fff6dd" />
             <stop offset="0.5" stopColor="#ffd27a" />
             <stop offset="1" stopColor="#d9963c" />
           </radialGradient>
-          <radialGradient id="luna-atom-e1" cx="0.35" cy="0.3" r="0.8">
+          <radialGradient id={gid("e1")} cx="0.35" cy="0.3" r="0.8">
             <stop offset="0" stopColor="#e6fff6" />
             <stop offset="0.5" stopColor="#7fd1b9" />
             <stop offset="1" stopColor="#3f9c84" />
           </radialGradient>
-          <radialGradient id="luna-atom-e2" cx="0.35" cy="0.3" r="0.8">
+          <radialGradient id={gid("e2")} cx="0.35" cy="0.3" r="0.8">
             <stop offset="0" stopColor="#ffe9f3" />
             <stop offset="0.5" stopColor="#ff9ec7" />
             <stop offset="1" stopColor="#c95e90" />
           </radialGradient>
         </defs>
         {/* Sombra no chão: o Átomo flutua, então a sombra fica embaixo, desfocada. */}
-        <ellipse className="luna-atom__ground" cx="512" cy="860" rx="210" ry="44" />
+        <ellipse className="luna-atom__ground" cx="512" cy="860" rx="210" ry="44" fill={`url(#${gid("ground")})`} />
         {orbits.map((angle) => (
           <g key={angle} transform={`rotate(${angle} 512 512)`}>
             <ellipse className="luna-atom__orbit" cx="512" cy="512" rx="330" ry="110" />
@@ -126,8 +129,8 @@ export function LunaAtom({ working }: LunaAtomProps) {
         ))}
         <path className="luna-atom__arm luna-atom__arm--left" d="M330 560 L262 470" />
         <path className="luna-atom__arm luna-atom__arm--right" d="M694 560 L762 470" />
-        <circle className="luna-atom__body" cx="512" cy="512" r="200" />
-        <circle className="luna-atom__rim" cx="512" cy="512" r="200" />
+        <circle className="luna-atom__body" cx="512" cy="512" r="200" fill={`url(#${gid("body")})`} />
+        <circle className="luna-atom__rim" cx="512" cy="512" r="200" fill={`url(#${gid("rim")})`} />
         <ellipse className="luna-atom__gloss" cx="430" cy="380" rx="62" ry="32" transform="rotate(-28 430 380)" />
         {/* Metade da frente de cada órbita passa por cima do corpo: dá a sensação de volta em volta do núcleo. */}
         {orbits.map((angle) => (
@@ -135,7 +138,7 @@ export function LunaAtom({ working }: LunaAtomProps) {
         ))}
         {orbits.map((angle, i) => (
           <g key={angle} transform={`rotate(${angle} 512 512)`}>
-            <circle className={`luna-atom__electron luna-atom__electron--${i}`} r="34" cx="842" cy="512">
+            <circle className={`luna-atom__electron luna-atom__electron--${i}`} r="34" cx="842" cy="512" fill={`url(#${gid(`e${i}`)})`}>
               <animateMotion dur={orbitDur} repeatCount="indefinite" path={loop} begin={`-${electronStart[i]}s`} />
             </circle>
           </g>

@@ -1384,11 +1384,9 @@ textarea:focus-visible {
 }
 
 .luna-atom__body {
-  fill: url(#luna-atom-body);
 }
 
 .luna-atom__rim {
-  fill: url(#luna-atom-rim);
   pointer-events: none;
 }
 
@@ -1399,7 +1397,6 @@ textarea:focus-visible {
 }
 
 .luna-atom__ground {
-  fill: url(#luna-atom-ground);
   pointer-events: none;
 }
 
@@ -1417,10 +1414,6 @@ textarea:focus-visible {
   stroke-width: 14;
   opacity: 0.6;
 }
-
-.luna-atom__electron--0 { fill: url(#luna-atom-e0); }
-.luna-atom__electron--1 { fill: url(#luna-atom-e1); }
-.luna-atom__electron--2 { fill: url(#luna-atom-e2); }
 
 .luna-atom__arm {
   fill: none;
@@ -2987,5 +2980,5 @@ textarea:focus-visible {
   display: block;
   width: 100%;
   height: auto;
-  image-rendering: pixelated;
+  animation: luna-atom-bob 4s ease-in-out infinite;
 }
