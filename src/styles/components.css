@@ -262,6 +262,29 @@
   border-right: 1px solid var(--glass-border);
 }
 
+/* Cards de plugin na sidebar: rolam dentro de um limite, e o rodapé (Configurações) nunca some. */
+.sidebar__foot {
+  flex-shrink: 0;
+}
+
+[data-plugin-slot="sidebar"] {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 40%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+[data-plugin-slot="sidebar"] > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+[data-plugin-slot="sidebar"] button {
+  flex-shrink: 0;
+}
+
 /* Marca no topo da barra: a lua do ícone e o nome */
 .sidebar__brand {
   display: flex;

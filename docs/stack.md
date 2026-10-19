@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Sidebar (2026-10-18): o slot `data-plugin-slot="sidebar"` tem no máximo 40% da altura e rola; o rodapé (Configurações) não encolhe. Regras no host, em `components.css`, sem mexer no plugin.
+
 - LunaFix (2026-10-18): plugin oficial em `plugins-examples/lunafix` (permissão `autofix`), ativo por padrão (`DEFAULT_PLUGINS` e `official.json`). `api.onTurnDone` recebe `{ text, ok, lastCommand, attempt }` e, se devolver texto, o `ChatView` manda a correção na mesma conversa, no máximo `AUTOFIX_MAX_ATTEMPTS` (2) por envio. Enquanto corrige, aviso e som ficam para o fim. Parar cancela o ciclo. Limites: a resposta com o erro continua visível no chat (não é recolhida); turnos de compactação passam pelo mesmo gancho. Testes em `host.test.ts`, `lunafix.test.ts` e `ChatView.test.tsx` (LunaFix).
 
 - Resultado de comando (2026-10-18): `ToolUse` traz o `id` do chamado; os resultados de ferramenta viram `ToolResult` e `CommandTracker` (`providers/mod.rs`) só deixa passar o resultado de Bash como `CommandResult { ok, output }` (últimos 4000 caracteres). O Codex emite `CommandResult` direto do `item.completed` (`exit_code`). Captura real do Claude com `exit 3` está no teste `a_failed_bash_result_keeps_its_id_and_output`. Codex ainda sem captura real.
