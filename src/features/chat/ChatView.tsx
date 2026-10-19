@@ -46,6 +46,7 @@ import { PluginOfferCard } from "./PluginOfferCard";
 import { playReplySound } from "../../sounds";
 import { showToast } from "../../ui/toast";
 import { loadInstalledPlugins } from "../../plugins/loader";
+import { setPluginThemes } from "../../plugins/themeRegistry";
 import type {
   AgentSessions,
   ApiPreset,
@@ -265,6 +266,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     if (!pluginsLoad.current) pluginsLoad.current = loadInstalledPlugins(host);
     void pluginsLoad.current.then(() => {
       setModes(host.modeList());
+      setPluginThemes(host.themeList());
       setNotes(host.messages());
     });
     if (!cwd) {
@@ -283,6 +285,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       host.reset();
       void loadInstalledPlugins(host).then(() => {
         setModes(host.modeList());
+        setPluginThemes(host.themeList());
         setNotes(host.messages());
       });
     };
