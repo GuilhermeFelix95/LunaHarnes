@@ -11,7 +11,7 @@ Checklist para publicar o LunaHarness. Cada item diz o que já está pronto e o 
 
 ## Depende do autor
 
-- [ ] **Chave do atualizador:** gerar com `npx tauri signer generate`. A chave privada fica fora do repositório, com cópia de segurança. Sem ela não há release assinado para o atualizador. Perder a chave impede atualizações para quem já instalou.
+- [ ] **Chave do atualizador:** a chave pública já está em `tauri.conf.json`. Falta guardar a privada fora do repositório, com cópia de segurança, e publicar a release assinada. Sem a privada não há release para o atualizador. Perder a chave impede atualizações para quem já instalou.
 - [ ] **Repositório público:** antes de mudar a visibilidade, varrer o histórico atrás de segredos (tokens, chaves, `.env`, keystores) e mostrar o resultado ao autor. A mudança só acontece com autorização explícita.
 - [ ] **Assinatura de código:** pedir a SignPath Foundation (gratuito para código aberto). Até a aprovação, o instalador sai sem assinatura, e o Windows mostra o aviso do SmartScreen. Isso deve ser dito no README.
 
@@ -19,9 +19,10 @@ Checklist para publicar o LunaHarness. Cada item diz o que já está pronto e o 
 
 Bloqueios para anunciar uma versão estável. Os itens marcados com (autor) dependem de ação sua.
 
-- [ ] (autor) Gerar e guardar a chave do atualizador, e publicar uma release assinada com `latest.json`.
-- [ ] (autor) Enviar os commits locais ao GitHub (ainda sem push).
-- [ ] (autor) Testar atualização 0.1.0 → 0.1.1 de ponta a ponta.
+- [ ] (autor) Guardar a chave privada do atualizador e publicar a release 0.1.0 (pré-release) com `.exe`, `.sig` e `latest.json`.
+- [ ] (autor) Publicar a 0.1.1 como release normal (latest): pré-release não entra no endereço `releases/latest` que o atualizador consulta.
+- [x] Enviar os commits locais ao GitHub (feito: `9ea03ee` em `origin/main`).
+- [ ] (autor) Testar atualização 0.1.0 → 0.1.1 de ponta a ponta: o aviso ao abrir aparece e a instalação funciona.
 - [ ] (autor) Rodar o app num `npm run dev:app` real: navegador, mascote, Progresso e tema Game Boy.
 - [ ] Assinatura de código (SignPath) quando aprovada; até lá o README avisa do SmartScreen.
 

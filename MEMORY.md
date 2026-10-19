@@ -140,3 +140,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Progresso: o mascote compacto fica ao lado do resumo (ou do texto de espera) no topo, não mais no fim do painel.
 2026-10-18 | Plano: a pergunta de aprovação não vira seletor (o botão "Aprovar e executar" da barra é o único controle); o bloco some do chat do mesmo jeito.
 2026-10-18 | Atividade: cabeçalho do trabalho mostra passo atual e tempo decorrido; cada ação mostra ok ou falha (evento toolResult, ProviderEvent::ToolResult sem saída fora de comandos).
+2026-10-19 | Distribuição: checagem de atualização 5 s depois de abrir (aviso no toast, falha só no console); NOTICE com o nome completo do titular; checklist atualizado (push feito).

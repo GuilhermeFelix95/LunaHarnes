@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stopAllForUpdate } from "./api";
-import { findUpdate } from "./updates";
+import { showToast } from "./ui/toast";
+import { checkOnStartup, findUpdate } from "./updates";
 
 const downloadAndInstall = vi.fn();
 const relaunch = vi.fn();
@@ -10,6 +11,7 @@ vi.mock("@tauri-apps/plugin-updater", () => ({ check: () => check() }));
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }));
 vi.mock("@tauri-apps/api/app", () => ({ getVersion: vi.fn() }));
 vi.mock("./api", () => ({ stopAllForUpdate: vi.fn() }));
+vi.mock("./ui/toast", () => ({ showToast: vi.fn() }));
 
 beforeEach(() => {
   check.mockReset();
@@ -48,5 +50,36 @@ describe("findUpdate", () => {
 
     await expect(update?.install()).rejects.toThrow("falhou");
     expect(downloadAndInstall).not.toHaveBeenCalled();
+  });
+});
+
+describe("checkOnStartup", () => {
+  beforeEach(() => {
+    vi.mocked(showToast).mockReset();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("sem versão nova, não mostra nada", async () => {
+    check.mockResolvedValue(null);
+
+    await checkOnStartup();
+
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("com versão nova, avisa na tela com o número da versão", async () => {
+    check.mockResolvedValue({ version: "0.1.1", body: "", downloadAndInstall });
+
+    await checkOnStartup();
+
+    expect(showToast).toHaveBeenCalledWith(expect.objectContaining({ kind: "info", title: expect.stringContaining("0.1.1") }));
+  });
+
+  it("falha na checagem não mostra aviso e não lança", async () => {
+    check.mockRejectedValue(new Error("sem rede"));
+
+    await expect(checkOnStartup()).resolves.toBeUndefined();
+    expect(showToast).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalled();
   });
 });

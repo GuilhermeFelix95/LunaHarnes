@@ -29,6 +29,8 @@ export const ptBR = {
   "catalog.removeFailed": "Não foi possível remover o catálogo.",
   "about.version": "Versão {version}",
   "about.check": "Procurar atualizações",
+  "update.available": "Versão {version} disponível",
+  "update.availableHint": "Abra Configurações › Sobre para instalar.",
   "about.checking": "Procurando...",
   "about.upToDate": "Você está na versão mais recente.",
   "about.available": "Versão {version} disponível.",

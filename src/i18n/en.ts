@@ -28,6 +28,8 @@ export const en: Record<MessageKey, string> = {
   "catalog.removeFailed": "Could not remove the catalog.",
   "about.version": "Version {version}",
   "about.check": "Check for updates",
+  "update.available": "Version {version} available",
+  "update.availableHint": "Open Settings › About to install it.",
   "about.checking": "Checking...",
   "about.upToDate": "You are on the latest version.",
   "about.available": "Version {version} is available.",
