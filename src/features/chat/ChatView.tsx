@@ -268,7 +268,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       setModes(host.modeList());
       setPluginThemes(host.themeList());
       setNotes(host.messages());
-    });
+    }, () => showToast({ kind: "error", title: t("plugins.loadFailed") }));
     if (!cwd) {
       void getWorkspace().then(setCwd).catch((e) => setNotes([String(e)]));
     }
@@ -287,7 +287,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         setModes(host.modeList());
         setPluginThemes(host.themeList());
         setNotes(host.messages());
-      });
+      }, () => showToast({ kind: "error", title: t("plugins.loadFailed") }));
     };
     window.addEventListener(PLUGINS_CHANGED, reload);
     return () => window.removeEventListener(PLUGINS_CHANGED, reload);
@@ -458,7 +458,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           setSideTab("plan");
         }
         persist(messagesRef.current);
-        void host.runAfterResponse(responseText.current).then(() => setNotes(host.messages()));
+        void host.runAfterResponse(responseText.current).then(
+          () => setNotes(host.messages()),
+          () => showToast({ kind: "error", title: t("chat.hookFailed") }),
+        );
       }
     });
     return () => {

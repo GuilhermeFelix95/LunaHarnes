@@ -63,6 +63,12 @@ flowchart LR
 - O app não guarda suas credenciais das CLIs: quem faz o login é o próprio binário oficial.
 - Chaves de API são opcionais, por perfil, e ficam no armazenamento seguro do sistema.
 
+## Baixar
+
+- Quando houver uma versão publicada, o instalador para Windows fica na [página de releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Requisitos: Windows 10 (versão 1809 ou mais nova) ou Windows 11, e pelo menos um CLI instalado e logado (`claude` ou `codex`). Não é preciso Node.js nem Rust.
+- O instalador ainda não tem assinatura de código: o Windows pode mostrar um aviso do SmartScreen. Escolha "Mais informações" e depois "Executar assim mesmo".
+
 ## Pré-requisitos
 
 - **Windows 10 ou 11** (o projeto hoje é preparado para Windows; os scripts de build usam o MSVC).

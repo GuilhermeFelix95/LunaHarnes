@@ -63,6 +63,12 @@ flowchart LR
 - Appen sparar inte dina CLI-uppgifter: den officiella binärfilen sköter inloggningen.
 - API-nycklar är valfria, per profil, och lagras i systemets säkra lagring.
 
+## Ladda ner
+
+- När en version har publicerats finns Windows-installeraren på [releasesidan](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Krav: Windows 10 (version 1809 eller senare) eller Windows 11, och minst ett installerat och inloggat CLI (`claude` eller `codex`). Node.js och Rust behövs inte.
+- Installeraren är ännu inte kodsignerad, så Windows kan visa en SmartScreen-varning. Välj "Mer information" och sedan "Kör ändå".
+
 ## Krav
 
 - **Windows 10 eller 11** (projektet är för närvarande förberett för Windows; byggskripten använder MSVC).

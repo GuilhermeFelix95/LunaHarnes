@@ -63,6 +63,12 @@ flowchart LR
 - L'app non conserva le tue credenziali delle CLI: è il binario ufficiale a gestire il login.
 - Le chiavi API sono facoltative, per profilo, e sono salvate nell'archiviazione sicura del sistema.
 
+## Download
+
+- Quando sarà pubblicata una versione, l'installer per Windows sarà nella [pagina delle release](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Requisiti: Windows 10 (versione 1809 o successiva) o Windows 11, e almeno una CLI installata e con accesso effettuato (`claude` o `codex`). Non servono Node.js né Rust.
+- L'installer non è ancora firmato digitalmente, quindi Windows può mostrare un avviso di SmartScreen. Scegli "Ulteriori informazioni" e poi "Esegui comunque".
+
 ## Requisiti
 
 - **Windows 10 o 11** (il progetto oggi è predisposto per Windows; gli script di build usano MSVC).

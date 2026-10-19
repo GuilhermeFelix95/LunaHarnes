@@ -63,6 +63,12 @@ flowchart LR
 - Aplikasi tidak menyimpan kredensial CLI Anda: biner resmi yang menangani login.
 - Kunci API bersifat opsional, per profil, dan disimpan di penyimpanan aman sistem.
 
+## Unduh
+
+- Saat versi sudah dirilis, installer Windows ada di [halaman rilis](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Persyaratan: Windows 10 (versi 1809 atau lebih baru) atau Windows 11, dan minimal satu CLI yang sudah terpasang dan login (`claude` atau `codex`). Node.js dan Rust tidak diperlukan.
+- Installer belum memiliki tanda tangan kode, sehingga Windows mungkin menampilkan peringatan SmartScreen. Pilih "More info" lalu "Run anyway".
+
 ## Persyaratan
 
 - **Windows 10 atau 11** (proyek ini saat ini disiapkan untuk Windows; skrip build memakai MSVC).

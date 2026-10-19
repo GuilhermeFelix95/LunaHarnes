@@ -13,3 +13,8 @@ src-tauri/gen/
 .DS_Store
 Thumbs.db
 *.log
+
+# Rascunhos locais e ícones de outras plataformas (não fazem parte do app Windows)
+preview-gatos/
+src-tauri/icons/android/
+src-tauri/icons/ios/

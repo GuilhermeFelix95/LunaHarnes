@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Dialog } from "../../ui/Dialog";
 import { t } from "../../i18n";
+import { showToast } from "../../ui/toast";
 
 interface CatalogPickerProps {
   /** Catálogos por URL que o usuário adicionou. */
@@ -48,7 +49,12 @@ export function CatalogPicker({ sources, value, onChange, onAdd, onRemove }: Cat
         {t("catalog.add")}
       </button>
       {value && (
-        <button type="button" className="btn btn--ghost btn--sm" onClick={() => void onRemove(value).then(() => onChange(""))}>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() =>
+            void onRemove(value).then(
+              () => onChange(""),
+              () => showToast({ kind: "error", title: t("catalog.removeFailed") }),
+            )
+          }>
           {t("catalog.remove")}
         </button>
       )}

@@ -15,6 +15,16 @@ Checklist para publicar o LunaHarness. Cada item diz o que já está pronto e o 
 - [ ] **Repositório público:** antes de mudar a visibilidade, varrer o histórico atrás de segredos (tokens, chaves, `.env`, keystores) e mostrar o resultado ao autor. A mudança só acontece com autorização explícita.
 - [ ] **Assinatura de código:** pedir a SignPath Foundation (gratuito para código aberto). Até a aprovação, o instalador sai sem assinatura, e o Windows mostra o aviso do SmartScreen. Isso deve ser dito no README.
 
+## Antes de divulgar
+
+Bloqueios para anunciar uma versão estável. Os itens marcados com (autor) dependem de ação sua.
+
+- [ ] (autor) Gerar e guardar a chave do atualizador, e publicar uma release assinada com `latest.json`.
+- [ ] (autor) Enviar os commits locais ao GitHub (ainda sem push).
+- [ ] (autor) Testar atualização 0.1.0 → 0.1.1 de ponta a ponta.
+- [ ] (autor) Rodar o app num `npm run dev:app` real: navegador, mascote, Progresso e tema Game Boy.
+- [ ] Assinatura de código (SignPath) quando aprovada; até lá o README avisa do SmartScreen.
+
 ## Termos e marca
 
 - O nome do app é **LunaHarness**. Não use "Claude" nem o logo da Anthropic no nome, no ícone ou em destaque na tela.

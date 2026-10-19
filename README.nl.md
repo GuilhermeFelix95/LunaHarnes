@@ -63,6 +63,12 @@ flowchart LR
 - De app bewaart je CLI-inloggegevens niet: het officiële binaire bestand regelt de login.
 - API-sleutels zijn optioneel, per profiel, en worden opgeslagen in de beveiligde opslag van het systeem.
 
+## Downloaden
+
+- Zodra een versie is gepubliceerd, staat het Windows-installatiebestand op de [releasepagina](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Vereisten: Windows 10 (versie 1809 of nieuwer) of Windows 11, en minstens één geïnstalleerde en ingelogde CLI (`claude` of `codex`). Node.js en Rust zijn niet nodig.
+- Het installatiebestand is nog niet van een codehandtekening voorzien, dus Windows kan een SmartScreen-waarschuwing tonen. Kies "Meer informatie" en daarna "Toch uitvoeren".
+
 ## Vereisten
 
 - **Windows 10 of 11** (het project is nu voorbereid op Windows; de buildscripts gebruiken MSVC).

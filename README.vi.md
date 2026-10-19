@@ -63,6 +63,12 @@ flowchart LR
 - Ứng dụng không giữ thông tin đăng nhập CLI của bạn: tệp nhị phân chính thức tự xử lý việc đăng nhập.
 - Khóa API là tùy chọn, theo từng hồ sơ, và được lưu trong kho an toàn của hệ thống.
 
+## Tải về
+
+- Khi có phiên bản được phát hành, trình cài đặt cho Windows sẽ nằm ở [trang phát hành](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Yêu cầu: Windows 10 (phiên bản 1809 trở lên) hoặc Windows 11, và ít nhất một CLI đã cài đặt và đăng nhập (`claude` hoặc `codex`). Không cần Node.js hay Rust.
+- Trình cài đặt chưa có chữ ký mã, nên Windows có thể hiện cảnh báo SmartScreen. Chọn "More info" rồi "Run anyway".
+
 ## Yêu cầu
 
 - **Windows 10 hoặc 11** (dự án hiện được chuẩn bị cho Windows; các script build dùng MSVC).

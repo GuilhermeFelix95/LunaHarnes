@@ -63,6 +63,12 @@ flowchart LR
 - L'application ne garde pas vos identifiants des CLI : c'est le binaire officiel qui gère la connexion.
 - Les clés d'API sont facultatives, par profil, et stockées dans le stockage sécurisé du système.
 
+## Télécharger
+
+- Lorsqu'une version sera publiée, l'installateur Windows se trouve sur la [page des releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Prérequis : Windows 10 (version 1809 ou ultérieure) ou Windows 11, et au moins un CLI installé et connecté (`claude` ou `codex`). Node.js et Rust ne sont pas nécessaires.
+- L'installateur n'est pas encore signé, Windows peut donc afficher un avertissement SmartScreen. Choisissez « Informations complémentaires » puis « Exécuter quand même ».
+
 ## Prérequis
 
 - **Windows 10 ou 11** (le projet est actuellement prévu pour Windows ; les scripts de build utilisent MSVC).

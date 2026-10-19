@@ -63,6 +63,12 @@ flowchart LR
 - 应用不保存你的 CLI 凭据：登录由官方可执行文件处理。
 - API 密钥是可选的，按配置文件设置，并保存在系统的安全存储中。
 
+## 下载
+
+- 发布版本后，Windows 安装程序会在[发布页面](https://github.com/GuilhermeFelix95/LunaHarnes/releases)中提供。
+- 运行要求：Windows 10（1809 版或更新）或 Windows 11，并且至少安装并登录一个 CLI（`claude` 或 `codex`）。不需要 Node.js 或 Rust。
+- 安装程序还没有代码签名，所以 Windows 可能显示 SmartScreen 警告。请选择“更多信息”，然后选择“仍要运行”。
+
 ## 运行要求
 
 - **Windows 10 或 11**（项目目前面向 Windows；构建脚本使用 MSVC）。

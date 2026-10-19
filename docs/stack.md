@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Estabilidade (2026-10-18): README com a seção de download nos 22 idiomas (releases, requisitos e aviso do SmartScreen). `ErrorBoundary` em `src/ui/` troca a tela branca por um aviso com Recarregar. Promessas de plugin, catálogo e `runAfterResponse` avisam por toast quando falham. `.gitignore` cobre `preview-gatos/` e os ícones android/ios.
+
 - Mascote (2026-10-18): `LunaAtom` gera ids de gradiente com `useId` e põe o preenchimento em atributo `fill`, então várias conversas abertas não se apagam. Elétrons com velocidade fixa (sono só apaga). Mascote de tema flutua. `themeRegistry` descarta downloads de uma aplicação anterior (geração). Testes em `LunaAtom.test.tsx` e `themeRegistry.test.ts`.
 
 - Progresso (2026-10-18): a lista de tarefas rola dentro de `.side__progress-list` e o mascote fica fora dela, fixo no rodapé do painel. Teste em `RightPanel.test.tsx`.
@@ -84,7 +86,7 @@ docs/                stack, contrato de plugins
 - Etapa 1 (repositório e documentação): concluída.
 - Etapa 2 (providers e sessão em Rust): código e testes passando. Fixture de sucesso do Codex pendente (`codex login`).
 - Etapa 3 (Tauri + UI de chat): comandos `send_prompt` e `cancel_prompt` (`src-tauri/src/commands.rs`), evento `provider-event`, `ChatView` com streaming e troca de provedor. Ícone da Luna (gatinho sorrindo, quadro `cat-04`, sobre fundo roxo arredondado) em `src-tauri/icons`, gerado com `npx tauri icon` a partir de uma arte quadrada de 1024 px (o `source.svg` da lua foi removido). O `tauri.conf.json` declara os ícones do bundle, senão a janela usa o ícone padrão do Tauri.
-- Testes: `cargo test` (18) e `npx vitest run` (13). Build: `npx vite build`. A UI ainda não foi exercitada num `tauri dev` real.
+- Testes: `cargo test` (18) e `npx vitest run` (13). Build: `npx vite build`. A UI foi conferida só com testes e prévias, não num `tauri dev` real (ver "Antes de divulgar" em `docs/distribuicao.md`).
 - Etapa 4 (plugins): loader em Rust (`src-tauri/src/plugins/loader.rs`) com validação de manifesto e travessia bloqueada. Host em TS (`src/plugins/host.ts`) com permissões `commands` e `hooks`. Painéis (`registerPanel`) ficaram fora do MVP.
 - Etapa 5: contrato em `docs/plugins.md` e plugin de referência em `plugins-examples/hello-world`.
 - Fase F, etapa 4 (marketplace): `src-tauri/src/plugins/marketplace.rs` (catálogo oficial embutido em `src-tauri/marketplace/official.json`, catálogos por URL https, sha256 obrigatório, instalação em pasta temporária). Permissão `modes` (`registerMode`, só `readOnly`) com chips no composer. Plugin oficial `plugins-examples/ask-mode` (modo Perguntar). Configurações > Plugins (Instalados e Marketplace). Crates novos: `sha2` e `reqwest` (rustls).

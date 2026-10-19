@@ -10,6 +10,7 @@ import "@fontsource/press-start-2p";
 import "@fontsource/vt323";
 import "@fontsource/silkscreen";
 import { App } from "./App";
+import { ErrorBoundary } from "./ui/ErrorBoundary";
 import "./styles/tokens.css";
 import "./styles/themes.css";
 import "./styles/base.css";
@@ -23,6 +24,8 @@ applyLiquidGlass(loadLiquidGlass());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
