@@ -468,8 +468,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         if (parsed.questions) {
           const last = messagesRef.current.at(-1);
           if (last?.role === "assistant") commit([...messagesRef.current.slice(0, -1), { ...last, text: parsed.text }]);
-          setQuestions(parsed.questions);
-          setQuestionsRound((n) => n + 1);
+          // A única pergunta de um plano é a aprovação, que já tem o botão na barra: não repete no seletor.
+          const approvalOnly = turnPlanning.current && parsed.questions.length === 1 && parsed.questions[0].options.includes(APPROVE_OPTION);
+          if (!approvalOnly) {
+            setQuestions(parsed.questions);
+            setQuestionsRound((n) => n + 1);
+          }
         }
         // Plugin criado pela Luna: o bloco vira um cartão para instalar, e o texto segue sem o bloco.
         const offer = extractPluginOffer(parsed.text);

@@ -182,9 +182,10 @@ describe("ChatView: continuidade e envio", () => {
       text: 'Posso começar?\n```luna-perguntas\n[{"pergunta": "Aprovar o plano?", "opcoes": ["Aprovar e executar", "Ainda não"]}]\n```',
     });
     emit({ kind: "done", ok: true });
-    const picker = within(await screen.findByRole("region", { name: "Perguntas do agente" }));
-    fireEvent.click(picker.getByRole("button", { name: "Aprovar e executar" }));
-    fireEvent.click(picker.getByRole("button", { name: "Enviar respostas" }));
+    // A pergunta de aprovação não vira seletor: o botão da barra de aprovação é o único controle.
+    const bar = within(await screen.findByRole("region", { name: "Aprovação do plano" }));
+    expect(screen.queryByRole("region", { name: "Perguntas do agente" })).toBeNull();
+    fireEvent.click(bar.getByRole("button", { name: "Aprovar e executar" }));
 
     await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
     const approval = vi.mocked(api.sendPrompt).mock.calls[1][0];
@@ -360,9 +361,8 @@ describe("Progresso de um plano novo", () => {
       text: 'Posso começar?\n```luna-perguntas\n[{"pergunta": "Aprovar o plano?", "opcoes": ["Aprovar e executar", "Ainda não"]}]\n```',
     });
     emit({ kind: "done", ok: true });
-    const picker = within(await screen.findByRole("region", { name: "Perguntas do agente" }));
-    fireEvent.click(picker.getByRole("button", { name: "Aprovar e executar" }));
-    fireEvent.click(picker.getByRole("button", { name: "Enviar respostas" }));
+    const bar = within(await screen.findByRole("region", { name: "Aprovação do plano" }));
+    fireEvent.click(bar.getByRole("button", { name: "Aprovar e executar" }));
     await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(3));
 
     expect(screen.queryByText("Etapa antiga")).toBeNull();
