@@ -297,6 +297,20 @@ pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
     loader::read_entry(&plugins_dir(&app)?, &id)
 }
 
+/// Arquivo de `assets/` de um plugin de tema, em base64 com o tipo MIME (o frontend monta a URL blob).
+#[derive(serde::Serialize)]
+pub struct PluginAsset {
+    pub mime: String,
+    pub data: String,
+}
+
+#[tauri::command]
+pub fn read_plugin_asset(app: AppHandle, id: String, path: String) -> Result<PluginAsset, String> {
+    marketplace::ensure_enabled(&app_data_dir(&app)?, &id)?;
+    let (mime, bytes) = loader::read_asset(&plugins_dir(&app)?, &id, &path)?;
+    Ok(PluginAsset { mime: mime.to_string(), data: STANDARD.encode(bytes) })
+}
+
 /// Nome do catálogo oficial embutido no app, para o frontend pedir sem URL.
 const OFFICIAL_SOURCE: &str = "oficial";
 

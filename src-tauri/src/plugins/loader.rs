@@ -98,6 +98,55 @@ pub fn read_entry(plugins_dir: &Path, id: &str) -> Result<String, String> {
     })
 }
 
+/// Tamanho máximo de um asset de tema.
+const ASSET_LIMIT: u64 = 5 * 1024 * 1024;
+
+/// Tipos que um tema pode carregar, pela extensão. Qualquer outro é recusado.
+fn asset_mime(ext: &str) -> Option<&'static str> {
+    Some(match ext {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "woff2" => "font/woff2",
+        "ttf" => "font/ttf",
+        "ogg" => "audio/ogg",
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        _ => return None,
+    })
+}
+
+/// Lê um arquivo de `assets/` de um plugin com a permissão `theme`. Devolve o tipo MIME e os bytes.
+pub fn read_asset(plugins_dir: &Path, id: &str, rel: &str) -> Result<(&'static str, Vec<u8>), String> {
+    let manifest = read_manifest(plugins_dir, id)?;
+    if !manifest.permissions.iter().any(|p| p == "theme") {
+        return Err(format!("plugin `{id}` não tem a permissão theme"));
+    }
+    // Só dentro de assets/, sem travessia, sem barra invertida nem unidade de disco.
+    let safe = rel.starts_with("assets/")
+        && !rel.contains("..")
+        && !rel.contains('\\')
+        && !rel.contains(':')
+        && rel.split('/').all(|part| !part.is_empty());
+    if !safe {
+        return Err(format!("caminho de asset recusado: `{rel}`"));
+    }
+    let ext = rel.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    let mime = asset_mime(&ext).ok_or_else(|| format!("tipo de arquivo não permitido: `.{ext}`"))?;
+    let file = plugins_dir.join(id).join(rel);
+    let meta = fs::symlink_metadata(&file).map_err(|e| format!("asset `{rel}` não encontrado: {e}"))?;
+    if meta.file_type().is_symlink() || !meta.is_file() {
+        return Err(format!("asset `{rel}` não é um arquivo comum"));
+    }
+    if meta.len() > ASSET_LIMIT {
+        return Err(format!("asset `{rel}` passa de 5 MB"));
+    }
+    let bytes = fs::read(&file).map_err(|e| format!("não foi possível ler o asset `{rel}`: {e}"))?;
+    Ok((mime, bytes))
+}
+
 fn read_manifest(plugins_dir: &Path, folder: &str) -> Result<Manifest, String> {
     // Checar o nome da pasta antes de montar o caminho impede travessia (`../`).
     if !is_valid_id(folder) {
@@ -251,5 +300,53 @@ mod tests {
         let source = read_entry(&dir, "hello").unwrap();
 
         assert_eq!(source, "export function activate() {}");
+    }
+    const THEME: &str = r#"{"id":"tema","name":"Tema","version":"0.1.0","entry":"index.js","permissions":["theme"]}"#;
+
+    fn write_asset(dir: &Path, folder: &str, rel: &str, bytes: &[u8]) {
+        let file = dir.join(folder).join(rel);
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, bytes).unwrap();
+    }
+
+    #[test]
+    fn read_asset_returns_mime_and_bytes_for_a_theme_image() {
+        let dir = temp_plugins_dir("asset-ok");
+        write_plugin(&dir, "tema", THEME);
+        write_asset(&dir, "tema", "assets/bg.png", b"PNG");
+
+        let (mime, bytes) = read_asset(&dir, "tema", "assets/bg.png").unwrap();
+
+        assert_eq!(mime, "image/png");
+        assert_eq!(bytes, b"PNG");
+    }
+
+    #[test]
+    fn read_asset_refuses_paths_outside_assets_and_traversal() {
+        let dir = temp_plugins_dir("asset-path");
+        write_plugin(&dir, "tema", THEME);
+        write_asset(&dir, "tema", "assets/bg.png", b"x");
+
+        for rel in ["../tema/manifest.json", "assets/../manifest.json", "/etc/passwd", "C:/x.png", "index.js", "assets\\..\\x.png"] {
+            assert!(read_asset(&dir, "tema", rel).is_err(), "deveria recusar {rel}");
+        }
+    }
+
+    #[test]
+    fn read_asset_refuses_types_outside_the_whitelist() {
+        let dir = temp_plugins_dir("asset-type");
+        write_plugin(&dir, "tema", THEME);
+        write_asset(&dir, "tema", "assets/script.html", b"<script>");
+
+        assert!(read_asset(&dir, "tema", "assets/script.html").is_err());
+    }
+
+    #[test]
+    fn read_asset_needs_the_theme_permission() {
+        let dir = temp_plugins_dir("asset-perm");
+        write_plugin(&dir, "hello", VALID);
+        write_asset(&dir, "hello", "assets/bg.png", b"x");
+
+        assert!(read_asset(&dir, "hello", "assets/bg.png").is_err());
     }
 }

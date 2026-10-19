@@ -1,9 +1,16 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readPluginAsset } from "../api";
 import { applyPluginTheme, listPluginThemes, loadPluginThemeKey, savePluginThemeKey, setPluginThemes } from "./themeRegistry";
+
+vi.mock("../api", () => ({
+  readPluginAsset: vi.fn(async () => ({ mime: "image/png", data: "UE5H" })),
+}));
 
 const verde = { id: "verde", name: "Verde", dark: true, tokens: { "--bg": "#9bbc0f" }, css: ".chat { color: red; }" };
 
 beforeEach(() => {
+  URL.createObjectURL = vi.fn(() => "blob:teste");
+  URL.revokeObjectURL = vi.fn();
   applyPluginTheme(null);
   setPluginThemes([]);
   localStorage.clear();
@@ -43,5 +50,14 @@ describe("temas de plugin", () => {
     setPluginThemes([]);
 
     expect(document.documentElement.style.getPropertyValue("--bg")).toBe("");
+  });
+
+  it("troca asset(assets/...) por uma URL blob do arquivo do plugin", async () => {
+    setPluginThemes([{ ...verde, tokens: { "--bg": "#9bbc0f", "--app-bg-image": "asset(assets/bg.png)" }, pluginId: "hello" }]);
+    applyPluginTheme("plugin:hello/verde");
+
+    await vi.waitFor(() => expect(document.documentElement.style.getPropertyValue("--app-bg-image")).toBe('url("blob:teste")'));
+    expect(readPluginAsset).toHaveBeenCalledWith("hello", "assets/bg.png");
+    expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#9bbc0f");
   });
 });

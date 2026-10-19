@@ -63,6 +63,7 @@ pub fn run() {
             commands::cancel_prompt,
             commands::list_plugins,
             commands::read_plugin_entry,
+            commands::read_plugin_asset,
             commands::check_auth,
             commands::list_models,
             commands::get_changes,

@@ -165,7 +165,19 @@ export function activate(api) {
 - O tema some quando o plugin é desligado ou recarregado. A escolha salva volta a valer quando o plugin carrega de novo.
 - Exemplo completo: `plugins-examples/gameboy-theme/`.
 
-Ainda não há assets (imagens, fontes, sons) nem mascote de tema. Eles entram em uma etapa seguinte, com a permissão de leitura de arquivos do próprio plugin.
+Assets: coloque os arquivos em `assets/` dentro da pasta do plugin e referencie-os com `asset(assets/arquivo.ext)` num valor de token ou no CSS. O app troca a referência por uma URL local do arquivo. Tipos aceitos: png, jpg, webp, gif, svg, woff2, ttf, ogg, mp3 e wav, com até 5 MB por arquivo. Caminhos com `..`, barra invertida ou fora de `assets/` são recusados.
+
+```js
+api.theme.register({
+  id: "pixel",
+  name: "Pixel",
+  dark: false,
+  tokens: { "--app-bg-image": "asset(assets/fundo.png)" },
+  css: "@font-face { font-family: Pixel; src: asset(assets/pixel.woff2); } body { font-family: Pixel; }",
+});
+```
+
+Ainda não há sons nem mascote por estado: essas partes do tema ficam para depois.
 
 ## Limites
 

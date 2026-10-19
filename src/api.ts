@@ -49,6 +49,11 @@ export function listPlugins(): Promise<PluginScan> {
   return invoke("list_plugins");
 }
 
+/** Arquivo de `assets/` de um plugin de tema: MIME e conteúdo em base64. */
+export function readPluginAsset(id: string, path: string): Promise<{ mime: string; data: string }> {
+  return invoke("read_plugin_asset", { id, path });
+}
+
 export function readPluginEntry(id: string): Promise<string> {
   return invoke("read_plugin_entry", { id });
 }
