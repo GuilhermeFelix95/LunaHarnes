@@ -463,4 +463,29 @@ describe("PluginHost: temas de plugin", () => {
 
     expect(host.themeList()).toEqual([]);
   });
+
+  it("aceita mascote e som de resposta só como asset(assets/...)", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(
+      manifest({ permissions: ["theme"] }),
+      plugin((api) =>
+        api.theme.register({ ...theme, id: "midia", mascot: "asset(assets/luna.png)", sounds: { reply: "asset(assets/ding.ogg)" } }),
+      ),
+    );
+
+    expect(ok).toBe(true);
+    expect(host.themeList()[0].mascot).toBe("asset(assets/luna.png)");
+    expect(host.themeList()[0].sounds).toEqual({ reply: "asset(assets/ding.ogg)" });
+  });
+
+  it("recusa mascote que não é uma referência de asset", async () => {
+    const host = new PluginHost();
+    const ok = await host.load(
+      manifest({ permissions: ["theme"] }),
+      plugin((api) => api.theme.register({ ...theme, id: "ruim", mascot: "https://exemplo.com/luna.png" })),
+    );
+
+    expect(ok).toBe(false);
+    expect(host.themeList()).toEqual([]);
+  });
 });

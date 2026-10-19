@@ -177,7 +177,18 @@ api.theme.register({
 });
 ```
 
-Ainda não há sons nem mascote por estado: essas partes do tema ficam para depois.
+Mascote e som de resposta também usam assets. `mascot` troca o átomo da Luna pela imagem enquanto o tema estiver escolhido; `sounds.reply` troca o som de resposta por um arquivo do plugin (desligar o som no app continua desligando tudo).
+
+```js
+api.theme.register({
+  id: "pixel",
+  name: "Pixel",
+  dark: false,
+  tokens: {},
+  mascot: "asset(assets/luna.png)",
+  sounds: { reply: "asset(assets/ding.ogg)" },
+});
+```
 
 ## Limites
 

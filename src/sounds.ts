@@ -1,3 +1,5 @@
+import { getThemeMedia } from "./plugins/themeRegistry";
+
 /// Som quando a Luna responde. Os cinco sons são sintetizados com Web Audio, sem arquivos de áudio.
 export const SOUND_KEY = "luna.sound";
 export const SOUND_OFF = "off";
@@ -91,8 +93,14 @@ export function playSound(id: SoundId): void {
   setTimeout(() => void ctx.close(), (length + 0.2) * 1000);
 }
 
-/// Toca o som da resposta, se o usuário não tiver desligado.
+/// Toca o som da resposta, se o usuário não tiver desligado. Um tema com som próprio toca o arquivo dele.
 export function playReplySound(): void {
   const choice = loadSound();
-  if (choice !== SOUND_OFF) playSound(choice);
+  if (choice === SOUND_OFF) return;
+  const themeSound = getThemeMedia().reply;
+  if (themeSound) {
+    void new Audio(themeSound).play().catch(() => {});
+    return;
+  }
+  playSound(choice);
 }

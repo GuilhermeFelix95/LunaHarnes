@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getThemeMedia } from "./plugins/themeRegistry";
 import { loadSound, playReplySound, playSound, saveSound, SOUND_KEY, SOUNDS } from "./sounds";
+
+vi.mock("./plugins/themeRegistry", () => ({ getThemeMedia: vi.fn(() => ({})) }));
 
 function fakeContext() {
   const oscillator = () => ({
@@ -82,5 +85,19 @@ describe("sons de resposta", () => {
     playReplySound();
 
     expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("som de resposta do tema", () => {
+  it("toca o arquivo do tema escolhido em vez do som padrão", () => {
+    const play = vi.fn(async () => {});
+    vi.stubGlobal("Audio", vi.fn(function () { return { play }; }));
+    vi.mocked(getThemeMedia).mockReturnValueOnce({ reply: "blob:ding" });
+
+    playReplySound();
+
+    expect(Audio).toHaveBeenCalledWith("blob:ding");
+    expect(play).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

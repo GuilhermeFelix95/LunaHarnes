@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { t } from "../../i18n";
+import { getThemeMedia, subscribeThemeMedia } from "../../plugins/themeRegistry";
 
 interface LunaAtomProps {
   /** Trabalhando: os elétrons correm rápido e o Átomo acena. Parado: dorme com os elétrons lentos. */
@@ -23,6 +24,8 @@ export function LunaAtom({ working }: LunaAtomProps) {
   const [action, setAction] = useState<Action | null>(null);
   const [face, setFace] = useState<Face | null>(null);
   const previous = useRef(working);
+  // Mascote do tema escolhido, quando ele traz um. Sem ele, a Luna é o átomo padrão.
+  const media = useSyncExternalStore(subscribeThemeMedia, getThemeMedia);
 
   // Início e fim do turno disparam uma ação. O primeiro render não dispara nada.
   useEffect(() => {
@@ -70,6 +73,14 @@ export function LunaAtom({ working }: LunaAtomProps) {
   const electronStart = [0.4, 2.7, 4.6];
   // Caminho de uma volta na elipse (330 x 110), começando em t = 0.
   const loop = "M842 512 A330 110 0 1 1 182 512 A330 110 0 1 1 842 512";
+
+  if (media.mascot) {
+    return (
+      <figure className={className}>
+        <img className="luna-atom__image" src={media.mascot} alt={working ? t("luna.working") : t("luna.sleeping")} />
+      </figure>
+    );
+  }
 
   return (
     <figure className={className}>

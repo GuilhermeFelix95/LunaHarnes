@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readPluginAsset } from "../api";
-import { applyPluginTheme, listPluginThemes, loadPluginThemeKey, savePluginThemeKey, setPluginThemes } from "./themeRegistry";
+import { applyPluginTheme, getThemeMedia, listPluginThemes, loadPluginThemeKey, savePluginThemeKey, setPluginThemes } from "./themeRegistry";
 
 vi.mock("../api", () => ({
   readPluginAsset: vi.fn(async () => ({ mime: "image/png", data: "UE5H" })),
@@ -59,5 +59,17 @@ describe("temas de plugin", () => {
     await vi.waitFor(() => expect(document.documentElement.style.getPropertyValue("--app-bg-image")).toBe('url("blob:teste")'));
     expect(readPluginAsset).toHaveBeenCalledWith("hello", "assets/bg.png");
     expect(document.documentElement.style.getPropertyValue("--bg")).toBe("#9bbc0f");
+  });
+
+  it("expõe o mascote e o som de resposta do tema escolhido, e limpa ao voltar", async () => {
+    setPluginThemes([{ ...verde, pluginId: "hello", mascot: "asset(assets/luna.png)", sounds: { reply: "asset(assets/ding.ogg)" } }]);
+    applyPluginTheme("plugin:hello/verde");
+
+    await vi.waitFor(() => expect(getThemeMedia().mascot).toBe("blob:teste"));
+    expect(getThemeMedia().reply).toBe("blob:teste");
+    expect(readPluginAsset).toHaveBeenCalledWith("hello", "assets/ding.ogg");
+
+    applyPluginTheme(null);
+    expect(getThemeMedia()).toEqual({});
   });
 });

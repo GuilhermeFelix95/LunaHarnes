@@ -1,6 +1,11 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { applyPluginTheme, setPluginThemes } from "../../plugins/themeRegistry";
 import { LunaAtom } from "./LunaAtom";
+
+vi.mock("../../api", () => ({
+  readPluginAsset: vi.fn(async () => ({ mime: "image/png", data: "UE5H" })),
+}));
 
 afterEach(() => {
   vi.useRealTimers();
@@ -82,5 +87,20 @@ describe("LunaAtom", () => {
       vi.advanceTimersByTime(10000);
     });
     expect(container.querySelector("[class*='luna-atom--face-']")).toBeNull();
+  });
+});
+
+describe("LunaAtom com mascote de tema", () => {
+  it("mostra a imagem do tema escolhido no lugar do átomo", async () => {
+    URL.createObjectURL = vi.fn(() => "blob:luna");
+    URL.revokeObjectURL = vi.fn();
+    setPluginThemes([{ id: "verde", name: "Verde", dark: false, tokens: {}, pluginId: "hello", mascot: "asset(assets/luna.png)" }]);
+    applyPluginTheme("plugin:hello/verde");
+
+    render(<LunaAtom working={false} />);
+
+    await waitFor(() => expect(document.querySelector("img.luna-atom__image")?.getAttribute("src")).toBe("blob:luna"));
+    expect(document.querySelector("svg")).toBeNull();
+    applyPluginTheme(null);
   });
 });

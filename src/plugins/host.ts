@@ -66,6 +66,10 @@ export interface PluginTheme {
   tokens: Record<string, string>;
   /** CSS livre do tema. Limite de 64 KB. */
   css?: string;
+  /** Imagem da Luna enquanto o tema estiver escolhido: `asset(assets/arquivo.png)`. */
+  mascot?: string;
+  /** Sons do tema: `reply` toca quando a Luna termina uma resposta. Mesmo formato de asset. */
+  sounds?: { reply?: string };
 }
 
 export interface PluginThemeApi {
@@ -88,6 +92,7 @@ const PERMISSIONS = ["commands", "hooks", "modes", "cache", "ui", "theme"] as co
 const TOKEN_NAME = /^--[a-z0-9-]+$/;
 const TOKEN_VALUE_FORBIDDEN = /[;{}<>]/;
 const THEME_CSS_LIMIT = 64 * 1024;
+const ASSET_REF_EXACT = /^asset\(assets\/[^)\s"']+\)$/;
 
 export class PluginHost {
   private commands = new Map<string, { pluginId: string; handler: CommandHandler }>();
@@ -253,6 +258,11 @@ export class PluginHost {
         for (const [token, value] of Object.entries(theme.tokens)) {
           if (!TOKEN_NAME.test(token) || TOKEN_VALUE_FORBIDDEN.test(value) || value.length > 200) {
             throw new Error(`token inválido "${token}" no tema "${theme.id}"`);
+          }
+        }
+        for (const ref of [theme.mascot, theme.sounds?.reply]) {
+          if (ref !== undefined && !ASSET_REF_EXACT.test(ref)) {
+            throw new Error(`asset inválido "${ref}" no tema "${theme.id}": use asset(assets/arquivo)`);
           }
         }
         if ((theme.css ?? "").length > THEME_CSS_LIMIT) {

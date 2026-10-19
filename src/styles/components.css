@@ -2969,3 +2969,11 @@ textarea:focus-visible {
   font-size: var(--text-sm);
   color: var(--fg-muted);
 }
+
+/* Mascote de tema: imagem no lugar do átomo. */
+.luna-atom__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}

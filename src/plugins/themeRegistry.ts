@@ -16,6 +16,36 @@ const registry = new Map<string, RegisteredPluginTheme>();
 let applied: { key: string; tokens: string[] } | null = null;
 let blobs: string[] = [];
 
+/** Mídia do tema escolhido, já como URL blob: o mascote da Luna e o som de resposta. */
+export interface ThemeMedia {
+  mascot?: string;
+  reply?: string;
+}
+let media: ThemeMedia = {};
+const mediaListeners = new Set<() => void>();
+
+export function getThemeMedia(): ThemeMedia {
+  return media;
+}
+
+/** Avisa quando o mascote ou o som muda (a tela da Luna se atualiza sozinha). */
+export function subscribeThemeMedia(listener: () => void): () => void {
+  mediaListeners.add(listener);
+  return () => {
+    mediaListeners.delete(listener);
+  };
+}
+
+function setMedia(next: ThemeMedia) {
+  media = next;
+  for (const listener of mediaListeners) listener();
+}
+
+/** Caminho dentro de `asset(assets/arquivo)`. */
+function refPath(ref: string): string {
+  return ref.replace(/^asset\(/, "").replace(/\)$/, "");
+}
+
 export function pluginThemeKey(pluginId: string, id: string): string {
   return `plugin:${pluginId}/${id}`;
 }
@@ -59,7 +89,7 @@ export function setPluginThemes(themes: (PluginTheme & { pluginId: string })[]) 
 const ASSET_REF = /asset\((assets\/[^)\s"']+)\)/g;
 
 function assetPaths(theme: RegisteredPluginTheme): string[] {
-  const texts = [...Object.values(theme.tokens), theme.css ?? ""];
+  const texts = [...Object.values(theme.tokens), theme.css ?? "", theme.mascot ?? "", theme.sounds?.reply ?? ""];
   return [...new Set(texts.flatMap((text) => [...text.matchAll(ASSET_REF)].map((m) => m[1])))];
 }
 
@@ -85,6 +115,7 @@ export function applyPluginTheme(key: string | null, root: HTMLElement = documen
     document.getElementById(STYLE_ID)?.remove();
     for (const url of blobs) URL.revokeObjectURL(url);
     blobs = [];
+    setMedia({});
     delete root.dataset.pluginTheme;
     applied = null;
   }
@@ -95,6 +126,10 @@ export function applyPluginTheme(key: string | null, root: HTMLElement = documen
 
   // Sem assets, tudo vai na hora. Com assets, espera o download; se a escolha mudar nesse meio-tempo, descarta.
   const paint = (urls: Map<string, string>) => {
+    setMedia({
+      mascot: theme.mascot ? urls.get(refPath(theme.mascot)) : undefined,
+      reply: theme.sounds?.reply ? urls.get(refPath(theme.sounds.reply)) : undefined,
+    });
     for (const [name, value] of Object.entries(theme.tokens)) root.style.setProperty(name, substitute(value, urls));
     if (theme.css) {
       const style = document.createElement("style");
