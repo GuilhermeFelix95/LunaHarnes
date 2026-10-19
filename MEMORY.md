@@ -134,3 +134,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Painel Progresso: a lista de tarefas rola sozinha (.side__progress-list) e o mascote fica fixo embaixo, sem ser empurrado para fora.
 2026-10-18 | Mascote (Átomo): ids de gradiente únicos por instância (duas conversas abertas não apagam o corpo), elétrons com velocidade fixa, imagem de tema com flutuação; tema aplicado em sequência descarta downloads antigos.
 2026-10-18 | Estabilidade: seção de download nos 22 READMEs; ErrorBoundary com Recarregar; falhas de plugin e catálogo avisam por toast; .gitignore cobre preview-gatos e ícones android/ios; checklist 'Antes de divulgar' em distribuicao.md.
+2026-10-18 | Verificação de comandos (LunaFix, 4a): o Claude e o Codex informam se cada comando do agente falhou e a saída do fim; a sessão entrega ao chat um evento commandResult. Só comandos Bash contam.

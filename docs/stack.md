@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Resultado de comando (2026-10-18): `ToolUse` traz o `id` do chamado; os resultados de ferramenta viram `ToolResult` e `CommandTracker` (`providers/mod.rs`) só deixa passar o resultado de Bash como `CommandResult { ok, output }` (últimos 4000 caracteres). O Codex emite `CommandResult` direto do `item.completed` (`exit_code`). Captura real do Claude com `exit 3` está no teste `a_failed_bash_result_keeps_its_id_and_output`. Codex ainda sem captura real.
+
 - Estabilidade (2026-10-18): README com a seção de download nos 22 idiomas (releases, requisitos e aviso do SmartScreen). `ErrorBoundary` em `src/ui/` troca a tela branca por um aviso com Recarregar. Promessas de plugin, catálogo e `runAfterResponse` avisam por toast quando falham. `.gitignore` cobre `preview-gatos/` e os ícones android/ios.
 
 - Mascote (2026-10-18): `LunaAtom` gera ids de gradiente com `useId` e põe o preenchimento em atributo `fill`, então várias conversas abertas não se apagam. Elétrons com velocidade fixa (sono só apaga). Mascote de tema flutua. `themeRegistry` descarta downloads de uma aplicação anterior (geração). Testes em `LunaAtom.test.tsx` e `themeRegistry.test.ts`.

@@ -6,7 +6,7 @@ use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::providers::{cli_args, cli_name, label, parse_line, stdin_input, ProviderEvent, ProviderKind, RunRequest};
+use crate::providers::{cli_args, cli_name, label, parse_line, stdin_input, CommandTracker, ProviderEvent, ProviderKind, RunRequest};
 
 /// Quantidade máxima de stderr guardada para mostrar ao usuário em caso de falha.
 const STDERR_TAIL_BYTES: usize = 4096;
@@ -163,6 +163,8 @@ impl Session {
             return;
         };
 
+        // Liga os chamados de Bash aos resultados; o chat recebe só o que deve aparecer.
+        let mut tracker = CommandTracker::default();
         let mut reader = BufReader::new(stdout);
         let mut buf = Vec::new();
         loop {
@@ -176,7 +178,7 @@ impl Session {
                     if line.trim().is_empty() {
                         continue;
                     }
-                    for event in parse_line(kind, line) {
+                    for event in parse_line(kind, line).into_iter().filter_map(|e| tracker.observe(e)) {
                         let done = matches!(event, ProviderEvent::Done { .. });
                         on_event(event);
                         if done {

@@ -134,7 +134,11 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
             })
             .unwrap_or_default(),
         // O resultado de TaskCreate traz o id da tarefa; ele liga o tool_use_id ao id que o TaskUpdate usa.
-        Some("user") => task_assigned_events(&value),
+        Some("user") => {
+            let mut events = task_assigned_events(&value);
+            events.extend(tool_result_events(&value));
+            events
+        }
         Some("rate_limit_event") => rate_limit_events(&value),
         Some("result") => {
             let is_error = value.get("is_error").and_then(Value::as_bool).unwrap_or(false);
@@ -213,7 +217,8 @@ fn cache_usage_event(value: &Value) -> Option<ProviderEvent> {
 fn tool_use_events(block: &Value) -> Vec<ProviderEvent> {
     let name = block["name"].as_str().unwrap_or("ferramenta").to_string();
     let input = &block["input"];
-    let mut events = vec![ProviderEvent::ToolUse { name: name.clone(), detail: tool_detail(input) }];
+    let id = block["id"].as_str().unwrap_or_default().to_string();
+    let mut events = vec![ProviderEvent::ToolUse { id, name: name.clone(), detail: tool_detail(input) }];
     match name.as_str() {
         "TodoWrite" => events.extend(todos_event(input)),
         "TaskCreate" => events.push(ProviderEvent::TaskCreated {
@@ -228,6 +233,30 @@ fn tool_use_events(block: &Value) -> Vec<ProviderEvent> {
         _ => {}
     }
     events
+}
+
+/// Resultado de cada ferramenta. `is_error` diz se falhou; o texto vira a saída do chamado.
+fn tool_result_events(value: &Value) -> Vec<ProviderEvent> {
+    value["message"]["content"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|b| b.get("type").and_then(Value::as_str) == Some("tool_result"))
+        .filter_map(|b| {
+            let id = b["tool_use_id"].as_str()?.to_string();
+            let ok = !b.get("is_error").and_then(Value::as_bool).unwrap_or(false);
+            Some(ProviderEvent::ToolResult { id, ok, output: result_text(&b["content"]) })
+        })
+        .collect()
+}
+
+/// O conteúdo do resultado é texto ou uma lista de blocos de texto.
+fn result_text(content: &Value) -> String {
+    match content {
+        Value::String(text) => text.clone(),
+        Value::Array(blocks) => blocks.iter().filter_map(|b| b.get("text").and_then(Value::as_str)).collect::<Vec<_>>().join("\n"),
+        _ => String::new(),
+    }
 }
 
 /// Resultado de TaskCreate: `tool_use_result.task.id` é o id da tarefa e `tool_use_id` liga ao TaskCreate.
@@ -352,10 +381,8 @@ mod tests {
         let events = events_of(TOOL);
 
         assert_eq!(text_of(&events), "feito");
-        assert!(events.contains(&ProviderEvent::ToolUse {
-            name: "Bash".into(),
-            detail: "echo lunaharness".into(),
-        }));
+        assert!(events.iter().any(|e| matches!(e,
+            ProviderEvent::ToolUse { name, detail, .. } if name == "Bash" && detail == "echo lunaharness")));
         assert_eq!(events.last(), Some(&ProviderEvent::Done { ok: true }));
     }
 
@@ -444,6 +471,23 @@ mod tests {
         assert!(update.contains(&ProviderEvent::TaskUpdated { id: "1".into(), status: Some("completed".into()), subject: None }));
     }
 
+    /// Captura real do Claude Code (`claude -p` com `exit 3`): o resultado de erro vem com `is_error` e o texto.
+    #[test]
+    fn a_failed_bash_result_keeps_its_id_and_output() {
+        let events = parse_line(
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"Exit code 3","is_error":true,"tool_use_id":"toolu_01NNztgG18jxGpgVmkZ6DYbw"}]},"parent_tool_use_id":null,"tool_use_result":"Error: Exit code 3"}"#,
+        );
+
+        assert_eq!(
+            events,
+            vec![ProviderEvent::ToolResult {
+                id: "toolu_01NNztgG18jxGpgVmkZ6DYbw".into(),
+                ok: false,
+                output: "Exit code 3".into(),
+            }]
+        );
+    }
+
     /// O id da tarefa só volta no resultado da ferramenta (mensagem `user`), ligado ao tool_use_id.
     #[test]
     fn the_task_id_comes_back_in_the_tool_result() {
@@ -451,7 +495,7 @@ mod tests {
             r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"Task #1 created"}]},"tool_use_result":{"task":{"id":"1","subject":"Criar hello.txt"}}}"#,
         );
 
-        assert_eq!(events, vec![ProviderEvent::TaskAssigned { key: "toolu_1".into(), id: "1".into() }]);
+        assert!(events.contains(&ProviderEvent::TaskAssigned { key: "toolu_1".into(), id: "1".into() }));
     }
 
     /// TodoWrite vira o checklist da aba Progresso, na ordem que o agente escreveu.
@@ -461,7 +505,7 @@ mod tests {
             r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"TodoWrite","input":{"todos":[{"content":"Criar tela","status":"completed","activeForm":"Criando tela"},{"content":"Ligar a API","status":"in_progress"}]}}]}}"#,
         );
 
-        assert_eq!(events[0], ProviderEvent::ToolUse { name: "TodoWrite".into(), detail: String::new() });
+        assert_eq!(events[0], ProviderEvent::ToolUse { id: String::new(), name: "TodoWrite".into(), detail: String::new() });
         assert_eq!(
             events[1],
             ProviderEvent::Todos {

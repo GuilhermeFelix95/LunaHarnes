@@ -102,7 +102,12 @@ pub fn is_model_token(value: &str) -> bool {
 pub enum ProviderEvent {
     SessionStarted { session_id: String },
     TextDelta { text: String },
-    ToolUse { name: String, detail: String },
+    /// Ferramenta chamada pelo agente. `id` liga o chamado ao resultado (vazio quando o CLI não informa).
+    ToolUse { id: String, name: String, detail: String },
+    /// Resultado de uma ferramenta, ainda sem dizer se era um comando. Quem chama decide o que fazer com ele.
+    ToolResult { id: String, ok: bool, output: String },
+    /// Resultado de um comando do agente (Bash). `output` guarda só o final da saída.
+    CommandResult { ok: bool, output: String },
     /// Etapas que o agente escreveu com a ferramenta TodoWrite, na ordem dele. A lista inteira vale a cada evento.
     Todos { items: Vec<TodoItem> },
     /// Tarefa criada com TaskCreate. `key` é o id do tool_use, que liga ao `TaskAssigned` seguinte.
@@ -479,6 +484,41 @@ mod tests {
     }
 }
 
+/// Quantos caracteres do fim da saída de um comando vão para a verificação (o erro costuma estar no fim).
+pub const COMMAND_OUTPUT_MAX_CHARS: usize = 4000;
+
+/// Os últimos `max` caracteres do texto (não bytes, para não cortar um acento no meio).
+pub fn last_chars(text: &str, max: usize) -> String {
+    let count = text.chars().count();
+    if count <= max { text.to_string() } else { text.chars().skip(count - max).collect() }
+}
+
+/// Liga os chamados de Bash aos resultados. O Claude manda o resultado numa linha separada do chamado,
+/// então é preciso lembrar quais ids eram comandos.
+#[derive(Default)]
+pub struct CommandTracker {
+    commands: std::collections::HashSet<String>,
+}
+
+impl CommandTracker {
+    /// Devolve o evento para o chat, ou `None` quando ele não deve ir para o chat (resultado de outra ferramenta).
+    pub fn observe(&mut self, event: ProviderEvent) -> Option<ProviderEvent> {
+        match event {
+            ProviderEvent::ToolUse { ref id, ref name, .. } => {
+                if name == "Bash" && !id.is_empty() {
+                    self.commands.insert(id.clone());
+                }
+                Some(event)
+            }
+            ProviderEvent::ToolResult { id, ok, output } => self.commands.contains(&id).then(|| ProviderEvent::CommandResult {
+                ok,
+                output: last_chars(&output, COMMAND_OUTPUT_MAX_CHARS),
+            }),
+            other => Some(other),
+        }
+    }
+}
+
 /// Traduz uma linha de saída do CLI para eventos internos.
 /// Linhas que não carregam informação útil para o chat são ignoradas.
 pub fn parse_line(kind: ProviderKind, line: &str) -> Vec<ProviderEvent> {
@@ -530,3 +570,46 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
     }
 }
 
+
+#[cfg(test)]
+mod command_result_tests {
+    use super::*;
+
+    fn tool_use(id: &str, name: &str) -> ProviderEvent {
+        ProviderEvent::ToolUse { id: id.into(), name: name.into(), detail: "exit 3".into() }
+    }
+
+    /// Só o resultado de Bash vira CommandResult; o de outras ferramentas some, e o ToolUse segue para o chat.
+    #[test]
+    fn only_bash_results_become_command_results() {
+        let mut tracker = CommandTracker::default();
+
+        assert_eq!(tracker.observe(tool_use("t1", "Bash")), Some(tool_use("t1", "Bash")));
+        assert_eq!(tracker.observe(tool_use("t2", "Read")), Some(tool_use("t2", "Read")));
+        assert_eq!(
+            tracker.observe(ProviderEvent::ToolResult { id: "t2".into(), ok: false, output: "arquivo não existe".into() }),
+            None
+        );
+        assert_eq!(
+            tracker.observe(ProviderEvent::ToolResult { id: "t1".into(), ok: false, output: "Exit code 3".into() }),
+            Some(ProviderEvent::CommandResult { ok: false, output: "Exit code 3".into() })
+        );
+    }
+
+    /// Saída longa: vale o final, onde costuma estar o erro, e o corte respeita caracteres (não bytes).
+    #[test]
+    fn command_output_keeps_only_the_last_4000_characters() {
+        let long = format!("{}erro final", "á".repeat(5000));
+        let mut tracker = CommandTracker::default();
+        tracker.observe(tool_use("t1", "Bash"));
+
+        let Some(ProviderEvent::CommandResult { output, .. }) =
+            tracker.observe(ProviderEvent::ToolResult { id: "t1".into(), ok: false, output: long })
+        else {
+            panic!("esperava CommandResult");
+        };
+
+        assert_eq!(output.chars().count(), 4000);
+        assert!(output.ends_with("erro final"));
+    }
+}

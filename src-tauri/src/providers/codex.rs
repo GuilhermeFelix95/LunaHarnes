@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::{ProviderEvent, TodoItem};
+use super::{last_chars, ProviderEvent, TodoItem, COMMAND_OUTPUT_MAX_CHARS};
 
 use super::{identity_for, Permission, RunRequest};
 
@@ -115,10 +115,21 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                         }]
                     })
                     .unwrap_or_default(),
-                Some("command_execution") => vec![ProviderEvent::ToolUse {
-                    name: "Bash".into(),
-                    detail: item["command"].as_str().unwrap_or_default().to_string(),
-                }],
+                Some("command_execution") => {
+                    // Sem exit_code (versões antigas), vale o status: "failed" é erro, qualquer outro é ok.
+                    let ok = item["exit_code"].as_i64().map_or(item["status"].as_str() != Some("failed"), |code| code == 0);
+                    vec![
+                        ProviderEvent::ToolUse {
+                            id: item["id"].as_str().unwrap_or_default().to_string(),
+                            name: "Bash".into(),
+                            detail: item["command"].as_str().unwrap_or_default().to_string(),
+                        },
+                        ProviderEvent::CommandResult {
+                            ok,
+                            output: last_chars(item["aggregated_output"].as_str().unwrap_or_default(), COMMAND_OUTPUT_MAX_CHARS),
+                        },
+                    ]
+                }
                 Some("file_change") => {
                     let paths: Vec<&str> = item["changes"]
                         .as_array()
@@ -130,6 +141,7 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                         })
                         .unwrap_or_default();
                     vec![ProviderEvent::ToolUse {
+                        id: item["id"].as_str().unwrap_or_default().to_string(),
                         name: "Editar".into(),
                         detail: paths.join(", "),
                     }]
@@ -217,11 +229,22 @@ mod tests {
         let line = r#"{"type":"item.completed","item":{"id":"item_2","type":"command_execution","command":"dir","status":"completed"}}"#;
         assert_eq!(
             parse_line(line),
-            vec![ProviderEvent::ToolUse {
-                name: "Bash".into(),
-                detail: "dir".into()
-            }]
+            vec![
+                ProviderEvent::ToolUse {
+                    id: "item_2".into(),
+                    name: "Bash".into(),
+                    detail: "dir".into()
+                },
+                ProviderEvent::CommandResult { ok: true, output: String::new() },
+            ]
         );
+    }
+
+    /// Comando que falha: `exit_code` diferente de zero vira resultado com ok = false e a saída no fim.
+    #[test]
+    fn a_failed_command_reports_exit_code_and_output() {
+        let line = r#"{"type":"item.completed","item":{"id":"item_4","type":"command_execution","command":"npm test","aggregated_output":"1 teste falhou","exit_code":1,"status":"failed"}}"#;
+        assert!(parse_line(line).contains(&ProviderEvent::CommandResult { ok: false, output: "1 teste falhou".into() }));
     }
 
     #[test]
@@ -230,6 +253,7 @@ mod tests {
         assert_eq!(
             parse_line(line),
             vec![ProviderEvent::ToolUse {
+                id: "item_3".into(),
                 name: "Editar".into(),
                 detail: "a.ts, b.ts".into()
             }]
