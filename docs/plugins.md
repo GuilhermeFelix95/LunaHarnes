@@ -143,6 +143,30 @@ export function activate(api) {
 
 Ainda não há ponto no cabeçalho nem na aba do painel direito. Cada ponto novo é um `data-plugin-slot` adicionado ao componente.
 
+### `api.theme`: permissão `theme`
+
+Registra um tema de cores e estilo que o usuário escolhe em **Configurações > Aparência**, em "Temas de plugins". Escolhido, o tema vale para o app inteiro, e o tema do app volta quando o usuário escolhe um tema do app de novo.
+
+```js
+export function activate(api) {
+  api.theme.register({
+    id: "gameboy",
+    name: "Game Boy",
+    dark: false,
+    tokens: { "--bg": "#9bbc0f", "--fg": "#0f380f", "--border": "#306230" },
+    css: "* { border-radius: 0 !important; } body { font-family: monospace !important; }",
+  });
+}
+```
+
+- `id`: letras minúsculas, números e hífen, sem barra. O tema vira `plugin:<plugin>/<id>`.
+- `tokens`: variáveis CSS do próprio app, como `--bg`, `--fg`, `--surface`, `--border` e `--accent`. O valor não pode conter `;`, `{`, `}`, `<` nem `>`, e tem no máximo 200 caracteres.
+- `css`: CSS livre, aplicado enquanto o tema estiver escolhido. Até 64 KB.
+- O tema some quando o plugin é desligado ou recarregado. A escolha salva volta a valer quando o plugin carrega de novo.
+- Exemplo completo: `plugins-examples/gameboy-theme/`.
+
+Ainda não há assets (imagens, fontes, sons) nem mascote de tema. Eles entram em uma etapa seguinte, com a permissão de leitura de arquivos do próprio plugin.
+
 ## Limites
 
 - Comandos e hooks têm **10 segundos**. Passou disso, o resultado é ignorado, o erro vai para os avisos e o envio segue sem ele.
@@ -267,5 +291,6 @@ Antes de instalar um plugin de outra pessoa, leia o `index.js`. Plugins rodam na
 - Permissões de sistema de arquivos e rede, com isolamento real (sandbox).
 - Painel próprio na aba do painel direito (`registerPanel`) e pontos de interface além de chat, composer e barra.
 - Plugins com vários arquivos e TypeScript.
+- Assets de tema (imagens, fontes, sons) e mascote por estado.
 - Assinatura de catálogos.
 - Atualização automática de plugins instalados.

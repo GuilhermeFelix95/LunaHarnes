@@ -125,3 +125,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-18 | Temas de plugin (Etapa 3b): permissão theme e api.theme.register com validação de tokens e CSS; aplicação global, tela de Aparência, assets e exemplo Game Boy ainda pendentes.
 2026-10-18 | Temas de plugin (Etapa 3c): registro global em src/plugins/themeRegistry.ts aplica o tema escolhido no <html> e guarda a escolha; ChatView alimenta o registro a cada carga de plugins.
 2026-10-18 | Temas de plugin (Etapa 3d-1): seletor em Configurações > Aparência para escolher o tema de plugin; escolher um tema do app tira o de plugin.
+2026-10-18 | Temas de plugin (Etapas 3d-2 e 3e): exemplo gameboy-theme com teste; docs/plugins.md e luna-plugin.d.ts documentam api.theme. Assets e mascote de tema ficam para depois.

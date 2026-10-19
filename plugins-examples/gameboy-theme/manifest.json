@@ -1,0 +1,7 @@
+{
+  "id": "gameboy-theme",
+  "name": "Game Boy",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "permissions": ["theme"]
+}

@@ -48,6 +48,22 @@ export interface LunaPluginApi {
   readonly cache: PluginCacheApi;
   /** Requer `ui`. Pode ler e mudar qualquer parte da tela do app. Tudo que ele monta ou injeta sai ao desligar o plugin. */
   readonly ui: LunaPluginUi;
+  /** Requer `theme`. Registra um tema que o usuário escolhe em Configurações > Aparência. */
+  readonly theme: LunaPluginTheme;
+}
+
+/** Permissão `theme`. */
+export interface LunaPluginTheme {
+  register(theme: {
+    /** Id sem barra, como `gameboy`. */
+    id: string;
+    name: string;
+    dark: boolean;
+    /** Variáveis CSS como `--bg`. O valor não pode conter `;`, `{`, `}`, `<` nem `>`. */
+    tokens: Record<string, string>;
+    /** CSS livre do tema, até 64 KB. */
+    css?: string;
+  }): void;
 }
 
 /** Permissão `ui`. */
