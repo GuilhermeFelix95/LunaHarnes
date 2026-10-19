@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertCircle, Bot, Check, Copy, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, type LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, Bot, Check, Copy, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, X, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
@@ -23,6 +23,10 @@ interface MessageListProps {
   onRewind?: (message: ChatMessage) => void;
   /** Agente que está respondendo: autor do indicador "Pensando…" enquanto a resposta não chega. */
   pending?: { provider: ProviderKind; label: string };
+  /** Etapa em andamento da lista de progresso, mostrada no cabeçalho do trabalho. */
+  step?: string | null;
+  /** Momento em que o turno começou, para o tempo decorrido no cabeçalho do trabalho. */
+  startedAt?: number | null;
 }
 
 type Tool = NonNullable<ChatMessage["tool"]>;
@@ -88,6 +92,33 @@ function toolSummary(tools: Tool[]): string {
   return t("message.toolActions", { count: tools.length, names });
 }
 
+/// Tempo decorrido em "12 s" ou "1 min 5 s", atualizado a cada segundo enquanto o turno roda.
+function useElapsed(since?: number | null): string | null {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!since) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [since]);
+  if (!since) return null;
+  const seconds = Math.max(0, Math.floor((now - since) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  return minutes ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
+}
+
+/// Cabeçalho enquanto o agente trabalha: "Trabalhando · passo atual · tempo".
+function WorkingHeader({ step, startedAt }: { step?: string | null; startedAt?: number | null }) {
+  const elapsed = useElapsed(startedAt);
+  return (
+    <span className="tool-line__working">
+      {t("message.working")}
+      {step && <span className="tool-line__step"> · {step}</span>}
+      {elapsed && <span className="tool-line__time"> · {elapsed}</span>}
+    </span>
+  );
+}
+
 /// Hora curta no formato do idioma da interface, ex.: 14:32.
 function formatTime(at: number): string {
   return new Date(at).toLocaleTimeString(resolveLocale(), { hour: "2-digit", minute: "2-digit" });
@@ -131,7 +162,7 @@ function ReplyActions({ parts }: { parts: Part[] }) {
 
 /// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
 /// ferramentas recolhidas e o texto em destaque.
-export function MessageList({ messages, fallbackProvider, running, onRewind, pending }: MessageListProps) {
+export function MessageList({ messages, fallbackProvider, running, onRewind, pending, step, startedAt }: MessageListProps) {
   const items = group(messages, fallbackProvider);
   // Pedido enviado e nenhuma resposta ainda: o agente aparece "pensando" até o primeiro pedaço chegar.
   const waiting = running && items.at(-1)?.kind === "user";
@@ -163,10 +194,13 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                 if (part.kind === "tools") {
                   const working = running && i === items.length - 1 && j === item.parts.length - 1;
                   return (
-                    <details key={j} className="tool-line">
+                    <details key={j} className="tool-line" open={working || undefined}>
                       <summary>
-                        {working && <span className="tool-line__working">{t("message.working")}</span>}
-                        <span className="tool-line__preview">{toolSummary(part.tools)}</span>
+                        {working ? (
+                          <WorkingHeader step={step} startedAt={startedAt} />
+                        ) : (
+                          <span className="tool-line__preview">{toolSummary(part.tools)}</span>
+                        )}
                       </summary>
                       <ul className="tool-line__list">
                         {part.tools.map((tool, k) => {
@@ -176,6 +210,16 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                               <span className="tool-line__name">
                                 <Icon size={13} aria-hidden="true" />
                                 {tool.name}
+                                {tool.ok === true && (
+                                  <span className="tool-line__status tool-line__status--ok" role="img" aria-label={t("message.toolOk")}>
+                                    <Check size={12} aria-hidden="true" />
+                                  </span>
+                                )}
+                                {tool.ok === false && (
+                                  <span className="tool-line__status tool-line__status--failed" role="img" aria-label={t("message.toolFailed")}>
+                                    <X size={12} aria-hidden="true" />
+                                  </span>
+                                )}
                               </span>
                               {tool.detail && <code>{tool.detail}</code>}
                             </li>

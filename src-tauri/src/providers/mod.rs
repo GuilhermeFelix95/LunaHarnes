@@ -104,7 +104,7 @@ pub enum ProviderEvent {
     TextDelta { text: String },
     /// Ferramenta chamada pelo agente. `id` liga o chamado ao resultado (vazio quando o CLI não informa).
     ToolUse { id: String, name: String, detail: String },
-    /// Resultado de uma ferramenta, ainda sem dizer se era um comando. Quem chama decide o que fazer com ele.
+    /// Resultado de uma ferramenta. Dentro do `CommandTracker`, a saída vai vazia: o chat só precisa do estado.
     ToolResult { id: String, ok: bool, output: String },
     /// Resultado de um comando do agente (Bash). `output` guarda só o final da saída.
     CommandResult { ok: bool, output: String },
@@ -501,20 +501,28 @@ pub struct CommandTracker {
 }
 
 impl CommandTracker {
-    /// Devolve o evento para o chat, ou `None` quando ele não deve ir para o chat (resultado de outra ferramenta).
-    pub fn observe(&mut self, event: ProviderEvent) -> Option<ProviderEvent> {
+    /// Eventos para o chat. Todo resultado de ferramenta vira `ToolResult` sem a saída (o chat mostra o estado);
+    /// resultado de Bash também vira `CommandResult`, com o fim da saída, para o LunaFix.
+    pub fn observe(&mut self, event: ProviderEvent) -> Vec<ProviderEvent> {
         match event {
             ProviderEvent::ToolUse { ref id, ref name, .. } => {
                 if name == "Bash" && !id.is_empty() {
                     self.commands.insert(id.clone());
                 }
-                Some(event)
+                vec![event]
             }
-            ProviderEvent::ToolResult { id, ok, output } => self.commands.contains(&id).then(|| ProviderEvent::CommandResult {
-                ok,
-                output: last_chars(&output, COMMAND_OUTPUT_MAX_CHARS),
-            }),
-            other => Some(other),
+            ProviderEvent::ToolResult { id, ok, output } => {
+                let mut events = Vec::new();
+                if self.commands.remove(&id) {
+                    events.push(ProviderEvent::CommandResult {
+                        ok,
+                        output: last_chars(&output, COMMAND_OUTPUT_MAX_CHARS),
+                    });
+                }
+                events.push(ProviderEvent::ToolResult { id, ok, output: String::new() });
+                events
+            }
+            other => vec![other],
         }
     }
 }
@@ -579,20 +587,23 @@ mod command_result_tests {
         ProviderEvent::ToolUse { id: id.into(), name: name.into(), detail: "exit 3".into() }
     }
 
-    /// Só o resultado de Bash vira CommandResult; o de outras ferramentas some, e o ToolUse segue para o chat.
+    /// Só o resultado de Bash vira CommandResult; todo resultado segue para o chat como ToolResult, sem a saída.
     #[test]
     fn only_bash_results_become_command_results() {
         let mut tracker = CommandTracker::default();
 
-        assert_eq!(tracker.observe(tool_use("t1", "Bash")), Some(tool_use("t1", "Bash")));
-        assert_eq!(tracker.observe(tool_use("t2", "Read")), Some(tool_use("t2", "Read")));
+        assert_eq!(tracker.observe(tool_use("t1", "Bash")), vec![tool_use("t1", "Bash")]);
+        assert_eq!(tracker.observe(tool_use("t2", "Read")), vec![tool_use("t2", "Read")]);
         assert_eq!(
             tracker.observe(ProviderEvent::ToolResult { id: "t2".into(), ok: false, output: "arquivo não existe".into() }),
-            None
+            vec![ProviderEvent::ToolResult { id: "t2".into(), ok: false, output: String::new() }]
         );
         assert_eq!(
             tracker.observe(ProviderEvent::ToolResult { id: "t1".into(), ok: false, output: "Exit code 3".into() }),
-            Some(ProviderEvent::CommandResult { ok: false, output: "Exit code 3".into() })
+            vec![
+                ProviderEvent::CommandResult { ok: false, output: "Exit code 3".into() },
+                ProviderEvent::ToolResult { id: "t1".into(), ok: false, output: String::new() },
+            ]
         );
     }
 
@@ -603,9 +614,8 @@ mod command_result_tests {
         let mut tracker = CommandTracker::default();
         tracker.observe(tool_use("t1", "Bash"));
 
-        let Some(ProviderEvent::CommandResult { output, .. }) =
-            tracker.observe(ProviderEvent::ToolResult { id: "t1".into(), ok: false, output: long })
-        else {
+        let events = tracker.observe(ProviderEvent::ToolResult { id: "t1".into(), ok: false, output: long });
+        let Some(ProviderEvent::CommandResult { output, .. }) = events.first() else {
             panic!("esperava CommandResult");
         };
 

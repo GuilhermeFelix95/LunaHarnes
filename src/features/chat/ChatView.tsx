@@ -148,6 +148,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Arquivos gerais (não imagem) do próximo envio: o caminho entra no pedido e o agente lê.
   const [fileAttachments, setFileAttachments] = useState<{ id: number; name: string; path: string }[]>([]);
   const [running, setRunning] = useState(false);
+  // Início do turno em andamento: o cabeçalho do trabalho mostra o tempo decorrido.
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
   // Contexto cheio depois de um turno: compacta antes de o usuário precisar pedir.
   useEffect(() => {
     if (running || !compactDue.current) return;
@@ -631,6 +633,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
 
   async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode, images: string[] = []) {
     setRunning(true);
+    setTurnStartedAt(Date.now());
     snapshotConfig();
     if (rewindNote.current) {
       cliPrompt = `${rewindNote.current}
@@ -1070,6 +1073,8 @@ ${outgoing}`
             fallbackProvider={legacyProvider.current}
             running={running}
             pending={{ provider, label: agentLabel }}
+            step={displayTodos(toTodos(tasks), running).find((todo) => todo.status === "in_progress")?.content ?? null}
+            startedAt={turnStartedAt}
             onRewind={(m) => {
               const index = messagesRef.current.indexOf(m);
               if (index >= 0 && m.checkpoint) void rewind(index, m.checkpoint);

@@ -27,8 +27,19 @@ export function applyEvent(
     case "toolUse":
       return [
         ...messages,
-        { role: "assistant", text: "", tool: { name: event.name, detail: event.detail }, at: Date.now(), ...by },
+        { role: "assistant", text: "", tool: { id: event.id, name: event.name, detail: event.detail }, at: Date.now(), ...by },
       ];
+    case "toolResult": {
+      // Marca a ação que terminou; procura de trás para frente, onde ela costuma estar.
+      if (!event.id) return messages;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const message = messages[i];
+        if (message.tool?.id === event.id) {
+          return [...messages.slice(0, i), { ...message, tool: { ...message.tool, ok: event.ok } }, ...messages.slice(i + 1)];
+        }
+      }
+      return messages;
+    }
     case "error": {
       const reply = lastTextReply(messages);
       if (reply) {

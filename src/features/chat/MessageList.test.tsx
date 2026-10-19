@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "../../types";
 import { MessageList } from "./MessageList";
@@ -159,5 +159,34 @@ describe("MessageList: voltar até aqui", () => {
     render(<MessageList messages={[asked]} fallbackProvider="claude" running onRewind={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: "Voltar até aqui" }).hasAttribute("disabled")).toBe(true);
+  });
+});
+
+describe("MessageList: andamento das ações", () => {
+  it("enquanto trabalha, o cabeçalho mostra o passo atual e o tempo decorrido", () => {
+    vi.useFakeTimers();
+    try {
+      const startedAt = Date.now();
+      render(<MessageList messages={turn.slice(0, 3)} fallbackProvider="claude" running step="Ligar o evento" startedAt={startedAt} />);
+      expect(screen.getByText(/Ligar o evento/)).toBeTruthy();
+      expect(screen.getByText(/0 s/)).toBeTruthy();
+
+      act(() => vi.advanceTimersByTime(65_000));
+      expect(screen.getByText(/1 min 5 s/)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cada ação mostra se terminou bem ou falhou", () => {
+    const messages: ChatMessage[] = [
+      { role: "user", text: "roda os testes" },
+      { role: "assistant", text: "", tool: { id: "t1", name: "Bash", detail: "npm test", ok: false }, provider: "claude" },
+      { role: "assistant", text: "", tool: { id: "t2", name: "Read", detail: "a.ts", ok: true }, provider: "claude" },
+    ];
+    render(<MessageList messages={messages} fallbackProvider="claude" running={false} />);
+
+    expect(screen.getByLabelText("Falhou")).toBeTruthy();
+    expect(screen.getByLabelText("Concluída")).toBeTruthy();
   });
 });

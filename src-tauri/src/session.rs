@@ -178,7 +178,7 @@ impl Session {
                     if line.trim().is_empty() {
                         continue;
                     }
-                    for event in parse_line(kind, line).into_iter().filter_map(|e| tracker.observe(e)) {
+                    for event in parse_line(kind, line).into_iter().flat_map(|e| tracker.observe(e)) {
                         let done = matches!(event, ProviderEvent::Done { .. });
                         on_event(event);
                         if done {

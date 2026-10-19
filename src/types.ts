@@ -108,6 +108,8 @@ export type ProviderEvent =
   | { kind: "sessionStarted"; sessionId: string }
   | { kind: "textDelta"; text: string }
   | { kind: "toolUse"; id: string; name: string; detail: string }
+  /** Fim de uma ferramenta: `ok` diz se deu certo. A saída vem vazia (só comandos guardam o fim dela em `commandResult`). */
+  | { kind: "toolResult"; id: string; ok: boolean; output: string }
   | { kind: "todos"; items: TodoItem[] }
   | { kind: "taskCreated"; key: string; subject: string }
   | { kind: "taskAssigned"; key: string; id: string }
@@ -126,7 +128,8 @@ export interface ChatMessage {
   role: "user" | "assistant";
   text: string;
   /** Linha de ferramenta (ex.: Bash com o comando executado). */
-  tool?: { name: string; detail: string };
+  /** `id` liga à ferramenta que terminou; `ok` fica vazio enquanto ela roda. */
+  tool?: { id?: string; name: string; detail: string; ok?: boolean };
   error?: string;
   /** Agente que respondeu. Ausente em conversas antigas = provedor da conversa. */
   provider?: ProviderKind;

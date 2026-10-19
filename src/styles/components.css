@@ -682,6 +682,29 @@
   font-weight: 600;
 }
 
+.tool-line__time {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Resultado de cada ação: ícone discreto ao lado do nome */
+.tool-line__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.tool-line__status--ok {
+  color: var(--success);
+}
+
+.tool-line__status--failed {
+  color: var(--error);
+}
+
 .tool-line__list {
   margin: 6px 0 0;
   padding: 0 0 0 14px;

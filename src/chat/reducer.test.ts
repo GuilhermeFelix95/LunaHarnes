@@ -40,7 +40,7 @@ describe("applyEvent", () => {
 
     expect(messages).toEqual([
       { role: "user", text: "liste" },
-      { role: "assistant", text: "", tool: { name: "Bash", detail: "dir" }, at: expect.any(Number) },
+      { role: "assistant", text: "", tool: { id: "", name: "Bash", detail: "dir" }, at: expect.any(Number) },
       { role: "assistant", text: "Pronto.", at: expect.any(Number) },
     ]);
   });
@@ -57,5 +57,23 @@ describe("applyEvent com agente de perfil", () => {
     const result = applyEvent([{ role: "user", text: "oi" }], { kind: "textDelta", text: "Olá" }, "claude", "DeepSeek · via Claude Code");
 
     expect(result[1]).toEqual({ role: "assistant", text: "Olá", provider: "claude", agent: "DeepSeek · via Claude Code", at: expect.any(Number) });
+  });
+});
+
+describe("applyEvent: resultado de ferramenta", () => {
+  it("marca a ação certa como concluída ou falha, pelo id", () => {
+    let messages: ChatMessage[] = [];
+    messages = applyEvent(messages, { kind: "toolUse", id: "t1", name: "Bash", detail: "npm test" });
+    messages = applyEvent(messages, { kind: "toolUse", id: "t2", name: "Read", detail: "a.ts" });
+    messages = applyEvent(messages, { kind: "toolResult", id: "t1", ok: false, output: "" });
+    messages = applyEvent(messages, { kind: "toolResult", id: "t2", ok: true, output: "" });
+
+    expect(messages.map((m) => m.tool?.ok)).toEqual([false, true]);
+  });
+
+  it("resultado sem ação correspondente não muda a conversa", () => {
+    const before: ChatMessage[] = [{ role: "user", text: "oi" }];
+
+    expect(applyEvent(before, { kind: "toolResult", id: "x", ok: true, output: "" })).toBe(before);
   });
 });
