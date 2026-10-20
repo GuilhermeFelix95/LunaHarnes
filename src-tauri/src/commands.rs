@@ -45,6 +45,22 @@ struct RunEvent<'a> {
     event: ProviderEvent,
 }
 
+/// Pasta nova de spec para a conversa (specs/NNN-slug). Devolve o caminho relativo ao projeto.
+#[tauri::command]
+pub async fn create_spec(cwd: String, title: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || spec::new_spec_dir(Path::new(&cwd), &title))
+        .await
+        .map_err(|e| format!("falha ao criar a spec: {e}"))?
+}
+
+/// Grava uma rodada de perguntas e respostas em decisions.md da spec da conversa.
+#[tauri::command]
+pub async fn record_spec_decisions(cwd: String, spec_dir: String, lines: Vec<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || spec::record_decisions(Path::new(&cwd), &spec_dir, &lines))
+        .await
+        .map_err(|e| format!("falha ao gravar as decisões: {e}"))?
+}
+
 /// Inicia o CLI, envia o prompt e devolve sem esperar o fim: a saída chega por eventos.
 #[tauri::command]
 pub fn send_prompt(
@@ -52,10 +68,14 @@ pub fn send_prompt(
     runs: State<'_, ActiveRuns>,
     mut request: RunRequest,
     run_id: String,
+    spec_dir: Option<String>,
 ) -> Result<(), String> {
     request.validate()?;
-    // A spec do projeto (pasta spec/) vai em toda chamada, antes do pedido. Vale para qualquer provedor.
-    let spec = spec::load_spec(&request.cwd)?;
+    // A spec da conversa (specs/NNN-slug, com decisões) vai em toda chamada. Sem ela, vale a pasta spec/ do projeto.
+    let spec = match &spec_dir {
+        Some(dir) => spec::load_conversation_spec(&request.cwd, dir)?,
+        None => spec::load_spec(&request.cwd)?,
+    };
     request.prompt = spec::with_spec(&spec, &request.prompt);
     // Perfis de API não leem ~/.claude nem ~/.codex: as regras globais vão no próprio pedido.
     if request.profile.is_some() {

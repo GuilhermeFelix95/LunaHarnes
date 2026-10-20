@@ -202,6 +202,8 @@ export interface Conversation {
   costUsd?: number;
   /** Último plano gerado nesta conversa (aba Plano do painel). */
   plan?: string;
+  /** Pasta da spec da conversa (specs/NNN-slug). Ausente = ainda não aprovou um plano. */
+  specDir?: string;
   /** Sessões por agente. Ausente em arquivos antigos: vem de sessionId. */
   sessions?: AgentSessions;
   /** Tarefas do agente, para a aba Progresso voltar ao reabrir a conversa. */

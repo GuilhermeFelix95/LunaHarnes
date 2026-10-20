@@ -34,8 +34,19 @@ export function saveOrchestrator(orchestrator: Orchestrator): Promise<void> {
   return invoke("save_orchestrator", { orchestrator });
 }
 
-export function sendPrompt(request: RunRequest, runId: string): Promise<void> {
-  return invoke("send_prompt", { request, runId });
+/// `specDir` é a pasta da spec da conversa (specs/NNN-slug). Com ela, o Rust injeta a spec e as decisões no prompt.
+export function sendPrompt(request: RunRequest, runId: string, specDir?: string): Promise<void> {
+  return invoke("send_prompt", { request, runId, specDir: specDir ?? null });
+}
+
+/// Cria a pasta da spec da conversa e devolve o caminho relativo ao projeto (specs/NNN-slug).
+export function createSpec(cwd: string, title: string): Promise<string> {
+  return invoke("create_spec", { cwd, title });
+}
+
+/// Registra uma rodada de perguntas e respostas no decisions.md da spec.
+export function recordSpecDecisions(cwd: string, specDir: string, lines: string[]): Promise<void> {
+  return invoke("record_spec_decisions", { cwd, specDir, lines });
 }
 
 export function cancelPrompt(runId: string): Promise<void> {

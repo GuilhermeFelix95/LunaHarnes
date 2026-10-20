@@ -179,3 +179,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Aba Arquivos no painel direito: árvore somente leitura do projeto (pastas sob demanda, filtro e visualizador de texto), com checagem de caminho dentro do projeto no Rust.
 2026-10-20 | Prévia de arquivo lado a lado com a árvore; o painel alarga para 560 px enquanto a prévia estiver aberta.
 2026-10-20 | Alterações: a lista relê o git ao abrir a aba, ao voltar para a janela, ao parar um turno e quando o envio falha (antes só no fim de turno concluído).
+2026-10-20 | Specs por conversa: aprovar o plano cria specs/NNN-slug/ com spec.md; cada rodada de perguntas vira decisions.md (app grava, número da rodada vem do arquivo); spec e decisões entram no prompt de todo turno da conversa.

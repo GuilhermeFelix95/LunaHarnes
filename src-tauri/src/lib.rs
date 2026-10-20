@@ -92,6 +92,8 @@ pub fn run() {
             commands::list_models,
             commands::get_changes,
             commands::project_check,
+            commands::create_spec,
+            commands::record_spec_decisions,
             commands::list_project_dir,
             commands::read_project_file,
             worktrees::list_git_branches,

@@ -96,17 +96,22 @@ export const APPROVAL_PROMPT = [
   "Depois, execute o plano agora, editando os arquivos necessários, e resuma o que foi feito ao final.",
 ].join("\n");
 
+/// Onde a spec é escrita sem pasta da conversa (projetos antigos). Com pasta, a frase troca pelo caminho da spec.
+const SPEC_LOCATION = "em spec/ na raiz do projeto (ex.: spec/<funcionalidade>.md)";
+
 /// Aprovação para um motor. O Claude usa TaskCreate; OpenCode e Codex usam o servidor de etapas do Luna.
-export function approvalInstruction(provider: ProviderKind): string {
-  if (provider === "claude") return APPROVAL_PROMPT;
+/// Com `specDir` (specs/NNN-slug), a spec vai para `<specDir>/spec.md`, e as decisões ficam registradas nessa pasta.
+export function approvalInstruction(provider: ProviderKind, specDir?: string): string {
+  const base = specDir ? APPROVAL_PROMPT.replace(SPEC_LOCATION, `em ${specDir}/spec.md`) : APPROVAL_PROMPT;
+  if (provider === "claude") return base;
   // O Copilot e o Antigravity ainda não recebem o servidor de etapas do Luna (falta a config MCP): sem registro de etapas por enquanto.
-  if (provider === "copilot" || provider === "antigravity") return APPROVAL_PROMPT.replace(TASK_STEPS_CLAUDE, "");
-  return APPROVAL_PROMPT.replace(TASK_STEPS_CLAUDE, TASK_STEPS_LUNA);
+  if (provider === "copilot" || provider === "antigravity") return base.replace(TASK_STEPS_CLAUDE, "");
+  return base.replace(TASK_STEPS_CLAUDE, TASK_STEPS_LUNA);
 }
 
 /// Aprovação com o plano aprovado dentro. Sem ele (plano não guardado), vale só a instrução.
-export function approvalPrompt(plan: string | null, provider: ProviderKind = "claude"): string {
-  const instruction = approvalInstruction(provider);
+export function approvalPrompt(plan: string | null, provider: ProviderKind = "claude", specDir?: string): string {
+  const instruction = approvalInstruction(provider, specDir);
   if (!plan?.trim()) return instruction;
   return `${instruction}\n\nPlano aprovado, para usar como referência durante toda a execução:\n\`\`\`luna-plano\n${plan}\n\`\`\``;
 }

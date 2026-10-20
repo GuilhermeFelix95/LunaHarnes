@@ -186,3 +186,15 @@ describe("approvalPrompt por motor", () => {
     expect(prompt).not.toContain("TaskCreate");
   });
 });
+
+describe("aprovação com pasta de spec", () => {
+  it("manda gravar a spec dentro da pasta da conversa, não em spec/", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela", "claude", "specs/001-tela");
+    expect(prompt).toContain("em specs/001-tela/spec.md");
+    expect(prompt).not.toContain("em spec/ na raiz");
+  });
+
+  it("sem pasta, o texto continua o de sempre", () => {
+    expect(approvalPrompt(null, "claude")).toBe(APPROVAL_PROMPT);
+  });
+});

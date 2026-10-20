@@ -34,6 +34,9 @@ pub struct Conversation {
     pub model: Option<String>,
     #[serde(default)]
     pub effort: Option<String>,
+    /// Pasta da spec desta conversa (specs/NNN-slug). Ausente = ainda não há spec aprovada.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spec_dir: Option<String>,
     /// Modo plano ligado: o agente pergunta e planeja antes de editar.
     #[serde(default)]
     pub planning: bool,
@@ -181,6 +184,7 @@ mod tests {
             provider: ProviderKind::Claude,
             session_id: Some("sess-1".into()),
             cwd: "C:\\projeto".into(),
+            spec_dir: None,
             permission: Permission::AcceptEdits,
             created_at: 1,
             updated_at,

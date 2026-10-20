@@ -23,6 +23,8 @@ import {
   openLogin,
   pickWorkspace,
   sendPrompt,
+  createSpec,
+  recordSpecDecisions,
   getOrchestrator,
   listGitBranches,
   createGitWorktree,
@@ -129,6 +131,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Último plano da conversa: a resposta do modo plano (ou da spec) fica no painel.
   const [plan, setPlan] = useState<string | undefined>(initial?.plan);
   const planRef = useRef(plan);
+  // Pasta da spec desta conversa (specs/NNN-slug), criada na primeira aprovação do plano.
+  const specDirRef = useRef<string | undefined>(initial?.specDir);
+  // Rodadas de perguntas do modo plano feitas antes da spec existir: gravadas na aprovação.
+  const pendingRounds = useRef<string[][]>([]);
   // O turno em andamento é de planejamento? Só a resposta desse turno vira plano.
   const turnPlanning = useRef(false);
   // Só turnos de planejamento e do modo Conversar mostram perguntas no seletor; nos outros, ficam como texto.
@@ -583,6 +589,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       profile: latest.profileId ?? undefined,
       costUsd: costRef.current || undefined,
       plan: planRef.current,
+      specDir: specDirRef.current,
       tasks: tasksRef.current,
       compactions: compactionsRef.current,
       createdAt: createdAt.current,
@@ -741,7 +748,7 @@ ${cliPrompt}`;
         contextWindow: route.provider === provider ? models.find((m) => m.id === route.model)?.contextWindow : undefined,
         subagents: !!orchestrator.subagent && route.provider === "claude",
         longCache: longCacheEnabled(),
-      }, conversationId);
+      }, conversationId, specDirRef.current);
     } catch (e) {
       setRunning(false);
       setChangesVersion((v) => v + 1);
@@ -961,6 +968,13 @@ ${outgoing}`
       await approvePlan();
       return;
     }
+    // Respostas viram decisões da spec (decisions.md). Antes da spec existir, ficam guardadas até a aprovação.
+    const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+    if (specDirRef.current && cwd) {
+      void recordSpecDecisions(cwd, specDirRef.current, lines).catch((e) => console.error("não foi possível gravar as decisões da spec:", e));
+    } else if (planning) {
+      pendingRounds.current.push(lines);
+    }
     await run(text, text, planning, modes.find((m) => m.id === modeId));
   }
 
@@ -971,9 +985,20 @@ ${outgoing}`
     // Execução nova: a lista de progresso começa do zero, sem as etapas de um plano anterior.
     tasksRef.current = [];
     setTasks([]);
+    // Primeira aprovação: cria a pasta da spec e grava nela as rodadas de perguntas feitas antes.
+    if (!specDirRef.current && cwd) {
+      const firstUser = messagesRef.current.find((m) => m.role === "user");
+      try {
+        specDirRef.current = await createSpec(cwd, firstUser?.text ?? "spec");
+        for (const lines of pendingRounds.current) await recordSpecDecisions(cwd, specDirRef.current, lines);
+        pendingRounds.current = [];
+      } catch (e) {
+        console.error("não foi possível criar a pasta da spec:", e);
+      }
+    }
     // A instrução de registro das etapas depende do motor que vai executar (o do papel de execução, se houver).
     const engine = routeFor("execute", { provider, profileId, model: "", effort: "" }, await loadOrchestrator()).provider;
-    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null, engine), false, undefined, [], "execute");
+    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null, engine, specDirRef.current), false, undefined, [], "execute");
   }
 
   function changeModel(next: string) {
