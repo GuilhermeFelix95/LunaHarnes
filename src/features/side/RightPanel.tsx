@@ -39,25 +39,6 @@ function saveWidth(width: number) {
   }
 }
 
-export const OPEN_KEY = "luna.rightPanel.open";
-
-/// Painel aberto por padrão; "0" guarda o fechado.
-export function loadOpen(): boolean {
-  try {
-    return localStorage.getItem(OPEN_KEY) !== "0";
-  } catch {
-    return true;
-  }
-}
-
-export function saveOpen(open: boolean) {
-  try {
-    localStorage.setItem(OPEN_KEY, open ? "1" : "0");
-  } catch {
-    // Sem armazenamento, o estado vale só nesta sessão.
-  }
-}
-
 interface RightPanelProps {
   /** Fechado, o painel só esconde: o terminal continua vivo. */
   open: boolean;

@@ -62,7 +62,7 @@ import { applyTaskEvent, displayTodos, toTodos, type TaskEntry } from "../../cha
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
 import { BrowserPanel } from "../side/BrowserPanel";
-import { loadOpen, RightPanel, saveOpen, type SideTab } from "../side/RightPanel";
+import { RightPanel, type SideTab } from "../side/RightPanel";
 import { TerminalPanel } from "../terminal/TerminalPanel";
 import { Composer, PROVIDER_LABELS } from "./Composer";
 import { MessageList } from "./MessageList";
@@ -216,9 +216,9 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [checking, setChecking] = useState(false);
   const [loginError, setLoginError] = useState<string | undefined>(undefined);
   // Painel da direita: aberto ou não, e qual aba.
-  const [sideOpen, setSideOpen] = useState(loadOpen);
+  // Sempre começa fechado: o painel direito só abre quando o usuário pede.
+  const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
-  useEffect(() => saveOpen(sideOpen), [sideOpen]);
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
   const [terminalOpened, setTerminalOpened] = useState(false);
   const [changesVersion, setChangesVersion] = useState(0);

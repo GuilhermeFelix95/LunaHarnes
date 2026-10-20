@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TodoItem } from "../../types";
-import { clampWidth, loadOpen, OPEN_KEY, RightPanel, saveOpen, WIDTH_KEY, type SideTab } from "./RightPanel";
+import { clampWidth, RightPanel, WIDTH_KEY, type SideTab } from "./RightPanel";
 
 function setup(tab: SideTab = "changes", plan?: string, todos: TodoItem[] = []) {
   const onTab = vi.fn();
@@ -145,14 +145,6 @@ describe("RightPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fechar painel lateral" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("o estado aberto ou fechado fica salvo; padrão é aberto", () => {
-    expect(loadOpen()).toBe(true);
-
-    saveOpen(false);
-    expect(localStorage.getItem(OPEN_KEY)).toBe("0");
-    expect(loadOpen()).toBe(false);
   });
 
   it("largura fica entre 240 px e 60% da janela", () => {
