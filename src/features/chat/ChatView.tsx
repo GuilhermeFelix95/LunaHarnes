@@ -33,7 +33,7 @@ import { getAgentBrowser } from "../../chat/agentBrowser";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
-import { APPROVAL_PROMPT, APPROVE_OPTION, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
+import { APPROVE_OPTION, approvalPrompt, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
 import { summarize, type CacheUsage, type TurnRecord } from "../../chat/promptCache";
@@ -937,7 +937,7 @@ ${outgoing}`
     // Execução nova: a lista de progresso começa do zero, sem as etapas de um plano anterior.
     tasksRef.current = [];
     setTasks([]);
-    await run(t("chat.planApproved"), APPROVAL_PROMPT, false);
+    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null), false);
   }
 
   function changeModel(next: string) {

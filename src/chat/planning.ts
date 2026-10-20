@@ -90,6 +90,12 @@ export const APPROVAL_PROMPT = [
   "Depois, execute o plano agora, editando os arquivos necessários, e resuma o que foi feito ao final.",
 ].join("\n");
 
+/// Aprovação com o plano aprovado dentro. Sem ele (plano não guardado), vale só a instrução.
+export function approvalPrompt(plan: string | null): string {
+  if (!plan?.trim()) return APPROVAL_PROMPT;
+  return `${APPROVAL_PROMPT}\n\nPlano aprovado, para usar como referência durante toda a execução:\n\`\`\`luna-plano\n${plan}\n\`\`\``;
+}
+
 /// Protocolo das perguntas: toda pergunta vai dentro do bloco, que o app mostra como seletor.
 /// Sem o bloco, a pergunta apareceria como texto no chat, o que o usuário não quer.
 export const QUESTION_PROTOCOL = [

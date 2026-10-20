@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   APPROVAL_PROMPT,
+  approvalPrompt,
   contextUnderstood,
   extractPlan,
   DEFAULT_PLAN_TARGET,
@@ -83,6 +84,18 @@ describe("modo plano", () => {
   it("a aprovação pede execução, sem a instrução de planejamento", () => {
     expect(APPROVAL_PROMPT).toContain("execute o plano agora");
     expect(APPROVAL_PROMPT).not.toContain("modo de planejamento");
+  });
+
+  it("a aprovação leva o texto do plano, para a execução não depender só da memória da sessão", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela");
+    expect(prompt).toContain("## Passos\n1. Criar a tela");
+    expect(prompt).toContain("```luna-plano");
+    expect(prompt.startsWith(APPROVAL_PROMPT)).toBe(true);
+  });
+
+  it("sem plano guardado, a aprovação sai só com a instrução", () => {
+    expect(approvalPrompt(null)).toBe(APPROVAL_PROMPT);
+    expect(approvalPrompt("  ")).toBe(APPROVAL_PROMPT);
   });
 
   it("a spec sai no modelo to-spec, em spec/, com as seções na ordem", () => {
