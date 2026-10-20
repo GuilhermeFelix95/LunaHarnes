@@ -11,6 +11,7 @@ export interface SlashItem {
 export const LUNA_COMMANDS: SlashItem[] = [
   { name: "plano", description: "Liga o modo de planejamento", origin: "luna" },
   { name: "compactar", description: "Resume a conversa para liberar o contexto", origin: "luna" },
+  { name: "projeto", description: "Confere os arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md)", origin: "luna" },
   { name: "plugin instalar", description: "Instala o plugin de uma pasta, depois de revisar as permissões", origin: "luna" },
 ];
 
@@ -38,13 +39,14 @@ export function filterSlash(items: SlashItem[], query: string): SlashItem[] {
   ];
 }
 
-export type LunaCommand = { id: "plano" } | { id: "compactar" } | { id: "plugin"; folder: string };
+export type LunaCommand = { id: "plano" } | { id: "compactar" } | { id: "projeto" } | { id: "plugin"; folder: string };
 
 /// Reconhece os comandos da Luna digitados. Qualquer outra entrada devolve null.
 export function parseLunaCommand(input: string): LunaCommand | null {
   const text = input.trim();
   if (text === "/plano") return { id: "plano" };
   if (text === "/compactar") return { id: "compactar" };
+  if (text === "/projeto") return { id: "projeto" };
   const install = /^\/plugin instalar\s+(.+)$/.exec(text);
   if (install) return { id: "plugin", folder: install[1].trim() };
   return null;

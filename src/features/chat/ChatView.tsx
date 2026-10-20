@@ -5,6 +5,7 @@ import {
   checkAuth,
   getChanges,
   getWorkspace,
+  projectCheck,
   apiPresets,
   checkpointPreview,
   checkpointRestore,
@@ -858,6 +859,17 @@ ${cliPrompt}`;
     }
     if (luna?.id === "plugin") {
       setPluginOffer(luna.folder);
+      return;
+    }
+    // /projeto: só confere os arquivos que as CLIs leem; não cria nada.
+    if (luna?.id === "projeto") {
+      setDraft("");
+      try {
+        const files = await projectCheck(cwd);
+        setNotes((current) => [...current, ...files.map((f) => t(f.found ? "project.found" : "project.missing", { name: f.name, purpose: f.purpose }))]);
+      } catch (err) {
+        setNotes((current) => [...current, t("project.error", { error: String(err) })]);
+      }
       return;
     }
 

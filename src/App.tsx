@@ -11,6 +11,7 @@ import {
 import { ChatView } from "./features/chat/ChatView";
 import { SettingsView } from "./features/settings/SettingsView";
 import { SetupScreen } from "./features/setup/SetupScreen";
+import { Onboarding, onboardingDone } from "./features/onboarding/Onboarding";
 import { Sidebar } from "./features/sidebar/Sidebar";
 import type { CliStatus, Conversation, ConversationSummary } from "./types";
 import { t, useLocale } from "./i18n";
@@ -59,6 +60,8 @@ export function App() {
 
   // CLIs que faltam no computador: abre a tela de instalação por cima do app (só na abertura).
   const [missingCli, setMissingCli] = useState<CliStatus[] | null>(null);
+  // Apresentação de primeira abertura: vem antes da tela de instalação das CLIs.
+  const [showOnboarding, setShowOnboarding] = useState(() => !onboardingDone());
   const [confirming, setConfirming] = useState<Confirm | null>(null);
 
   // O idioma da página acompanha a escolha, para leitores de tela e corretor ortográfico.
@@ -209,7 +212,11 @@ export function App() {
   return (
     <div className="app">
       <Toaster />
-      {missingCli && <SetupScreen statuses={missingCli} onSkip={() => setMissingCli(null)} />}
+      {showOnboarding ? (
+        <Onboarding onDone={() => setShowOnboarding(false)} />
+      ) : (
+        missingCli && <SetupScreen statuses={missingCli} onSkip={() => setMissingCli(null)} />
+      )}
       {confirming && (
         <ConfirmDialog
           title={confirming.title}

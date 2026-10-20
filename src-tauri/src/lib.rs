@@ -14,6 +14,7 @@ pub mod mcp;
 pub mod models;
 pub mod playwright;
 pub mod plugins;
+pub mod project;
 pub mod providers;
 pub mod rules;
 pub mod reload;
@@ -89,6 +90,7 @@ pub fn run() {
             commands::check_auth,
             commands::list_models,
             commands::get_changes,
+            commands::project_check,
             worktrees::list_git_branches,
             worktrees::create_git_worktree,
             reload::config_fingerprint,

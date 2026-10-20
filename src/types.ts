@@ -90,6 +90,13 @@ export interface ModelOption {
 }
 
 /// Situação de uma CLI no computador (espelha setup::CliStatus em src-tauri/src/setup.rs).
+/// Um arquivo ou pasta do projeto que as CLIs leem, e se ele existe na pasta.
+export interface ProjectFile {
+  name: string;
+  found: boolean;
+  purpose: string;
+}
+
 export interface CliStatus {
   provider: ProviderKind;
   installed: boolean;

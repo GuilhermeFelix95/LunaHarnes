@@ -10,6 +10,7 @@ use crate::api_profiles::{self, ApiProfile, Preset, PresetInfo, RemoteModels};
 use crate::changes::{self, Changes};
 use crate::checkpoints;
 use crate::conversations;
+use crate::project;
 use crate::rules;
 use crate::models::{self, ModelOption};
 use crate::plugins::local;
@@ -503,6 +504,16 @@ pub async fn list_models(provider: ProviderKind) -> Result<Vec<ModelOption>, Str
     tauri::async_runtime::spawn_blocking(move || models::load(provider))
         .await
         .map_err(|e| format!("falha ao listar os modelos: {e}"))?
+}
+
+/// Arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md...). Só confere se existem.
+#[tauri::command]
+pub async fn project_check(cwd: String) -> Result<Vec<project::ProjectFile>, String> {
+    let root = PathBuf::from(&cwd);
+    if !root.is_dir() {
+        return Err(format!("a pasta do projeto não existe: {cwd}"));
+    }
+    Ok(project::check(&root))
 }
 
 /// Arquivos alterados na pasta de trabalho (lidos do git).

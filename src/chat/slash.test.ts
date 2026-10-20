@@ -25,6 +25,11 @@ describe("menu de /", () => {
 });
 
 describe("comandos da Luna", () => {
+  it("reconhece /projeto, que só confere os arquivos", () => {
+    expect(parseLunaCommand("/projeto")).toEqual({ id: "projeto" });
+    expect(LUNA_COMMANDS.map((i) => i.name)).toContain("projeto");
+  });
+
   it("reconhece /plano e /plugin instalar com a pasta", () => {
     expect(parseLunaCommand("/plano")).toEqual({ id: "plano" });
     expect(parseLunaCommand("/plugin instalar  C:\\planos\\meu ")).toEqual({ id: "plugin", folder: "C:\\planos\\meu" });

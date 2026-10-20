@@ -10,6 +10,7 @@ import type {
   ChangedFile,
   Changes,
   CliStatus,
+  ProjectFile,
   Conversation,
   ConversationSummary,
   ModelOption,
@@ -109,6 +110,11 @@ export function renameConversation(id: string, title: string): Promise<void> {
 }
 
 /// Situação das CLIs (Claude Code e Codex) no computador.
+/// Arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md...). Só confere; não cria nada.
+export function projectCheck(cwd: string): Promise<ProjectFile[]> {
+  return invoke("project_check", { cwd });
+}
+
 export function cliStatus(): Promise<CliStatus[]> {
   return invoke("cli_status");
 }
