@@ -33,8 +33,6 @@ const ORIGIN_KEYS: Record<SlashOrigin, MessageKey> = {
 };
 
 const MAX_HEIGHT_PX = 200;
-/// Valor do seletor de conta que abre o campo de nome, em vez de escolher uma conta.
-const NEW_ACCOUNT = "__new__";
 
 interface ComposerProps {
   draft: string;
@@ -83,7 +81,6 @@ interface ComposerProps {
   /** Id da conta escolhida. Vazio = conta padrão da CLI. */
   account?: string;
   onAccount?: (id: string) => void;
-  onCreateAccount?: (name: string) => void;
 }
 
 /// Caixa de mensagem com Enter para enviar, Shift+Enter para quebrar linha e os seletores embaixo.
@@ -132,24 +129,6 @@ export function Composer(props: ComposerProps) {
   // Sem modelo escolhido, a CLI decide o esforço: o seletor fica desligado.
   const efforts = selectedModel?.efforts ?? [];
 
-  const [addingAccount, setAddingAccount] = useState(false);
-  const [accountName, setAccountName] = useState("");
-
-  function chooseAccount(value: string) {
-    if (value === NEW_ACCOUNT) {
-      setAddingAccount(true);
-      return;
-    }
-    props.onAccount?.(value);
-  }
-
-  function submitAccount() {
-    const name = accountName.trim();
-    if (!name) return;
-    props.onCreateAccount?.(name);
-    setAccountName("");
-    setAddingAccount(false);
-  }
 
   return (
     <form
@@ -248,30 +227,6 @@ export function Composer(props: ComposerProps) {
         disabled={blocked}
         rows={1}
       />
-      {addingAccount && (
-        <div className="composer__account-form">
-          <input
-            autoFocus
-            aria-label={t("composer.accountNamePlaceholder")}
-            placeholder={t("composer.accountNamePlaceholder")}
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            onKeyDown={(e) => {
-              // Enter aqui cria a conta; não pode enviar a mensagem do formulário.
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submitAccount();
-              }
-            }}
-          />
-          <button type="button" onClick={submitAccount} disabled={!accountName.trim()}>
-            {t("composer.accountCreate")}
-          </button>
-          <button type="button" onClick={() => setAddingAccount(false)}>
-            {t("composer.accountCancel")}
-          </button>
-        </div>
-      )}
       <div className="composer__footer">
         <div className="composer__selectors">
           <Select
@@ -302,9 +257,8 @@ export function Composer(props: ComposerProps) {
               options={[
                 { value: "", label: t("composer.accountDefault") },
                 ...(props.accounts ?? []).map((a) => ({ value: a.id, label: a.name })),
-                { value: NEW_ACCOUNT, label: t("composer.accountNew") },
               ]}
-              onChange={chooseAccount}
+              onChange={(value) => props.onAccount?.(value)}
               disabled={running}
             />
           )}

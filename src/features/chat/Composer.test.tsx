@@ -267,17 +267,4 @@ describe("Composer: @arquivo e imagens", () => {
     expect(props.onAccount).toHaveBeenCalledWith("claude-1");
   });
 
-  it("Nova conta abre o campo; Enter cria com o nome sem enviar a mensagem", () => {
-    const props = setup({ accountsEnabled: true, accounts: [], account: "", onCreateAccount: vi.fn() });
-
-    fireEvent.click(screen.getByRole("button", { name: "Conta" }));
-    fireEvent.click(screen.getByRole("option", { name: "Nova conta…" }));
-    const field = screen.getByPlaceholderText("Nome da conta (ex.: Trabalho)");
-    fireEvent.change(field, { target: { value: "  Trabalho  " } });
-    fireEvent.keyDown(field, { key: "Enter" });
-
-    expect(props.onCreateAccount).toHaveBeenCalledWith("Trabalho");
-    expect(props.onSend).not.toHaveBeenCalled();
-    expect(screen.queryByPlaceholderText("Nome da conta (ex.: Trabalho)")).toBeNull();
-  });
 });

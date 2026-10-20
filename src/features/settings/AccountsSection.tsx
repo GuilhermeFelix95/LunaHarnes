@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { checkAuth, cliStatus, installCli, openLogin } from "../../api";
-import type { CliStatus, ProviderKind } from "../../types";
+import { ACCOUNTS_CHANGED, checkAuth, cliStatus, createAccount, installCli, listAccounts, openLogin } from "../../api";
+import type { Account, CliStatus, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { t } from "../../i18n";
 
@@ -68,6 +68,17 @@ export function AccountsSection() {
   const [errors, setErrors] = useState<Partial<Record<ProviderKind, string>>>({});
   const loginRef = useRef(login);
   loginRef.current = login;
+  // Contas extras (Claude e Codex). `adding` é a CLI cujo formulário de nova conta está aberto.
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [adding, setAdding] = useState<ProviderKind | null>(null);
+  const [newName, setNewName] = useState("");
+  const [accountError, setAccountError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listAccounts()
+      .then(setAccounts)
+      .catch((e) => setAccountError(String(e)));
+  }, []);
 
   const refresh = useCallback((providers: ProviderKind[]) => {
     void Promise.all(providers.map((p) => checkAuth(p).then((ok) => [p, ok] as const).catch(() => [p, null] as const))).then((results) =>
@@ -121,6 +132,21 @@ export function AccountsSection() {
     }
   }
 
+  async function submitAccount(p: ProviderKind) {
+    const name = newName.trim();
+    if (!name) return;
+    setAccountError(null);
+    try {
+      const created = await createAccount(p, name);
+      setAccounts((list) => [...list, created]);
+      setAdding(null);
+      setNewName("");
+      window.dispatchEvent(new Event(ACCOUNTS_CHANGED));
+    } catch (e) {
+      setAccountError(String(e));
+    }
+  }
+
   return (
     <section className="settings__section" aria-labelledby="settings-accounts">
       <h2 id="settings-accounts">{t("settings.nav.accounts")}</h2>
@@ -156,10 +182,54 @@ export function AccountsSection() {
                   {errors[p]}
                 </p>
               )}
+              {(p === "claude" || p === "codex") && (
+                <div className="account-extra">
+                  <strong className="account-extra__title">{t("accounts.extraTitle")}</strong>
+                  {accounts
+                    .filter((a) => a.provider === p)
+                    .map((a) => (
+                      <p key={a.id} className="account-card__path">
+                        {a.name}
+                      </p>
+                    ))}
+                  {adding === p ? (
+                    <form
+                      className="account-extra__form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void submitAccount(p);
+                      }}
+                    >
+                      <input
+                        autoFocus
+                        aria-label={t("accounts.accountNamePlaceholder")}
+                        placeholder={t("accounts.accountNamePlaceholder")}
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                      />
+                      <button type="submit" className="btn btn--sm" disabled={!newName.trim()}>
+                        {t("accounts.create")}
+                      </button>
+                      <button type="button" className="btn btn--sm" onClick={() => setAdding(null)}>
+                        {t("accounts.cancel")}
+                      </button>
+                    </form>
+                  ) : (
+                    <button type="button" className="btn btn--sm" onClick={() => setAdding(p)}>
+                      {t("accounts.addAccount")}
+                    </button>
+                  )}
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
+      {accountError && (
+        <p className="notice" role="alert">
+          {accountError}
+        </p>
+      )}
     </section>
   );
 }

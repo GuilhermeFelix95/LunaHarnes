@@ -51,6 +51,9 @@ export function createAccount(provider: ProviderKind, name: string): Promise<Acc
   return invoke("create_account", { provider, name });
 }
 
+/// Avisa o chat que a lista de contas mudou (a página de Contas cria uma conta).
+export const ACCOUNTS_CHANGED = "luna:accounts-changed";
+
 /// Cria a pasta da spec da conversa e devolve o caminho relativo ao projeto (specs/NNN-slug).
 export function createSpec(cwd: string, title: string): Promise<string> {
   return invoke("create_spec", { cwd, title });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountsSection } from "./AccountsSection";
 
@@ -10,9 +10,12 @@ vi.mock("../../api", () => ({
   ]),
   installCli: vi.fn(async () => ({ provider: "codex", installed: true, path: "C:\codex.exe" })),
   openLogin: vi.fn(async () => {}),
+  listAccounts: vi.fn(async () => []),
+  createAccount: vi.fn(async (provider: string, name: string) => ({ id: "claude-1", provider, name })),
+  ACCOUNTS_CHANGED: "luna:accounts-changed",
 }));
 
-import { checkAuth, cliStatus, installCli, openLogin } from "../../api";
+import { checkAuth, cliStatus, createAccount, installCli, openLogin } from "../../api";
 
 describe("Contas: estado de cada CLI", () => {
   beforeEach(() => {
@@ -41,7 +44,8 @@ describe("Contas: estado de cada CLI", () => {
     render(<AccountsSection />);
 
     expect(await screen.findByText("conectado")).toBeTruthy();
-    expect(screen.getAllByRole("button")).toHaveLength(1); // só o de Codex, que falta
+    // Só o de Codex, que falta (o "Adicionar conta" de cada CLI não conta aqui).
+    expect(screen.getAllByRole("button").filter((b) => b.textContent !== "Adicionar conta")).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Conectar" })).toBeNull();
   });
 
@@ -98,5 +102,32 @@ describe("Contas: estado de cada CLI", () => {
 
     expect((await screen.findByRole("alert")).textContent).toContain("o instalador do Codex falhou: sem rede");
     expect(openLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe("Contas: contas extras", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    vi.mocked(createAccount).mockClear();
+  });
+
+  it("Adicionar conta cria a conta com o nome digitado e mostra ela na CLI", async () => {
+    render(<AccountsSection />);
+
+    const claude = (await screen.findByText("Claude Code")).closest("li") as HTMLElement;
+    fireEvent.click(within(claude).getByRole("button", { name: "Adicionar conta" }));
+    fireEvent.change(within(claude).getByPlaceholderText("Nome da conta (ex.: Trabalho)"), { target: { value: "  Trabalho " } });
+    fireEvent.click(within(claude).getByRole("button", { name: "Criar" }));
+
+    await waitFor(() => expect(createAccount).toHaveBeenCalledWith("claude", "Trabalho"));
+    expect(await within(claude).findByText("Trabalho")).toBeTruthy();
+  });
+
+  it("CLI sem contas extras (Cline) não mostra o botão de adicionar", async () => {
+    render(<AccountsSection />);
+
+    const cline = (await screen.findByText("Cline")).closest("li") as HTMLElement;
+    expect(within(cline).queryByRole("button", { name: "Adicionar conta" })).toBeNull();
   });
 });

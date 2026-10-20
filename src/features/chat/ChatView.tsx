@@ -24,7 +24,7 @@ import {
   pickWorkspace,
   sendPrompt,
   listAccounts,
-  createAccount,
+  ACCOUNTS_CHANGED,
   createSpec,
   recordSpecDecisions,
   getOrchestrator,
@@ -353,15 +353,20 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     return () => window.removeEventListener(PLUGINS_CHANGED, reload);
   }, [host]);
 
-  // Contas extras: carregadas uma vez; a criação atualiza a lista na hora.
   useEffect(() => {
     accountRef.current = account;
   }, [account]);
 
+  // Contas extras: a página de Contas avisa quando cria uma; o chat relê a lista.
   useEffect(() => {
-    listAccounts()
-      .then(setAccounts)
-      .catch((e) => setNotes((current) => [...current, String(e)]));
+    const reload = () => {
+      listAccounts()
+        .then(setAccounts)
+        .catch((e) => setNotes((current) => [...current, String(e)]));
+    };
+    reload();
+    window.addEventListener(ACCOUNTS_CHANGED, reload);
+    return () => window.removeEventListener(ACCOUNTS_CHANGED, reload);
   }, []);
 
   // Perfis e presets: recarregados quando a página de configurações muda a lista.
@@ -1033,16 +1038,6 @@ ${outgoing}`
   const accountsOfEngine = accounts.filter((a) => a.provider === provider);
   const activeAccount = accountsOfEngine.some((a) => a.id === account) ? account : "";
 
-  async function addAccount(name: string) {
-    try {
-      const created = await createAccount(provider, name);
-      setAccounts((list) => [...list, created]);
-      setAccount(created.id);
-    } catch (e) {
-      setNotes((current) => [...current, String(e)]);
-    }
-  }
-
   const options = agentOptions(profiles, presets);
   const agentLabel = options.find((o) => o.key === agentK)?.label ?? PROVIDER_LABELS[provider];
 
@@ -1292,7 +1287,6 @@ ${outgoing}`
         accounts={accountsOfEngine}
         account={activeAccount}
         onAccount={setAccount}
-        onCreateAccount={(name) => void addAccount(name)}
       />
       <div className="chat__foot">
         <WorkspaceChip

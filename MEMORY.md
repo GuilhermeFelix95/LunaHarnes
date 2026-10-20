@@ -183,3 +183,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Experimento de contas: CLAUDE_CONFIG_DIR e CODEX_HOME trocam o status de login (pasta vazia = não logado); OpenCode não muda com XDG_DATA_HOME nem OPENCODE_CONFIG_DIR. Falta login real de segunda conta, feito pelo usuário.
 2026-10-20 | Contas extras (backend): conta = pasta de login por CLI (CLAUDE_CONFIG_DIR / CODEX_HOME) passada no envio; criação copia regras, skills e MCP da pasta padrão, sem credenciais. Falta tela, login e status por conta.
 2026-10-20 | Seletor de conta no composer (Claude e Codex): escolher ou criar conta por conversa, persistida em Conversation.account. Conta nova ainda precisa de login feito dentro da pasta dela.
+2026-10-20 | Criar conta saiu do composer e foi para a página Contas (botão "Adicionar conta" em Claude e Codex); o composer só escolhe a conta. O chat relê a lista quando uma conta é criada.

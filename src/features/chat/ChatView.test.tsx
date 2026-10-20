@@ -18,7 +18,7 @@ vi.mock("../../api", () => ({
   checkpointRestore: vi.fn(async () => ({ removed: [], restored: [] })),
   sendPrompt: vi.fn(async () => {}),
   listAccounts: vi.fn(async () => []),
-  createAccount: vi.fn(async () => ({ id: "claude-1", provider: "claude", name: "Trabalho" })),
+  ACCOUNTS_CHANGED: "luna:accounts-changed",
   getOrchestrator: vi.fn(async () => ({})),
   getWorkspace: vi.fn(async () => "C:\\projeto"),
   listModels: vi.fn(async () => []),
