@@ -92,7 +92,11 @@ export function McpSection() {
     setCatalog(undefined);
     loadMcpCatalog(source || undefined)
       .then((c) => setCatalog(c.servers))
-      .catch((e) => setError(String(e)));
+      .catch((e) => {
+        // Sem lista vazia, a dica "Carregando catálogo…" ficaria para sempre.
+        setCatalog([]);
+        setError(String(e));
+      });
   }, [source]);
 
   async function toggle(server: McpServer) {

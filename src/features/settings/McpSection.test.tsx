@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { installMcpFromCatalog, listMcpServers, reconfigureMcpServer, saveMcpServer, type McpServer } from "../../api";
+import { installMcpFromCatalog, listMcpServers, loadMcpCatalog, reconfigureMcpServer, saveMcpServer, type McpServer } from "../../api";
 import { McpSection } from "./McpSection";
 
 vi.mock("../../api", () => ({
@@ -50,6 +50,15 @@ describe("McpSection", () => {
     fireEvent.click(confirm());
 
     await waitFor(() => expect(installMcpFromCatalog).toHaveBeenCalledWith("github", undefined));
+  });
+
+  it("se o catálogo não carrega, para de dizer que está carregando e mostra o erro", async () => {
+    vi.mocked(loadMcpCatalog).mockRejectedValueOnce(new Error("sem internet"));
+    render(<McpSection />);
+    fireEvent.click(screen.getByRole("tab", { name: "Marketplace" }));
+
+    await waitFor(() => expect(screen.getByText(/sem internet/)).toBeTruthy());
+    expect(screen.queryByText("Carregando catálogo…")).toBeNull();
   });
 
   it("não tem campo de senha: o app nunca recebe um valor", async () => {
