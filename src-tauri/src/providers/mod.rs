@@ -95,6 +95,9 @@ impl RunRequest {
         if self.provider == ProviderKind::Cline && self.permission != Permission::FullAccess {
             return Err("O Cline só roda com acesso total: ele não tem modo somente leitura nem pede aprovação.".into());
         }
+        if self.provider == ProviderKind::Hermes {
+            hermes::check_permission(self.permission)?;
+        }
         if self.images.len() > MAX_IMAGES {
             return Err(format!("no máximo {MAX_IMAGES} imagens por pedido"));
         }
@@ -231,7 +234,7 @@ pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
         ProviderKind::Copilot => Ok(request.prompt.clone()),
         // O Antigravity recebe o prompt colado ao `-p` (ver providers/antigravity.rs); o stdin fica vazio.
         ProviderKind::Antigravity => Ok(String::new()),
-        ProviderKind::Hermes => Ok(String::new()),
+        ProviderKind::Hermes => Ok(request.prompt.clone()),
     }
 }
 
@@ -596,7 +599,7 @@ pub fn cli_args(request: &RunRequest) -> Vec<String> {
         ProviderKind::Cline => Vec::new(),
         ProviderKind::Copilot => copilot::args(request),
         ProviderKind::Antigravity => antigravity::args(request),
-        ProviderKind::Hermes => Vec::new(),
+        ProviderKind::Hermes => hermes::args(request),
     }
 }
 

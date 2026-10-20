@@ -18,9 +18,9 @@ export const PERMISSION_KEYS: Record<Permission, MessageKey> = {
   fullAccess: "composer.permission.fullAccess",
 };
 
-/// O Cline só roda com acesso total (ele não tem modo somente leitura nem pede aprovação). Mostrar só o que ele cumpre.
+/// O Cline e o Hermes só rodam com acesso total neste app. Mostrar só o que eles cumprem.
 export function permissionOptions(engine?: string) {
-  const allowed = (Object.keys(PERMISSION_KEYS) as Permission[]).filter((p) => engine !== "cline" || p === "fullAccess");
+  const allowed = (Object.keys(PERMISSION_KEYS) as Permission[]).filter((p) => (engine !== "cline" && engine !== "hermes") || p === "fullAccess");
   return allowed.map((p) => ({ value: p, label: t(PERMISSION_KEYS[p]) }));
 }
 

@@ -27,6 +27,7 @@ describe("agentes da conversa", () => {
       ["cline", "Cline", "cline"],
       ["copilot", "GitHub Copilot", "copilot"],
       ["antigravity", "Antigravity", "antigravity"],
+      ["hermes", "Hermes", "hermes"],
       ["api:p1", "DeepSeek", "claude"],
       ["api:p2", "OpenAI pessoal", "codex"],
     ]);

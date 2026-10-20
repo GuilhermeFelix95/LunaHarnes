@@ -198,3 +198,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | tests/cli_smoke.rs volta a compilar: RunRequest recebe os campos novos (browser, subagents, profile, images, context_window, long_cache). Os testes continuam #[ignore] (chamam os CLIs).
 2026-10-20 | Modelos sugeridos atualizados (MiniMax M3/M2.7, MiMo v2.6, Qwen 3.7/3.8, Meta Muse 1.2, Ollama qwen3.6). Hermes aparece em Contas com Conectar; cli_status devolve todas as CLIs. Meus temas: novo tema pede o nome e o botão fica no cabeçalho.
 2026-10-20 | Contas: Hermes preso em "verificando" corrigido. A página consulta de novo as CLIs sem status no cache, mesmo quando já foi checada nesta abertura.
+2026-10-20 | Hermes como motor de chat: hermes chat com stdin, stream-json medido e modelos gpt-4.1/gpt-4o pelo Copilot (o Nous Portal desta conta estava sem créditos). Só acesso total.

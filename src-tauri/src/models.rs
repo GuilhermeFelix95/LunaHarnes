@@ -222,6 +222,21 @@ fn copilot_catalog() -> Vec<ModelOption> {
     }]
 }
 
+/// Modelos do Hermes pelo provedor Copilot desta conta (medidos com resposta: gpt-4.1 e gpt-4o). Os modelos do Nous
+/// Portal sem créditos e o padrão do Hermes (gpt-6.1-sol) são recusados, então ficam de fora.
+fn hermes_catalog() -> Vec<ModelOption> {
+    [("gpt-4.1", "GPT-4.1 · Copilot"), ("gpt-4o", "GPT-4o · Copilot")]
+        .into_iter()
+        .map(|(id, label)| ModelOption {
+            id: id.into(),
+            label: label.into(),
+            description: None,
+            efforts: Vec::new(),
+            default: id == crate::providers::hermes::DEFAULT_MODEL,
+        })
+        .collect()
+}
+
 /// Modelos e níveis do provedor escolhido.
 pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
     match kind {
@@ -231,7 +246,7 @@ pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
         ProviderKind::Cline => Ok(cline_catalog()),
         ProviderKind::Copilot => Ok(copilot_catalog()),
         ProviderKind::Antigravity => antigravity_catalog(),
-        ProviderKind::Hermes => Ok(Vec::new()),
+        ProviderKind::Hermes => Ok(hermes_catalog()),
     }
 }
 
@@ -247,6 +262,13 @@ mod tests {
         assert!(models.iter().all(|m| !m.default));
         assert!(models.iter().all(|m| !m.id.starts_with("cline-pass/")));
         assert!(models.iter().take_while(|m| m.label.contains("grátis")).count() == 5);
+    }
+
+    #[test]
+    fn hermes_lists_the_copilot_models_with_the_default_one_first() {
+        let models = hermes_catalog();
+        assert_eq!(ids(&models), ["gpt-4.1", "gpt-4o"]);
+        assert!(models[0].default && !models[1].default);
     }
 
     fn ids(models: &[ModelOption]) -> Vec<&str> {

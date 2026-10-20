@@ -1051,8 +1051,8 @@ ${outgoing}`
     setEffort("");
     // A conta pertence ao motor: trocar de motor volta para a conta padrão.
     setAccount("");
-    // O Cline só roda com acesso total: trocar para ele leva a permissão junto.
-    if (next.engine === "cline") setPermission("fullAccess");
+    // O Cline e o Hermes só rodam com acesso total: trocar para eles leva a permissão junto.
+    if (next.engine === "cline" || next.engine === "hermes") setPermission("fullAccess");
   }
 
   // Sem conta conectada ou sem pasta de trabalho ainda carregada, não há como enviar.
