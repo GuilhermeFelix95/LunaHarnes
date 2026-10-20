@@ -194,4 +194,43 @@ describe("SettingsView", () => {
     expect(screen.queryByRole("button", { name: "Remover Mar" })).toBeNull();
     expect(JSON.parse(localStorage.getItem("luna.savedThemes")!)).toEqual([]);
   });
+
+  it("renomear um tema troca o nome no cartão e no tema ativo", () => {
+    localStorage.setItem(THEME_KEY, "custom");
+    localStorage.setItem("luna.activeCustomTheme", "Mar");
+    localStorage.setItem("luna.savedThemes", JSON.stringify([{ name: "Mar", palette: { ...DEFAULT_PALETTE } }]));
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Renomear Mar" }));
+    fireEvent.change(screen.getByLabelText("Novo nome para Mar"), { target: { value: "  Oceano " } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar nome" }));
+
+    expect(JSON.parse(localStorage.getItem("luna.savedThemes")!)[0].name).toBe("Oceano");
+    expect(localStorage.getItem("luna.activeCustomTheme")).toBe("Oceano");
+    expect(screen.getByRole("radio", { name: /Oceano/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("renomear para um nome que já existe ou vazio não muda o tema", () => {
+    localStorage.setItem(THEME_KEY, "custom");
+    localStorage.setItem(
+      "luna.savedThemes",
+      JSON.stringify([
+        { name: "Mar", palette: { ...DEFAULT_PALETTE } },
+        { name: "Sol", palette: { ...DEFAULT_PALETTE } },
+      ]),
+    );
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Renomear Mar" }));
+    fireEvent.change(screen.getByLabelText("Novo nome para Mar"), { target: { value: "Sol" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar nome" }));
+    expect(screen.getByRole("alert").textContent).toContain("Já existe");
+
+    fireEvent.change(screen.getByLabelText("Novo nome para Mar"), { target: { value: "  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar nome" }));
+    expect(screen.getByRole("alert").textContent).toContain("Digite um nome");
+    expect(JSON.parse(localStorage.getItem("luna.savedThemes")!).map((s: { name: string }) => s.name)).toEqual(["Mar", "Sol"]);
+  });
 });

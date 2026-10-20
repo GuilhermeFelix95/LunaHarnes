@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import {
   applyLiquidGlass,
   applyPalette,
@@ -260,6 +261,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   // Nome do tema novo enquanto o formulário está aberto (null = fechado), e o erro de validação dele.
   const [naming, setNaming] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
+  // Renomear um tema salvo: `from` é o nome atual, `value` o que está sendo digitado.
+  const [renaming, setRenaming] = useState<{ from: string; value: string } | null>(null);
   const [liquid, setLiquid] = useState<boolean>(loadLiquidGlass);
   const [themesTab, setThemesTabState] = useState<ThemesTab>(loadThemesTab);
   function setThemesTab(tab: ThemesTab) {
@@ -352,6 +355,20 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     }
   }
 
+  /// Renomeia um tema salvo. Se era o ativo, o editor e a lembrança do tema ativo seguem o nome novo.
+  function renameSaved(from: string, to: string) {
+    const trimmed = to.trim();
+    if (!trimmed) return setNameError(t("settings.appearance.nameRequired"));
+    if (trimmed !== from && savedThemes.some((saved) => saved.name === trimmed)) return setNameError(t("settings.appearance.nameTaken"));
+    storeSaved(savedThemes.map((saved) => (saved.name === from ? { ...saved, name: trimmed } : saved)));
+    if (activeName === from) {
+      setActiveName(trimmed);
+      saveActiveName(trimmed);
+    }
+    setRenaming(null);
+    setNameError(null);
+  }
+
   function deleteActive() {
     if (activeName) removeSaved(activeName);
   }
@@ -430,7 +447,14 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               ) : (
                 <>
                   <div className="themes-toolbar">
-                    <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
+                    <div className="themes-toolbar__title">
+                      <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
+                      <span className="themes-toolbar__count">
+                        {savedThemes.length === 1
+                          ? t("settings.appearance.themeCountOne")
+                          : t("settings.appearance.themeCountOther", { count: savedThemes.length })}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       className="btn btn--sm"
@@ -485,7 +509,50 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                     </form>
                   )}
 
-                  {savedThemes.length === 0 && <p className="settings__hint">{t("settings.appearance.noYourThemes")}</p>}
+                  {savedThemes.length === 0 && <p className="themes-empty">{t("settings.appearance.noYourThemes")}</p>}
+
+                  {renaming !== null && (
+                    <form
+                      className="theme-naming"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        renameSaved(renaming.from, renaming.value);
+                      }}
+                    >
+                      <label>
+                        <span>{t("settings.appearance.renameTo", { name: renaming.from })}</span>
+                        <input
+                          autoFocus
+                          value={renaming.value}
+                          onChange={(e) => {
+                            setRenaming({ from: renaming.from, value: e.target.value });
+                            setNameError(null);
+                          }}
+                        />
+                      </label>
+                      {nameError && (
+                        <p role="alert" className="settings__hint">
+                          {nameError}
+                        </p>
+                      )}
+                      <div className="theme-naming__actions">
+                        <button type="submit" className="btn btn--sm">
+                          {t("settings.appearance.saveName")}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--sm"
+                          onClick={() => {
+                            setRenaming(null);
+                            setNameError(null);
+                          }}
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
               <div
                 className="themes"
                 role="radiogroup"
@@ -500,6 +567,18 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                       checked={theme === "custom" && activeName === saved.name}
                       onChoose={() => applySaved(saved)}
                     />
+                    <button
+                      type="button"
+                      className="theme-card__rename"
+                      aria-label={t("settings.appearance.renameTheme", { name: saved.name })}
+                      title={t("settings.appearance.renameThemeTitle")}
+                      onClick={() => {
+                        setRenaming({ from: saved.name, value: saved.name });
+                        setNameError(null);
+                      }}
+                    >
+                      <Pencil size={12} aria-hidden="true" />
+                    </button>
                     <button
                       type="button"
                       className="theme-card__remove"
