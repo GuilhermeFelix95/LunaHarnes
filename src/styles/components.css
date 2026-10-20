@@ -1460,148 +1460,76 @@ textarea:focus-visible {
   user-select: none;
 }
 
-.luna-atom__body {
-}
-
-.luna-atom__rim {
-  pointer-events: none;
-}
-
-.luna-atom__gloss {
-  fill: #fff;
-  opacity: 0.32;
-  pointer-events: none;
-}
-
-.luna-atom__ground {
-  pointer-events: none;
-}
-
-.luna-atom__orbit-front {
-  fill: none;
-  stroke: var(--fg-subtle, #a7b4ff);
-  stroke-width: 14;
-  stroke-linecap: round;
-  opacity: 0.9;
-}
-
-.luna-atom__orbit {
-  fill: none;
-  stroke: var(--fg-subtle, #a7b4ff);
-  stroke-width: 14;
-  opacity: 0.6;
-}
-
-.luna-atom__arm {
-  fill: none;
-  stroke: var(--accent, #8fa1f5);
-  stroke-width: 44;
-  stroke-linecap: round;
-  transform-box: view-box;
-}
-
-.luna-atom__arm--left {
-  transform-origin: 330px 560px;
-}
-
-.luna-atom__arm--right {
-  transform-origin: 694px 560px;
+/* Partes que só aparecem em certas caras */
+.luna-atom__eye-closed,
+.luna-atom__eye-happy,
+.luna-atom__mouth-flat,
+.luna-atom__mouth-open {
+  display: none;
 }
 
 .luna-atom__eye {
-  fill: var(--bg-sidebar, #1b2140);
   transform-box: fill-box;
   transform-origin: center;
   animation: luna-atom-blink 4.5s infinite;
 }
 
-.luna-atom__shine {
-  fill: #fff;
+.luna-atom__moon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: luna-atom-moon 3.6s ease-in-out infinite alternate;
 }
 
-.luna-atom__cheek {
-  fill: #ff9ec7;
-  opacity: 0.5;
+.luna-atom__antenna-ball {
+  transition: opacity 0.3s;
 }
 
-.luna-atom__mouth,
-.luna-atom__eye-closed,
-.luna-atom__eye-happy {
-  fill: none;
-  stroke: var(--bg-sidebar, #1b2140);
-  stroke-width: 12;
-  stroke-linecap: round;
-}
-
-.luna-atom__tongue {
-  fill: #ff9ec7;
-}
-
-.luna-atom__mouth-open {
-  fill: var(--bg-sidebar, #1b2140);
-}
-
-/* Partes que só aparecem em certas caras */
-.luna-atom__eye-closed,
-.luna-atom__eye-happy,
-.luna-atom__tongue,
-.luna-atom__mouth-open {
-  display: none;
-}
-
-/* Dormindo: olhos fechados, boca aberta roncando, elétrons lentos */
-.luna-atom--sleeping svg {
+/* Dormindo: olhos fechados, boca reta, o robô respira e a antena apaga */
+.luna-atom--sleeping {
   transform-origin: 50% 100%;
   animation: luna-atom-breathe 3s ease-in-out infinite;
 }
 
 .luna-atom--sleeping .luna-atom__eye,
-.luna-atom--sleeping .luna-atom__mouth,
-.luna-atom--sleeping .luna-atom__shine {
+.luna-atom--sleeping .luna-atom__mouth {
   display: none;
 }
 
 .luna-atom--sleeping .luna-atom__eye-closed,
-.luna-atom--sleeping .luna-atom__mouth-open {
+.luna-atom--sleeping .luna-atom__mouth-flat {
   display: inline;
 }
 
-.luna-atom--sleeping .luna-atom__mouth-open {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: luna-atom-snore 3s ease-in-out infinite;
+.luna-atom--sleeping .luna-atom__antenna-ball {
+  opacity: 0.4;
 }
 
-.luna-atom--sleeping .luna-atom__electron {
-  opacity: 0.35;
+/* Trabalhando: balança e a antena pisca */
+.luna-atom--working {
+  animation: luna-atom-bob 0.9s ease-in-out infinite alternate;
 }
 
-/* Trabalhando: balança de leve e acena com o braço esquerdo */
-.luna-atom--working svg {
-  animation: luna-atom-bob 0.6s ease-in-out infinite alternate;
+.luna-atom--working .luna-atom__antenna-ball {
+  animation: luna-atom-pulse 0.9s ease-in-out infinite alternate;
 }
 
-.luna-atom--working .luna-atom__arm--left {
-  animation: luna-atom-wave 0.5s ease-in-out infinite alternate;
-}
-
-/* Início do turno: aceno de cumprimento (declarado depois, vale por cima do balanço) */
-.luna-atom--hello .luna-atom__arm--left {
+/* Início do turno: balanço de cumprimento (declarado depois, vale por cima do balanço) */
+.luna-atom--hello {
+  transform-origin: 50% 80%;
   animation: luna-atom-hello 1.2s ease-in-out;
 }
 
-/* Fim do turno: pulinhos de alegria com carinha ^^ e língua */
+/* Fim do turno: pulinhos de alegria com olhos ^^ */
+.luna-atom--happy {
+  animation: luna-atom-jump 1.2s ease-out;
+}
+
 .luna-atom--happy .luna-atom__eye {
   display: none;
 }
 
-.luna-atom--happy .luna-atom__eye-happy,
-.luna-atom--happy .luna-atom__tongue {
+.luna-atom--happy .luna-atom__eye-happy {
   display: inline;
-}
-
-.luna-atom--happy svg {
-  animation: luna-atom-jump 1.2s ease-out;
 }
 
 /* Caretas ociosas */
@@ -1609,17 +1537,13 @@ textarea:focus-visible {
   display: none;
 }
 
-.luna-atom--face-wink .luna-atom__eye-happy--right {
-  display: inline;
-}
-
-.luna-atom--face-tongue .luna-atom__tongue {
+.luna-atom--face-wink .luna-atom__eye-closed--right {
   display: inline;
 }
 
 .luna-atom--face-surprised .luna-atom__eye {
   animation: none;
-  transform: scale(1.2);
+  transform: scale(1.15);
 }
 
 .luna-atom--face-surprised .luna-atom__mouth {
@@ -1658,18 +1582,14 @@ textarea:focus-visible {
 
 @keyframes luna-atom-bob {
   from { transform: translateY(0); }
-  to { transform: translateY(-6px); }
-}
-
-@keyframes luna-atom-wave {
-  from { transform: rotate(-10deg); }
-  to { transform: rotate(12deg); }
+  to { transform: translateY(-8px); }
 }
 
 @keyframes luna-atom-hello {
   0%, 100% { transform: rotate(0deg); }
-  30%, 70% { transform: rotate(-70deg); }
-  50% { transform: rotate(-50deg); }
+  25% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+  75% { transform: rotate(-6deg); }
 }
 
 @keyframes luna-atom-jump {
@@ -1678,6 +1598,16 @@ textarea:focus-visible {
   40% { transform: translateY(0); }
   60% { transform: translateY(-14px); }
   80% { transform: translateY(0); }
+}
+
+@keyframes luna-atom-pulse {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
+@keyframes luna-atom-moon {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to { transform: translate(-3px, 3px) rotate(8deg); }
 }
 
 @keyframes luna-atom-blink {
@@ -1690,11 +1620,6 @@ textarea:focus-visible {
   50% { transform: scaleY(1.03); }
 }
 
-@keyframes luna-atom-snore {
-  0%, 100% { transform: scale(0.7); }
-  50% { transform: scale(1.15); }
-}
-
 @keyframes luna-atom-z {
   0% { opacity: 0; transform: translate(0, 4px); }
   30% { opacity: 1; }
@@ -1702,10 +1627,10 @@ textarea:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .luna-atom svg,
-  .luna-atom__arm,
+  .luna-atom,
   .luna-atom__eye,
-  .luna-atom__mouth-open,
+  .luna-atom__moon,
+  .luna-atom__antenna-ball,
   .luna-atom__z {
     animation: none !important;
   }

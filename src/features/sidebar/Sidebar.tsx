@@ -156,7 +156,7 @@ export function Sidebar({
         onKeyDown={onKeyDown}
       />
       <div className="sidebar__brand">
-        <img src="/luna/atom.png" alt="" />
+        <img src="/luna/logo.svg" alt="" />
         <span>LunaHarness</span>
       </div>
 

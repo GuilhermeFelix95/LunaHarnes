@@ -34,7 +34,7 @@ describe("Sidebar: marca", () => {
     );
     const img = container.querySelector(".sidebar__brand img");
 
-    expect(img?.getAttribute("src")).toBe("/luna/atom.png");
+    expect(img?.getAttribute("src")).toBe("/luna/logo.svg");
   });
 });
 

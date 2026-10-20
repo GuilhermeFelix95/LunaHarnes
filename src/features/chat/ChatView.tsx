@@ -1085,7 +1085,7 @@ ${outgoing}`
 
         {messages.length === 0 ? (
           <div className="chat__empty">
-            <img src="/luna/atom.png" alt="" className="chat__logo" />
+            <img src="/luna/logo.svg" alt="" className="chat__logo" />
             <h1>{t("chat.emptyTitle")}</h1>
             <p>{planning ? t("chat.planningHint") : t("chat.talkingWith", { agent: agentLabel })}</p>
             {planning && (

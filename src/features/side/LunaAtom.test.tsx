@@ -13,59 +13,32 @@ afterEach(() => {
 });
 
 describe("LunaAtom", () => {
-  it("trabalhando: mostra o Átomo com os elétrons correndo, sem zZ", () => {
+  it("trabalhando: mostra o robô com os olhos abertos e a antena acesa, sem zZ", () => {
     const { container } = render(<LunaAtom working />);
 
     expect(screen.getByRole("img", { name: "Mascote da Luna trabalhando" })).toBeTruthy();
     expect(container.querySelector(".luna-atom--working")).toBeTruthy();
     expect(container.querySelector(".luna-atom--sleeping")).toBeNull();
-    expect(container.querySelectorAll(".luna-atom__electron")).toHaveLength(3);
-    expect(container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur")).toBe("1.6s");
+    expect(container.querySelectorAll(".luna-atom__eye")).toHaveLength(2);
+    expect(container.querySelector(".luna-atom__antenna-ball")).toBeTruthy();
+    expect(container.querySelector(".luna-atom--sleeping .luna-atom__z")).toBeNull();
   });
 
-  it("parado: dorme com olhos fechados, boca aberta roncando, elétrons mais apagados e zZ", () => {
+  it("parado: dorme com olhos fechados, boca reta e zZ", () => {
     const { container } = render(<LunaAtom working={false} />);
 
     expect(screen.getByRole("img", { name: "Mascote da Luna dormindo" })).toBeTruthy();
     expect(container.querySelector(".luna-atom--sleeping")).toBeTruthy();
     expect(container.querySelectorAll(".luna-atom__z")).toHaveLength(2);
-    expect(container.querySelector(".luna-atom__eye-closed")).toBeTruthy();
-    expect(container.querySelector(".luna-atom__mouth-open")).toBeTruthy();
-    expect(container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur")).toBe("1.6s");
+    expect(container.querySelectorAll(".luna-atom__eye-closed")).toHaveLength(2);
+    expect(container.querySelector(".luna-atom__mouth-flat")).toBeTruthy();
   });
 
-  it("dois Átomos na tela (duas conversas abertas) não repetem ids, e cada preenchimento aponta para o seu SVG", () => {
-    const { container } = render(
-      <>
-        <LunaAtom working={false} />
-        <LunaAtom working />
-      </>,
-    );
+  it("usa o desenho do ícone do app, com a lua", () => {
+    const { container } = render(<LunaAtom working={false} />);
 
-    const svgs = [...container.querySelectorAll("svg")];
-    expect(svgs).toHaveLength(2);
-    const ids = svgs.flatMap((svg) => [...svg.querySelectorAll("[id]")].map((el) => el.id));
-    expect(new Set(ids).size).toBe(ids.length);
-
-    for (const svg of svgs) {
-      const own = new Set([...svg.querySelectorAll("[id]")].map((el) => el.id));
-      const refs = [...svg.querySelectorAll("[fill]")]
-        .map((el) => el.getAttribute("fill") ?? "")
-        .map((fill) => /^url\(#(.+)\)$/.exec(fill)?.[1])
-        .filter((id): id is string => Boolean(id));
-      expect(refs.length).toBeGreaterThan(0);
-      for (const ref of refs) expect(own.has(ref)).toBe(true);
-    }
-  });
-
-  it("os elétrons correm na mesma velocidade dormindo ou trabalhando", () => {
-    const { container, rerender } = render(<LunaAtom working />);
-    const dur = () => container.querySelector(".luna-atom__electron--0 animateMotion")?.getAttribute("dur");
-    const busy = dur();
-
-    rerender(<LunaAtom working={false} />);
-
-    expect(dur()).toBe(busy);
+    expect(container.querySelector(".luna-atom__moon")).toBeTruthy();
+    expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 512 512");
   });
 
   it("não faz ação ao montar", () => {
@@ -125,7 +98,7 @@ describe("LunaAtom", () => {
 });
 
 describe("LunaAtom com mascote de tema", () => {
-  it("mostra a imagem do tema escolhido no lugar do átomo", async () => {
+  it("mostra a imagem do tema escolhido no lugar do robô", async () => {
     URL.createObjectURL = vi.fn(() => "blob:luna");
     URL.revokeObjectURL = vi.fn();
     setPluginThemes([{ id: "verde", name: "Verde", dark: false, tokens: {}, pluginId: "hello", mascot: "asset(assets/luna.png)" }]);
