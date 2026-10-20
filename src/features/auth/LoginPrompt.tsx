@@ -4,6 +4,7 @@ import { t } from "../../i18n";
 const LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
   codex: "Codex",
+  opencode: "OpenCode",
 };
 
 interface LoginPromptProps {

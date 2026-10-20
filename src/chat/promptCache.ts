@@ -1,3 +1,5 @@
+import type { ProviderKind } from "../types";
+
 // Cache de prefixo do provedor: quantos tokens de entrada de cada turno vieram do cache.
 // O provedor cobra menos pelo que lê desse prefixo: é o cache que importa para o custo.
 
@@ -83,7 +85,7 @@ export interface CacheSummary {
 /// Resume a conversa. `longTtl` = cache de 1 h ligado; `now` = momento da leitura (para o tempo que falta no cache).
 export function summarize(
   turns: TurnRecord[],
-  options: { provider: "claude" | "codex"; longTtl: boolean; now: number },
+  options: { provider: ProviderKind; longTtl: boolean; now: number },
 ): CacheSummary {
   const { provider, longTtl, now } = options;
   const usages = turns.map((t) => t.usage);
@@ -96,7 +98,8 @@ export function summarize(
 
   let warm: CacheWarmth = { state: "sem-dados" };
   if (lastTurn && lastTurn.usage.read !== null) {
-    if (provider === "codex") {
+    // Codex e OpenCode não informam a validade do cache: sem TTL conhecido.
+    if (provider === "codex" || provider === "opencode") {
       warm = { state: "sem-ttl" };
     } else {
       const remainingMs = lastTurn.at + (longTtl ? CACHE_TTL_MS.long : CACHE_TTL_MS.short) - now;

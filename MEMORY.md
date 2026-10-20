@@ -150,3 +150,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | OpenCode: parser de eventos do 'opencode run --format json' (src-tauri/src/providers/opencode.rs) com captura real da CLI 2.0.32; ainda não ligado como motor.
 2026-10-20 | OpenCode: argumentos do 'opencode run --standalone' e permissão por execução (OPENCODE_CONFIG_CONTENT) para os três modos, testados com a CLI 2.0.32; ainda não ligado como motor.
 2026-10-20 | OpenCode: ProviderKind::OpenCode no backend (spawn com --standalone e OPENCODE_CONFIG_CONTENT, login via 'opencode auth login', status via 'auth list', modelos via 'opencode models', saída 0 fecha o turno); instalação pelo app fica desligada. Interface ainda não mostra o motor.
+2026-10-20 | OpenCode na interface: tipo ProviderKind, rótulo, opção no seletor de agentes, seção Contas (sem instalador: pede instalação pelo site oficial), ícone e traduções pt-BR/en.

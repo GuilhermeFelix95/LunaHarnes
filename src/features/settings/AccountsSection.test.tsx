@@ -12,13 +12,26 @@ vi.mock("../../api", () => ({
   openLogin: vi.fn(async () => {}),
 }));
 
-import { checkAuth, installCli, openLogin } from "../../api";
+import { checkAuth, cliStatus, installCli, openLogin } from "../../api";
 
 describe("Contas: estado de cada CLI", () => {
   beforeEach(() => {
     vi.mocked(checkAuth).mockImplementation(async () => false);
     vi.mocked(installCli).mockClear();
     vi.mocked(openLogin).mockClear();
+  });
+
+  it("OpenCode sem CLI: sem botão de baixar, e a instrução de instalar pelo site oficial", async () => {
+    vi.mocked(cliStatus).mockResolvedValueOnce([
+      { provider: "claude", installed: true, path: "C:\claude.exe" },
+      { provider: "codex", installed: true, path: "C:\codex.exe" },
+      { provider: "opencode", installed: false, path: null },
+    ]);
+    render(<AccountsSection />);
+
+    const card = (await screen.findByText(/Instale o OpenCode/)).closest("li") as HTMLElement;
+    expect(card.querySelector("button")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Baixar e conectar" })).toBeNull();
   });
 
   it("instalada e logada: sem botão, mostra conectado", async () => {

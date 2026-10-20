@@ -23,6 +23,7 @@ describe("agentes da conversa", () => {
     expect(agentOptions(profiles, presets).map((o) => [o.key, o.label, o.engine])).toEqual([
       ["claude", "Claude Code", "claude"],
       ["codex", "Codex", "codex"],
+      ["opencode", "OpenCode", "opencode"],
       ["api:p1", "DeepSeek · via Claude Code", "claude"],
       ["api:p2", "OpenAI pessoal · via Codex", "codex"],
     ]);

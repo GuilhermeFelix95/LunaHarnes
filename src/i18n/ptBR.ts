@@ -179,6 +179,7 @@ export const ptBR = {
   "accounts.cliAt": "CLI em {path}",
   "accounts.connect": "Conectar",
   "accounts.downloadConnect": "Baixar e conectar",
+  "accounts.opencodeInstall": "Instale o OpenCode pelo site oficial dele e volte aqui para conectar.",
   "accounts.wait": "Aguarde…",
   "catalog.label": "Catálogo",
   "catalog.official": "LunaHarness oficial",
