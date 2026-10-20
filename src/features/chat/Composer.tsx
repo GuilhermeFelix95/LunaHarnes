@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, Paperclip, Square, Target, X } from "lucide-react";
 import type { Account, ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
@@ -57,6 +57,9 @@ interface ComposerProps {
   onEffort: (effort: string) => void;
   planning: boolean;
   onTogglePlanning: () => void;
+  /** Modo /meta: vale só para a próxima mensagem. */
+  goalOn?: boolean;
+  onToggleGoal?: () => void;
   /** Imagens anexadas (miniaturas) e os gestos para anexar e tirar. */
   attachments?: { id: number; url: string }[];
   onAttach?: (file: File) => void;
@@ -313,6 +316,17 @@ export function Composer(props: ComposerProps) {
             onClick={props.onTogglePlanning}
           >
             {t("composer.plan")}
+          </button>
+          <button
+            type="button"
+            className="composer__goal"
+            aria-label={t("composer.goalAria")}
+            title={t("composer.goalAria")}
+            aria-pressed={props.goalOn ?? false}
+            disabled={running}
+            onClick={props.onToggleGoal}
+          >
+            <Target size={16} aria-hidden="true" />
           </button>
           {running ? (
             <button type="submit" className="composer__action composer__action--stop" aria-label={t("composer.stop")}>

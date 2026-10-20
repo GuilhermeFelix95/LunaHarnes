@@ -1281,6 +1281,40 @@ textarea:focus-visible {
   font-weight: 600;
 }
 
+/* Nova branch: campo e botão seguem o tema (raio do formato e cores dos tokens) */
+.workspace-chip__new {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 2px 2px;
+  border-top: 1px solid var(--border);
+}
+
+.workspace-chip__new input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--input-radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 13px;
+}
+
+.workspace-chip__new button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 13px;
+}
+
+.workspace-chip__new button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Seletor de modelo com nome e descrição */
 .model-menu {
   position: relative;

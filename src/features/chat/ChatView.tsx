@@ -42,6 +42,7 @@ import { getAgentBrowser } from "../../chat/agentBrowser";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
+import { goalInstruction, goalShouldContinue, isGoalDone, MAX_GOAL_ROUNDS, stripGoalMarker } from "../../chat/goal";
 import { APPROVE_OPTION, approvalPrompt, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
@@ -198,6 +199,15 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     void run(t("autofix.shown"), prompt, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixRound]);
+  // Modo /meta: a rodada seguinte roda depois da renderização do turno, como a correção do LunaFix.
+  const [goalRound, setGoalRound] = useState(0);
+  useEffect(() => {
+    const next = goalDue.current;
+    if (!next || goalRound === 0) return;
+    goalDue.current = null;
+    void run(next.shown, next.prompt, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goalRound]);
   // Perguntas do agente, mostradas no seletor. `questionsRound` muda a cada conjunto novo e recria o seletor.
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [questionsRound, setQuestionsRound] = useState(0);
@@ -288,6 +298,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const lastCommandRef = useRef<{ ok: boolean; output: string } | null>(null);
   const fixAttempts = useRef(0);
   const fixDue = useRef<string | null>(null);
+  // Modo /meta: condição e rodadas já feitas do turno atual; a próxima rodada espera o fim do turno.
+  const goalRef = useRef<{ condition: string; rounds: number } | null>(null);
+  const goalDue = useRef<{ shown: string; prompt: string } | null>(null);
+  const [goalOn, setGoalOn] = useState(false);
   // Parar no meio do turno: a verificação que ainda chegar não pede correção.
   const turnStopped = useRef(false);
   const body = useRef<HTMLDivElement>(null);
@@ -328,6 +342,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     turnStopped.current = true;
     fixDue.current = null;
     fixAttempts.current = AUTOFIX_MAX_ATTEMPTS;
+    goalRef.current = null;
+    goalDue.current = null;
     setRunning(false);
     // Parar não passa pelo `done`: a lista de alterações precisa ser lida de novo mesmo assim.
     setChangesVersion((v) => v + 1);
@@ -426,7 +442,25 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
 
   useEffect(() => {
     /// Fim do turno, depois dos plugins. Com correção pedida, o aviso e o som esperam a correção terminar.
-    const finishTurn = (fix: string | null, turn: { ok: boolean; lastCommand: { ok: boolean; output: string } | null }, subject: string) => {
+    const finishTurn = (fix: string | null, turn: { text: string; ok: boolean; lastCommand: { ok: boolean; output: string } | null }, subject: string) => {
+      const goal = goalRef.current;
+      let goalNote: string | null = null;
+      if (goal && !turnStopped.current) {
+        goal.rounds += 1;
+        if (goalShouldContinue(turn.text, goal.rounds)) {
+          goalDue.current = {
+            shown: t("goal.shown", { round: goal.rounds + 1, max: MAX_GOAL_ROUNDS }),
+            prompt: goalInstruction(goal.condition),
+          };
+          setGoalRound((n) => n + 1);
+          return;
+        }
+        goalRef.current = null;
+        // O marcador é só para a Luna: sai do texto que o usuário vê.
+        const last = [...messagesRef.current].reverse().find((m) => m.role === "assistant");
+        if (last) commit(messagesRef.current.map((m) => (m === last ? { ...m, text: stripGoalMarker(m.text) } : m)));
+        if (!isGoalDone(turn.text)) goalNote = t("goal.gaveUp", { max: MAX_GOAL_ROUNDS });
+      }
       if (fix && !turnStopped.current && fixAttempts.current < AUTOFIX_MAX_ATTEMPTS) {
         fixAttempts.current += 1;
         fixDue.current = fix;
@@ -449,7 +483,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         });
       }
       setRunning(false);
-      const extra = gaveUp ? [gaveUp] : [];
+      const extra = [gaveUp, goalNote].filter((note): note is string => !!note);
       void host.runAfterResponse(responseText.current).then(
         () => setNotes([...host.messages(), ...extra]),
         () => {
@@ -956,7 +990,11 @@ ${outgoing}`
     attachments.forEach((a) => URL.revokeObjectURL(a.url));
     setAttachments([]);
     setFileAttachments([]);
-    await run(prompt, withFiles, planning, mode, imagePaths);
+    // /meta (comando ou ícone) vale só para este envio: a condição vira o pedido e o turno repete até o sinal.
+    const goalCondition = luna?.id === "meta" ? luna.condition : goalOn ? prompt : null;
+    setGoalOn(false);
+    if (goalCondition) goalRef.current = { condition: goalCondition, rounds: 0 };
+    await run(prompt, goalCondition ? goalInstruction(goalCondition) : withFiles, planning, mode, imagePaths);
   }
 
   /// Guarda o uso de cache do turno e atualiza o resumo que o painel de cache lê (via host).
@@ -1310,6 +1348,8 @@ ${outgoing}`
         onMode={setModeId}
         planning={planning}
         onTogglePlanning={() => setPlanning((on) => !on)}
+        goalOn={goalOn}
+        onToggleGoal={() => setGoalOn((on) => !on)}
         slash={slashMatches}
         onPickSlash={pickSlash}
         accountsEnabled={accountsEnabled}

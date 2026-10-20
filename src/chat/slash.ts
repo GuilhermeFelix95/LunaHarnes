@@ -13,6 +13,7 @@ export const LUNA_COMMANDS: SlashItem[] = [
   { name: "compactar", description: "Resume a conversa para liberar o contexto", origin: "luna" },
   { name: "projeto", description: "Confere os arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md)", origin: "luna" },
   { name: "plugin instalar", description: "Instala o plugin de uma pasta, depois de revisar as permissões", origin: "luna" },
+  { name: "meta", description: "Repete o pedido até a condição ser cumprida (ex.: /meta todos os testes passam)", origin: "luna" },
 ];
 
 export const ORIGIN_LABELS: Record<SlashOrigin, string> = {
@@ -39,7 +40,12 @@ export function filterSlash(items: SlashItem[], query: string): SlashItem[] {
   ];
 }
 
-export type LunaCommand = { id: "plano" } | { id: "compactar" } | { id: "projeto" } | { id: "plugin"; folder: string };
+export type LunaCommand =
+  | { id: "plano" }
+  | { id: "compactar" }
+  | { id: "projeto" }
+  | { id: "plugin"; folder: string }
+  | { id: "meta"; condition: string };
 
 /// Reconhece os comandos da Luna digitados. Qualquer outra entrada devolve null.
 export function parseLunaCommand(input: string): LunaCommand | null {
@@ -49,6 +55,8 @@ export function parseLunaCommand(input: string): LunaCommand | null {
   if (text === "/projeto") return { id: "projeto" };
   const install = /^\/plugin instalar\s+(.+)$/.exec(text);
   if (install) return { id: "plugin", folder: install[1].trim() };
+  const meta = /^\/meta\s+(.+)$/s.exec(text);
+  if (meta) return { id: "meta", condition: meta[1].trim() };
   return null;
 }
 
