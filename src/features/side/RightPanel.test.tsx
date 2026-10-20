@@ -160,3 +160,17 @@ describe("RightPanel", () => {
     expect(screen.getByRole("complementary", { name: "Painel lateral" }).style.width).toBe("320px");
   });
 });
+
+describe("RightPanel fechado", () => {
+  it("recolhe para largura zero e fica inerte, mas segue montado para a animação e o terminal", () => {
+    render(
+      <RightPanel open={false} tab="changes" onTab={() => {}} onClose={() => {}} changes={<p>alterações</p>} todos={[]} running={false} terminal={<p>shell</p>} browser={<p>navegador</p>} />,
+    );
+
+    const panel = screen.getByRole("complementary", { name: "Painel lateral" });
+    expect(panel.className).toContain("side--closed");
+    expect(panel.style.width).toBe("0px");
+    expect(panel.hasAttribute("inert")).toBe(true);
+    expect(screen.getByText("shell")).toBeTruthy();
+  });
+});

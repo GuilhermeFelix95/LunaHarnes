@@ -1341,6 +1341,28 @@ textarea:focus-visible {
   display: none;
 }
 
+/* Abrir e fechar: o painel cresce deslizando da borda e some com fade. A visibilidade só cai depois da animação. */
+.side {
+  transition:
+    width var(--dur) var(--ease),
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s;
+}
+
+.side--closed {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(16px);
+  visibility: hidden;
+  border-left-color: transparent;
+  transition:
+    width var(--dur) var(--ease),
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    visibility 0s linear var(--dur);
+}
+
 .side__resize {
   position: absolute;
   top: 0;

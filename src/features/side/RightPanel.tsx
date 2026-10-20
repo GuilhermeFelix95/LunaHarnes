@@ -113,7 +113,13 @@ export function RightPanel({
   }
 
   return (
-    <aside className="side" aria-label={t("side.label")} hidden={!open} style={{ width: `${width}px` }}>
+    // Fechado, a largura vai a zero e o painel desliza para fora; continua montado para o terminal não morrer.
+    <aside
+      className={open ? "side" : "side side--closed"}
+      aria-label={t("side.label")}
+      inert={!open}
+      style={{ width: open ? `${width}px` : "0px" }}
+    >
       <div
         className="side__resize"
         role="separator"
