@@ -89,6 +89,13 @@ export interface ModelOption {
   contextWindow?: number;
 }
 
+/// Conta extra de uma CLI (espelha src-tauri/src/accounts.rs). Sem segredo: o login fica na pasta da conta.
+export interface Account {
+  id: string;
+  provider: ProviderKind;
+  name: string;
+}
+
 /// Situação de uma CLI no computador (espelha setup::CliStatus em src-tauri/src/setup.rs).
 /// Item da árvore de arquivos do projeto. `path` é relativo à pasta do projeto, com "/".
 export interface ProjectEntry {
@@ -204,6 +211,8 @@ export interface Conversation {
   plan?: string;
   /** Pasta da spec da conversa (specs/NNN-slug). Ausente = ainda não aprovou um plano. */
   specDir?: string;
+  /** Conta extra escolhida no composer. Ausente = conta padrão da CLI. */
+  account?: string;
   /** Sessões por agente. Ausente em arquivos antigos: vem de sessionId. */
   sessions?: AgentSessions;
   /** Tarefas do agente, para a aba Progresso voltar ao reabrir a conversa. */

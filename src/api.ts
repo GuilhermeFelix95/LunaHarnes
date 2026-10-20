@@ -5,6 +5,7 @@ import type { PluginManifest } from "./plugins/host";
 import type { SlashItem } from "./chat/slash";
 import type { Orchestrator } from "./chat/orchestrator";
 import type {
+  Account,
   ApiPreset,
   ApiProfile,
   ChangedFile,
@@ -35,8 +36,19 @@ export function saveOrchestrator(orchestrator: Orchestrator): Promise<void> {
 }
 
 /// `specDir` é a pasta da spec da conversa (specs/NNN-slug). Com ela, o Rust injeta a spec e as decisões no prompt.
-export function sendPrompt(request: RunRequest, runId: string, specDir?: string): Promise<void> {
-  return invoke("send_prompt", { request, runId, specDir: specDir ?? null });
+/// `account` é a conta extra da execução (id em accounts.json). Ausente = login padrão da CLI.
+export function sendPrompt(request: RunRequest, runId: string, specDir?: string, account?: string): Promise<void> {
+  return invoke("send_prompt", { request, runId, specDir: specDir ?? null, account: account ?? null });
+}
+
+/// Contas extras cadastradas, de todas as CLIs.
+export function listAccounts(): Promise<Account[]> {
+  return invoke("list_accounts");
+}
+
+/// Cria uma conta extra. Ela começa sem login: o usuário loga dentro dela.
+export function createAccount(provider: ProviderKind, name: string): Promise<Account> {
+  return invoke("create_account", { provider, name });
 }
 
 /// Cria a pasta da spec da conversa e devolve o caminho relativo ao projeto (specs/NNN-slug).

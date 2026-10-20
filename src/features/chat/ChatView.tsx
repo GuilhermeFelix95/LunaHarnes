@@ -23,6 +23,8 @@ import {
   openLogin,
   pickWorkspace,
   sendPrompt,
+  listAccounts,
+  createAccount,
   createSpec,
   recordSpecDecisions,
   getOrchestrator,
@@ -58,6 +60,7 @@ import type {
   AgentSessions,
   ApiPreset,
   ApiProfile,
+  Account,
   ChatMessage,
   Compaction,
   Conversation,
@@ -119,6 +122,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Perfil de API escolhido (null = login da CLI). O agente da conversa é o motor mais o perfil.
   const [profileId, setProfileId] = useState<string | null>(initial?.profile ?? null);
   const [profiles, setProfiles] = useState<ApiProfile[]>([]);
+  // Conta extra escolhida no composer (id em accounts.json). Vazio = login padrão da CLI.
+  const [account, setAccount] = useState(initial?.account ?? "");
+  const accountRef = useRef(account);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [presets, setPresets] = useState<ApiPreset[]>([]);
   const [costUsd, setCostUsd] = useState(initial?.costUsd ?? 0);
   const costRef = useRef(costUsd);
@@ -345,6 +352,17 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     window.addEventListener(PLUGINS_CHANGED, reload);
     return () => window.removeEventListener(PLUGINS_CHANGED, reload);
   }, [host]);
+
+  // Contas extras: carregadas uma vez; a criação atualiza a lista na hora.
+  useEffect(() => {
+    accountRef.current = account;
+  }, [account]);
+
+  useEffect(() => {
+    listAccounts()
+      .then(setAccounts)
+      .catch((e) => setNotes((current) => [...current, String(e)]));
+  }, []);
 
   // Perfis e presets: recarregados quando a página de configurações muda a lista.
   useEffect(() => {
@@ -590,6 +608,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       costUsd: costRef.current || undefined,
       plan: planRef.current,
       specDir: specDirRef.current,
+      account: accountRef.current || undefined,
       tasks: tasksRef.current,
       compactions: compactionsRef.current,
       createdAt: createdAt.current,
@@ -748,7 +767,7 @@ ${cliPrompt}`;
         contextWindow: route.provider === provider ? models.find((m) => m.id === route.model)?.contextWindow : undefined,
         subagents: !!orchestrator.subagent && route.provider === "claude",
         longCache: longCacheEnabled(),
-      }, conversationId, specDirRef.current);
+      }, conversationId, specDirRef.current, route.provider === provider && activeAccount ? activeAccount : undefined);
     } catch (e) {
       setRunning(false);
       setChangesVersion((v) => v + 1);
@@ -1009,6 +1028,21 @@ ${outgoing}`
   }
 
   const agentK = agentKey(provider, profileId);
+  // Contas só para Claude e Codex (ver accounts.rs), e não com perfil de API.
+  const accountsEnabled = !profileId && (provider === "claude" || provider === "codex");
+  const accountsOfEngine = accounts.filter((a) => a.provider === provider);
+  const activeAccount = accountsOfEngine.some((a) => a.id === account) ? account : "";
+
+  async function addAccount(name: string) {
+    try {
+      const created = await createAccount(provider, name);
+      setAccounts((list) => [...list, created]);
+      setAccount(created.id);
+    } catch (e) {
+      setNotes((current) => [...current, String(e)]);
+    }
+  }
+
   const options = agentOptions(profiles, presets);
   const agentLabel = options.find((o) => o.key === agentK)?.label ?? PROVIDER_LABELS[provider];
 
@@ -1020,6 +1054,8 @@ ${outgoing}`
     setProfileId(next.profileId ?? null);
     setModel("");
     setEffort("");
+    // A conta pertence ao motor: trocar de motor volta para a conta padrão.
+    setAccount("");
     // O Cline só roda com acesso total: trocar para ele leva a permissão junto.
     if (next.engine === "cline") setPermission("fullAccess");
   }
@@ -1252,6 +1288,11 @@ ${outgoing}`
         onTogglePlanning={() => setPlanning((on) => !on)}
         slash={slashMatches}
         onPickSlash={pickSlash}
+        accountsEnabled={accountsEnabled}
+        accounts={accountsOfEngine}
+        account={activeAccount}
+        onAccount={setAccount}
+        onCreateAccount={(name) => void addAccount(name)}
       />
       <div className="chat__foot">
         <WorkspaceChip

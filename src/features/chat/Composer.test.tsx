@@ -251,4 +251,33 @@ describe("Composer: @arquivo e imagens", () => {
     expect(props.onPickSlash).toHaveBeenCalledWith(slash[1]);
     expect(props.onSend).not.toHaveBeenCalled();
   });
+
+  it("sem contas no motor, o seletor de conta não aparece", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: "Conta" })).toBeNull();
+  });
+
+  it("escolher uma conta avisa o pai com o id dela", () => {
+    const accounts = [{ id: "claude-1", provider: "claude" as const, name: "Trabalho" }];
+    const props = setup({ accountsEnabled: true, accounts, account: "", onAccount: vi.fn() });
+
+    fireEvent.click(screen.getByRole("button", { name: "Conta" }));
+    fireEvent.click(screen.getByRole("option", { name: "Trabalho" }));
+
+    expect(props.onAccount).toHaveBeenCalledWith("claude-1");
+  });
+
+  it("Nova conta abre o campo; Enter cria com o nome sem enviar a mensagem", () => {
+    const props = setup({ accountsEnabled: true, accounts: [], account: "", onCreateAccount: vi.fn() });
+
+    fireEvent.click(screen.getByRole("button", { name: "Conta" }));
+    fireEvent.click(screen.getByRole("option", { name: "Nova conta…" }));
+    const field = screen.getByPlaceholderText("Nome da conta (ex.: Trabalho)");
+    fireEvent.change(field, { target: { value: "  Trabalho  " } });
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(props.onCreateAccount).toHaveBeenCalledWith("Trabalho");
+    expect(props.onSend).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText("Nome da conta (ex.: Trabalho)")).toBeNull();
+  });
 });
