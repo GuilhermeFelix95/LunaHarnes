@@ -12,7 +12,7 @@ export const EXTENSIONS_USAGE = [
   "  luna plugin add <id>   instala um plugin do marketplace na pasta de dados do app",
 ].join("\n");
 
-const APP_ID = "dev.lunaharness.app";
+const APP_ID = "dev.lunacode.app";
 const SKILL_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SAFE_PATH = /^[A-Za-z0-9_\-./]+$/;
 

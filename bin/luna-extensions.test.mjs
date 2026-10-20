@@ -62,10 +62,10 @@ describe("luna plugin add", () => {
 
   it("acha a pasta de dados do app em cada sistema", () => {
     expect(appDataDir({ platform: "win32", env: { APPDATA: "C:\\R" }, home: "C:\\u" })).toBe(
-      join("C:\\R", "dev.lunaharness.app"),
+      join("C:\\R", "dev.lunacode.app"),
     );
-    expect(appDataDir({ platform: "win32", env: {}, home: "/h" })).toBe(join("/h", "AppData", "Roaming", "dev.lunaharness.app"));
-    expect(appDataDir({ platform: "linux", env: {}, home: "/h" })).toBe(join("/h", ".local", "share", "dev.lunaharness.app"));
+    expect(appDataDir({ platform: "win32", env: {}, home: "/h" })).toBe(join("/h", "AppData", "Roaming", "dev.lunacode.app"));
+    expect(appDataDir({ platform: "linux", env: {}, home: "/h" })).toBe(join("/h", ".local", "share", "dev.lunacode.app"));
   });
 
   it("recusa arquivo com sha256 errado, caminho com .. e entrada que não existe", () => {

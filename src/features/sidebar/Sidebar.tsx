@@ -157,7 +157,7 @@ export function Sidebar({
       />
       <div className="sidebar__brand">
         <img src="/luna/logo.svg" alt="" />
-        <span>LunaHarness</span>
+        <span>LunaCode</span>
       </div>
 
       <div className="sidebar__top">

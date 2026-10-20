@@ -15,5 +15,6 @@ fn main() {
     if args.get(1).map(String::as_str) == Some("tasks-mcp") {
         std::process::exit(lunaharness::tasks_mcp::mcp_stdio());
     }
+    lunaharness::migrate::run();
     lunaharness::run();
 }

@@ -10,7 +10,7 @@ use super::loader::{validate, Manifest};
 const MAX_ENTRY_BYTES: u64 = 512 * 1024;
 
 /// Modelo de plugin: o conteúdo de `index.js` que `create_plugin` escreve.
-const TEMPLATE_ENTRY: &str = "// Plugin do LunaHarness. Guia completo em docs/plugins.md.
+const TEMPLATE_ENTRY: &str = "// Plugin do LunaCode. Guia completo em docs/plugins.md.
 // activate(api) roda ao ligar o plugin. Use só as permissões do manifest.json.
 export function activate(api) {
   api.registerCommand(\"ola\", (args) => `olá, ${args}`);

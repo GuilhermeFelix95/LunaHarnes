@@ -16,7 +16,7 @@ use crate::providers::{is_model_token, is_plain_token, ProviderKind};
 
 const FILE_NAME: &str = "api-profiles.json";
 /// Serviço no cofre de credenciais. Cada perfil tem o usuário `profile:<id>`.
-pub const KEYRING_SERVICE: &str = "lunaharness";
+pub const KEYRING_SERVICE: &str = "lunacode";
 const MAX_NAME_CHARS: usize = 60;
 /// Lista de modelos por perfil. O OpenRouter devolve ~470; o limite cobre isso com folga.
 const MAX_MODELS: usize = 1000;

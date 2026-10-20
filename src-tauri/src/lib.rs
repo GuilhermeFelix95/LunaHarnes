@@ -11,6 +11,7 @@ pub mod commands;
 pub mod conversations;
 pub mod files;
 pub mod marketplace;
+pub mod migrate;
 pub mod orchestrator;
 pub mod mcp;
 pub mod models;
@@ -186,5 +187,5 @@ pub fn run() {
             commands::open_plugins_folder
         ])
         .run(tauri::generate_context!())
-        .expect("erro ao iniciar o LunaHarness");
+        .expect("erro ao iniciar o LunaCode");
 }

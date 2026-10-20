@@ -93,7 +93,7 @@ pub fn open_login_with_env(kind: ProviderKind, env: &[(String, String)]) -> Resu
     let (program, args) = login_invocation(kind, resolve_program(cli_name(kind)))?;
 
     Command::new("cmd")
-        .args(["/C", "start", "LunaHarness - login", "cmd", "/K"])
+        .args(["/C", "start", "LunaCode - login", "cmd", "/K"])
         .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .arg(&program)
         .args(args)

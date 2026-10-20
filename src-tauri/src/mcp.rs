@@ -24,7 +24,7 @@ use crate::slash::home_dir;
 
 pub const OFFICIAL_MCP: &str = include_str!("../marketplace/mcp.json");
 const DISABLED_FILE: &str = "mcp-disabled.json";
-const APP_ID: &str = "dev.lunaharness.app";
+const APP_ID: &str = "dev.lunacode.app";
 const MAX_NAME_CHARS: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -654,7 +654,7 @@ pub fn save_mcp_server(app: AppHandle, server: McpServer) -> Result<(), String> 
 
 // ---- Terminal: `lunaharness mcp add <id>` e `lunaharness mcp remove <nome>` ----
 
-/// Pasta de dados do app, igual à que o Tauri usa com o identificador `dev.lunaharness.app`.
+/// Pasta de dados do app, igual à que o Tauri usa com o identificador `dev.lunacode.app`.
 fn app_dir_for_cli() -> Result<PathBuf, String> {
     if cfg!(windows) {
         let base = std::env::var_os("APPDATA")
@@ -707,7 +707,7 @@ fn run_cli(args: &[String]) -> Result<String, String> {
             println!("Servidor \"{}\" será gravado nas duas CLIs (Claude Code e Codex).", entry.name);
             println!("  Executa: {launch}");
             if !server.env_vars.is_empty() {
-                println!("  Lê do seu ambiente: {}. Defina essas variáveis; o valor não passa pelo LunaHarness.", server.env_vars.join(", "));
+                println!("  Lê do seu ambiente: {}. Defina essas variáveis; o valor não passa pelo LunaCode.", server.env_vars.join(", "));
             }
             if !confirm("Instalar? (s/N) ")? {
                 return Ok("cancelado. Nada foi alterado.".into());
