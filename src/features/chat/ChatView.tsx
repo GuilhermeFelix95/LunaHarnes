@@ -979,6 +979,8 @@ ${outgoing}`
     setEffort("");
     // O Cline só roda com acesso total: trocar para ele leva a permissão junto.
     if (next.engine === "cline") setPermission("fullAccess");
+    // O Antigravity não tem acesso total: se a permissão era essa, cai para aceitar edições.
+    if (next.engine === "antigravity" && permission === "fullAccess") setPermission("acceptEdits");
   }
 
   // Sem conta conectada ou sem pasta de trabalho ainda carregada, não há como enviar.

@@ -203,6 +203,7 @@ export const en: Record<MessageKey, string> = {
   "accounts.opencodeInstall": "Install OpenCode from its official site, then come back here to connect.",
   "accounts.clineInstall": "Install with npm i -g cline, then come back here to connect.",
   "accounts.copilotInstall": "Install with winget install GitHub.Copilot, then come back here to connect.",
+  "accounts.antigravityInstall": "Install the Antigravity CLI (agy), then come back here to connect.",
   "accounts.wait": "Please wait…",
   "catalog.label": "Catalog",
   "catalog.official": "Official LunaHarness",

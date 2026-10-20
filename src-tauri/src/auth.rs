@@ -22,6 +22,8 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
         ProviderKind::Cline => return Ok(crate::providers::cline::logged_in()),
         // O Copilot não tem comando de status sem gastar uma chamada: sem status, o app mostra "Conectar" sempre.
         ProviderKind::Copilot => return Ok(false),
+        // O Antigravity também não tem comando de status sem entrar no modo interativo: o app mostra "Conectar".
+        ProviderKind::Antigravity => return Ok(false),
     };
     let program = resolve_program(cli_name(kind)).ok_or_else(|| {
         format!("{label} não encontrado no PATH. Instale o CLI antes de entrar na conta.")
@@ -39,7 +41,7 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
         ProviderKind::Codex => output.status.success(),
         // `auth list` marca com "stored" cada provedor com credencial salva; sem nenhum, a lista não traz essa marca.
         ProviderKind::OpenCode => output.status.success() && String::from_utf8_lossy(&output.stdout).contains("stored"),
-        ProviderKind::Cline | ProviderKind::Copilot => unreachable!("o Cline e o Copilot já retornaram acima"),
+        ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity => unreachable!("o Cline, o Copilot e o Antigravity já retornaram acima"),
     })
 }
 
@@ -52,6 +54,8 @@ fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(St
         ProviderKind::OpenCode => ("opencode", &["auth", "login"]),
         ProviderKind::Cline => ("cline", &["auth"]),
         ProviderKind::Copilot => ("copilot", &["login"]),
+        // Sem subcomando de login: o `agy` abre o fluxo de conta (Google) no próprio terminal.
+        ProviderKind::Antigravity => ("agy", &[]),
     };
     let program = resolved.ok_or_else(|| {
         format!("{name} não encontrado no PATH. Instale o CLI antes de entrar na conta.")

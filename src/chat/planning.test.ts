@@ -173,6 +173,13 @@ describe("approvalPrompt por motor", () => {
     expect(prompt).toContain("execute o plano agora");
   });
 
+  it("o Antigravity também não recebe instrução de etapas, pelo mesmo motivo do Copilot", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela", "antigravity");
+    expect(prompt).not.toContain("TaskCreate");
+    expect(prompt).not.toContain("lunatasks");
+    expect(prompt).toContain("execute o plano agora");
+  });
+
   it("o Codex também usa o servidor de etapas, porque não tem TaskCreate", () => {
     const prompt = approvalPrompt("## Passos\n1. Criar a tela", "codex");
     expect(prompt).toContain("tools.lunatasks.set_steps");

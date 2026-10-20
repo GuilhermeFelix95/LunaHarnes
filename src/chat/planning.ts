@@ -99,8 +99,8 @@ export const APPROVAL_PROMPT = [
 /// Aprovação para um motor. O Claude usa TaskCreate; OpenCode e Codex usam o servidor de etapas do Luna.
 export function approvalInstruction(provider: ProviderKind): string {
   if (provider === "claude") return APPROVAL_PROMPT;
-  // O Copilot ainda não recebe o servidor de etapas do Luna (falta a config MCP): sem registro de etapas por enquanto.
-  if (provider === "copilot") return APPROVAL_PROMPT.replace(TASK_STEPS_CLAUDE, "");
+  // O Copilot e o Antigravity ainda não recebem o servidor de etapas do Luna (falta a config MCP): sem registro de etapas por enquanto.
+  if (provider === "copilot" || provider === "antigravity") return APPROVAL_PROMPT.replace(TASK_STEPS_CLAUDE, "");
   return APPROVAL_PROMPT.replace(TASK_STEPS_CLAUDE, TASK_STEPS_LUNA);
 }
 

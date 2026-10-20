@@ -20,9 +20,9 @@ export function AccountsSection() {
   const [errors, setErrors] = useState<Partial<Record<ProviderKind, string>>>({});
 
   const refresh = useCallback(() => {
-    void Promise.all([checkAuth("claude"), checkAuth("codex"), checkAuth("opencode"), checkAuth("cline"), checkAuth("copilot")])
-      .then(([claude, codex, opencode, cline, copilot]) => setLogin({ claude, codex, opencode, cline, copilot }))
-      .catch(() => setLogin({ claude: null, codex: null, opencode: null, cline: null, copilot: null }));
+    void Promise.all([checkAuth("claude"), checkAuth("codex"), checkAuth("opencode"), checkAuth("cline"), checkAuth("copilot"), checkAuth("antigravity")])
+      .then(([claude, codex, opencode, cline, copilot, antigravity]) => setLogin({ claude, codex, opencode, cline, copilot, antigravity }))
+      .catch(() => setLogin({ claude: null, codex: null, opencode: null, cline: null, copilot: null, antigravity: null }));
   }, []);
 
   useEffect(() => {
@@ -57,12 +57,12 @@ export function AccountsSection() {
       <h2 id="settings-accounts">{t("settings.nav.accounts")}</h2>
       <p className="settings__hint">{t("accounts.help")}</p>
       <ul className="settings-list">
-        {(["claude", "codex", "opencode", "cline", "copilot"] as ProviderKind[]).map((p) => {
+        {(["claude", "codex", "opencode", "cline", "copilot", "antigravity"] as ProviderKind[]).map((p) => {
           const installed = cli[p]?.installed;
           const connected = login[p] === true;
           // Logada: nada a fazer. Instalada mas sem login: só o login. Sem CLI: baixar e conectar.
-          // O OpenCode, o Cline e o Copilot não têm instalador pelo app: sem CLI, a pessoa instala pelo site ou pelo gerenciador.
-          const canDownload = p !== "opencode" && p !== "cline" && p !== "copilot";
+          // O OpenCode, o Cline, o Copilot e o Antigravity não têm instalador pelo app: sem CLI, a pessoa instala pelo site ou pelo gerenciador.
+          const canDownload = p !== "opencode" && p !== "cline" && p !== "copilot" && p !== "antigravity";
           const action = connected || installed === undefined ? null : installed ? t("accounts.connect") : canDownload ? t("accounts.downloadConnect") : null;
           return (
             <li key={p} className="settings-card">
@@ -70,7 +70,7 @@ export function AccountsSection() {
                 <strong>{PROVIDER_LABELS[p]}</strong>
                 <span className="settings-card__meta">{loginLabel(login[p])}</span>
                 {installed && cli[p]?.path && <span className="settings-card__meta">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</span>}
-                {installed === false && !canDownload && <span className="settings-card__meta">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : "accounts.opencodeInstall")}</span>}
+                {installed === false && !canDownload && <span className="settings-card__meta">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : "accounts.opencodeInstall")}</span>}
                 {errors[p] && (
                   <span className="settings-card__meta" role="alert">
                     {errors[p]}

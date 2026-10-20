@@ -193,6 +193,23 @@ fn cline_catalog() -> Vec<ModelOption> {
     .collect()
 }
 
+/// Roda `agy models`: uma linha por modelo, `id<TAB>nome`. Sem modelo padrão marcado: sem `--model`, a CLI escolhe.
+fn antigravity_catalog() -> Result<Vec<ModelOption>, String> {
+    let program = resolve_program(cli_name(ProviderKind::Antigravity))
+        .ok_or("Antigravity não encontrado no PATH. Instale o CLI para listar os modelos.")?;
+    let output = hidden_command(&program)
+        .arg("models")
+        .output()
+        .map_err(|e| format!("não foi possível listar os modelos do Antigravity: {e}"))?;
+    if !output.status.success() {
+        return Err(format!("`agy models` terminou com código {:?}", output.status.code()));
+    }
+    Ok(crate::providers::antigravity::parse_catalog(&String::from_utf8_lossy(&output.stdout))
+        .into_iter()
+        .map(|(id, label)| ModelOption { id, label, description: None, efforts: Vec::new(), default: false })
+        .collect())
+}
+
 /// Modelos do Copilot. Por enquanto vazia: `--model gpt-5.6-luna` e `--model gpt-5.4` foram recusados pela CLI
 /// ("not available"), e a CLI não tem comando para listar os nomes válidos. Sem `--model`, a CLI usa Auto, que funciona.
 fn copilot_catalog() -> Vec<ModelOption> {
@@ -207,6 +224,7 @@ pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
         ProviderKind::OpenCode => opencode_catalog(),
         ProviderKind::Cline => Ok(cline_catalog()),
         ProviderKind::Copilot => Ok(copilot_catalog()),
+        ProviderKind::Antigravity => antigravity_catalog(),
     }
 }
 

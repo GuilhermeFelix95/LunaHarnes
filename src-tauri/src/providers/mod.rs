@@ -1,3 +1,4 @@
+pub mod antigravity;
 pub mod claude;
 pub mod cline;
 pub mod codex;
@@ -17,6 +18,7 @@ pub enum ProviderKind {
     OpenCode,
     Cline,
     Copilot,
+    Antigravity,
 }
 
 /// Navegador do agente, escolhido em Configurações. Só um vale por execução.
@@ -90,6 +92,10 @@ impl RunRequest {
         // O Cline não tem modo somente leitura nem pede aprovação no modo JSON: só o acesso total é verdadeiro.
         if self.provider == ProviderKind::Cline && self.permission != Permission::FullAccess {
             return Err("O Cline só roda com acesso total: ele não tem modo somente leitura nem pede aprovação.".into());
+        }
+        // O Antigravity nega comandos sem terminal; o acesso total exigiria pular todas as permissões, que o app não usa.
+        if self.provider == ProviderKind::Antigravity && self.permission == Permission::FullAccess {
+            return Err("O Antigravity não tem acesso total: sem terminal, ele nega comandos. Use somente leitura ou aceitar edições.".into());
         }
         if self.images.len() > MAX_IMAGES {
             return Err(format!("no máximo {MAX_IMAGES} imagens por pedido"));
@@ -225,6 +231,8 @@ pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
         // O Cline recebe o prompt por arquivo (ver `Session::start_with_env`); o stdin fica vazio.
         ProviderKind::Cline => Ok(String::new()),
         ProviderKind::Copilot => Ok(request.prompt.clone()),
+        // O Antigravity recebe o prompt colado ao `-p` (ver providers/antigravity.rs); o stdin fica vazio.
+        ProviderKind::Antigravity => Ok(String::new()),
     }
 }
 
@@ -573,6 +581,7 @@ pub fn parse_line(kind: ProviderKind, line: &str) -> Vec<ProviderEvent> {
         ProviderKind::OpenCode => opencode::parse_line(line),
         ProviderKind::Cline => cline::parse_line(line),
         ProviderKind::Copilot => copilot::parse_line(line),
+        ProviderKind::Antigravity => antigravity::parse_line(line),
     }
 }
 
@@ -586,6 +595,7 @@ pub fn cli_args(request: &RunRequest) -> Vec<String> {
         // Os argumentos do Cline levam o caminho do arquivo do prompt, que só existe na hora de gravar (ver session.rs).
         ProviderKind::Cline => Vec::new(),
         ProviderKind::Copilot => copilot::args(request),
+        ProviderKind::Antigravity => antigravity::args(request),
     }
 }
 
@@ -597,6 +607,7 @@ pub fn label(kind: ProviderKind) -> &'static str {
         ProviderKind::OpenCode => "OpenCode",
         ProviderKind::Cline => "Cline",
         ProviderKind::Copilot => "GitHub Copilot",
+        ProviderKind::Antigravity => "Antigravity",
     }
 }
 
@@ -625,6 +636,7 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
         ProviderKind::OpenCode => "opencode",
         ProviderKind::Cline => "cline",
         ProviderKind::Copilot => "copilot",
+        ProviderKind::Antigravity => "agy",
     }
 }
 

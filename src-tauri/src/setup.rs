@@ -16,7 +16,7 @@ fn install_url(kind: ProviderKind) -> Option<&'static str> {
     match kind {
         ProviderKind::Claude => Some("https://claude.ai/install.ps1"),
         ProviderKind::Codex => Some("https://chatgpt.com/codex/install.ps1"),
-        ProviderKind::OpenCode | ProviderKind::Cline | ProviderKind::Copilot => None,
+        ProviderKind::OpenCode | ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity => None,
     }
 }
 
@@ -27,6 +27,7 @@ fn program(kind: ProviderKind) -> &'static str {
         ProviderKind::OpenCode => "opencode",
         ProviderKind::Cline => "cline",
         ProviderKind::Copilot => "copilot",
+        ProviderKind::Antigravity => "agy",
     }
 }
 
@@ -37,6 +38,7 @@ fn display_name(kind: ProviderKind) -> &'static str {
         ProviderKind::OpenCode => "OpenCode",
         ProviderKind::Cline => "Cline",
         ProviderKind::Copilot => "GitHub Copilot",
+        ProviderKind::Antigravity => "Antigravity",
     }
 }
 
@@ -47,6 +49,8 @@ fn display_name(kind: ProviderKind) -> &'static str {
 pub fn known_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     if let Some(local) = env::var_os("LOCALAPPDATA") {
+        // Antigravity (agy): a pasta do instalador oficial, que nem sempre entra no PATH do app.
+        dirs.push(PathBuf::from(&local).join("agy").join("bin"));
         dirs.push(PathBuf::from(local).join("Programs").join("OpenAI").join("Codex").join("bin"));
     }
     if let Some(home) = env::var_os("USERPROFILE") {

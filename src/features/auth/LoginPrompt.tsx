@@ -7,6 +7,7 @@ const LABELS: Record<ProviderKind, string> = {
   opencode: "OpenCode",
   cline: "Cline",
   copilot: "GitHub Copilot",
+  antigravity: "Antigravity",
 };
 
 interface LoginPromptProps {

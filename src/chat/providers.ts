@@ -7,4 +7,5 @@ export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   opencode: "OpenCode",
   cline: "Cline",
   copilot: "GitHub Copilot",
+  antigravity: "Antigravity",
 };

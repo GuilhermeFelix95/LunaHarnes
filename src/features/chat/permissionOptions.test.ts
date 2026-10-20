@@ -6,6 +6,10 @@ describe("permissões por motor", () => {
     expect(permissionOptions("cline").map((o) => o.value)).toEqual(["fullAccess"]);
   });
 
+  it("o Antigravity oferece só leitura e aceitar edições, sem acesso total", () => {
+    expect(permissionOptions("antigravity").map((o) => o.value)).toEqual(["readOnly", "acceptEdits"]);
+  });
+
   it("os outros motores mantêm as três permissões", () => {
     expect(permissionOptions("claude").map((o) => o.value)).toEqual(["readOnly", "acceptEdits", "fullAccess"]);
     expect(permissionOptions(undefined).map((o) => o.value)).toEqual(["readOnly", "acceptEdits", "fullAccess"]);

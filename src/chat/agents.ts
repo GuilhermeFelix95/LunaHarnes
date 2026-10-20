@@ -27,6 +27,7 @@ export function agentOptions(profiles: ApiProfile[], presets: ApiPreset[]): Agen
     { key: "opencode", label: PROVIDER_LABELS.opencode, engine: "opencode" },
     { key: "cline", label: PROVIDER_LABELS.cline, engine: "cline" },
     { key: "copilot", label: PROVIDER_LABELS.copilot, engine: "copilot" },
+    { key: "antigravity", label: PROVIDER_LABELS.antigravity, engine: "antigravity" },
   ];
   const fromProfiles = profiles.map((p) => {
     const engine = engineOf(p, presets);
