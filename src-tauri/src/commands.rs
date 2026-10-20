@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::accounts::{self, Account};
 use crate::api_profiles::{self, ApiProfile, Preset, PresetInfo, RemoteModels};
 use crate::changes::{self, Changes};
 use crate::checkpoints;
@@ -45,6 +46,22 @@ struct RunEvent<'a> {
     event: ProviderEvent,
 }
 
+/// Contas extras cadastradas (todas as CLIs).
+#[tauri::command]
+pub fn list_accounts(app: AppHandle) -> Result<Vec<Account>, String> {
+    accounts::load_all(&app_data_dir(&app)?)
+}
+
+/// Cria uma conta extra de um motor. Copia regras, MCP e skills da pasta padrão; o login é feito depois, dentro da conta.
+#[tauri::command]
+pub async fn create_account(app: AppHandle, provider: ProviderKind, name: String) -> Result<Account, String> {
+    let dir = app_data_dir(&app)?;
+    let home = crate::slash::home_dir().ok_or("não foi possível localizar a pasta do usuário")?;
+    tauri::async_runtime::spawn_blocking(move || accounts::create(&dir, &home, provider, &name))
+        .await
+        .map_err(|e| format!("falha ao criar a conta: {e}"))?
+}
+
 /// Pasta nova de spec para a conversa (specs/NNN-slug). Devolve o caminho relativo ao projeto.
 #[tauri::command]
 pub async fn create_spec(cwd: String, title: String) -> Result<String, String> {
@@ -69,8 +86,12 @@ pub fn send_prompt(
     mut request: RunRequest,
     run_id: String,
     spec_dir: Option<String>,
+    account: Option<String>,
 ) -> Result<(), String> {
     request.validate()?;
+    if account.is_some() && request.profile.is_some() {
+        return Err("conta extra e perfil de API não podem ser usados juntos nesta conversa".into());
+    }
     // A spec da conversa (specs/NNN-slug, com decisões) vai em toda chamada. Sem ela, vale a pasta spec/ do projeto.
     let spec = match &spec_dir {
         Some(dir) => spec::load_conversation_spec(&request.cwd, dir)?,
@@ -97,6 +118,18 @@ pub fn send_prompt(
         }
         None => Vec::new(),
     };
+    // Conta extra: a pasta de login dela entra no ambiente desta execução (CLAUDE_CONFIG_DIR ou CODEX_HOME).
+    if let Some(id) = &account {
+        let dir = app_data_dir(&app)?;
+        let account = accounts::load_all(&dir)?
+            .into_iter()
+            .find(|a| &a.id == id)
+            .ok_or_else(|| format!("conta `{id}` não encontrada"))?;
+        if account.provider != request.provider {
+            return Err(format!("a conta \"{}\" é de outro motor", account.name));
+        }
+        env.extend(accounts::env_for(request.provider, &accounts::dir(&dir, id)?));
+    }
     // O Claude Code liga as ferramentas de tarefa com esta variável (alimenta a aba Progresso).
     if request.provider == ProviderKind::Claude {
         let (key, value) = claude::task_env();

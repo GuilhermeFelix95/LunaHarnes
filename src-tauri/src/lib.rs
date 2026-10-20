@@ -1,3 +1,4 @@
+pub mod accounts;
 pub mod api_profiles;
 pub mod auth;
 pub mod browser;
@@ -93,6 +94,8 @@ pub fn run() {
             commands::get_changes,
             commands::project_check,
             commands::create_spec,
+            commands::list_accounts,
+            commands::create_account,
             commands::record_spec_decisions,
             commands::list_project_dir,
             commands::read_project_file,
