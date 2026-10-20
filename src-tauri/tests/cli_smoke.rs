@@ -30,6 +30,12 @@ fn run(
         permission,
         model: None,
         effort: None,
+        browser: Default::default(),
+        subagents: false,
+        profile: None,
+        images: Vec::new(),
+        context_window: None,
+        long_cache: false,
     };
     let mut session = Session::start(&request).expect("o CLI deve iniciar");
     let mut events = Vec::new();

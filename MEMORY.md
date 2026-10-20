@@ -195,3 +195,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Hermes: formato init/result do stream-json medido; a CLI não entrou no app, porque nenhuma execução deu certo para medir o texto e as ferramentas (modelos recusados nos três provedores).
 2026-10-20 | LunaCode: nome visível e identificador dev.lunacode.app. Primeira abertura copia dados, WebView e chaves do cofre do LunaHarness (sem apagar). Exe e crate continuam lunaharness.
 2026-10-20 | Executável e crate renomeados para lunacode (cargo, luna, mcp e tasks-mcp). Entradas de MCP se atualizam sozinhas no início. cli_smoke.rs já não compilava antes desta mudança.
+2026-10-20 | tests/cli_smoke.rs volta a compilar: RunRequest recebe os campos novos (browser, subagents, profile, images, context_window, long_cache). Os testes continuam #[ignore] (chamam os CLIs).
