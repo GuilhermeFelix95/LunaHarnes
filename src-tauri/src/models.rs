@@ -140,11 +140,41 @@ fn codex_catalog() -> Result<Vec<ModelOption>, String> {
     parse_codex_catalog(&raw)
 }
 
+/// Roda `opencode models`: um modelo por linha, no formato provedor/modelo.
+fn opencode_catalog() -> Result<Vec<ModelOption>, String> {
+    let program = resolve_program(cli_name(ProviderKind::OpenCode))
+        .ok_or("OpenCode não encontrado no PATH. Instale o CLI para listar os modelos.")?;
+    let output = hidden_command(&program)
+        .arg("models")
+        .output()
+        .map_err(|e| format!("não foi possível listar os modelos do OpenCode: {e}"))?;
+    if !output.status.success() {
+        return Err(format!("`opencode models` terminou com código {:?}", output.status.code()));
+    }
+    Ok(parse_opencode_catalog(&String::from_utf8_lossy(&output.stdout)))
+}
+
+/// Linhas com `/` são modelos; o resto da saída (avisos, linhas em branco) é ignorado.
+pub fn parse_opencode_catalog(raw: &str) -> Vec<ModelOption> {
+    raw.lines()
+        .map(str::trim)
+        .filter(|id| id.contains('/'))
+        .map(|id| ModelOption {
+            id: id.to_string(),
+            label: id.to_string(),
+            description: None,
+            efforts: Vec::new(),
+            default: false,
+        })
+        .collect()
+}
+
 /// Modelos e níveis do provedor escolhido.
 pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
     match kind {
         ProviderKind::Claude => Ok(claude_catalog()),
         ProviderKind::Codex => codex_catalog(),
+        ProviderKind::OpenCode => opencode_catalog(),
     }
 }
 
@@ -227,5 +257,12 @@ mod tests {
     fn codex_catalog_rejects_output_without_models_list() {
         assert!(parse_codex_catalog("{}").is_err());
         assert!(parse_codex_catalog("não é json").is_err());
+    }
+
+    #[test]
+    fn opencode_catalog_keeps_only_provider_model_lines() {
+        let raw = "anthropic/claude-haiku-4-5\n\nAviso: algo\nopencode/big-pickle\n";
+
+        assert_eq!(ids(&parse_opencode_catalog(raw)), ["anthropic/claude-haiku-4-5", "opencode/big-pickle"]);
     }
 }

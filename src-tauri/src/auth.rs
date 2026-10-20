@@ -17,6 +17,7 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
     let (args, label): (&[&str], &str) = match kind {
         ProviderKind::Claude => (&["auth", "status"], "Claude Code"),
         ProviderKind::Codex => (&["login", "status"], "Codex"),
+        ProviderKind::OpenCode => (&["auth", "list"], "OpenCode"),
     };
     let program = resolve_program(cli_name(kind)).ok_or_else(|| {
         format!("{label} não encontrado no PATH. Instale o CLI antes de entrar na conta.")
@@ -32,6 +33,8 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
     Ok(match kind {
         ProviderKind::Claude => parse_claude_status(&String::from_utf8_lossy(&output.stdout)),
         ProviderKind::Codex => output.status.success(),
+        // `auth list` marca com "stored" cada provedor com credencial salva; sem nenhum, a lista não traz essa marca.
+        ProviderKind::OpenCode => output.status.success() && String::from_utf8_lossy(&output.stdout).contains("stored"),
     })
 }
 
@@ -41,6 +44,7 @@ fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(St
     let (name, args): (&str, &'static [&'static str]) = match kind {
         ProviderKind::Claude => ("claude", &["auth", "login"]),
         ProviderKind::Codex => ("codex", &["login"]),
+        ProviderKind::OpenCode => ("opencode", &["auth", "login"]),
     };
     let program = resolved.ok_or_else(|| {
         format!("{name} não encontrado no PATH. Instale o CLI antes de entrar na conta.")

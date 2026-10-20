@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub enum ProviderKind {
     Claude,
     Codex,
+    OpenCode,
 }
 
 /// Permissão escolhida no composer. Cada CLI tem o próprio nome para ela (ver claude.rs e codex.rs).
@@ -194,7 +195,7 @@ pub fn image_media_type(path: &Path) -> Option<&'static str> {
 pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
     match request.provider {
         ProviderKind::Claude => claude::input(request),
-        ProviderKind::Codex => Ok(request.prompt.clone()),
+        ProviderKind::Codex | ProviderKind::OpenCode => Ok(request.prompt.clone()),
     }
 }
 
@@ -534,6 +535,7 @@ pub fn parse_line(kind: ProviderKind, line: &str) -> Vec<ProviderEvent> {
     match kind {
         ProviderKind::Claude => claude::parse_line(line),
         ProviderKind::Codex => codex::parse_line(line),
+        ProviderKind::OpenCode => opencode::parse_line(line),
     }
 }
 
@@ -543,6 +545,7 @@ pub fn cli_args(request: &RunRequest) -> Vec<String> {
     match request.provider {
         ProviderKind::Claude => claude::args(request),
         ProviderKind::Codex => codex::args(request),
+        ProviderKind::OpenCode => opencode::args(request),
     }
 }
 
@@ -551,6 +554,7 @@ pub fn label(kind: ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Claude => "Claude Code",
         ProviderKind::Codex => "Codex",
+        ProviderKind::OpenCode => "OpenCode",
     }
 }
 
@@ -576,6 +580,7 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Claude => "claude",
         ProviderKind::Codex => "codex",
+        ProviderKind::OpenCode => "opencode",
     }
 }
 

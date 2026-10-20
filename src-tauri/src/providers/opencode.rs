@@ -102,6 +102,14 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 },
             ]
         }
+        // Erro da própria CLI (ex.: plano gratuito sem acesso): vira falha do turno, mesmo com saída 0.
+        Some("error") => {
+            let message = value["error"]["message"].as_str().unwrap_or("opencode: turno falhou sem mensagem");
+            vec![
+                ProviderEvent::Error { message: message.to_string() },
+                ProviderEvent::Done { ok: false },
+            ]
+        }
         Some("step_finish") => {
             let tokens = &part["tokens"];
             match tokens["input"].as_u64() {
@@ -165,6 +173,16 @@ mod tests {
             parse_line(line),
             vec![ProviderEvent::CacheUsage { fresh: Some(200), read: Some(800), write: Some(0) }]
         );
+    }
+
+    /// Erro real da CLI (free tier sem acesso, capturado): falha do turno mesmo com saída 0.
+    #[test]
+    fn captured_cli_error_fails_the_turn() {
+        const ERROR_RUN: &str = include_str!("../../tests/fixtures/opencode_error.jsonl");
+        let events: Vec<ProviderEvent> = ERROR_RUN.lines().flat_map(parse_line).collect();
+
+        assert!(events.iter().any(|e| matches!(e, ProviderEvent::Error { message } if message.contains("free tier"))));
+        assert_eq!(events.last(), Some(&ProviderEvent::Done { ok: false }));
     }
 
     #[test]

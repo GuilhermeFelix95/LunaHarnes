@@ -127,8 +127,13 @@ pub fn send_prompt(
                 Ok((status, stderr)) => (status.code(), stderr),
                 Err(e) => (None, format!("falha ao aguardar o processo: {e}")),
             };
-            for event in fallback_events(provider, code, &stderr) {
-                let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event });
+            // O OpenCode não manda evento de fim: saída 0 sem erro no stream é turno concluído.
+            if provider == ProviderKind::OpenCode && code == Some(0) {
+                let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event: ProviderEvent::Done { ok: true } });
+            } else {
+                for event in fallback_events(provider, code, &stderr) {
+                    let _ = app.emit(PROVIDER_EVENT, RunEvent { run_id: &run_id, event });
+                }
             }
         }
     });

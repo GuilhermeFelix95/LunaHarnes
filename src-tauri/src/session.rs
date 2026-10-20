@@ -70,13 +70,18 @@ impl Session {
     /// Como `start`, mas com variáveis de ambiente extras só para este processo (perfis de API).
     pub fn start_with_env(request: &RunRequest, env: &[(String, String)]) -> Result<Self, String> {
         let input = stdin_input(request)?;
+        let mut env = env.to_vec();
+        // O OpenCode recebe as permissões do modo por esta variável (ver providers/opencode.rs).
+        if request.provider == ProviderKind::OpenCode {
+            env.push(("OPENCODE_CONFIG_CONTENT".into(), crate::providers::opencode::config_content(request.permission)));
+        }
         Self::spawn(
             request.provider,
             &input,
             cli_name(request.provider),
             cli_args(request),
             Some(&request.cwd),
-            env,
+            &env,
         )
     }
 

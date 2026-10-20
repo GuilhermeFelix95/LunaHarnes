@@ -11,10 +11,12 @@ use crate::providers::ProviderKind;
 use crate::session::resolve_in;
 
 /// Script oficial de instalação de cada CLI, no Windows. Os dois redirecionam para o servidor do fornecedor.
-fn install_url(kind: ProviderKind) -> &'static str {
+/// O OpenCode não tem um script oficial verificado: sem URL, o app não instala e pede a instalação manual.
+fn install_url(kind: ProviderKind) -> Option<&'static str> {
     match kind {
-        ProviderKind::Claude => "https://claude.ai/install.ps1",
-        ProviderKind::Codex => "https://chatgpt.com/codex/install.ps1",
+        ProviderKind::Claude => Some("https://claude.ai/install.ps1"),
+        ProviderKind::Codex => Some("https://chatgpt.com/codex/install.ps1"),
+        ProviderKind::OpenCode => None,
     }
 }
 
@@ -22,6 +24,7 @@ fn program(kind: ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Claude => "claude",
         ProviderKind::Codex => "codex",
+        ProviderKind::OpenCode => "opencode",
     }
 }
 
@@ -29,6 +32,7 @@ fn display_name(kind: ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Claude => "Claude Code",
         ProviderKind::Codex => "Codex",
+        ProviderKind::OpenCode => "OpenCode",
     }
 }
 
@@ -80,7 +84,10 @@ pub fn install(kind: ProviderKind) -> Result<CliStatus, String> {
     if let Some(path) = &before.path {
         return Err(format!("o {} já está instalado em {path}", display_name(kind)));
     }
-    let script = format!("irm {} | iex", install_url(kind));
+    let url = install_url(kind).ok_or_else(|| {
+        format!("o {} ainda não tem instalador pelo app. Instale o CLI pelo site oficial dele e tente de novo.", display_name(kind))
+    })?;
+    let script = format!("irm {url} | iex");
     let mut command = Command::new("powershell");
     command.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &script]);
     #[cfg(windows)]
@@ -120,8 +127,9 @@ mod tests {
 
     #[test]
     fn install_scripts_come_from_the_official_hosts() {
-        assert!(install_url(ProviderKind::Claude).starts_with("https://claude.ai/"));
-        assert!(install_url(ProviderKind::Codex).starts_with("https://chatgpt.com/"));
+        assert!(install_url(ProviderKind::Claude).unwrap().starts_with("https://claude.ai/"));
+        assert!(install_url(ProviderKind::Codex).unwrap().starts_with("https://chatgpt.com/"));
+        assert!(install_url(ProviderKind::OpenCode).is_none());
     }
 
     #[cfg(windows)]

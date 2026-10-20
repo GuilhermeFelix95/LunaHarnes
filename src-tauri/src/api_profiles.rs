@@ -437,6 +437,8 @@ pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(S
             }
         }
         ProviderKind::Codex => env.push(("OPENAI_API_KEY".into(), api_key.into())),
+        // Nenhum perfil de API usa o motor OpenCode ainda.
+        ProviderKind::OpenCode => {}
     }
     env
 }

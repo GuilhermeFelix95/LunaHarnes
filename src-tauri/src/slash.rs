@@ -101,6 +101,8 @@ pub fn collect(home: &Path, cwd: &Path, provider: ProviderKind) -> Vec<SlashItem
             scan_commands(&home.join(".codex").join("prompts"), &mut out);
             scan_skills(&home.join(".codex").join("skills"), &mut out);
         }
+        // Ainda sem as pastas de comandos do OpenCode verificadas: nenhum item por enquanto.
+        ProviderKind::OpenCode => {}
     }
     out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     // Mesmo nome em duas pastas (ex.: skill do usuário e do projeto): fica um item só.
