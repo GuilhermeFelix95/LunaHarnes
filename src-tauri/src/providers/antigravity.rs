@@ -93,7 +93,8 @@ fn step(update: &Value) -> Vec<ProviderEvent> {
 
 fn result(result: &Value) -> Vec<ProviderEvent> {
     let mut events = Vec::new();
-    if result["status"].as_str() == Some("ERROR") {
+    let failed = result["status"].as_str() == Some("ERROR");
+    if failed {
         let message = result["error"].as_str().unwrap_or("erro sem mensagem");
         events.push(ProviderEvent::Error { message: format!("antigravity: {message}") });
     }
@@ -107,6 +108,8 @@ fn result(result: &Value) -> Vec<ProviderEvent> {
             ),
         });
     }
+    // Esta linha é o fim do turno: sem `Done`, o app acusa falha mesmo com status SUCCESS.
+    events.push(ProviderEvent::Done { ok: !failed });
     events
 }
 
@@ -210,17 +213,24 @@ mod tests {
     fn denied_actions_and_failed_status_become_errors() {
         let denied = r#"{"event":"result","result":{"status":"SUCCESS","response":"","denied_actions":[{"action":"command","display_name":"RunCommand"}]}}"#;
         let events = parse_line(denied);
-        assert!(matches!(events.as_slice(), [ProviderEvent::Error { message }] if message.contains("RunCommand")));
+        assert!(events.iter().any(|e| matches!(e, ProviderEvent::Error { message } if message.contains("RunCommand"))));
 
         let failed = r#"{"event":"result","result":{"status":"ERROR","error":"stream input message is missing the \"event\" field"}}"#;
-        assert!(matches!(parse_line(failed).as_slice(), [ProviderEvent::Error { .. }]));
+        assert!(parse_line(failed).iter().any(|e| matches!(e, ProviderEvent::Error { .. })));
+    }
+
+    /// A linha `result` fecha o turno: sem `Done`, o app acusa falha mesmo com status SUCCESS.
+    #[test]
+    fn result_line_closes_the_turn_so_a_clean_run_is_not_an_error() {
+        let ok = r#"{"event":"result","result":{"status":"SUCCESS","response":"ok\n","denied_actions":[]}}"#;
+        assert_eq!(parse_line(ok), vec![ProviderEvent::Done { ok: true }]);
+        let failed = r#"{"event":"result","result":{"status":"ERROR","error":"falhou"}}"#;
+        assert!(parse_line(failed).contains(&ProviderEvent::Done { ok: false }));
     }
 
     #[test]
-    fn plain_lines_and_success_give_no_events() {
+    fn plain_lines_give_no_events() {
         assert!(parse_line("jetski: no output produced").is_empty());
-        let ok = r#"{"event":"result","result":{"status":"SUCCESS","response":"ok\n","denied_actions":[]}}"#;
-        assert!(parse_line(ok).is_empty());
     }
 
     #[test]

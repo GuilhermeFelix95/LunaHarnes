@@ -210,10 +210,16 @@ fn antigravity_catalog() -> Result<Vec<ModelOption>, String> {
         .collect())
 }
 
-/// Modelos do Copilot. Por enquanto vazia: `--model gpt-5.6-luna` e `--model gpt-5.4` foram recusados pela CLI
-/// ("not available"), e a CLI não tem comando para listar os nomes válidos. Sem `--model`, a CLI usa Auto, que funciona.
+/// Modelos do Copilot: só "Automático" (id `auto`, sem `--model`, a CLI escolhe). `--model gpt-5.6-luna` e `gpt-5.4`
+/// foram recusados pela CLI ("not available"), e a CLI não lista os nomes válidos. Assim o seletor não fica vazio.
 fn copilot_catalog() -> Vec<ModelOption> {
-    Vec::new()
+    vec![ModelOption {
+        id: "auto".into(),
+        label: "Automático".into(),
+        description: None,
+        efforts: Vec::new(),
+        default: true,
+    }]
 }
 
 /// Modelos e níveis do provedor escolhido.

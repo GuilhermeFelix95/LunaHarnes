@@ -71,8 +71,9 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     if let Some(id) = &request.session_id {
         args.push(format!("--resume={id}"));
     }
-    if let Some(model) = &request.model {
-        args.extend(["--model".to_string(), model.clone()]);
+    // "auto" é a opção "Automático" do seletor: sem `--model`, a CLI escolhe o modelo.
+    if let Some(model) = request.model.as_deref().filter(|m| *m != "auto") {
+        args.extend(["--model".to_string(), model.to_string()]);
     }
     if let Some(effort) = &request.effort {
         args.extend(["--reasoning-effort".to_string(), effort.clone()]);
@@ -127,11 +128,13 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
             if let Some(id) = value["sessionId"].as_str() {
                 events.push(ProviderEvent::SessionStarted { session_id: id.to_string() });
             }
-            match value["exitCode"].as_i64() {
-                Some(0) | None => {}
-                Some(code) => events.push(ProviderEvent::Error {
+            let code = value["exitCode"].as_i64();
+            // Esta linha é o fim do turno: sem `Done`, o app acusa falha mesmo com saída 0.
+            events.push(ProviderEvent::Done { ok: matches!(code, Some(0) | None) });
+            if let Some(code) = code.filter(|c| *c != 0) {
+                events.push(ProviderEvent::Error {
                     message: format!("copilot: terminou com código {code}"),
-                }),
+                });
             }
             events
         }
@@ -209,15 +212,35 @@ mod tests {
     #[test]
     fn the_result_line_keeps_the_session_and_reports_a_failed_exit() {
         let ok = r#"{"type":"result","sessionId":"e24b7bcc","exitCode":0}"#;
-        assert_eq!(parse_line(ok), vec![ProviderEvent::SessionStarted { session_id: "e24b7bcc".into() }]);
+        assert_eq!(
+            parse_line(ok),
+            vec![ProviderEvent::SessionStarted { session_id: "e24b7bcc".into() }, ProviderEvent::Done { ok: true }]
+        );
         let failed = r#"{"type":"result","sessionId":"e24b7bcc","exitCode":1}"#;
         assert!(matches!(parse_line(failed).last(), Some(ProviderEvent::Error { .. })));
+    }
+
+    /// "Automático" é a opção que deixa a CLI escolher: não pode virar `--model auto`, que a CLI recusa.
+    #[test]
+    fn automatic_model_sends_no_model_flag() {
+        let mut req = request(Permission::ReadOnly);
+        req.model = Some("auto".into());
+        assert!(!args(&req).contains(&"--model".to_string()));
     }
 
     /// A verificação de login é uma pergunta sem ferramentas e sem sessão na tela, e sem stdin.
     #[test]
     fn login_check_asks_one_short_question_without_tools() {
         assert_eq!(login_probe_args(), ["-p", "Responda apenas ok.", "-s", "--no-ask-user"]);
+    }
+
+    /// A linha `result` fecha o turno: sem `Done`, o app mostra "terminou sem concluir a resposta" mesmo com saída 0.
+    #[test]
+    fn result_line_closes_the_turn_so_a_clean_exit_is_not_an_error() {
+        let ok = r#"{"type":"result","sessionId":"e24b7bcc","exitCode":0}"#;
+        assert!(parse_line(ok).contains(&ProviderEvent::Done { ok: true }));
+        let failed = r#"{"type":"result","sessionId":"e24b7bcc","exitCode":1}"#;
+        assert!(parse_line(failed).contains(&ProviderEvent::Done { ok: false }));
     }
 
     #[test]

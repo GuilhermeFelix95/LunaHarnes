@@ -64,23 +64,30 @@ export function AccountsSection() {
           // O OpenCode, o Cline, o Copilot e o Antigravity não têm instalador pelo app: sem CLI, a pessoa instala pelo site ou pelo gerenciador.
           const canDownload = p !== "opencode" && p !== "cline" && p !== "copilot" && p !== "antigravity";
           const action = connected || installed === undefined ? null : installed ? t("accounts.connect") : canDownload ? t("accounts.downloadConnect") : null;
+          // Estado da conexão: o ponto de cor mostra de relance o que o texto diz.
+          const state = login[p] === true ? "connected" : login[p] === undefined ? "checking" : login[p] === null ? "failed" : "off";
           return (
-            <li key={p} className="settings-card">
-              <div>
+            <li key={p} className={`settings-card account-card account-card--${state}`}>
+              <div className="settings-card__head account-card__head">
+                <span className="account-card__dot" aria-hidden="true" />
                 <strong>{PROVIDER_LABELS[p]}</strong>
                 <span className="settings-card__meta">{loginLabel(login[p])}</span>
-                {installed && cli[p]?.path && <span className="settings-card__meta">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</span>}
-                {installed === false && !canDownload && <span className="settings-card__meta">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : "accounts.opencodeInstall")}</span>}
-                {errors[p] && (
-                  <span className="settings-card__meta" role="alert">
-                    {errors[p]}
-                  </span>
-                )}
               </div>
+              {installed && cli[p]?.path && <p className="settings-card__text">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</p>}
+              {installed === false && !canDownload && (
+                <p className="settings-card__text">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : "accounts.opencodeInstall")}</p>
+              )}
+              {errors[p] && (
+                <p className="notice" role="alert">
+                  {errors[p]}
+                </p>
+              )}
               {action && (
-                <button type="button" className="btn btn--sm" disabled={busy !== null} onClick={() => void connect(p)}>
-                  {busy === p ? t("accounts.wait") : action}
-                </button>
+                <div className="settings-actions">
+                  <button type="button" className="btn btn--sm" disabled={busy !== null} onClick={() => void connect(p)}>
+                    {busy === p ? t("accounts.wait") : action}
+                  </button>
+                </div>
               )}
             </li>
           );

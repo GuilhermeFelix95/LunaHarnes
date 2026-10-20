@@ -73,10 +73,15 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
     };
     match value["type"].as_str() {
         Some("agent_event") => agent_event(&value["event"]),
-        Some("run_result") => value["model"]["id"]
-            .as_str()
-            .map(|model| vec![ProviderEvent::ModelUsed { model: model.to_string() }])
-            .unwrap_or_default(),
+        Some("run_result") => {
+            let mut events = Vec::new();
+            if let Some(model) = value["model"]["id"].as_str() {
+                events.push(ProviderEvent::ModelUsed { model: model.to_string() });
+            }
+            // Fim do turno: sem `Done`, o app acusa falha mesmo com a resposta certa.
+            events.push(ProviderEvent::Done { ok: value["finishReason"].as_str() == Some("completed") });
+            events
+        }
         Some("error") => vec![ProviderEvent::Error {
             message: format!("cline: {}", value["message"].as_str().unwrap_or("erro sem mensagem")),
         }],
@@ -146,7 +151,16 @@ mod tests {
     #[test]
     fn the_run_result_says_which_model_answered() {
         let line = r#"{"type":"run_result","finishReason":"completed","text":"ok","model":{"id":"minimax/minimax-m3.1-flash","provider":"cline"}}"#;
-        assert_eq!(parse_line(line), vec![ProviderEvent::ModelUsed { model: "minimax/minimax-m3.1-flash".into() }]);
+        assert!(parse_line(line).contains(&ProviderEvent::ModelUsed { model: "minimax/minimax-m3.1-flash".into() }));
+    }
+
+    /// O `run_result` fecha o turno (capturado em todo turno): sem `Done`, o app acusa falha com saída 0.
+    #[test]
+    fn the_run_result_closes_the_turn() {
+        let completed = r#"{"type":"run_result","finishReason":"completed","model":{"id":"minimax/minimax-m3.1-flash"}}"#;
+        assert!(parse_line(completed).contains(&ProviderEvent::Done { ok: true }));
+        let failed = r#"{"type":"run_result","finishReason":"error","model":{"id":"minimax/minimax-m3.1-flash"}}"#;
+        assert!(parse_line(failed).contains(&ProviderEvent::Done { ok: false }));
     }
 
     #[test]
