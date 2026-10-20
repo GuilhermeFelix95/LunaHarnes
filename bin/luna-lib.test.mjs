@@ -8,7 +8,7 @@ import { lastCopy, modeFrom, pickExecutable } from "./luna-lib.mjs";
 /// Pasta temporária com um exe "compilado" falso.
 function setup() {
   const root = mkdtempSync(join(tmpdir(), "luna-"));
-  const built = join(root, "lunaharness.exe");
+  const built = join(root, "lunacode.exe");
   writeFileSync(built, "versão nova");
   return { root, built, runDir: join(root, "luna-run") };
 }
@@ -17,7 +17,7 @@ function setup() {
 const lockedFs = {
   ...realFs,
   copyFileSync(source, target) {
-    if (target.endsWith(join("luna-run", "lunaharness.exe"))) throw Object.assign(new Error("busy"), { code: "EBUSY" });
+    if (target.endsWith(join("luna-run", "lunacode.exe"))) throw Object.assign(new Error("busy"), { code: "EBUSY" });
     realFs.copyFileSync(source, target);
   },
 };
@@ -39,7 +39,7 @@ describe("pickExecutable", () => {
 
     const picked = pickExecutable({ built, runDir, fs: realFs });
 
-    expect(picked).toEqual({ path: join(runDir, "lunaharness.exe"), fallback: false });
+    expect(picked).toEqual({ path: join(runDir, "lunacode.exe"), fallback: false });
     expect(readFileSync(picked.path, "utf8")).toBe("versão nova");
   });
 
@@ -48,14 +48,14 @@ describe("pickExecutable", () => {
 
     const picked = pickExecutable({ built, runDir, fs: lockedFs, now: 123 });
 
-    expect(picked.path).toBe(join(runDir, "lunaharness-123.exe"));
+    expect(picked.path).toBe(join(runDir, "lunacode-123.exe"));
   });
 
   it("compilação falhou: abre a última cópia que funcionou", () => {
     const { built, runDir } = setup();
     pickExecutable({ built, runDir, fs: realFs });
 
-    expect(pickExecutable({ built: null, runDir, fs: realFs })).toEqual({ path: join(runDir, "lunaharness.exe"), fallback: true });
+    expect(pickExecutable({ built: null, runDir, fs: realFs })).toEqual({ path: join(runDir, "lunacode.exe"), fallback: true });
   });
 
   it("compilação falhou e nunca houve cópia: não há o que abrir", () => {
@@ -71,8 +71,8 @@ describe("lastCopy", () => {
     pickExecutable({ built, runDir, fs: realFs });
     pickExecutable({ built, runDir, fs: lockedFs, now: 456 });
     writeFileSync(join(runDir, "notas.txt"), "x");
-    utimesSync(join(runDir, "lunaharness.exe"), new Date(2020, 0, 1), new Date(2020, 0, 1));
+    utimesSync(join(runDir, "lunacode.exe"), new Date(2020, 0, 1), new Date(2020, 0, 1));
 
-    expect(lastCopy(runDir, realFs)).toBe(join(runDir, "lunaharness-456.exe"));
+    expect(lastCopy(runDir, realFs)).toBe(join(runDir, "lunacode-456.exe"));
   });
 });

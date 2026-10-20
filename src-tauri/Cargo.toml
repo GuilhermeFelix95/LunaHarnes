@@ -1,10 +1,10 @@
 [package]
-name = "lunaharness"
+name = "lunacode"
 version = "0.1.3"
 edition = "2021"
 
 [lib]
-name = "lunaharness"
+name = "lunacode"
 path = "src/lib.rs"
 
 [build-dependencies]

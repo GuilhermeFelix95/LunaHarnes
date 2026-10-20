@@ -592,7 +592,7 @@ fn run_request(body: &str) -> (u16, Value) {
     }
 }
 
-// ---- Processo MCP (`lunaharness browser-mcp`, falado pelo Claude por stdin/stdout) ----
+// ---- Processo MCP (`lunacode browser-mcp`, falado pelo Claude por stdin/stdout) ----
 
 /// Lista de ferramentas que o agente vê.
 pub fn tool_specs() -> Value {

@@ -1,4 +1,4 @@
-//! Servidor MCP mínimo com as etapas da tarefa (`lunaharness tasks-mcp`), para o OpenCode e o Codex.
+//! Servidor MCP mínimo com as etapas da tarefa (`lunacode tasks-mcp`), para o OpenCode e o Codex.
 //! Uma ferramenta, `set_steps`: a lista inteira vale a cada chamada, então atualizar uma etapa é chamar de novo.
 //! Quem mostra as etapas é o app, que lê a chamada na saída do CLI; este processo só confirma o recebimento.
 use std::io::{BufRead, Write};
@@ -104,7 +104,7 @@ pub fn mcp_stdio() -> i32 {
 /// Comando que o CLI executa para subir o servidor: o próprio app, no modo `tasks-mcp`.
 /// Barras normais no caminho: o Codex lê o valor como TOML, onde a barra invertida é escape.
 pub fn command() -> Vec<String> {
-    let exe = std::env::current_exe().map(|path| path.display().to_string().replace('\\', "/")).unwrap_or_else(|_| "lunaharness".into());
+    let exe = std::env::current_exe().map(|path| path.display().to_string().replace('\\', "/")).unwrap_or_else(|_| "lunacode".into());
     vec![exe, "tasks-mcp".into()]
 }
 

@@ -4,9 +4,9 @@
 
 use std::path::PathBuf;
 
-use lunaharness::auth;
-use lunaharness::providers::{Permission, ProviderEvent, ProviderKind, RunRequest};
-use lunaharness::session::Session;
+use lunacode::auth;
+use lunacode::providers::{Permission, ProviderEvent, ProviderKind, RunRequest};
+use lunacode::session::Session;
 
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("lunaharness-smoke-{name}-{}", std::process::id()));

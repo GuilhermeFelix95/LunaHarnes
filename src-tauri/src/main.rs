@@ -2,19 +2,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    // `lunaharness mcp add|remove ...` roda no terminal, sem abrir a janela (usado por `luna mcp add`).
+    // `lunacode mcp add|remove ...` roda no terminal, sem abrir a janela (usado por `luna mcp add`).
     let args: Vec<String> = std::env::args().collect();
     if args.get(1).map(String::as_str) == Some("mcp") {
-        std::process::exit(lunaharness::mcp::cli(&args[2..]));
+        std::process::exit(lunacode::mcp::cli(&args[2..]));
     }
-    // `lunaharness browser-mcp` é o servidor MCP do navegador: o Claude o inicia e fala por stdin/stdout.
+    // `lunacode browser-mcp` é o servidor MCP do navegador: o Claude o inicia e fala por stdin/stdout.
     if args.get(1).map(String::as_str) == Some("browser-mcp") {
-        std::process::exit(lunaharness::browser::mcp_stdio());
+        std::process::exit(lunacode::browser::mcp_stdio());
     }
-    // `lunaharness tasks-mcp` é o servidor de etapas para o OpenCode e o Codex (stdin/stdout).
+    // `lunacode tasks-mcp` é o servidor de etapas para o OpenCode e o Codex (stdin/stdout).
     if args.get(1).map(String::as_str) == Some("tasks-mcp") {
-        std::process::exit(lunaharness::tasks_mcp::mcp_stdio());
+        std::process::exit(lunacode::tasks_mcp::mcp_stdio());
     }
-    lunaharness::migrate::run();
-    lunaharness::run();
+    lunacode::migrate::run();
+    lunacode::run();
 }

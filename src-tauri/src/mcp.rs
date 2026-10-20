@@ -652,7 +652,7 @@ pub fn save_mcp_server(app: AppHandle, server: McpServer) -> Result<(), String> 
     save_in(&home()?, &app_data_dir(&app)?, &server)
 }
 
-// ---- Terminal: `lunaharness mcp add <id>` e `lunaharness mcp remove <nome>` ----
+// ---- Terminal: `lunacode mcp add <id>` e `lunacode mcp remove <nome>` ----
 
 /// Pasta de dados do app, igual à que o Tauri usa com o identificador `dev.lunacode.app`.
 fn app_dir_for_cli() -> Result<PathBuf, String> {
@@ -685,7 +685,7 @@ pub fn cli(args: &[String]) -> i32 {
             0
         }
         Err(error) => {
-            eprintln!("lunaharness: {error}");
+            eprintln!("lunacode: {error}");
             1
         }
     }
@@ -722,7 +722,7 @@ fn run_cli(args: &[String]) -> Result<String, String> {
             remove_in(&home, &app_dir, name)?;
             Ok(format!("\"{name}\" removido."))
         }
-        _ => Err("uso: lunaharness mcp add <id> | lunaharness mcp remove <nome>".into()),
+        _ => Err("uso: lunacode mcp add <id> | lunacode mcp remove <nome>".into()),
     }
 }
 

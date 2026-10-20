@@ -1,6 +1,6 @@
 // Comandos `luna skills add <id>`, `luna mcp add <id>` e `luna plugin add <id>`, com as regras separadas do
 // terminal para dar para testar. Usam os mesmos catálogos do app (src-tauri/marketplace).
-// Skill grava as pastas nas duas CLIs. MCP não é gravado aqui: o `luna mcp add` chama o app (lunaharness.exe mcp add),
+// Skill grava as pastas nas duas CLIs. MCP não é gravado aqui: o `luna mcp add` chama o app (lunacode.exe mcp add),
 // que grava só o nome das variáveis, nunca o valor. Plugin grava na pasta de dados do app, como a instalação pela tela.
 import { createHash } from "node:crypto";
 import { join } from "node:path";

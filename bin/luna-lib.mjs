@@ -7,8 +7,8 @@ export const USAGE = [
   "  luna dev   abre em modo de desenvolvimento, com hot reload",
 ].join("\n");
 
-const RUN_NAME = "lunaharness.exe";
-const RUN_PATTERN = /^lunaharness(-\d+)?\.exe$/;
+const RUN_NAME = "lunacode.exe";
+const RUN_PATTERN = /^lunacode(-\d+)?\.exe$/;
 
 /// `stable` sem argumentos, `dev` com `dev`. Qualquer outra coisa é erro, com a ajuda.
 export function modeFrom(argv) {
@@ -32,7 +32,7 @@ export function copyForRun(source, runDir, fs, now = Date.now()) {
     return main;
   } catch (error) {
     if (!isLocked(error)) throw error;
-    const alternate = join(runDir, `lunaharness-${now}.exe`);
+    const alternate = join(runDir, `lunacode-${now}.exe`);
     fs.copyFileSync(source, alternate);
     return alternate;
   }

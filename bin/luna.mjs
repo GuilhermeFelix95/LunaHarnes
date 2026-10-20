@@ -20,7 +20,7 @@ const CATALOG_FILES = { skill: "skills.json", plugin: "official.json" };
 
 /// Executável que o `luna` compilou (o mesmo que ele abre). Usa o do modo estável se existir.
 function lunaExecutable() {
-  const name = process.platform === "win32" ? "lunaharness.exe" : "lunaharness";
+  const name = process.platform === "win32" ? "lunacode.exe" : "lunacode";
   return [join(root, "src-tauri", "target", "luna", "debug", name), join(root, "src-tauri", "target", "debug", name)].find((p) =>
     fs.existsSync(p),
   );
@@ -89,7 +89,7 @@ async function runExtension(argv) {
   return 1;
 }
 
-/// MCP: quem grava é o próprio app (`lunaharness mcp add`), com a mesma lógica da tela. O luna não pede
+/// MCP: quem grava é o próprio app (`lunacode mcp add`), com a mesma lógica da tela. O luna não pede
 /// nem grava valores: as variáveis são lidas do ambiente do usuário pela CLI.
 function addMcp(id) {
   const exe = lunaExecutable();
@@ -134,7 +134,7 @@ if (mode === "dev") {
     shell: true,
     env: { ...process.env, CARGO_TARGET_DIR: targetDir },
   });
-  const built = build.status === 0 ? join(targetDir, "debug", "lunaharness.exe") : null;
+  const built = build.status === 0 ? join(targetDir, "debug", "lunacode.exe") : null;
   if (built && !fs.existsSync(built)) {
     console.error(`luna: a compilação terminou, mas ${built} não existe.`);
     process.exit(1);
