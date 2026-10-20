@@ -66,6 +66,60 @@
   margin: 0 0 var(--space-2);
 }
 
+/* Lista das tarefas em segundo plano, logo acima do composer */
+.background-tasks {
+  margin: 0 auto 8px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sidebar);
+  max-width: 760px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.background-tasks__title {
+  margin: 0 0 var(--space-2);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.background-tasks__list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.background-tasks__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.background-tasks__prompt {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.background-tasks__status {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.background-tasks__item--done .background-tasks__status {
+  color: var(--success);
+}
+
+.background-tasks__item--failed .background-tasks__status {
+  color: var(--error);
+}
+
 /* Linha de controle com seletor e botão (ex.: som ao responder) */
 .settings__row {
   display: flex;

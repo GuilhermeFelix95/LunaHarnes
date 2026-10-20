@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod api_profiles;
 pub mod auth;
+pub mod background_tasks;
 pub mod browser;
 pub mod browser_bookmarks;
 pub mod changes;
@@ -33,6 +34,7 @@ pub mod terminal;
 pub fn run() {
     tauri::Builder::default()
         .manage(commands::ActiveRuns::default())
+        .manage(background_tasks::BackgroundTasks::default())
         .manage(terminal::Terminals::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -86,6 +88,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
             commands::cancel_prompt,
+            background_tasks::start_background_task,
+            background_tasks::stop_background_task,
+            background_tasks::list_background_tasks,
             commands::list_plugins,
             commands::read_plugin_entry,
             commands::read_plugin_asset,
@@ -190,6 +195,15 @@ pub fn run() {
             commands::create_plugin,
             commands::open_plugins_folder
         ])
+        .on_window_event(|window, event| {
+            // Fechar o app encerra as tarefas em segundo plano: nenhum processo fica órfão.
+            if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                use tauri::Manager;
+                if let Some(tasks) = window.app_handle().try_state::<background_tasks::BackgroundTasks>() {
+                    tasks.0.lock().expect("lock das tarefas em segundo plano").stop_all();
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaCode");
 }

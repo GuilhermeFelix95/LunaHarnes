@@ -82,6 +82,10 @@ vi.mock("../../api", () => ({
     bridge.emit = handler;
     return () => {};
   }),
+  startBackgroundTask: vi.fn(async (prompt: string) => ({ id: "t1", prompt, status: "running", output: "" })),
+  stopBackgroundTask: vi.fn(async (id: string) => ({ id, prompt: "", status: "stopped", output: "" })),
+  listBackgroundTasks: vi.fn(async () => []),
+  onBackgroundTask: vi.fn(async () => () => {}),
 }));
 
 import { loadInstalledPlugins } from "../../plugins/loader";

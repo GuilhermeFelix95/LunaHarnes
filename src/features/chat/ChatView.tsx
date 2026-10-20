@@ -35,6 +35,10 @@ import {
   configFingerprint,
   MCP_CHANGED,
   SKILLS_CHANGED,
+  listBackgroundTasks,
+  onBackgroundTask,
+  startBackgroundTask,
+  stopBackgroundTask,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
 import { routeFor, type Orchestrator, type OrchestratorRole } from "../../chat/orchestrator";
@@ -64,6 +68,7 @@ import type {
   ApiPreset,
   ApiProfile,
   Account,
+  BackgroundTask,
   ChatMessage,
   Compaction,
   Conversation,
@@ -82,6 +87,7 @@ import { MessageList } from "./MessageList";
 import { QuestionPicker } from "./QuestionPicker";
 import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
+import { BackgroundTasks } from "./BackgroundTasks";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { saveLastWorkspace } from "../../workspace";
 import { resolveLocale, t, useLocale, type MessageKey } from "../../i18n";
@@ -179,6 +185,64 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Arquivos gerais (não imagem) do próximo envio: o caminho entra no pedido e o agente lê.
   const [fileAttachments, setFileAttachments] = useState<{ id: number; name: string; path: string }[]>([]);
   const [running, setRunning] = useState(false);
+  // Tarefas em segundo plano desta sessão do app: a lista aparece acima do composer.
+  const [backgroundTasks, setBackgroundTasks] = useState<BackgroundTask[]>([]);
+  // Resultados já anexados ao histórico: o evento de conclusão chega uma vez, mas o app pode repetir.
+  const shownBackgroundResults = useRef(new Set<string>());
+
+  // Lista as tarefas desta sessão do app e acompanha o fim delas: o resultado entra na conversa,
+  // sem mexer no turno em andamento (o processo da tarefa é independente).
+  useEffect(() => {
+    let alive = true;
+    listBackgroundTasks(conversationId).then(
+      (list) => {
+        if (alive) setBackgroundTasks(list.filter((task) => !task.conversationId || task.conversationId === conversationId));
+      },
+      () => {},
+    );
+    const unlisten = onBackgroundTask((task) => {
+      // O evento é do app inteiro: a tarefa de outra conversa não entra nesta.
+      if (task.conversationId && task.conversationId !== conversationId) return;
+      setBackgroundTasks((current) => {
+        const index = current.findIndex((t) => t.id === task.id);
+        if (index < 0) return [...current, task];
+        const next = [...current];
+        next[index] = task;
+        return next;
+      });
+      if (task.status !== "done" && task.status !== "failed") return;
+      if (shownBackgroundResults.current.has(task.id)) return;
+      shownBackgroundResults.current.add(task.id);
+      const header =
+        task.status === "done"
+          ? t("chat.backgroundResult", { prompt: task.prompt })
+          : t("chat.backgroundFailure", { prompt: task.prompt });
+      const output = task.output.trim() || t("chat.backgroundNoOutput");
+      commit([
+        ...messagesRef.current,
+        { role: "assistant", text: `${header}\n\n${output}`, at: Date.now(), provider: "claude", background: true },
+      ]);
+      persist(messagesRef.current);
+    });
+    return () => {
+      alive = false;
+      unlisten.then((stop) => stop());
+    };
+    // commit e persist só usam refs e setters; a conversa aberta é o que muda a assinatura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
+
+  /// Para uma tarefa em segundo plano e atualiza a linha da lista com o estado devolvido.
+  async function stopBackground(id: string) {
+    try {
+      const stopped = await stopBackgroundTask(id);
+      setBackgroundTasks((current) =>
+        current.map((task) => (task.id === stopped.id ? { ...task, ...stopped, prompt: stopped.prompt || task.prompt } : task)),
+      );
+    } catch (err) {
+      setNotes((current) => [...current, t("chat.backgroundStopFailed", { error: String(err) })]);
+    }
+  }
   // Início do turno em andamento: o cabeçalho do trabalho mostra o tempo decorrido.
   const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
   // Contexto cheio depois de um turno: compacta antes de o usuário precisar pedir.
@@ -929,6 +993,22 @@ ${cliPrompt}`;
       }
       return;
     }
+    // /subagente: tarefa própria do Claude, em segundo plano, enquanto a conversa segue livre.
+    if (luna?.id === "subagente") {
+      setDraft("");
+      if (provider !== "claude") {
+        setNotes((current) => [...current, t("chat.backgroundOnlyClaude")]);
+        return;
+      }
+      const mode = modes.find((m) => m.id === modeId);
+      try {
+        const task = await startBackgroundTask(luna.task, cwd, planning || mode ? "readOnly" : permission, conversationId);
+        setBackgroundTasks((current) => [...current.filter((t) => t.id !== task.id), task]);
+      } catch (err) {
+        setNotes((current) => [...current, t("chat.backgroundStartFailed", { error: String(err) })]);
+      }
+      return;
+    }
 
     // Comando de plugin (`/nome args`): se devolver texto, esse texto é o que vai ao provedor.
     const command = await host.handleCommand(prompt);
@@ -1280,6 +1360,8 @@ ${outgoing}`
           onDismiss={() => setPluginOffer(undefined)}
         />
       )}
+
+      {backgroundTasks.length > 0 && <BackgroundTasks tasks={backgroundTasks} onStop={(id) => void stopBackground(id)} />}
 
       <Composer
         draft={draft}

@@ -1,9 +1,10 @@
 import type { ChatMessage, ProviderEvent, ProviderKind } from "../types";
 
-/// Última mensagem se for uma resposta de texto do assistente (não uma linha de ferramenta).
+/// Última mensagem se for uma resposta de texto do assistente (não uma linha de ferramenta
+/// nem o resultado de uma tarefa em segundo plano, que não pertence ao turno em andamento).
 function lastTextReply(messages: ChatMessage[]): ChatMessage | undefined {
   const last = messages[messages.length - 1];
-  return last?.role === "assistant" && !last.tool ? last : undefined;
+  return last?.role === "assistant" && !last.tool && !last.background ? last : undefined;
 }
 
 /// Aplica um evento do provedor à lista de mensagens.
@@ -51,7 +52,7 @@ export function applyEvent(
       // O modelo vai para a última resposta do assistente, que é a que o evento descreve.
       let index = -1;
       for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].role === "assistant") {
+        if (messages[i].role === "assistant" && !messages[i].background) {
           index = i;
           break;
         }
