@@ -409,6 +409,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         </nav>
 
         <div className="settings__body">
+          {/* Chave por seção: cada troca monta um painel novo, e a animação de entrada roda de novo. */}
+          <div key={section} className="settings__pane">
           {section === "appearance" && (
             <section
               className="settings__section"
@@ -744,6 +746,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
       {section === "skills" && <SkillsSection />}
       {section === "mcp" && <McpSection />}
       {section === "about" && <AboutSection />}
+          </div>
         </div>
       </div>
     </div>

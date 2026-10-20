@@ -174,6 +174,18 @@ describe("SettingsView", () => {
     expect(screen.getByRole("button", { name: "Regras globais" }).getAttribute("aria-current")).toBe("page");
   });
 
+  it("cada troca de seção monta um painel novo, para a animação de entrada rodar de novo", () => {
+    render(<SettingsView onClose={() => {}} />);
+    const first = document.querySelector(".settings__pane");
+
+    fireEvent.click(screen.getByRole("button", { name: "Regras globais" }));
+    const second = document.querySelector(".settings__pane");
+
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
+    expect(second).not.toBe(first);
+  });
+
   it("botão de voltar fecha a página", () => {
     const onClose = vi.fn();
     render(<SettingsView onClose={onClose} />);
