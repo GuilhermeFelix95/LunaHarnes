@@ -953,7 +953,9 @@ ${outgoing}`
     // Execução nova: a lista de progresso começa do zero, sem as etapas de um plano anterior.
     tasksRef.current = [];
     setTasks([]);
-    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null), false, undefined, [], "execute");
+    // A instrução de registro das etapas depende do motor que vai executar (o do papel de execução, se houver).
+    const engine = routeFor("execute", { provider, profileId, model: "", effort: "" }, await loadOrchestrator()).provider;
+    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null, engine), false, undefined, [], "execute");
   }
 
   function changeModel(next: string) {

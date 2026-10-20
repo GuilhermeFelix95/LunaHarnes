@@ -25,7 +25,7 @@ pub fn tool_specs() -> Value {
                     "items": {
                         "type": "object",
                         "properties": {
-                            "content": { "type": "string", "description": "Texto curto da etapa" },
+                            "content": { "type": "string", "description": "Texto curto da etapa (o nome dela, não um id nem uma descrição longa)" },
                             "status": { "type": "string", "enum": STATUSES }
                         },
                         "required": ["content", "status"]

@@ -1,5 +1,6 @@
 /// Modo plano: o agente entrevista, planeja e só depois edita. Vale para qualquer CLI,
 /// porque o Codex não tem modo de plano próprio: a regra vai no prompt e a sandbox fica só leitura.
+import type { ProviderKind } from "../types";
 import type { Question } from "./questions";
 
 /// Meta padrão: o plano só sai quando o agente diz que tem pelo menos este tanto do contexto.
@@ -75,6 +76,11 @@ export function contextUnderstood(text: string): number | null {
 export const APPROVE_OPTION = "Aprovar e executar";
 
 /// Enviado quando o usuário aprova: o turno seguinte já sai do modo plano.
+/// Registro das etapas com as ferramentas de tarefa do Claude Code (TaskCreate/TaskUpdate).
+const TASK_STEPS_CLAUDE = "Antes de editar, crie uma tarefa (TaskCreate) para cada etapa do plano, na ordem. Ao começar uma etapa, marque-a como in_progress (TaskUpdate); ao terminar, marque-a como completed.";
+/// Registro das etapas com o servidor de etapas do Luna (lunatasks), para o OpenCode e o Codex: eles não têm TaskCreate.
+const TASK_STEPS_LUNA = "Antes de editar, registre as etapas do plano na ordem, chamando tools.lunatasks.set_steps dentro da ferramenta execute, com steps: [{ content, status }] (content é o texto curto da etapa; status é pending, in_progress ou completed). Chame de novo a cada mudança de estado, sempre com a lista inteira.";
+
 /// A spec segue o modelo to-spec do Matt Pocock: é o que o projeto é e as decisões tomadas, não o plano passo a passo.
 export const APPROVAL_PROMPT = [
   "O plano foi aprovado. Antes de começar, crie um arquivo Markdown em spec/ na raiz do projeto (ex.: spec/<funcionalidade>.md) com a spec deste trabalho, nesta ordem de seções:",
@@ -86,14 +92,20 @@ export const APPROVAL_PROMPT = [
   "## Out of Scope",
   "## Further Notes",
   "Regras da spec: descreva decisões técnicas fixas do projeto (ex.: 'frontend em React', sem outro framework que não foi escolhido). Em Implementation Decisions, não coloque caminhos de arquivo nem trechos de código. Em Testing Decisions, só comportamento externo. Não copie o plano passo a passo.",
-  "Antes de editar, crie uma tarefa (TaskCreate) para cada etapa do plano, na ordem. Ao começar uma etapa, marque-a como in_progress (TaskUpdate); ao terminar, marque-a como completed.",
+  TASK_STEPS_CLAUDE,
   "Depois, execute o plano agora, editando os arquivos necessários, e resuma o que foi feito ao final.",
 ].join("\n");
 
+/// Aprovação para um motor. O Claude usa TaskCreate; OpenCode e Codex usam o servidor de etapas do Luna.
+export function approvalInstruction(provider: ProviderKind): string {
+  return provider === "claude" ? APPROVAL_PROMPT : APPROVAL_PROMPT.replace(TASK_STEPS_CLAUDE, TASK_STEPS_LUNA);
+}
+
 /// Aprovação com o plano aprovado dentro. Sem ele (plano não guardado), vale só a instrução.
-export function approvalPrompt(plan: string | null): string {
-  if (!plan?.trim()) return APPROVAL_PROMPT;
-  return `${APPROVAL_PROMPT}\n\nPlano aprovado, para usar como referência durante toda a execução:\n\`\`\`luna-plano\n${plan}\n\`\`\``;
+export function approvalPrompt(plan: string | null, provider: ProviderKind = "claude"): string {
+  const instruction = approvalInstruction(provider);
+  if (!plan?.trim()) return instruction;
+  return `${instruction}\n\nPlano aprovado, para usar como referência durante toda a execução:\n\`\`\`luna-plano\n${plan}\n\`\`\``;
 }
 
 /// Protocolo das perguntas: toda pergunta vai dentro do bloco, que o app mostra como seletor.

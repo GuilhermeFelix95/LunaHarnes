@@ -240,3 +240,4 @@ docs/                stack, contrato de plugins
 - OpenCode, permissões (2026-10-20): `execute` liberado em leitura e edição, para o servidor de etapas e o Playwright. Bash continua negado fora do acesso total.
 - Orquestrador (2026-10-20): `src-tauri/src/orchestrator.rs` (orchestrator.json; claude-agents.json para o subagente) e `src/chat/orchestrator.ts` (routeFor). `run` no ChatView troca motor/modelo pelo papel. Claude: `ModelUsed` vem de message.model. Tela: `settings/OrchestratorSection.tsx`. Plugin oficial e permissão `models`: pendentes.
 - Grupo de ferramentas (2026-10-20): `MessageList` deixa o `details.tool-line` fechado durante a execução; a linha de resumo mostra o passo atual.
+- Aprovação por motor (2026-10-20): `approvalInstruction(provider)` em `src/chat/planning.ts`; `approvePlan` usa o motor do papel de execução.

@@ -151,3 +151,24 @@ describe("streamingPlan", () => {
     expect(streamingPlan(reply)).toBe("## Riscos\nNenhum");
   });
 });
+
+describe("approvalPrompt por motor", () => {
+  it("o Claude registra as etapas com TaskCreate, e não cita o servidor de etapas", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela", "claude");
+    expect(prompt).toContain("TaskCreate");
+    expect(prompt).not.toContain("lunatasks");
+  });
+
+  it("o OpenCode registra as etapas com lunatasks.set_steps, e não cita TaskCreate", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela", "opencode");
+    expect(prompt).toContain("tools.lunatasks.set_steps");
+    expect(prompt).toContain("content");
+    expect(prompt).not.toContain("TaskCreate");
+  });
+
+  it("o Codex também usa o servidor de etapas, porque não tem TaskCreate", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela", "codex");
+    expect(prompt).toContain("tools.lunatasks.set_steps");
+    expect(prompt).not.toContain("TaskCreate");
+  });
+});
