@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, Atom, Bot, Braces, Brain, Check, Copy, Cpu, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, X, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
+import { AttachmentThumb } from "./AttachmentThumb";
 import { Markdown } from "./Markdown";
 import { resolveLocale, t } from "../../i18n";
 
@@ -177,7 +178,12 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
         <li key={i} className={`message message--${item.kind === "user" ? "user" : "assistant"}`}>
           {item.kind === "user" ? (
             <div className="message__user">
-              <div className="message__bubble">{item.message.text}</div>
+              <div className="message__bubble">
+                {item.message.text}
+                {item.message.images?.map((path) => (
+                  <AttachmentThumb key={path} path={path} />
+                ))}
+              </div>
               <MessageActions
                 text={item.message.text}
                 at={item.message.at}

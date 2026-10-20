@@ -19,10 +19,12 @@ interface WorkspaceChipProps {
   currentBranch?: string | null;
   /** Trabalha numa branch: cria a worktree dela. `isNew` cria a branch a partir da atual. */
   onPickBranch?: (branch: string, isNew: boolean) => void;
+  /** Chamado ao abrir o menu de branch, para recarregar a lista antes de mostrá-la. */
+  onOpenBranches?: () => void;
 }
 
 /// Mostra a pasta em que o agente trabalha, no rodapé do composer. Abre um menu para trocar.
-export function WorkspaceChip({ cwd, recent, freeFolder, disabled, onPick, onBrowse, branches = [], currentBranch, onPickBranch }: WorkspaceChipProps) {
+export function WorkspaceChip({ cwd, recent, freeFolder, disabled, onPick, onBrowse, branches = [], currentBranch, onPickBranch, onOpenBranches }: WorkspaceChipProps) {
   const { open, setOpen, root } = usePopover();
   const branchPopover = usePopover();
   const [newBranch, setNewBranch] = useState("");
@@ -99,7 +101,10 @@ export function WorkspaceChip({ cwd, recent, freeFolder, disabled, onPick, onBro
             aria-haspopup="menu"
             aria-expanded={branchPopover.open}
             disabled={disabled}
-            onClick={() => branchPopover.setOpen((on) => !on)}
+            onClick={() => {
+              if (!branchPopover.open) onOpenBranches?.();
+              branchPopover.setOpen((on) => !on);
+            }}
           >
             <GitBranch size={13} aria-hidden="true" />
             {currentBranch ?? t("workspace.branchesButton", { count: branches.length })}
@@ -113,7 +118,8 @@ export function WorkspaceChip({ cwd, recent, freeFolder, disabled, onPick, onBro
                   key={branch}
                   type="button"
                   role="menuitem"
-                  className="workspace-chip__item"
+                  className={`workspace-chip__item${branch === currentBranch ? " workspace-chip__item--current" : ""}`}
+                  aria-current={branch === currentBranch ? "true" : undefined}
                   onClick={() => {
                     branchPopover.setOpen(false);
                     // A branch atual já é a pasta aberta: não cria outra worktree.

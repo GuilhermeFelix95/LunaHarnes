@@ -77,9 +77,9 @@ export const APPROVE_OPTION = "Aprovar e executar";
 
 /// Enviado quando o usuário aprova: o turno seguinte já sai do modo plano.
 /// Registro das etapas com as ferramentas de tarefa do Claude Code (TaskCreate/TaskUpdate).
-const TASK_STEPS_CLAUDE = "Antes de editar, crie uma tarefa (TaskCreate) para cada etapa do plano, na ordem. Ao começar uma etapa, marque-a como in_progress (TaskUpdate); ao terminar, marque-a como completed.";
+const TASK_STEPS_CLAUDE = "Antes de editar, crie uma tarefa (TaskCreate) para cada etapa do plano, na ordem. Ao começar uma etapa, marque-a como in_progress (TaskUpdate); ao terminar, marque-a como completed. Antes de terminar, marque todas as etapas como completed, inclusive a última.";
 /// Registro das etapas com o servidor de etapas do Luna (lunatasks), para o OpenCode e o Codex: eles não têm TaskCreate.
-const TASK_STEPS_LUNA = "Antes de editar, registre as etapas do plano na ordem, chamando tools.lunatasks.set_steps dentro da ferramenta execute, com steps: [{ content, status }] (content é o texto curto da etapa; status é pending, in_progress ou completed). Chame de novo a cada mudança de estado, sempre com a lista inteira.";
+const TASK_STEPS_LUNA = "Antes de editar, registre as etapas do plano na ordem, chamando tools.lunatasks.set_steps dentro da ferramenta execute, com steps: [{ content, status }] (content é o texto curto da etapa; status é pending, in_progress ou completed). Chame de novo a cada mudança de estado, sempre com a lista inteira. Antes de terminar, marque todas as etapas como completed, inclusive a última, com set_steps.";
 
 /// A spec segue o modelo to-spec do Matt Pocock: é o que o projeto é e as decisões tomadas, não o plano passo a passo.
 export const APPROVAL_PROMPT = [

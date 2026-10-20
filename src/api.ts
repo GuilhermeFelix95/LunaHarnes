@@ -197,6 +197,11 @@ export function getFileDiff(cwd: string, path: ChangedFile["path"]): Promise<str
   return invoke("get_file_diff", { cwd, path });
 }
 
+/// Lê uma imagem já salva na pasta de anexos, pelo caminho guardado na mensagem. Só essa pasta é aceita.
+export function readAttachment(path: string): Promise<{ mime: string; data: string }> {
+  return invoke<{ mime: string; data: string }>("read_attachment", { path });
+}
+
 /// Salva uma imagem anexada (base64) na pasta de anexos do app e devolve o caminho.
 export function saveAttachment(name: string, data: string): Promise<string> {
   return invoke("save_attachment", { name, data });

@@ -670,6 +670,36 @@ pub fn save_attachment(app: AppHandle, name: String, data: String) -> Result<Str
     Ok(file.to_string_lossy().into_owned())
 }
 
+/// Imagem da pasta de anexos em base64 com o tipo MIME (o balão do histórico monta a miniatura).
+#[derive(serde::Serialize)]
+pub struct AttachmentImage {
+    pub mime: String,
+    pub data: String,
+}
+
+/// Lê uma imagem anexada. Só aceita arquivo dentro da pasta de anexos, png, jpeg ou webp, até o limite de tamanho.
+fn read_attachment_in(folder: &Path, file: &Path) -> Result<AttachmentImage, String> {
+    let mime = image_media_type(file).ok_or("formato de imagem não suportado: use PNG, JPEG ou WebP")?;
+    let root = folder.canonicalize().map_err(|e| format!("pasta de anexos não encontrada: {e}"))?;
+    let real = file.canonicalize().map_err(|e| format!("imagem não encontrada: {e}"))?;
+    if !real.starts_with(&root) {
+        return Err("caminho fora da pasta de anexos".into());
+    }
+    let size = std::fs::metadata(&real).map_err(|e| format!("não foi possível ler a imagem: {e}"))?.len();
+    if size > MAX_ATTACHMENT_BYTES as u64 {
+        return Err("imagem maior que 10 MB".into());
+    }
+    let bytes = std::fs::read(&real).map_err(|e| format!("não foi possível ler a imagem: {e}"))?;
+    Ok(AttachmentImage { mime: mime.to_string(), data: STANDARD.encode(bytes) })
+}
+
+/// Imagem enviada antes, pelo caminho que ficou na mensagem. A pasta é sempre a de anexos do app.
+#[tauri::command]
+pub fn read_attachment(app: AppHandle, path: String) -> Result<AttachmentImage, String> {
+    let folder = app_data_dir(&app)?.join("attachments");
+    read_attachment_in(&folder, Path::new(&path))
+}
+
 /// Nome seguro para um anexo: só o nome base (sem pasta) e sem símbolos que quebrem caminhos.
 fn safe_attachment_name(name: &str) -> String {
     let base = name.rsplit(['/', '\\']).next().unwrap_or("");
@@ -865,8 +895,47 @@ pub fn cancel_prompt(run_id: String, runs: State<'_, ActiveRuns>) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use super::{free_workspace_in, safe_attachment_name};
+    use super::{free_workspace_in, read_attachment_in, safe_attachment_name};
     use std::path::Path;
+
+    fn attachments_fixture(name: &str) -> std::path::PathBuf {
+        let base = std::env::temp_dir().join(format!("luna-anexo-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join("attachments")).unwrap();
+        base
+    }
+
+    #[test]
+    fn leitura_de_anexo_recusa_caminho_fora_da_pasta_de_anexos() {
+        let base = attachments_fixture("fora");
+        let outside = base.join("fora.png");
+        std::fs::write(&outside, [0x89, b'P', b'N', b'G']).unwrap();
+
+        let result = read_attachment_in(&base.join("attachments"), &outside);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn leitura_de_anexo_devolve_imagem_da_pasta_de_anexos_com_o_tipo() {
+        let base = attachments_fixture("ok");
+        let file = base.join("attachments").join("foto.png");
+        std::fs::write(&file, [0x89, b'P', b'N', b'G']).unwrap();
+
+        let image = read_attachment_in(&base.join("attachments"), &file).unwrap();
+
+        assert_eq!(image.mime, "image/png");
+        assert!(!image.data.is_empty());
+    }
+
+    #[test]
+    fn leitura_de_anexo_recusa_arquivo_que_nao_e_imagem() {
+        let base = attachments_fixture("texto");
+        let file = base.join("attachments").join("notas.md");
+        std::fs::write(&file, "texto").unwrap();
+
+        assert!(read_attachment_in(&base.join("attachments"), &file).is_err());
+    }
 
     #[test]
     fn sem_pasta_cria_a_pasta_do_app_uma_vez() {

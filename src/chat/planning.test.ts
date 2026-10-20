@@ -198,3 +198,21 @@ describe("aprovação com pasta de spec", () => {
     expect(approvalPrompt(null, "claude")).toBe(APPROVAL_PROMPT);
   });
 });
+
+describe("aprovação pede para fechar todas as etapas", () => {
+  it("o Claude marca todas as etapas como concluídas antes de terminar", () => {
+    expect(approvalPrompt(null, "claude")).toMatch(/Antes de terminar, marque todas as etapas como completed/);
+  });
+
+  it("OpenCode e Codex fecham todas as etapas pelo set_steps antes de terminar", () => {
+    for (const provider of ["opencode", "codex"] as const) {
+      expect(approvalPrompt(null, provider)).toMatch(/Antes de terminar, marque todas as etapas como completed/);
+    }
+  });
+
+  it("Copilot e Antigravity, sem registro de etapas, não recebem a instrução", () => {
+    for (const provider of ["copilot", "antigravity"] as const) {
+      expect(approvalPrompt(null, provider)).not.toMatch(/marque todas as etapas/);
+    }
+  });
+});
