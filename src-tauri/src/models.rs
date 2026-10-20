@@ -235,32 +235,48 @@ fn hermes_catalog() -> Vec<ModelOption> {
 /// Lista do Hermes a partir da pasta da CLI. Sem os caches (CLI nunca usada), o padrão do Copilot.
 fn hermes_catalog_in(root: Option<&Path>) -> Vec<ModelOption> {
     let read = |path: PathBuf| -> Option<Value> { serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok() };
-    let mut found: Vec<(&str, String)> = Vec::new();
+    // (provedor, id, lugar que aparece no rótulo). Os recomendados do Portal vêm antes do catálogo curado,
+    // e o grátis antes do pago: quem aparece em mais de um grupo fica na primeira posição.
+    let mut found: Vec<(&str, String, &str)> = Vec::new();
     if let Some(root) = root {
         if let Some(cache) = read(root.join("provider_models_cache.json")) {
             for id in cache["copilot"]["models"].as_array().into_iter().flatten().filter_map(Value::as_str) {
-                found.push(("copilot", id.to_string()));
+                found.push(("copilot", id.to_string(), "Copilot"));
+            }
+        }
+        let recommended = read(root.join("cache").join("nous_recommended_cache.json"));
+        let portal = recommended.as_ref().map(|r| &r[NOUS_PORTAL_BASE]["data"]);
+        for (group, place) in [("freeRecommendedModels", "Nous Portal · grátis"), ("paidRecommendedModels", "Nous Portal")] {
+            for id in portal.map(|p| &p[group]).and_then(Value::as_array).into_iter().flatten().filter_map(|m| m["modelName"].as_str()) {
+                found.push(("nous", id.to_string(), place));
             }
         }
         if let Some(catalog) = read(root.join("cache").join("model_catalog.json")) {
             for id in catalog["providers"]["nous"]["models"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str()) {
-                found.push(("nous", id.to_string()));
+                found.push(("nous", id.to_string(), "Nous Portal"));
             }
         }
     }
-    let mut models: Vec<ModelOption> = found.iter().map(|(provider, id)| hermes_option(provider, id)).collect();
+    let mut models: Vec<ModelOption> = Vec::new();
+    for (provider, id, place) in found {
+        let key = format!("{provider}:{id}");
+        if !models.iter().any(|m| m.id == key) {
+            models.push(hermes_option(key, &id, place));
+        }
+    }
     // O padrão sempre aparece, mesmo sem o cache da CLI.
     if !models.iter().any(|m| m.id == crate::providers::hermes::DEFAULT_MODEL) {
-        models.insert(0, hermes_option("copilot", "gpt-4.1"));
+        models.insert(0, hermes_option(crate::providers::hermes::DEFAULT_MODEL.into(), "gpt-4.1", "Copilot"));
     }
     models
 }
 
-fn hermes_option(provider: &str, id: &str) -> ModelOption {
-    let place = if provider == "nous" { "Nous Portal" } else { "Copilot" };
-    let key = format!("{provider}:{id}");
+/// Base do Portal como a CLI a guarda no cache de recomendados (ver `fetch_nous_recommended_models`).
+const NOUS_PORTAL_BASE: &str = "https://portal.nousresearch.com";
+
+fn hermes_option(key: String, name: &str, place: &str) -> ModelOption {
     ModelOption {
-        label: format!("{id} · {place}"),
+        label: format!("{name} · {place}"),
         default: key == crate::providers::hermes::DEFAULT_MODEL,
         id: key,
         description: None,
@@ -309,14 +325,23 @@ mod tests {
         std::fs::create_dir_all(root.join("cache")).unwrap();
         std::fs::write(root.join("provider_models_cache.json"), r#"{"copilot":{"models":["gpt-5.6-sol"]}}"#).unwrap();
         std::fs::write(root.join("cache").join("model_catalog.json"), r#"{"providers":{"nous":{"models":[{"id":"z-ai/glm-5.2"}]}}}"#).unwrap();
+        std::fs::write(
+            root.join("cache").join("nous_recommended_cache.json"),
+            r#"{"https://portal.nousresearch.com":{"data":{"freeRecommendedModels":[{"modelName":"poolside/laguna-xs-2.1:free"}],"paidRecommendedModels":[{"modelName":"x-ai/grok-4.7"}]},"ts":0}}"#,
+        )
+        .unwrap();
 
         let models = hermes_catalog_in(Some(&root));
         let _ = std::fs::remove_dir_all(&root);
 
-        assert_eq!(ids(&models), ["copilot:gpt-4.1", "copilot:gpt-5.6-sol", "nous:z-ai/glm-5.2"]);
+        assert_eq!(
+            ids(&models),
+            ["copilot:gpt-4.1", "copilot:gpt-5.6-sol", "nous:poolside/laguna-xs-2.1:free", "nous:x-ai/grok-4.7", "nous:z-ai/glm-5.2"]
+        );
         assert_eq!(models.iter().filter(|m| m.default).count(), 1);
         assert!(models[0].default);
-        assert_eq!(models[2].label, "z-ai/glm-5.2 · Nous Portal");
+        assert_eq!(models[2].label, "poolside/laguna-xs-2.1:free · Nous Portal · grátis");
+        assert_eq!(models[4].label, "z-ai/glm-5.2 · Nous Portal");
     }
 
     fn ids(models: &[ModelOption]) -> Vec<&str> {

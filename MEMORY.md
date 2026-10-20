@@ -200,3 +200,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Contas: Hermes preso em "verificando" corrigido. A página consulta de novo as CLIs sem status no cache, mesmo quando já foi checada nesta abertura.
 2026-10-20 | Hermes como motor de chat: hermes chat com stdin, stream-json medido e modelos gpt-4.1/gpt-4o pelo Copilot (o Nous Portal desta conta estava sem créditos). Só acesso total.
 2026-10-20 | Hermes: modelos vêm dos caches da própria CLI (Nous Portal e Copilot) com o provedor no id (nous:... ou copilot:...). Login do Nous pelo card de Contas (hermes portal).
+2026-10-20 | Hermes: seletor passa a incluir os recomendados grátis e pagos do Nous Portal (cache da CLI), não só o catálogo curado.
