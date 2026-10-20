@@ -68,26 +68,24 @@ export function AccountsSection() {
           const state = login[p] === true ? "connected" : login[p] === undefined ? "checking" : login[p] === null ? "failed" : "off";
           return (
             <li key={p} className={`settings-card account-card account-card--${state}`}>
-              <div className="settings-card__head account-card__head">
+              <div className="account-card__head">
                 <span className="account-card__dot" aria-hidden="true" />
                 <strong>{PROVIDER_LABELS[p]}</strong>
-                <span className="settings-card__meta">{loginLabel(login[p])}</span>
+                <span className="account-card__status">{loginLabel(login[p])}</span>
+                {action && (
+                  <button type="button" className="btn btn--sm account-card__action" disabled={busy !== null} onClick={() => void connect(p)}>
+                    {busy === p ? t("accounts.wait") : action}
+                  </button>
+                )}
               </div>
-              {installed && cli[p]?.path && <p className="settings-card__text">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</p>}
+              {installed && cli[p]?.path && <p className="account-card__path">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</p>}
               {installed === false && !canDownload && (
-                <p className="settings-card__text">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : "accounts.opencodeInstall")}</p>
+                <p className="account-card__hint">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : "accounts.opencodeInstall")}</p>
               )}
               {errors[p] && (
                 <p className="notice" role="alert">
                   {errors[p]}
                 </p>
-              )}
-              {action && (
-                <div className="settings-actions">
-                  <button type="button" className="btn btn--sm" disabled={busy !== null} onClick={() => void connect(p)}>
-                    {busy === p ? t("accounts.wait") : action}
-                  </button>
-                </div>
               )}
             </li>
           );

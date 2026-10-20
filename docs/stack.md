@@ -57,6 +57,8 @@ docs/                stack, contrato de plugins
 - Mascote (2026-10-18): `LunaAtom` gera ids de gradiente com `useId` e põe o preenchimento em atributo `fill`, então várias conversas abertas não se apagam. Elétrons com velocidade fixa (sono só apaga). Mascote de tema flutua. `themeRegistry` descarta downloads de uma aplicação anterior (geração). Testes em `LunaAtom.test.tsx` e `themeRegistry.test.ts`.
 
 - Progresso (2026-10-18): a lista de tarefas rola dentro de `.side__progress-list` e o mascote fica fora dela, fixo no rodapé do painel. Teste em `RightPanel.test.tsx`.
+- Contas (2026-10-20): cada cartão tem uma linha só (ponto, nome, pílula de estado e o botão à direita, `.account-card__head`); o caminho da CLI e o aviso de instalação ficam embaixo, em texto pequeno. Estado verde ou âmbar na pílula.
+- Abas do painel direito (2026-10-20): `.side__tabs` rola na horizontal e as abas não quebram linha, então o nome não é cortado em janela estreita.
 - Logo (2026-10-20): o logo é o robô com lua do ícone novo, em `public/luna/logo.svg` (mesmo desenho de `scratchpad\icon\luna.svg`). Barra lateral (`Sidebar.tsx`) e tela vazia do chat (`ChatView.tsx`) usam esse arquivo. O painel de progresso (`LunaAtom.tsx`) desenha o mesmo robô em SVG inline, animado por CSS: trabalhando balança e a antena pisca; parado dorme (olhos fechados, respiração e zZ); início do turno acena; fim pula com olhos ^^; caretas ociosas são piscada e susto. Mascote de tema (`mascot`) continua no lugar do robô. `public/luna/atom.png` ficou sem uso (não removido). Testes em `LunaAtom.test.tsx` e `Sidebar.test.tsx`.
 
 - Travamento ao enviar (2026-10-18): `session.rs` para o pump no evento `result`, escreve o prompt em thread própria, lê o stderr desde o início e limita o `finish` (5 s para o processo sair, depois encerra a árvore). `commands.rs` libera a execução antes de esperar o processo. Parar em `ChatView.tsx` destrava a tela sem depender do `done`. Testes em `session::tests` e no ChatView. Causa original do bloqueio: deadlock com prompt grande e pipe preso.
@@ -111,6 +113,7 @@ docs/                stack, contrato de plugins
 - Comando `luna`: `bin/luna.mjs`, registrado com `npm link`, com as regras testáveis em `bin/luna-lib.mjs`.
   - `luna` compila a versão estável (`tauri build --debug --no-bundle`, pasta `src-tauri/target/luna`, `beforeBuildCommand` só `vite build` via `src-tauri/tauri.luna.conf.json`), copia o exe para `src-tauri/target/luna-run` e abre a cópia. Sem watcher: a Luna pode editar o próprio LunaHarness sem derrubar a conversa. Compilação com erro abre a última cópia boa.
   - `luna dev` roda `npm run dev:app` (`tauri dev`): hot reload no front e recompilação do Rust ao salvar. Não serve para a Luna editar o próprio app: recargas do Vite apagam a resposta da tela.
+- `npm run luna` (2026-10-20): script no `package.json` que roda `node bin/luna.mjs dev`, ou seja, sempre abre a versão de desenvolvimento. O `luna` puro (sem npm) continua abrindo a versão estável.
   - `npm run build:app` continua disponível para gerar o executável de release.
 - Fase B (interface e histórico):
   - Conversas em `<app_data>/conversations/<id>.json` (`src-tauri/src/conversations.rs`). Id só `[a-z0-9-]`.

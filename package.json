@@ -12,6 +12,7 @@
     "build:app": "scripts\\with-msvc.cmd npx tauri build --no-bundle",
     "release:app": "scripts\\with-msvc.cmd npx tauri build --bundles nsis --config src-tauri/tauri.release.conf.json",
     "dev:app": "scripts\\with-msvc.cmd npx tauri dev",
+    "luna": "node bin/luna.mjs dev",
     "test": "vitest run",
     "tauri": "tauri",
     "test:rust": "scripts\\with-msvc.cmd cargo test --manifest-path src-tauri\\Cargo.toml",
