@@ -382,6 +382,11 @@ export function onBrowserOpened(handler: (url: string) => void): Promise<Unliste
   return listen<string>("browser://opened", (e) => handler(e.payload));
 }
 
+/// Uma página terminou de carregar numa aba, inclusive depois de um clique num link.
+export function onBrowserNavigated(handler: () => void): Promise<UnlistenFn> {
+  return listen("browser://navigated", () => handler());
+}
+
 export function onTerminalExit(handler: (id: string) => void): Promise<UnlistenFn> {
   return listen<{ id: string }>("terminal-exit", (e) => handler(e.payload.id));
 }
@@ -543,6 +548,16 @@ export interface SkillCatalogEntry {
 /// Branches locais do repositório da pasta. Pasta sem git dá erro: a tela trata como lista vazia.
 export function listGitBranches(cwd: string): Promise<string[]> {
   return invoke<string[]>("list_git_branches", { cwd });
+}
+
+/// Pasta do app para conversas sem projeto. Cria a pasta se ainda não existir.
+export function freeWorkspace(): Promise<string> {
+  return invoke<string>("free_workspace");
+}
+
+/// Branch em que a pasta está agora (null quando a HEAD está solta ou a pasta não é repositório).
+export function currentGitBranch(cwd: string): Promise<string | null> {
+  return invoke<string | null>("current_git_branch", { cwd });
 }
 
 /// Cria a worktree numa branch existente (ou numa nova, a partir da atual) e devolve a pasta dela.

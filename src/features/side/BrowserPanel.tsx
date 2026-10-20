@@ -13,6 +13,7 @@ import {
   browserShow,
   browserState,
   browserSwitchTab,
+  onBrowserNavigated,
   onBrowserOpened,
   type BrowserBookmark,
   type BrowserBounds,
@@ -79,6 +80,20 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
         setTabs(state.tabs);
         setCurrent(state.active);
         setAddress(url);
+      }, () => {});
+    });
+    return () => {
+      unlisten.then((stop) => stop()).catch(() => {});
+    };
+  }, []);
+
+  // A página mudou sozinha (clique num link): relê as abas, para o endereço e a estrela de favorito acompanharem.
+  useEffect(() => {
+    const unlisten = onBrowserNavigated(() => {
+      browserState().then((state) => {
+        setTabs(state.tabs);
+        setCurrent(state.active);
+        setAddress(state.tabs.find((tab) => tab.id === state.active)?.url ?? "");
       }, () => {});
     });
     return () => {

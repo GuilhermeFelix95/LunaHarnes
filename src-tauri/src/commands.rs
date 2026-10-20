@@ -547,6 +547,19 @@ pub fn rename_conversation(app: AppHandle, id: String, title: String) -> Result<
     conversations::rename(&conversations_dir(&app)?, &id, &title)
 }
 
+/// Pasta das conversas sem projeto, dentro dos dados do app. Cria a pasta se não existir.
+pub fn free_workspace_in(base: &Path) -> Result<PathBuf, String> {
+    let dir = base.join("Sem pasta");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("não foi possível criar a pasta sem projeto: {e}"))?;
+    Ok(dir)
+}
+
+/// "Trabalhar sem pasta", como no Claude Code: a conversa roda numa pasta própria do app.
+#[tauri::command]
+pub fn free_workspace(app: AppHandle) -> Result<String, String> {
+    free_workspace_in(&app_data_dir(&app)?).map(|dir| dir.display().to_string())
+}
+
 /// Pasta de trabalho inicial: a pasta de onde o `luna` foi rodado.
 #[tauri::command]
 pub fn get_workspace() -> Result<String, String> {
@@ -852,7 +865,21 @@ pub fn cancel_prompt(run_id: String, runs: State<'_, ActiveRuns>) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use super::safe_attachment_name;
+    use super::{free_workspace_in, safe_attachment_name};
+    use std::path::Path;
+
+    #[test]
+    fn sem_pasta_cria_a_pasta_do_app_uma_vez() {
+        let base = std::env::temp_dir().join(format!("luna-sem-pasta-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+
+        let first = free_workspace_in(&base).unwrap();
+        let second = free_workspace_in(&base).unwrap();
+
+        assert_eq!(first, Path::new(&base).join("Sem pasta"));
+        assert_eq!(first, second);
+        assert!(first.is_dir());
+    }
 
     #[test]
     fn nome_de_anexo_nao_aceita_caminho() {

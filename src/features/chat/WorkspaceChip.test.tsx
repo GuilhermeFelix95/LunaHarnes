@@ -66,12 +66,40 @@ describe("WorkspaceChip", () => {
     expect(onPickBranch).toHaveBeenCalledWith("feature/x", false);
   });
 
-  it("com uma branch só, o botão de branch não aparece", () => {
+  it("a branch atual aparece ao lado da pasta, mesmo que seja a única", () => {
     render(
-      <WorkspaceChip cwd="C:\\Users\\guilh\\LunaHarnes" recent={[]} onPick={vi.fn()} onBrowse={vi.fn()} branches={["main"]} onPickBranch={vi.fn()} />,
+      <WorkspaceChip
+        cwd="C:\\Users\\guilh\\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={["main"]}
+        currentBranch="main"
+        onPickBranch={vi.fn()}
+      />,
     );
 
-    expect(screen.queryByRole("button", { name: /Branch ·/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "main" })).toBeTruthy();
+  });
+
+  it("o botão da branch atual lista todas, e escolher outra pede a worktree dela", () => {
+    const onPickBranch = vi.fn();
+    render(
+      <WorkspaceChip
+        cwd="C:\\Users\\guilh\\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={["feature/x", "main"]}
+        currentBranch="main"
+        onPickBranch={onPickBranch}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "main" }));
+
+    expect(screen.getByRole("menuitem", { name: "main (atual)" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("menuitem", { name: "feature/x" }));
+    expect(onPickBranch).toHaveBeenCalledWith("feature/x", false);
   });
 
   it("criar uma branch nova usa o nome digitado e a cria a partir da atual", () => {
@@ -95,5 +123,22 @@ describe("WorkspaceChip", () => {
     fireEvent.click(create);
 
     expect(onPickBranch).toHaveBeenCalledWith("nova", true);
+  });
+
+  it("o menu oferece trabalhar sem pasta, que escolhe a pasta do app", () => {
+    const onPick = vi.fn();
+    render(<WorkspaceChip cwd={"C:\\Users\\guilh\\LunaHarnes"} recent={[]} onPick={onPick} onBrowse={vi.fn()} freeFolder={"C:\\app\\Sem pasta"} />);
+    fireEvent.click(screen.getByRole("button", { name: /LunaHarnes/ }));
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Trabalhar sem pasta" }));
+
+    expect(onPick).toHaveBeenCalledWith("C:\\app\\Sem pasta");
+  });
+
+  it("dentro da pasta sem projeto, a opção some do menu", () => {
+    render(<WorkspaceChip cwd={"C:\\app\\Sem pasta"} recent={[]} onPick={vi.fn()} onBrowse={vi.fn()} freeFolder={"C:\\app\\Sem pasta"} />);
+    fireEvent.click(screen.getByRole("button", { name: /Sem pasta/ }));
+
+    expect(screen.queryByRole("menuitem", { name: "Trabalhar sem pasta" })).toBeNull();
   });
 });

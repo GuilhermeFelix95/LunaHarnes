@@ -18,6 +18,7 @@ vi.mock("../../api", () => ({
   browserBookmarkAdd: vi.fn(async () => []),
   browserBookmarkRemove: vi.fn(async () => []),
   onBrowserOpened: vi.fn(async () => () => {}),
+  onBrowserNavigated: vi.fn(async () => () => {}),
 }));
 
 const AREA = { x: 12, y: 40, width: 300, height: 500, left: 12, top: 40, right: 312, bottom: 540, toJSON: () => ({}) };
@@ -50,6 +51,26 @@ describe("BrowserPanel", () => {
       },
     );
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+  });
+
+  it("a estrela de favorito acende quando a página muda sozinha (clique num link)", async () => {
+    let navigated: () => void = () => {};
+    vi.mocked(api.onBrowserNavigated).mockImplementation(async (handler) => {
+      navigated = handler;
+      return () => {};
+    });
+    withTabs([{ id: 1, url: "" }], 1);
+    render(<BrowserPanel active />);
+    await waitFor(() => expect(api.browserState).toHaveBeenCalled());
+    expect(button("Salvar nos favoritos").disabled).toBe(true);
+
+    // A pessoa clica num link dentro da página: a aba agora tem endereço, e o painel precisa ler de novo.
+    withTabs([{ id: 1, url: "https://exemplo.com/" }], 1);
+    act(() => navigated());
+
+    await waitFor(() => expect(button("Salvar nos favoritos").disabled).toBe(false));
+    fireEvent.click(button("Salvar nos favoritos"));
+    await waitFor(() => expect(api.browserBookmarkAdd).toHaveBeenCalledWith("https://exemplo.com/", expect.any(String)));
   });
 
   it("sem aba aberta, explica o que fazer e não deixa voltar", async () => {

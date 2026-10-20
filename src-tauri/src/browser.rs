@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use serde_json::{json, Value};
+use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
 
 use crate::logfile;
@@ -20,6 +21,8 @@ use crate::logfile;
 pub const LABEL: &str = "luna-browser";
 /// Evento enviado ao painel quando o agente abre uma página. O payload é o endereço.
 pub const OPENED_EVENT: &str = "browser://opened";
+/// Uma página terminou de carregar numa aba (inclusive depois de clicar num link): o painel relê as abas.
+pub const NAVIGATED_EVENT: &str = "browser://navigated";
 /// Janela principal (o Tauri dá o rótulo "main" quando o config não define outro).
 const MAIN_WINDOW: &str = "main";
 /// Porta do servidor de desenvolvimento do app (`devUrl` em tauri.conf.json).
@@ -145,9 +148,16 @@ fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
     let app = app()?;
     let window = app.get_window(MAIN_WINDOW).ok_or("janela principal não encontrada")?;
     let id = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?.reserve()?;
+    let page_app = app.clone();
     let created = window.add_child(
         // Sem foco: a página não rouba o teclado do chat quando nasce.
-        WebviewBuilder::new(&tab_label(id), WebviewUrl::External(url)).focused(false),
+        WebviewBuilder::new(&tab_label(id), WebviewUrl::External(url))
+            .focused(false)
+            .on_page_load(move |_view, payload| {
+                if payload.event() == PageLoadEvent::Finished {
+                    let _ = page_app.emit(NAVIGATED_EVENT, ());
+                }
+            }),
         LogicalPosition::new(bounds.x, bounds.y),
         LogicalSize::new(bounds.width, bounds.height),
     );

@@ -8,17 +8,21 @@ interface WorkspaceChipProps {
   cwd: string;
   /** Pastas usadas antes, sem repetir a atual. */
   recent: string[];
+  /** Pasta do app para conversas sem projeto ("Trabalhar sem pasta"). */
+  freeFolder?: string;
   disabled?: boolean;
   onPick: (path: string) => void;
   onBrowse: () => void;
   /** Branches locais da pasta (vazio quando não é repositório git). */
   branches?: string[];
+  /** Branch em que a pasta está agora. Aparece ao lado da pasta; ausente = não é repositório, ou HEAD solta. */
+  currentBranch?: string | null;
   /** Trabalha numa branch: cria a worktree dela. `isNew` cria a branch a partir da atual. */
   onPickBranch?: (branch: string, isNew: boolean) => void;
 }
 
 /// Mostra a pasta em que o agente trabalha, no rodapé do composer. Abre um menu para trocar.
-export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branches = [], onPickBranch }: WorkspaceChipProps) {
+export function WorkspaceChip({ cwd, recent, freeFolder, disabled, onPick, onBrowse, branches = [], currentBranch, onPickBranch }: WorkspaceChipProps) {
   const { open, setOpen, root } = usePopover();
   const branchPopover = usePopover();
   const [newBranch, setNewBranch] = useState("");
@@ -53,6 +57,19 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
           >
             {t("workspace.switch")}
           </button>
+          {freeFolder && freeFolder !== cwd && (
+            <button
+              type="button"
+              role="menuitem"
+              className="workspace-chip__item"
+              onClick={() => {
+                setOpen(false);
+                onPick(freeFolder);
+              }}
+            >
+              {t("workspace.free")}
+            </button>
+          )}
           {others.length > 0 && <p className="workspace-chip__label">{t("workspace.recent")}</p>}
           {others.map((path) => (
             <button
@@ -72,8 +89,8 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
         </div>
       )}
 
-      {/* Com mais de uma branch, o botão de branch aparece ao lado da pasta: trabalhar numa delas é um clique. */}
-      {branches.length > 1 && onPickBranch && (
+      {/* Repositório git: a branch atual aparece ao lado da pasta, e o menu lista as outras. Trabalhar numa delas é um clique. */}
+      {(branches.length > 0 || currentBranch) && onPickBranch && (
         <div className="workspace-chip" ref={branchPopover.root}>
           <button
             type="button"
@@ -85,7 +102,7 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
             onClick={() => branchPopover.setOpen((on) => !on)}
           >
             <GitBranch size={13} aria-hidden="true" />
-            {t("workspace.branchesButton", { count: branches.length })}
+            {currentBranch ?? t("workspace.branchesButton", { count: branches.length })}
           </button>
 
           {branchPopover.open && (
@@ -99,10 +116,11 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
                   className="workspace-chip__item"
                   onClick={() => {
                     branchPopover.setOpen(false);
-                    onPickBranch(branch, false);
+                    // A branch atual já é a pasta aberta: não cria outra worktree.
+                    if (branch !== currentBranch) onPickBranch(branch, false);
                   }}
                 >
-                  {branch}
+                  {branch === currentBranch ? t("workspace.branchCurrent", { branch }) : branch}
                 </button>
               ))}
               <form

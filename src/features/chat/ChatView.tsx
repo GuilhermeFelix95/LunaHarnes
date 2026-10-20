@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, GitCompare, Globe, Terminal } from "lucide-react";
+import { ArrowDown, ArrowLeft, GitCompare, Globe, Terminal } from "lucide-react";
 import {
   cancelPrompt,
   checkAuth,
@@ -28,6 +28,8 @@ import {
   createSpec,
   recordSpecDecisions,
   getOrchestrator,
+  currentGitBranch,
+  freeWorkspace,
   listGitBranches,
   createGitWorktree,
   configFingerprint,
@@ -206,6 +208,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   const [configChanged, setConfigChanged] = useState(false);
   // Branches da pasta, para o menu de pasta. Fora de um repositório git a lista fica vazia.
   const [branches, setBranches] = useState<string[]>([]);
+  const [currentBranch, setCurrentBranch] = useState<string | null>(null);
+  // Pasta do app para conversas sem projeto: o menu de pasta oferece "Trabalhar sem pasta".
+  const [freeFolder, setFreeFolder] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    freeWorkspace().then(setFreeFolder, () => setFreeFolder(undefined));
+  }, []);
   useEffect(() => {
     let alive = true;
     Promise.resolve()
@@ -214,6 +222,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
         (list) => alive && setBranches(list),
         () => alive && setBranches([]),
       );
+    currentGitBranch(cwd).then(
+      (name) => alive && setCurrentBranch(name),
+      () => alive && setCurrentBranch(null),
+    );
     return () => {
       alive = false;
     };
@@ -1095,6 +1107,11 @@ ${outgoing}`
           </span>
         )}
         <div className="chat__tools">
+          {editingPath && (
+            <button type="button" className="chat__tool" onClick={() => setEditingPath(null)}>
+              <ArrowLeft size={14} aria-hidden="true" /> {t("chat.backToChat")}
+            </button>
+          )}
           <button
             type="button"
             className="chat__tool"
@@ -1299,10 +1316,12 @@ ${outgoing}`
         <WorkspaceChip
           cwd={cwd}
           recent={recentFolders}
+          freeFolder={freeFolder}
           disabled={running}
           onPick={switchWorkspace}
           onBrowse={() => void browseWorkspace()}
           branches={branches}
+          currentBranch={currentBranch}
           onPickBranch={(branch, isNew) => void pickBranch(branch, isNew)}
         />
         {provider === "claude" && (

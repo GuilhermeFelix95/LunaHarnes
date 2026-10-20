@@ -11,6 +11,9 @@ const bridge = vi.hoisted(() => ({
 
 vi.mock("../../api", () => ({
   checkAuth: vi.fn(async () => true),
+  currentGitBranch: vi.fn(async () => null),
+  freeWorkspace: vi.fn(async () => "C:\app\Sem pasta"),
+  onBrowserNavigated: vi.fn(async () => () => {}),
   openLogin: vi.fn(async () => {}),
   cancelPrompt: vi.fn(async () => {}),
   checkpointTake: vi.fn(async () => null),

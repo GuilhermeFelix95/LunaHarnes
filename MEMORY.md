@@ -207,3 +207,8 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Orquestrador: cartão por papel com campos legendados (motor ou perfil, modelo).
 2026-10-20 | Hermes: stepfun/step-3.7-flash:free fora da lista (trava no Nous Portal; a CLI direta também dá timeout).
 2026-10-20 | Arquivos: clicar num arquivo abre o editor no lugar do chat (salvar, Ctrl+S, auto-salvar opcional); gravação por write_project_file. A prévia lateral saiu.
+2026-10-20 | Editor de arquivo: botão "Voltar ao chat" na barra superior; campo do editor com cantos fixos (sem o formato do tema).
+2026-10-20 | Composer: rótulo da conta padrão passa a "Conta atual" (não repetia "Padrão" com o esforço).
+2026-10-20 | Navegador: evento browser://navigated a cada página carregada; a estrela de favorito e o endereço acompanham cliques em links.
+2026-10-20 | Seletor de pasta: a branch atual aparece ao lado da pasta (repositório git), e o menu lista as outras com "(atual)".
+2026-10-20 | Trabalhar sem pasta: pasta "Sem pasta" dentro dos dados do app, escolhida no menu de pasta.

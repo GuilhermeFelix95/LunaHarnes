@@ -29,6 +29,13 @@ pub fn list_branches(repo: &Path) -> Result<Vec<String>, String> {
     Ok(names)
 }
 
+/// Branch em que a pasta está agora. `None` quando a HEAD está solta.
+pub fn current_branch(repo: &Path) -> Result<Option<String>, String> {
+    let out = run_git(repo, &["branch", "--show-current"])?.unwrap_or_default();
+    let name = out.trim();
+    Ok((!name.is_empty()).then(|| name.to_string()))
+}
+
 /// Cria a worktree numa branch existente, ou numa branch nova a partir da atual.
 pub fn create_worktree(repo: &Path, branch: &str, new_branch: bool) -> Result<PathBuf, String> {
     if !is_valid_branch(branch) {
@@ -51,6 +58,11 @@ pub fn create_worktree(repo: &Path, branch: &str, new_branch: bool) -> Result<Pa
 #[tauri::command]
 pub fn list_git_branches(cwd: String) -> Result<Vec<String>, String> {
     list_branches(Path::new(&cwd))
+}
+
+#[tauri::command]
+pub fn current_git_branch(cwd: String) -> Result<Option<String>, String> {
+    current_branch(Path::new(&cwd))
 }
 
 #[tauri::command]
@@ -77,6 +89,30 @@ mod tests {
     fn worktree_folder_sits_next_to_the_repo_with_the_branch_in_its_name() {
         let path = worktree_path(Path::new("C:/dev/app"), "feature/login");
         assert_eq!(path, Path::new("C:/dev/app-feature-login"));
+    }
+
+    /// Repositório real: a branch atual é a que foi checada por último.
+    #[test]
+    fn reports_the_branch_the_folder_is_on() {
+        let base = std::env::temp_dir().join(format!("lunaharness-current-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let git = |args: &[&str]| {
+            std::process::Command::new("git")
+                .args(args)
+                .current_dir(&base)
+                .output()
+                .expect("git precisa estar no PATH para este teste")
+        };
+        git(&["init", "-q"]);
+        git(&["config", "user.email", "t@t.dev"]);
+        git(&["config", "user.name", "t"]);
+        std::fs::write(base.join("a.txt"), "x").unwrap();
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "inicio"]);
+        git(&["checkout", "-q", "-b", "feature-y"]);
+
+        assert_eq!(current_branch(&base).unwrap(), Some("feature-y".to_string()));
     }
 
     /// Repositório real com uma branch extra: a worktree aparece numa pasta irmã e a branch fica checada.

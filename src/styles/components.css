@@ -1887,7 +1887,9 @@ textarea:focus-visible {
   min-height: 0;
   margin: 0;
   padding: 12px;
+  /* Editor de código: retângulo com cantos fixos, sem o formato do tema (Pedra, Gota...). */
   border: none;
+  border-radius: var(--radius-field);
   outline: none;
   resize: none;
   overflow: auto;
