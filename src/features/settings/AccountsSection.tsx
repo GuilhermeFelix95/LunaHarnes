@@ -112,10 +112,14 @@ export function AccountsSection() {
   useEffect(() => {
     // Primeira entrada da abertura: confere tudo. Depois, só detecta de novo as CLIs que ainda não achou.
     const firstLook = !alreadyChecked();
-    const missingCli = (["claude", "codex"] as ProviderKind[]).some((p) => !cache.cli[p]?.installed);
+    // CLI que entrou depois (ex.: Hermes) não está no cache: confere mesmo quando a página já foi checada nesta sessão.
+    const unknown = ALL_PROVIDERS.filter((p) => cache.login[p] === undefined);
+    const missingCli = ALL_PROVIDERS.some((p) => !cache.cli[p]?.installed);
     if (firstLook) {
       markChecked();
       refresh(ALL_PROVIDERS);
+    } else if (unknown.length > 0) {
+      refresh(unknown);
     }
     if (firstLook || missingCli) {
       void cliStatus()

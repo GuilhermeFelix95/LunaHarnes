@@ -137,6 +137,19 @@ describe("Contas: contas extras", () => {
     await waitFor(() => expect(accountLogin).toHaveBeenCalledWith("codex-1"));
   });
 
+  it("CLI nova que não está no cache é consultada mesmo com a página já checada nesta sessão", async () => {
+    window.sessionStorage.setItem("luna.accountsChecked", "1");
+    window.localStorage.setItem(
+      "luna.accounts",
+      JSON.stringify({ cli: {}, login: { claude: true, codex: false, opencode: true, cline: true, copilot: true, antigravity: false } }),
+    );
+    vi.mocked(checkAuth).mockClear();
+
+    render(<AccountsSection />);
+
+    await waitFor(() => expect(checkAuth).toHaveBeenCalledWith("hermes"));
+  });
+
   it("Hermes instalado e sem login mostra Conectar, que abre o login dele", async () => {
     vi.mocked(cliStatus).mockResolvedValueOnce([
       { provider: "claude", installed: true, path: "C:\\claude.exe" },

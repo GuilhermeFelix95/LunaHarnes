@@ -197,3 +197,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Executável e crate renomeados para lunacode (cargo, luna, mcp e tasks-mcp). Entradas de MCP se atualizam sozinhas no início. cli_smoke.rs já não compilava antes desta mudança.
 2026-10-20 | tests/cli_smoke.rs volta a compilar: RunRequest recebe os campos novos (browser, subagents, profile, images, context_window, long_cache). Os testes continuam #[ignore] (chamam os CLIs).
 2026-10-20 | Modelos sugeridos atualizados (MiniMax M3/M2.7, MiMo v2.6, Qwen 3.7/3.8, Meta Muse 1.2, Ollama qwen3.6). Hermes aparece em Contas com Conectar; cli_status devolve todas as CLIs. Meus temas: novo tema pede o nome e o botão fica no cabeçalho.
+2026-10-20 | Contas: Hermes preso em "verificando" corrigido. A página consulta de novo as CLIs sem status no cache, mesmo quando já foi checada nesta abertura.
