@@ -419,6 +419,11 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       if (event.kind === "todos" || event.kind === "taskCreated" || event.kind === "taskAssigned" || event.kind === "taskUpdated") {
         tasksRef.current = applyTaskEvent(tasksRef.current, event);
         setTasks(tasksRef.current);
+        // O progresso abre quando a resposta cria etapas. Num turno de planejamento o painel fica com o plano.
+        if (tasksRef.current.length > 0 && !turnPlanning.current) {
+          setSideOpen(true);
+          setSideTab("progress");
+        }
       }
       if (event.kind === "cost") {
         costRef.current += event.usd;
@@ -657,9 +662,7 @@ ${cliPrompt}`;
     turnStopped.current = false;
     // Cada resposta monta o próprio checklist; o da resposta anterior não fica na aba.
     // As tarefas são da conversa inteira (o Claude Code as mantém na sessão): não zeram a cada envio.
-    // O painel abre no Progresso enquanto a Luna trabalha.
-    setSideOpen(true);
-    setSideTab("progress");
+    // O painel de progresso abre só quando o turno cria etapas (ver os eventos de tarefa).
     setQuestions(null);
     setUnderstood(null);
     turnPlanning.current = plan;

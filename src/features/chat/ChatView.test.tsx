@@ -404,13 +404,26 @@ describe("Progresso de um plano novo", () => {
     expect(screen.getByText(/Quando o agente montar as etapas/)).toBeTruthy();
   });
 
-  it("o painel de progresso abre só enquanto a execução roda e fecha quando ela termina", async () => {
+  it("envio sem etapas não abre o painel de progresso", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
     const panel = screen.getByRole("complementary", { name: "Painel lateral" });
-    expect(panel.style.width).toBe("0px");
 
-    await send("tarefa qualquer");
+    await send("pergunta simples");
+    expect(panel.style.width).toBe("0px");
+    emit({ kind: "textDelta", text: "Resposta direta." });
+    emit({ kind: "done", ok: true });
+    expect(panel.style.width).toBe("0px");
+  });
+
+  it("o painel de progresso abre quando a tarefa cria etapas e fecha quando a execução termina", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    const panel = screen.getByRole("complementary", { name: "Painel lateral" });
+
+    await send("tarefa com etapas");
+    expect(panel.style.width).toBe("0px");
+    emit({ kind: "todos", items: [{ content: "Ler o arquivo", status: "in_progress" }] });
     expect(panel.style.width).not.toBe("0px");
 
     emit({ kind: "done", ok: true });
