@@ -977,6 +977,8 @@ ${outgoing}`
     setProfileId(next.profileId ?? null);
     setModel("");
     setEffort("");
+    // O Cline só roda com acesso total: trocar para ele leva a permissão junto.
+    if (next.engine === "cline") setPermission("fullAccess");
   }
 
   // Sem conta conectada ou sem pasta de trabalho ainda carregada, não há como enviar.

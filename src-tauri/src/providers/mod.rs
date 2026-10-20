@@ -1,4 +1,5 @@
 pub mod claude;
+pub mod cline;
 pub mod codex;
 pub mod opencode;
 
@@ -13,6 +14,7 @@ pub enum ProviderKind {
     Claude,
     Codex,
     OpenCode,
+    Cline,
 }
 
 /// Navegador do agente, escolhido em Configurações. Só um vale por execução.
@@ -82,6 +84,10 @@ impl RunRequest {
             if !is_plain_token(effort) {
                 return Err(format!("esforço inválido: {effort:?}"));
             }
+        }
+        // O Cline não tem modo somente leitura nem pede aprovação no modo JSON: só o acesso total é verdadeiro.
+        if self.provider == ProviderKind::Cline && self.permission != Permission::FullAccess {
+            return Err("O Cline só roda com acesso total: ele não tem modo somente leitura nem pede aprovação.".into());
         }
         if self.images.len() > MAX_IMAGES {
             return Err(format!("no máximo {MAX_IMAGES} imagens por pedido"));
@@ -214,6 +220,8 @@ pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
         ProviderKind::Claude => claude::input(request),
         ProviderKind::Codex => Ok(request.prompt.clone()),
         ProviderKind::OpenCode => Ok(opencode::prompt(request)),
+        // O Cline recebe o prompt por arquivo (ver `Session::start_with_env`); o stdin fica vazio.
+        ProviderKind::Cline => Ok(String::new()),
     }
 }
 
@@ -560,6 +568,7 @@ pub fn parse_line(kind: ProviderKind, line: &str) -> Vec<ProviderEvent> {
         ProviderKind::Claude => claude::parse_line(line),
         ProviderKind::Codex => codex::parse_line(line),
         ProviderKind::OpenCode => opencode::parse_line(line),
+        ProviderKind::Cline => cline::parse_line(line),
     }
 }
 
@@ -570,6 +579,8 @@ pub fn cli_args(request: &RunRequest) -> Vec<String> {
         ProviderKind::Claude => claude::args(request),
         ProviderKind::Codex => codex::args(request),
         ProviderKind::OpenCode => opencode::args(request),
+        // Os argumentos do Cline levam o caminho do arquivo do prompt, que só existe na hora de gravar (ver session.rs).
+        ProviderKind::Cline => Vec::new(),
     }
 }
 
@@ -579,6 +590,7 @@ pub fn label(kind: ProviderKind) -> &'static str {
         ProviderKind::Claude => "Claude Code",
         ProviderKind::Codex => "Codex",
         ProviderKind::OpenCode => "OpenCode",
+        ProviderKind::Cline => "Cline",
     }
 }
 
@@ -605,6 +617,7 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
         ProviderKind::Claude => "claude",
         ProviderKind::Codex => "codex",
         ProviderKind::OpenCode => "opencode",
+        ProviderKind::Cline => "cline",
     }
 }
 

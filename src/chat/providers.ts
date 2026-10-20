@@ -5,4 +5,5 @@ export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
   codex: "Codex",
   opencode: "OpenCode",
+  cline: "Cline",
 };

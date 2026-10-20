@@ -24,6 +24,7 @@ describe("agentes da conversa", () => {
       ["claude", "Claude Code", "claude"],
       ["codex", "Codex", "codex"],
       ["opencode", "OpenCode", "opencode"],
+      ["cline", "Cline", "cline"],
       ["api:p1", "DeepSeek · via Claude Code", "claude"],
       ["api:p2", "OpenAI pessoal · via Codex", "codex"],
     ]);

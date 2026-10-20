@@ -6,7 +6,7 @@ import { Markdown } from "./Markdown";
 import { resolveLocale, t } from "../../i18n";
 
 /// Avatar de cada agente: o ícone aparece ao lado do nome em cada resposta.
-const PROVIDER_ICONS: Record<ProviderKind, LucideIcon> = { claude: Sparkles, codex: Bot, opencode: Braces };
+const PROVIDER_ICONS: Record<ProviderKind, LucideIcon> = { claude: Sparkles, codex: Bot, opencode: Braces, cline: SquareTerminal };
 
 function ProviderIcon({ provider }: { provider: ProviderKind }) {
   const Icon = PROVIDER_ICONS[provider];

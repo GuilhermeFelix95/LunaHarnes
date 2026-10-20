@@ -201,6 +201,7 @@ export const en: Record<MessageKey, string> = {
   "accounts.connect": "Connect",
   "accounts.downloadConnect": "Download and connect",
   "accounts.opencodeInstall": "Install OpenCode from its official site, then come back here to connect.",
+  "accounts.clineInstall": "Install with npm i -g cline, then come back here to connect.",
   "accounts.wait": "Please wait…",
   "catalog.label": "Catalog",
   "catalog.official": "Official LunaHarness",

@@ -69,7 +69,13 @@ impl Session {
 
     /// Como `start`, mas com variáveis de ambiente extras só para este processo (perfis de API).
     pub fn start_with_env(request: &RunRequest, env: &[(String, String)]) -> Result<Self, String> {
-        let input = stdin_input(request)?;
+        // O Cline não lê o prompt pelo stdin no modo JSON: o prompt vai num arquivo e o CLI recebe o caminho.
+        let (input, args) = if request.provider == ProviderKind::Cline {
+            let file = crate::providers::cline::write_prompt(&request.prompt)?;
+            (String::new(), crate::providers::cline::args(request.model.as_deref(), &file))
+        } else {
+            (stdin_input(request)?, cli_args(request))
+        };
         let mut env = env.to_vec();
         // O OpenCode recebe as permissões do modo por esta variável (ver providers/opencode.rs).
         if request.provider == ProviderKind::OpenCode {
@@ -79,7 +85,7 @@ impl Session {
             request.provider,
             &input,
             cli_name(request.provider),
-            cli_args(request),
+            args,
             Some(&request.cwd),
             &env,
         )

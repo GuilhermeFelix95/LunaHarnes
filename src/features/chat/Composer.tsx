@@ -18,6 +18,12 @@ export const PERMISSION_KEYS: Record<Permission, MessageKey> = {
   fullAccess: "composer.permission.fullAccess",
 };
 
+/// O Cline só roda com acesso total (ele não tem modo somente leitura nem pede aprovação). Mostrar só o que ele cumpre.
+export function permissionOptions(engine?: string) {
+  const allowed = (Object.keys(PERMISSION_KEYS) as Permission[]).filter((p) => engine !== "cline" || p === "fullAccess");
+  return allowed.map((p) => ({ value: p, label: t(PERMISSION_KEYS[p]) }));
+}
+
 /// Nome de cada origem no menu de `/`, traduzido pela chave.
 const ORIGIN_KEYS: Record<SlashOrigin, MessageKey> = {
   luna: "slash.origin.luna",
@@ -239,7 +245,7 @@ export function Composer(props: ComposerProps) {
           <Select
             label={t("composer.permission")}
             value={props.permission}
-            options={(Object.keys(PERMISSION_KEYS) as Permission[]).map((p) => ({ value: p, label: t(PERMISSION_KEYS[p]) }))}
+            options={permissionOptions(props.agents.find((a) => a.key === props.agent)?.engine)}
             onChange={(value) => props.onPermission(value as Permission)}
             disabled={running}
           />

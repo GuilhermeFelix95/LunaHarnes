@@ -5,6 +5,7 @@ const LABELS: Record<ProviderKind, string> = {
   claude: "Claude Code",
   codex: "Codex",
   opencode: "OpenCode",
+  cline: "Cline",
 };
 
 interface LoginPromptProps {

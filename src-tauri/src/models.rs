@@ -176,6 +176,8 @@ pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
         ProviderKind::Claude => Ok(claude_catalog()),
         ProviderKind::Codex => codex_catalog(),
         ProviderKind::OpenCode => opencode_catalog(),
+        // Sem lista: o modelo do Cline é o escolhido no `cline auth`, e a lista do app fica vazia (padrão da CLI).
+        ProviderKind::Cline => Ok(Vec::new()),
     }
 }
 
