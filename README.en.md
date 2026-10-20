@@ -9,44 +9,61 @@
 </p>
 
 <p align="center">
-  A desktop app to talk to <strong>Claude Code</strong> and <strong>Codex</strong> in one window, with plugins, skills, MCP servers and a browser the agent can use.
+  A desktop app to talk to <strong>Claude Code</strong>, <strong>Codex</strong> and other coding agents in one window, with plugins, skills, MCP servers and a browser for the agent.
 </p>
 
 ---
 
 ## What it is
 
-LunaHarness is not an AI model. It is a **shell** around the official CLIs you already use: `claude` (Claude Code) and `codex` (Codex). The app starts those tools, uses the login you already made in them, and shows the conversation in a chat window, with what the agent does next to it: file changes, plan, progress and a terminal.
+LunaHarness is not an AI model. It is a **shell** around the official CLIs you already use, such as `claude` (Claude Code) and `codex` (Codex). The app starts those tools, uses the login you already made in them, and shows the conversation in a chat window, with what the agent does next to it: file changes, plan, progress, an editor and a terminal.
 
 The goal is one place to work with the agent, without losing what the CLIs offer:
 
-- Switch provider, model, effort and permission mode without restarting the conversation.
+- Switch agent, model, effort and permission mode without restarting the conversation.
+- Use several agents (Claude Code, Codex, OpenCode, Cline, GitHub Copilot, Hermes, Antigravity) and API profiles such as OpenRouter and DeepSeek.
 - See the diff of what the agent changed, undo changes and go back to an earlier point.
-- Install skills, MCP servers and plugins once and use them in both CLIs.
+- Install skills, MCP servers and plugins once and use them in the CLIs.
 - Give the agent its own browser to read and interact with pages.
 
 ## Features
 
+**Agents**
+- **Claude Code** and **Codex**: the official CLIs, with the login you already made.
+- **OpenCode**, **Cline**, **GitHub Copilot**, **Hermes** and **Antigravity**, each as a CLI when it is installed.
+- **API profiles** for providers such as OpenRouter and DeepSeek, with the key kept in the system's secure storage.
+- **Orchestrator:** you choose which agent and model handles each role (planning, execution, chat and subagents).
+- **Extra accounts:** more than one account per CLI, each in its own folder.
+
 **Conversation**
-- Chat with streaming, image and file attachments, and a `/` menu with Luna commands, skills and CLI commands.
-- Planning mode: the full plan goes to the **Plan** panel, and the chat bubble shows only a summary.
-- Context compaction, manually (`/compactar`) or automatically near the limit.
-- Global rules: text you write goes into the `CLAUDE.md` and `AGENTS.md` of both CLIs.
+- Real-time responses, with image and file attachments.
+- A `/` menu with Luna commands, skills and each CLI's commands.
+- Planning mode: the full plan goes to the **Plan** panel, and the chat shows a summary.
+- Context compaction, manual or automatic near the limit.
+- Switch agent, model, effort and permission without losing the conversation.
+- Global rules: text you write goes into `CLAUDE.md` and `AGENTS.md`.
+
+**Projects and git**
+- Conversations with a project folder, or **without a folder**, as in Claude Code.
+- **Worktrees:** work on a branch without touching the current folder. The picker shows the current branch and the others.
+- **Changes** panel: changed files, with diff and undo.
 
 **Side panel**
-- **Changes:** list of changed files, with diff and undo.
 - **Plan** and **Progress:** the agent's plan and the task steps, in order.
-- **Terminal:** a shell in the project folder (`Ctrl + `` `).
-- **Browser:** an embedded page that the agent can also control (see [Current status](#current-status)).
+- **Files:** a project tree. Clicking a file opens an **editor** in place of the chat, with save, Ctrl+S and optional auto-save.
+- **Terminal:** a shell in the project folder.
+- **Browser:** an embedded page, with tabs and bookmarks. See [Current status](#current-status).
 
 **Extensions**
-- **Skills** and **MCP servers** from official catalogs or by URL, installed in the global settings of both CLIs.
-- **Plugins** that add behavior to the chat: sidebar panels, commands and notices. A default plugin, **Cache de Tokens**, shows how much of the prompt was reused from the provider's cache.
-- MCP secrets stay in your user environment variables. The app never stores or shows the value.
+- **Skills**, **MCP servers** and **plugins**, installed from the app's catalog or with the `luna` command, and used in the CLIs.
+- Plugins can add sidebar panels, commands and notices. The example plugin **Cache de Tokens** shows how much of the provider's prompt cache was reused.
+- MCP secrets stay in your user environment variables. The app never shows the value.
 
 **Look and feel**
-- Light and dark themes, with an optional glass effect.
-- Optional response sounds and alerts when the window is not focused.
+- Light and dark themes, custom themes (with an editor and component shapes) and an optional glass effect.
+- Interface in Portuguese, English and other languages in the dictionary.
+- Alerts when the window is not focused, and optional response sounds.
+- Updates from the app itself, in Settings > About.
 
 ## How it works
 
@@ -65,16 +82,25 @@ flowchart LR
 
 ## Download
 
-- When a version is published, the Windows installer is on the [releases page](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
-- Requirements: Windows 10 (version 1809 or later) or Windows 11, and at least one CLI installed and logged in (`claude` or `codex`). Node.js and Rust are not needed.
+| System | Status | How to get it |
+|---|---|---|
+| **Windows 10 (1809+) and Windows 11** | Available | Installer (`.exe`) on the [releases page](https://github.com/GuilhermeFelix95/LunaHarnes/releases). |
+| **macOS** | Not available | No installer. Community port welcome. |
+| **Linux** | Not available | No package. Community port welcome. |
+
+- Windows requirements: at least one CLI installed and logged in (`claude`, `codex` or another). Node.js and Rust are not needed to use the app.
 - The installer is not code-signed yet, so Windows may show a SmartScreen warning. Choose "More info" and then "Run anyway".
 
 ## Requirements
 
-- **Windows 10 or 11** (the project is currently prepared for Windows; build scripts use MSVC).
+Development and builds currently work only on **Windows**:
+
+- **Windows 10 or 11**.
 - **Node.js** LTS and **npm**.
 - **Rust** (`stable` toolchain, `x86_64-pc-windows-msvc`) and the Visual Studio C++ build tools.
-- At least one CLI installed and logged in: Claude Code and/or Codex.
+- At least one CLI installed and logged in: Claude Code, Codex or another.
+
+macOS and Linux are not supported for now.
 
 ## Install and run
 
@@ -134,12 +160,15 @@ spec/                feature specs (prompt cache, response cache)
 
 ## Current status
 
+Platforms: **Windows** is the only system with an installer and a build. macOS and Linux are not on the roadmap for now; the community may port the app.
+
 Working and tested:
 
-- Conversation with Claude Code and Codex, planning, progress, compaction and diff.
+- Conversation with several agents, planning, progress, compaction and diff.
+- Editor for project files in place of the chat, with save and auto-save.
 - Skills, MCP servers and plugins installed from the app or the `luna` command.
 - Prompt cache measured per turn, with the Cache de Tokens plugin.
-- Integrated terminal and branch worktrees.
+- Integrated terminal, branch worktrees and conversations without a folder.
 
 In development, not yet verified end to end in the app:
 
