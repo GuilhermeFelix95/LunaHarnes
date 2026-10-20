@@ -170,12 +170,16 @@ pub fn parse_opencode_catalog(raw: &str) -> Vec<ModelOption> {
         .collect()
 }
 
-/// Modelos do Cline que já rodaram com a CLI 3.0.73 (captura real). O Cline não tem comando para listar os modelos,
-/// então a lista é fixa e curta. O padrão da CLI é o Claude Sonnet 5.5, que é pago: por isso ele fica por último.
+/// Modelos do Cline que rodaram de verdade com a CLI 3.0.73 nesta conta (capturas de 2026-10-20). O Cline não lista
+/// os modelos pela CLI, então a lista é fixa. Grátis primeiro. Os ClinePass (`cline-pass/*`) ficam de fora:
+/// sem assinatura, a CLI recusa com "No access to ClinePass subscription models", e só entram com a assinatura.
 fn cline_catalog() -> Vec<ModelOption> {
     [
         ("minimax/minimax-m3.1-flash", "MiniMax M3.1 Flash · grátis"),
-        ("xiaomi/mimo-v2.6-flash", "MiMo-V2.6 Flash · pago (centavos)"),
+        ("cline-free/nemotron-3.5-super-vl", "Nemotron 3.5 Super VL · grátis"),
+        ("cline-free/mimo-v2.6-flash", "MiMo-V2.6 Flash · grátis"),
+        ("cline-free/muse-spark-1.3-contributor", "Muse Spark 1.3 · grátis"),
+        ("cline-free/solar-mini4", "Solar Mini 4 · grátis"),
         ("anthropic/claude-sonnet-5.5", "Claude Sonnet 5.5 · pago"),
     ]
     .into_iter()
@@ -206,10 +210,11 @@ mod tests {
     const FIXTURE: &str = include_str!("../tests/fixtures/codex_models.json");
 
     #[test]
-    fn cline_lists_the_models_that_ran_and_marks_the_free_one() {
+    fn cline_lists_only_the_models_that_ran_with_the_free_ones_first() {
         let models = cline_catalog();
-        assert!(models.iter().any(|m| m.id == "minimax/minimax-m3.1-flash" && m.label.contains("grátis")));
         assert!(models.iter().all(|m| !m.default));
+        assert!(models.iter().all(|m| !m.id.starts_with("cline-pass/")));
+        assert!(models.iter().take_while(|m| m.label.contains("grátis")).count() == 5);
     }
 
     fn ids(models: &[ModelOption]) -> Vec<&str> {
