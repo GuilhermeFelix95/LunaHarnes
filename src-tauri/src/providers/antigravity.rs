@@ -6,7 +6,12 @@ use super::{Permission, ProviderEvent, RunRequest};
 /// com `-p` solto, o agy lê o próximo flag como prompt, e o stdin não é lido. O modo de permissão vai em `--mode`.
 pub fn args(request: &RunRequest) -> Vec<String> {
     let mut args = vec![format!("-p={}", request.prompt), "--output-format".into(), "stream-json".into()];
-    args.extend(["--mode".to_string(), mode(request.permission).to_string()]);
+    match request.permission {
+        Permission::ReadOnly => args.extend(["--mode".to_string(), "plan".to_string()]),
+        Permission::AcceptEdits => args.extend(["--mode".to_string(), "accept-edits".to_string()]),
+        // Acesso total: o agy aprova tudo sem perguntar. Sem essa flag, ele nega comandos num processo sem terminal.
+        Permission::FullAccess => args.push("--dangerously-skip-permissions".into()),
+    }
     if let Some(id) = &request.session_id {
         args.extend(["--conversation".to_string(), id.clone()]);
     }
@@ -14,16 +19,6 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         args.extend(["--model".to_string(), model.clone()]);
     }
     args
-}
-
-/// `plan` nega escrita e comando; `accept-edits` aceita edição de arquivo, mas nega comando sem terminal.
-/// O acesso total não entra aqui: `validate` recusa antes. `auto` também nega comandos (testado), então não o usamos.
-fn mode(permission: Permission) -> &'static str {
-    match permission {
-        Permission::ReadOnly => "plan",
-        Permission::AcceptEdits => "accept-edits",
-        Permission::FullAccess => "auto",
-    }
 }
 
 /// Nome da ferramenta como o chat mostra. `run_command` vira `Bash` para o `CommandTracker` acompanhar o resultado.
@@ -81,7 +76,10 @@ fn step(update: &Value) -> Vec<ProviderEvent> {
                     name: tool_name(update["tool_name"].as_str().unwrap_or_default()),
                     detail: tool_detail(&update["tool_info"]["parameters"]),
                 }],
-                Some("DONE") => vec![ProviderEvent::ToolResult { id, ok: true, output: String::new() }],
+                Some("DONE") => {
+                    let output = update["tool_info"]["output"].as_str().unwrap_or_default().to_string();
+                    vec![ProviderEvent::ToolResult { id, ok: true, output }]
+                }
                 Some("ERROR") => {
                     let message = update["tool_info"]["error"]["message"].as_str().unwrap_or_default().to_string();
                     vec![ProviderEvent::ToolResult { id, ok: false, output: message }]
@@ -191,6 +189,15 @@ mod tests {
     }
 
     #[test]
+    fn command_output_comes_with_the_done_state() {
+        let done = r#"{"event":"step_update","step_update":{"step_index":2,"state":"DONE","step_type":"tool","tool_name":"run_command","tool_info":{"name":"run_command","parameters":{"CommandLine":"echo ola-total"},"output":"Command exited with code 0.\n\nCommand output:\nola-total\r\n"}}}"#;
+        assert_eq!(
+            parse_line(done),
+            vec![ProviderEvent::ToolResult { id: "2".into(), ok: true, output: "Command exited with code 0.\n\nCommand output:\nola-total\r\n".into() }]
+        );
+    }
+
+    #[test]
     fn read_and_write_keep_the_file_path() {
         let read = r#"{"event":"step_update","step_update":{"step_index":2,"state":"ACTIVE","step_type":"tool","tool_name":"read_file","tool_info":{"parameters":{"Path":"C:\\a.txt"}}}}"#;
         assert_eq!(
@@ -217,9 +224,10 @@ mod tests {
     }
 
     #[test]
-    fn full_access_is_refused_before_running() {
-        assert!(request(Permission::FullAccess).validate().is_err());
-        assert!(request(Permission::AcceptEdits).validate().is_ok());
+    fn full_access_skips_permissions_and_is_allowed() {
+        let full = args(&request(Permission::FullAccess));
+        assert_eq!(&full[3..], ["--dangerously-skip-permissions"]);
+        assert!(request(Permission::FullAccess).validate().is_ok());
     }
 
     #[test]

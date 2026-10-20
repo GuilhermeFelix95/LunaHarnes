@@ -18,14 +18,9 @@ export const PERMISSION_KEYS: Record<Permission, MessageKey> = {
   fullAccess: "composer.permission.fullAccess",
 };
 
-/// O Cline só roda com acesso total (ele não tem modo somente leitura nem pede aprovação). O Antigravity não tem
-/// acesso total (sem terminal, nega comandos). Mostrar só o que cada um cumpre.
+/// O Cline só roda com acesso total (ele não tem modo somente leitura nem pede aprovação). Mostrar só o que ele cumpre.
 export function permissionOptions(engine?: string) {
-  const allowed = (Object.keys(PERMISSION_KEYS) as Permission[]).filter((p) => {
-    if (engine === "cline") return p === "fullAccess";
-    if (engine === "antigravity") return p !== "fullAccess";
-    return true;
-  });
+  const allowed = (Object.keys(PERMISSION_KEYS) as Permission[]).filter((p) => engine !== "cline" || p === "fullAccess");
   return allowed.map((p) => ({ value: p, label: t(PERMISSION_KEYS[p]) }));
 }
 

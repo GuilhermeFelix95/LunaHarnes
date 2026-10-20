@@ -93,10 +93,6 @@ impl RunRequest {
         if self.provider == ProviderKind::Cline && self.permission != Permission::FullAccess {
             return Err("O Cline só roda com acesso total: ele não tem modo somente leitura nem pede aprovação.".into());
         }
-        // O Antigravity nega comandos sem terminal; o acesso total exigiria pular todas as permissões, que o app não usa.
-        if self.provider == ProviderKind::Antigravity && self.permission == Permission::FullAccess {
-            return Err("O Antigravity não tem acesso total: sem terminal, ele nega comandos. Use somente leitura ou aceitar edições.".into());
-        }
         if self.images.len() > MAX_IMAGES {
             return Err(format!("no máximo {MAX_IMAGES} imagens por pedido"));
         }
