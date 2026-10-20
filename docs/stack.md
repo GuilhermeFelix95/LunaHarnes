@@ -58,6 +58,7 @@ docs/                stack, contrato de plugins
 
 - Progresso (2026-10-18): a lista de tarefas rola dentro de `.side__progress-list` e o mascote fica fora dela, fixo no rodapé do painel. Teste em `RightPanel.test.tsx`.
 - Contas (2026-10-20): cada cartão tem uma linha só (ponto, nome, pílula de estado e o botão à direita, `.account-card__head`); o caminho da CLI e o aviso de instalação ficam embaixo, em texto pequeno. Estado verde ou âmbar na pílula.
+- Progresso (2026-10-20): o resumo do painel mostra a porcentagem geral ("1 de 8 concluídas (12%)", `ProgressTimeline.tsx`). Etapas individuais não têm porcentagem: o agente só informa pendente, em andamento ou concluída.
 - Abas do painel direito (2026-10-20): `.side__tabs` rola na horizontal e as abas não quebram linha, então o nome não é cortado em janela estreita.
 - Logo (2026-10-20): o logo é o robô com lua do ícone novo, em `public/luna/logo.svg` (mesmo desenho de `scratchpad\icon\luna.svg`). Barra lateral (`Sidebar.tsx`) e tela vazia do chat (`ChatView.tsx`) usam esse arquivo. O painel de progresso (`LunaAtom.tsx`) desenha o mesmo robô em SVG inline, animado por CSS: trabalhando balança e a antena pisca; parado dorme (olhos fechados, respiração e zZ); início do turno acena; fim pula com olhos ^^; caretas ociosas são piscada e susto. Mascote de tema (`mascot`) continua no lugar do robô. `public/luna/atom.png` ficou sem uso (não removido). Testes em `LunaAtom.test.tsx` e `Sidebar.test.tsx`.
 

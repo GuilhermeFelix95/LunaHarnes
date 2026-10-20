@@ -12,7 +12,7 @@ describe("ProgressTimeline", () => {
   it("mostra quantas etapas já foram concluídas", () => {
     render(<ProgressTimeline todos={TODOS} />);
 
-    expect(screen.getByText("1 de 3 concluídas")).toBeTruthy();
+    expect(screen.getByText("1 de 3 concluídas (33%)")).toBeTruthy();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1");
   });
 

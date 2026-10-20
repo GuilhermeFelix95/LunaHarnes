@@ -19,7 +19,7 @@ export function ProgressTimeline({ todos, aside }: { todos: TodoItem[]; aside?: 
     <div className="timeline">
       <div className="timeline__head">
         <div className="timeline__summary">
-          <span>{t("progress.summary", { done, total: todos.length })}</span>
+          <span>{`${t("progress.summary", { done, total: todos.length })} (${percent}%)`}</span>
           <div
             className="timeline__bar"
             role="progressbar"
