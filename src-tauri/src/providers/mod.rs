@@ -1,5 +1,6 @@
 pub mod claude;
 pub mod codex;
+pub mod opencode;
 
 use std::path::{Path, PathBuf};
 

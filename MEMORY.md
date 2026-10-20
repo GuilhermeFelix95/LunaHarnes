@@ -147,3 +147,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Navegador: até 6 abas (uma webview por aba, só a ativa visível), favoritos em browser-bookmarks.json (estrela e lista), salvamento de senha do WebView2 ligado no perfil; agente usa a aba ativa.
 2026-10-20 | Chat: Ctrl+clique (ou Cmd no mac) num link http/https da resposta abre uma aba nova no navegador integrado e mostra a aba Navegador; clique comum não navega.
 2026-10-20 | MCP: se o catálogo falha ao carregar, a tela para de mostrar 'Carregando catálogo…' e exibe o erro.
+2026-10-20 | OpenCode: parser de eventos do 'opencode run --format json' (src-tauri/src/providers/opencode.rs) com captura real da CLI 2.0.32; ainda não ligado como motor.
