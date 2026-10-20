@@ -458,6 +458,7 @@ export const ptBR = {
   "workspace.menuAria": "Pasta de trabalho",
   "workspace.switch": "Trocar pasta…",
   "workspace.branchLabel": "Trabalhar numa branch",
+  "workspace.branchesButton": "Branch · {count}",
   "workspace.newBranchAria": "Nova branch",
   "workspace.create": "Criar",
   "workspace.recent": "Recentes",

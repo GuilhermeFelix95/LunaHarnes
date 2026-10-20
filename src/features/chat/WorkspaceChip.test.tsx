@@ -60,10 +60,18 @@ describe("WorkspaceChip", () => {
         onPickBranch={onPickBranch}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /LunaHarnes/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Branch · 2" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "feature/x" }));
 
     expect(onPickBranch).toHaveBeenCalledWith("feature/x", false);
+  });
+
+  it("com uma branch só, o botão de branch não aparece", () => {
+    render(
+      <WorkspaceChip cwd="C:\\Users\\guilh\\LunaHarnes" recent={[]} onPick={vi.fn()} onBrowse={vi.fn()} branches={["main"]} onPickBranch={vi.fn()} />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Branch ·/ })).toBeNull();
   });
 
   it("criar uma branch nova usa o nome digitado e a cria a partir da atual", () => {
@@ -74,11 +82,11 @@ describe("WorkspaceChip", () => {
         recent={[]}
         onPick={vi.fn()}
         onBrowse={vi.fn()}
-        branches={["main"]}
+        branches={["main", "dev"]}
         onPickBranch={onPickBranch}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /LunaHarnes/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Branch · 2" }));
     const input = screen.getByLabelText("Nova branch");
     const create = screen.getByRole("button", { name: "Criar" });
 

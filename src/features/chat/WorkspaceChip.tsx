@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Folder } from "lucide-react";
+import { Folder, GitBranch } from "lucide-react";
 import { folderName } from "../sidebar/groupByProject";
 import { usePopover } from "../../ui/usePopover";
 import { t } from "../../i18n";
@@ -20,6 +20,7 @@ interface WorkspaceChipProps {
 /// Mostra a pasta em que o agente trabalha, no rodapé do composer. Abre um menu para trocar.
 export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branches = [], onPickBranch }: WorkspaceChipProps) {
   const { open, setOpen, root } = usePopover();
+  const branchPopover = usePopover();
   const [newBranch, setNewBranch] = useState("");
   const others = recent.filter((path) => path !== cwd);
 
@@ -52,46 +53,6 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
           >
             {t("workspace.switch")}
           </button>
-          {branches.length > 0 && onPickBranch && (
-            <>
-              <p className="workspace-chip__label">{t("workspace.branchLabel")}</p>
-              {branches.map((branch) => (
-                <button
-                  key={branch}
-                  type="button"
-                  role="menuitem"
-                  className="workspace-chip__item"
-                  onClick={() => {
-                    setOpen(false);
-                    onPickBranch(branch, false);
-                  }}
-                >
-                  {branch}
-                </button>
-              ))}
-              <form
-                className="workspace-chip__new"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const name = newBranch.trim();
-                  if (!name) return;
-                  setNewBranch("");
-                  setOpen(false);
-                  onPickBranch(name, true);
-                }}
-              >
-                <input
-                  aria-label={t("workspace.newBranchAria")}
-                  placeholder="nova-branch"
-                  value={newBranch}
-                  onChange={(e) => setNewBranch(e.target.value)}
-                />
-                <button type="submit" disabled={!newBranch.trim()}>
-                  {t("workspace.create")}
-                </button>
-              </form>
-            </>
-          )}
           {others.length > 0 && <p className="workspace-chip__label">{t("workspace.recent")}</p>}
           {others.map((path) => (
             <button
@@ -108,6 +69,65 @@ export function WorkspaceChip({ cwd, recent, disabled, onPick, onBrowse, branche
               {folderName(path)}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Com mais de uma branch, o botão de branch aparece ao lado da pasta: trabalhar numa delas é um clique. */}
+      {branches.length > 1 && onPickBranch && (
+        <div className="workspace-chip" ref={branchPopover.root}>
+          <button
+            type="button"
+            className="workspace-chip__trigger"
+            title={t("workspace.branchLabel")}
+            aria-haspopup="menu"
+            aria-expanded={branchPopover.open}
+            disabled={disabled}
+            onClick={() => branchPopover.setOpen((on) => !on)}
+          >
+            <GitBranch size={13} aria-hidden="true" />
+            {t("workspace.branchesButton", { count: branches.length })}
+          </button>
+
+          {branchPopover.open && (
+            <div className="workspace-chip__menu" role="menu" aria-label={t("workspace.branchLabel")}>
+              <p className="workspace-chip__label">{t("workspace.branchLabel")}</p>
+              {branches.map((branch) => (
+                <button
+                  key={branch}
+                  type="button"
+                  role="menuitem"
+                  className="workspace-chip__item"
+                  onClick={() => {
+                    branchPopover.setOpen(false);
+                    onPickBranch(branch, false);
+                  }}
+                >
+                  {branch}
+                </button>
+              ))}
+              <form
+                className="workspace-chip__new"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = newBranch.trim();
+                  if (!name) return;
+                  setNewBranch("");
+                  branchPopover.setOpen(false);
+                  onPickBranch(name, true);
+                }}
+              >
+                <input
+                  aria-label={t("workspace.newBranchAria")}
+                  placeholder="nova-branch"
+                  value={newBranch}
+                  onChange={(e) => setNewBranch(e.target.value)}
+                />
+                <button type="submit" disabled={!newBranch.trim()}>
+                  {t("workspace.create")}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
     </div>

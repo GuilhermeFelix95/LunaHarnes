@@ -455,6 +455,7 @@ export const en: Record<MessageKey, string> = {
   "workspace.menuAria": "Work folder",
   "workspace.switch": "Switch folder…",
   "workspace.branchLabel": "Work on a branch",
+  "workspace.branchesButton": "Branch · {count}",
   "workspace.newBranchAria": "New branch",
   "workspace.create": "Create",
   "workspace.recent": "Recent",
