@@ -35,7 +35,13 @@ pub fn args(request: &RunRequest) -> Vec<String> {
 
     // Acrescenta a identidade ao prompt padrão, que diz que o agente é o Claude Code.
     // Uma linha só: quebra de linha num argumento quebra o .cmd do Windows.
-    args.extend(["--append-system-prompt".to_string(), format!("{} {TASK_INSTRUCTION}", identity_for(request))]);
+    // Com subagente escolhido, a Luna manda cada etapa para ele e acompanha o resultado.
+    let subagent = request.subagents.then(crate::orchestrator::agents_path).flatten();
+    let delegation = if subagent.is_some() { " Ao executar um plano, delegue cada etapa ao subagente luna-etapa e acompanhe o resultado." } else { "" };
+    args.extend(["--append-system-prompt".to_string(), format!("{} {TASK_INSTRUCTION}{delegation}", identity_for(request))]);
+    if let Some(path) = subagent {
+        args.extend(["--agents".to_string(), path.display().to_string()]);
+    }
     // Deixa o agente ler o guia de plugins, e só essa pasta. Sempre seguido de uma flag, pois --add-dir aceita vários valores.
     if let Some(dir) = crate::plugins::guide::dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);
@@ -127,16 +133,27 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 _ => vec![],
             }
         }
-        Some("assistant") => value["message"]["content"]
-            .as_array()
-            .map(|blocks| {
-                blocks
-                    .iter()
-                    .filter(|b| b.get("type").and_then(Value::as_str) == Some("tool_use"))
-                    .flat_map(tool_use_events)
-                    .collect()
-            })
-            .unwrap_or_default(),
+        Some("assistant") => {
+            // Cada mensagem traz o modelo que respondeu: é o que mostra o papel usado no chat.
+            let mut events: Vec<ProviderEvent> = value["message"]["model"]
+                .as_str()
+                .map(|model| ProviderEvent::ModelUsed { model: model.to_string() })
+                .into_iter()
+                .collect();
+            events.extend(
+                value["message"]["content"]
+                    .as_array()
+                    .map(|blocks| {
+                        blocks
+                            .iter()
+                            .filter(|b| b.get("type").and_then(Value::as_str) == Some("tool_use"))
+                            .flat_map(tool_use_events)
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default(),
+            );
+            events
+        }
         // O resultado de TaskCreate traz o id da tarefa; ele liga o tool_use_id ao id que o TaskUpdate usa.
         Some("user") => {
             let mut events = task_assigned_events(&value);
@@ -339,6 +356,7 @@ mod tests {
             profile: Some("p1".into()),
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: Vec::new(),
         };
@@ -454,6 +472,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: vec![],
         };
@@ -502,6 +521,13 @@ mod tests {
         );
 
         assert!(events.contains(&ProviderEvent::TaskAssigned { key: "toolu_1".into(), id: "1".into() }));
+    }
+
+    /// Cada mensagem do assistente diz qual modelo respondeu: é a prova do papel usado.
+    #[test]
+    fn assistant_message_says_which_model_answered() {
+        let events = parse_line(r#"{"type":"assistant","message":{"model":"claude-haiku-5-5","content":[{"type":"text","text":"oi"}]}}"#);
+        assert_eq!(events, vec![ProviderEvent::ModelUsed { model: "claude-haiku-5-5".into() }]);
     }
 
     /// TodoWrite vira o checklist da aba Progresso, na ordem que o agente escreveu.
@@ -559,6 +585,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: vec![path.clone()],
         };
@@ -590,6 +617,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: Vec::new(),
         };

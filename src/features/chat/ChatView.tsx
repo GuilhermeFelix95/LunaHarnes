@@ -22,6 +22,7 @@ import {
   openLogin,
   pickWorkspace,
   sendPrompt,
+  getOrchestrator,
   listGitBranches,
   createGitWorktree,
   configFingerprint,
@@ -29,6 +30,7 @@ import {
   SKILLS_CHANGED,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
+import { routeFor, type Orchestrator, type OrchestratorRole } from "../../chat/orchestrator";
 import { getAgentBrowser } from "../../chat/agentBrowser";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
@@ -92,6 +94,16 @@ interface ChatViewProps {
   onRunning?: (conversationId: string, running: boolean) => void;
   /** Esta conversa é a que está na tela. Conversas ocultas não mostram a página do navegador. */
   visible?: boolean;
+}
+
+/// Escolha de modelo por papel, lida a cada envio: o que a pessoa salvou em Configurações vale na próxima execução.
+/// Sem a escolha (ou sem o comando, em testes), vale a conversa atual.
+async function loadOrchestrator(): Promise<Orchestrator> {
+  try {
+    return (await getOrchestrator()) ?? {};
+  } catch {
+    return {};
+  }
 }
 
 export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning, visible = true }: ChatViewProps) {
@@ -647,10 +659,13 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       );
   }
 
-  async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode, images: string[] = []) {
+  async function run(shown: string, cliPrompt: string, plan: boolean, mode?: PluginMode, images: string[] = [], role: OrchestratorRole | null = null) {
     setRunning(true);
     setTurnStartedAt(Date.now());
     snapshotConfig();
+    // O papel do orquestrador decide o motor e o modelo deste envio; sem escolha, vale a conversa atual.
+    const orchestrator = await loadOrchestrator();
+    const route = routeFor(role ?? (plan ? "plan" : mode?.id === "ask" ? "chat" : null), { provider, profileId, model: model ?? "", effort: effort ?? "" }, orchestrator);
     if (rewindNote.current) {
       cliPrompt = `${rewindNote.current}
 
@@ -669,10 +684,10 @@ ${cliPrompt}`;
     // Perguntas: o modo diz se quer perguntas. "ask" continua valendo para o plugin antigo, que não declarava o campo.
     turnAsk.current = plan || (mode?.questions ?? mode?.id === "ask");
     turnUsage.current = null;
-    turnMeta.current = { provider, model: model ?? "", systemKey: [provider, profileId ?? "", model ?? "", effort ?? ""].join("|") };
-    turnProvider.current = provider;
-    turnAgent.current = agentKey(provider, profileId);
-    turnLabel.current = profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
+    turnMeta.current = { provider: route.provider, model: route.model, systemKey: [route.provider, route.profileId ?? "", route.model, route.effort].join("|") };
+    turnProvider.current = route.provider;
+    turnAgent.current = agentKey(route.provider, route.profileId);
+    turnLabel.current = route.profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
     const history = messagesRef.current;
     const userMsg: ChatMessage = { role: "user", text: shown, at: Date.now() };
     commit([...history, userMsg]);
@@ -703,8 +718,8 @@ ${cliPrompt}`;
       const sessionId = context.sessionId;
       const preamble = since && !sessionId ? [compactPreamble(since.summary), context.preamble].filter(Boolean).join("\n\n") : context.preamble;
       await sendPrompt({
-        provider,
-        profile: profileId ?? undefined,
+        provider: route.provider,
+        profile: route.profileId ?? undefined,
         images,
         prompt: withContext(
           preamble,
@@ -715,9 +730,10 @@ ${cliPrompt}`;
         permission: plan || mode ? "readOnly" : permission,
         // Lido a cada envio: a escolha em Configurações vale para toda execução.
         browser: getAgentBrowser(),
-        model: model || undefined,
-        effort: effort || undefined,
-        contextWindow: models.find((m) => m.id === model)?.contextWindow,
+        model: route.model || undefined,
+        effort: route.effort || undefined,
+        contextWindow: route.provider === provider ? models.find((m) => m.id === route.model)?.contextWindow : undefined,
+        subagents: !!orchestrator.subagent && route.provider === "claude",
         longCache: longCacheEnabled(),
       }, conversationId);
     } catch (e) {
@@ -937,7 +953,7 @@ ${outgoing}`
     // Execução nova: a lista de progresso começa do zero, sem as etapas de um plano anterior.
     tasksRef.current = [];
     setTasks([]);
-    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null), false);
+    await run(t("chat.planApproved"), approvalPrompt(planRef.current ?? null), false, undefined, [], "execute");
   }
 
   function changeModel(next: string) {

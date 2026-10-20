@@ -46,6 +46,9 @@ pub struct RunRequest {
     /// Navegador que o agente usa nesta execução. Ausente = o navegador embutido.
     #[serde(default)]
     pub browser: AgentBrowser,
+    /// Etapas delegadas ao subagente do orquestrador (só o Claude usa). Ausente = sem subagente.
+    #[serde(default)]
+    pub subagents: bool,
     /// Modelo escolhido na lista que a própria CLI expõe. Ausente = padrão da CLI.
     #[serde(default)]
     pub model: Option<String>,
@@ -122,6 +125,8 @@ pub enum ProviderEvent {
     ToolResult { id: String, ok: bool, output: String },
     /// Resultado de um comando do agente (Bash). `output` guarda só o final da saída.
     CommandResult { ok: bool, output: String },
+    /// Modelo que respondeu esta mensagem, como o próprio CLI informa. Só o Claude informa hoje.
+    ModelUsed { model: String },
     /// Etapas que o agente escreveu com a ferramenta TodoWrite, na ordem dele. A lista inteira vale a cada evento.
     Todos { items: Vec<TodoItem> },
     /// Tarefa criada com TaskCreate. `key` é o id do tool_use, que liga ao `TaskAssigned` seguinte.
@@ -263,6 +268,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: Vec::new(),
         }

@@ -17,6 +17,8 @@ export interface RunRequest {
   permission: Permission;
   /** Navegador do agente nesta execução. Ausente = o embutido. */
   browser?: AgentBrowser;
+  /** Etapas delegadas ao subagente do orquestrador (só o Claude). Ausente = sem subagente. */
+  subagents?: boolean;
   /** Modelo da lista da CLI. Ausente = padrão da CLI. */
   model?: string;
   /** Nível de esforço com o nome da CLI. Ausente = padrão. */
@@ -115,6 +117,8 @@ export type ProviderEvent =
   | { kind: "toolUse"; id: string; name: string; detail: string }
   /** Fim de uma ferramenta: `ok` diz se deu certo. A saída vem vazia (só comandos guardam o fim dela em `commandResult`). */
   | { kind: "toolResult"; id: string; ok: boolean; output: string }
+  /** Modelo que respondeu a mensagem (o Claude informa; os outros motores ainda não). */
+  | { kind: "modelUsed"; model: string }
   | { kind: "todos"; items: TodoItem[] }
   | { kind: "taskCreated"; key: string; subject: string }
   | { kind: "taskAssigned"; key: string; id: string }
@@ -138,6 +142,8 @@ export interface ChatMessage {
   error?: string;
   /** Agente que respondeu. Ausente em conversas antigas = provedor da conversa. */
   provider?: ProviderKind;
+  /** Modelo que respondeu, quando o motor informa. Mostra o papel usado no orquestrador. */
+  model?: string;
   /** Nome do agente que respondeu, quando é um perfil de API (ex.: "DeepSeek · via Claude Code"). */
   agent?: string;
   /** Estado dos arquivos antes deste turno (só em mensagens do usuário, em repositório git). */

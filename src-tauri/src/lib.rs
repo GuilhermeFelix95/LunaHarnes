@@ -9,6 +9,7 @@ pub mod logfile;
 pub mod commands;
 pub mod conversations;
 pub mod marketplace;
+pub mod orchestrator;
 pub mod mcp;
 pub mod models;
 pub mod playwright;
@@ -60,6 +61,7 @@ pub fn run() {
             // Navegador do Playwright (alternativa escolhida em Configurações): só grava a configuração MCP.
             match app.path().app_data_dir() {
                 Ok(dir) => {
+                    orchestrator::start(&dir);
                     if let Err(e) = playwright::start(&dir) {
                         logfile::error(&e);
                     }
@@ -137,6 +139,8 @@ pub fn run() {
             commands::terminal_close,
             commands::open_login,
             commands::get_workspace,
+            orchestrator::get_orchestrator,
+            orchestrator::save_orchestrator,
             rules::get_rules,
             rules::save_rules,
             rules::import_rules,

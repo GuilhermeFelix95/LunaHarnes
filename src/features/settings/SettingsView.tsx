@@ -35,6 +35,7 @@ import { AboutSection } from "./AboutSection";
 import { SavedThemes } from "./SavedThemes";
 import { PluginThemePicker } from "./PluginThemePicker";
 import { BrowserSection } from "./BrowserSection";
+import { OrchestratorSection } from "./OrchestratorSection";
 import { applyPluginTheme, savePluginThemeKey } from "../../plugins/themeRegistry";
 import { loadSavedThemes, saveSavedThemes, type SavedTheme } from "../../themeShare";
 
@@ -48,6 +49,7 @@ type SettingsSection =
   | "notifications"
   | "conversation"
   | "browser"
+  | "orchestrator"
   | "rules"
   | "accounts"
   | "providers"
@@ -62,6 +64,7 @@ const SECTIONS: Array<[SettingsSection, MessageKey]> = [
   ["notifications", "settings.nav.notifications"],
   ["conversation", "settings.nav.conversation"],
   ["browser", "settings.nav.browser"],
+  ["orchestrator", "settings.nav.orchestrator"],
   ["rules", "settings.nav.rules"],
   ["accounts", "settings.nav.accounts"],
   ["providers", "settings.nav.providers"],
@@ -545,6 +548,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {section === "notifications" && <NotificationsSection />}
           {section === "conversation" && <ConversationSection />}
           {section === "browser" && <BrowserSection />}
+          {section === "orchestrator" && <OrchestratorSection />}
           {section === "rules" && <RulesSection />}
           {section === "accounts" && <AccountsSection />}
           {section === "providers" && <ProvidersSection />}

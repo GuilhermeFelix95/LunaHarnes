@@ -257,6 +257,7 @@ pub async fn test_api_profile(app: AppHandle, id: String) -> Result<String, Stri
             profile: Some(profile.id.clone()),
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: Vec::new(),
         };

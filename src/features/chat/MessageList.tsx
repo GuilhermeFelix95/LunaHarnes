@@ -53,7 +53,7 @@ type Part = { kind: "tools"; tools: Tool[] } | { kind: "text"; message: ChatMess
 
 type Item =
   | { kind: "user"; message: ChatMessage }
-  | { kind: "reply"; provider: ProviderKind; label?: string; cached?: boolean; parts: Part[] };
+  | { kind: "reply"; provider: ProviderKind; label?: string; model?: string; cached?: boolean; parts: Part[] };
 
 /// Agrupa as mensagens do agente entre duas mensagens do usuário numa resposta só.
 function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
@@ -70,6 +70,8 @@ function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
     }
     // Resposta de perfil de API: o nome do perfil aparece no lugar do nome do CLI.
     if (m.agent) reply.label = m.agent;
+    // O modelo que respondeu: prova de qual papel do orquestrador rodou esta resposta.
+    if (m.model) reply.model = m.model;
     if (m.cached) reply.cached = true;
     const last = reply.parts.at(-1);
     if (m.tool && !m.error) {
@@ -190,6 +192,7 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                   <ProviderIcon provider={item.provider} />
                 </span>
                 {item.label ?? PROVIDER_LABELS[item.provider]}
+                {item.model && <span className="message__model">{item.model}</span>}
                 {item.cached && <span className="message__cache">{t("message.cached")}</span>}
               </span>
               {item.parts.map((part, j) => {

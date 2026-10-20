@@ -17,6 +17,7 @@ vi.mock("../../api", () => ({
   checkpointPreview: vi.fn(async () => ({ removed: [], restored: [] })),
   checkpointRestore: vi.fn(async () => ({ removed: [], restored: [] })),
   sendPrompt: vi.fn(async () => {}),
+  getOrchestrator: vi.fn(async () => ({})),
   getWorkspace: vi.fn(async () => "C:\\projeto"),
   listModels: vi.fn(async () => []),
   apiPresets: vi.fn(async () => []),
@@ -537,5 +538,31 @@ describe("ChatView: LunaFix (correção depois de comando que falhou)", () => {
 
     expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(3);
     expect(await screen.findByText(/não conseguiu corrigir o erro do último comando/)).toBeTruthy();
+  });
+});
+
+describe("Orquestrador: papel escolhido troca o motor do envio", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("o papel de planejar manda o envio para o motor escolhido em Configurações", async () => {
+    vi.mocked(api.getOrchestrator).mockResolvedValueOnce({ plan: { provider: "codex", model: "gpt-5.5" } });
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByLabelText("Modo de planejamento"));
+    await send("planeje isto");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "codex", model: "gpt-5.5" });
+  });
+
+  it("sem escolha para o papel, o envio segue o motor da conversa", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("oi");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "claude" });
   });
 });

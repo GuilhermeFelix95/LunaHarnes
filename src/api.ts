@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { PluginManifest } from "./plugins/host";
 import type { SlashItem } from "./chat/slash";
+import type { Orchestrator } from "./chat/orchestrator";
 import type {
   ApiPreset,
   ApiProfile,
@@ -22,6 +23,15 @@ export const PROVIDER_EVENT = "provider-event";
 
 /// Envia o prompt ao CLI escolhido. A saída chega pelos eventos `provider-event`.
 /// `runId` é o id da conversa: cada conversa tem a sua execução, e várias rodam ao mesmo tempo.
+/// Escolha de modelo por papel do orquestrador. Sem escolha salva, vem vazio.
+export function getOrchestrator(): Promise<Orchestrator> {
+  return invoke("get_orchestrator");
+}
+
+export function saveOrchestrator(orchestrator: Orchestrator): Promise<void> {
+  return invoke("save_orchestrator", { orchestrator });
+}
+
 export function sendPrompt(request: RunRequest, runId: string): Promise<void> {
   return invoke("send_prompt", { request, runId });
 }

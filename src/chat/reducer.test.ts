@@ -77,3 +77,20 @@ describe("applyEvent: resultado de ferramenta", () => {
     expect(applyEvent(before, { kind: "toolResult", id: "x", ok: true, output: "" })).toBe(before);
   });
 });
+
+describe("applyEvent: modelo que respondeu", () => {
+  it("grava o modelo na última resposta do assistente", () => {
+    const messages: ChatMessage[] = [
+      { role: "user", text: "oi" },
+      { role: "assistant", text: "Olá" },
+    ];
+    const result = applyEvent(messages, { kind: "modelUsed", model: "claude-haiku-5-5" });
+
+    expect(result[1]).toMatchObject({ text: "Olá", model: "claude-haiku-5-5" });
+  });
+
+  it("sem resposta do assistente ainda, não muda nada", () => {
+    const messages: ChatMessage[] = [{ role: "user", text: "oi" }];
+    expect(applyEvent(messages, { kind: "modelUsed", model: "claude-haiku-5-5" })).toBe(messages);
+  });
+});

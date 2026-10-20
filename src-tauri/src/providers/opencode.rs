@@ -253,6 +253,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: Vec::new(),
         }

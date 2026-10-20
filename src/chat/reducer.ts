@@ -47,6 +47,18 @@ export function applyEvent(
       }
       return [...messages, { role: "assistant", text: "", error: event.message, at: Date.now(), ...by }];
     }
+    case "modelUsed": {
+      // O modelo vai para a última resposta do assistente, que é a que o evento descreve.
+      let index = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "assistant") {
+          index = i;
+          break;
+        }
+      }
+      if (index < 0) return messages;
+      return messages.map((m, i) => (i === index ? { ...m, model: event.model } : m));
+    }
     case "sessionStarted":
     case "done":
     case "rateLimit":

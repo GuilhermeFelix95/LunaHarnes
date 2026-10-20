@@ -325,6 +325,7 @@ mod tests {
                 profile: None,
                 context_window: None,
                 browser: Default::default(),
+                subagents: false,
                 long_cache: false,
                 images: Vec::new(),
             };
@@ -352,6 +353,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: vec![
                 std::path::PathBuf::from("C:\\a\\1.png"),
@@ -380,6 +382,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            subagents: false,
             long_cache: false,
             images: Vec::new(),
         };
@@ -405,6 +408,7 @@ mod tests {
             context_window: None,
             long_cache: false,
             browser: crate::providers::AgentBrowser::Builtin,
+            subagents: false,
             images: Vec::new(),
         };
         assert!(!args(&request).iter().any(|a| a.contains("mcp_servers.playwright")));
