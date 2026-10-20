@@ -12,10 +12,12 @@ vi.mock("../../api", () => ({
   openLogin: vi.fn(async () => {}),
   listAccounts: vi.fn(async () => []),
   createAccount: vi.fn(async (provider: string, name: string) => ({ id: "claude-1", provider, name })),
+  accountStatus: vi.fn(async () => false),
+  accountLogin: vi.fn(async () => {}),
   ACCOUNTS_CHANGED: "luna:accounts-changed",
 }));
 
-import { checkAuth, cliStatus, createAccount, installCli, openLogin } from "../../api";
+import { accountLogin, checkAuth, cliStatus, createAccount, installCli, listAccounts, openLogin } from "../../api";
 
 describe("Contas: estado de cada CLI", () => {
   beforeEach(() => {
@@ -122,6 +124,17 @@ describe("Contas: contas extras", () => {
 
     await waitFor(() => expect(createAccount).toHaveBeenCalledWith("claude", "Trabalho"));
     expect(await within(claude).findByText("Trabalho")).toBeTruthy();
+  });
+
+  it("conta extra sem login mostra Entrar, e Entrar abre o login dentro da pasta dela", async () => {
+    vi.mocked(listAccounts).mockResolvedValueOnce([{ id: "codex-1", provider: "codex", name: "Pessoal" }]);
+    render(<AccountsSection />);
+
+    const codex = (await screen.findByText("Codex")).closest("li") as HTMLElement;
+    const row = (await within(codex).findByText("Pessoal")).closest(".account-extra__row") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: "Entrar" }));
+
+    await waitFor(() => expect(accountLogin).toHaveBeenCalledWith("codex-1"));
   });
 
   it("CLI sem contas extras (Cline) não mostra o botão de adicionar", async () => {

@@ -96,6 +96,8 @@ pub fn run() {
             commands::create_spec,
             commands::list_accounts,
             commands::create_account,
+            commands::account_status,
+            commands::account_login,
             commands::record_spec_decisions,
             commands::list_project_dir,
             commands::read_project_file,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ACCOUNTS_CHANGED, checkAuth, cliStatus, createAccount, installCli, listAccounts, openLogin } from "../../api";
+import { accountLogin, accountStatus, ACCOUNTS_CHANGED, checkAuth, cliStatus, createAccount, installCli, listAccounts, openLogin } from "../../api";
 import type { Account, CliStatus, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { t } from "../../i18n";
@@ -74,11 +74,34 @@ export function AccountsSection() {
   const [newName, setNewName] = useState("");
   const [accountError, setAccountError] = useState<string | null>(null);
 
+  // Login de cada conta extra, na pasta dela. Ausente = ainda verificando; null = a checagem falhou.
+  const [extraLogin, setExtraLogin] = useState<Record<string, boolean | null>>({});
+  const accountsRef = useRef<Account[]>([]);
+  accountsRef.current = accounts;
+
+  const refreshExtra = useCallback((list: Account[]) => {
+    for (const a of list) {
+      accountStatus(a.id)
+        .then((ok) => setExtraLogin((current) => ({ ...current, [a.id]: ok })))
+        .catch(() => setExtraLogin((current) => ({ ...current, [a.id]: null })));
+    }
+  }, []);
+
   useEffect(() => {
     listAccounts()
-      .then(setAccounts)
+      .then((list) => {
+        setAccounts(list);
+        refreshExtra(list);
+      })
       .catch((e) => setAccountError(String(e)));
-  }, []);
+  }, [refreshExtra]);
+
+  // Voltar do navegador do login: confere de novo as contas extras.
+  useEffect(() => {
+    const onFocus = () => refreshExtra(accountsRef.current);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshExtra]);
 
   const refresh = useCallback((providers: ProviderKind[]) => {
     void Promise.all(providers.map((p) => checkAuth(p).then((ok) => [p, ok] as const).catch(() => [p, null] as const))).then((results) =>
@@ -139,9 +162,19 @@ export function AccountsSection() {
     try {
       const created = await createAccount(p, name);
       setAccounts((list) => [...list, created]);
+      refreshExtra([created]);
       setAdding(null);
       setNewName("");
       window.dispatchEvent(new Event(ACCOUNTS_CHANGED));
+    } catch (e) {
+      setAccountError(String(e));
+    }
+  }
+
+  async function loginAccount(id: string) {
+    setAccountError(null);
+    try {
+      await accountLogin(id);
     } catch (e) {
       setAccountError(String(e));
     }
@@ -188,9 +221,15 @@ export function AccountsSection() {
                   {accounts
                     .filter((a) => a.provider === p)
                     .map((a) => (
-                      <p key={a.id} className="account-card__path">
-                        {a.name}
-                      </p>
+                      <div key={a.id} className="account-extra__row">
+                        <span>{a.name}</span>
+                        <span className="account-card__status">{loginLabel(extraLogin[a.id])}</span>
+                        {extraLogin[a.id] !== true && (
+                          <button type="button" className="btn btn--sm" onClick={() => void loginAccount(a.id)}>
+                            {t("accounts.enter")}
+                          </button>
+                        )}
+                      </div>
                     ))}
                   {adding === p ? (
                     <form

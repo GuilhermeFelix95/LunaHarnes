@@ -776,6 +776,35 @@ pub fn open_login(provider: ProviderKind) -> Result<(), String> {
     crate::auth::open_login(provider)
 }
 
+/// Motor e variáveis de ambiente de uma conta extra (a pasta de login dela).
+fn account_login_env(app: &AppHandle, id: &str) -> Result<(ProviderKind, Vec<(String, String)>), String> {
+    let dir = app_data_dir(app)?;
+    let account = accounts::load_all(&dir)?
+        .into_iter()
+        .find(|a| a.id == id)
+        .ok_or_else(|| format!("conta `{id}` não encontrada"))?;
+    let env = accounts::env_for(account.provider, &accounts::dir(&dir, id)?);
+    Ok((account.provider, env))
+}
+
+/// Diz se a conta extra já está logada no próprio CLI, usando a pasta dela.
+#[tauri::command]
+pub async fn account_status(app: AppHandle, account: String) -> Result<bool, String> {
+    let (provider, env) = account_login_env(&app, &account)
+        .map_err(|e| format!("não foi possível consultar o login da conta: {e}"))?;
+    tauri::async_runtime::spawn_blocking(move || crate::auth::status_with_env(provider, &env))
+        .await
+        .map_err(|e| format!("falha ao consultar o login da conta: {e}"))?
+}
+
+/// Abre a janela de login do CLI dentro da pasta da conta extra.
+#[tauri::command]
+pub fn account_login(app: AppHandle, account: String) -> Result<(), String> {
+    let (provider, env) = account_login_env(&app, &account)
+        .map_err(|e| format!("não foi possível abrir o login da conta: {e}"))?;
+    crate::auth::open_login_with_env(provider, &env)
+}
+
 /// Encerra todas as execuções e terminais antes de instalar uma atualização (o instalador não troca arquivos em uso).
 #[tauri::command]
 pub fn stop_all_for_update(runs: State<'_, ActiveRuns>, terminals: State<'_, Terminals>) -> Result<(), String> {

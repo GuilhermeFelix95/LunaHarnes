@@ -204,6 +204,7 @@ export const ptBR = {
   "accounts.accountNamePlaceholder": "Nome da conta (ex.: Trabalho)",
   "accounts.create": "Criar",
   "accounts.cancel": "Cancelar",
+  "accounts.enter": "Entrar",
   "accounts.connect": "Conectar",
   "accounts.downloadConnect": "Baixar e conectar",
   "accounts.opencodeInstall": "Instale o OpenCode pelo site oficial dele e volte aqui para conectar.",

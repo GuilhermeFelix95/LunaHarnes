@@ -14,6 +14,11 @@ pub fn parse_claude_status(output: &str) -> bool {
 
 /// Consulta o login do provedor no próprio CLI. Nenhuma credencial é lida pelo app.
 pub fn status(kind: ProviderKind) -> Result<bool, String> {
+    status_with_env(kind, &[])
+}
+
+/// Igual a `status`, com variáveis extras (a pasta de login de uma conta extra, ver accounts.rs).
+pub fn status_with_env(kind: ProviderKind, env: &[(String, String)]) -> Result<bool, String> {
     // O Cline não tem um comando de status sem interação: o login fica no arquivo de provedores.
     let (args, label): (&[&str], &str) = match kind {
         ProviderKind::Claude => (&["auth", "status"], "Claude Code"),
@@ -31,6 +36,7 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
 
     let output = hidden_command(&program)
         .args(args)
+        .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()
@@ -66,6 +72,11 @@ fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(St
 /// Abre uma janela do terminal com o fluxo de login oficial do CLI.
 /// O login é interativo (navegador), então roda na janela própria, não no chat.
 pub fn open_login(kind: ProviderKind) -> Result<(), String> {
+    open_login_with_env(kind, &[])
+}
+
+/// Igual a `open_login`, com variáveis extras: a janela do login de uma conta extra usa a pasta dela.
+pub fn open_login_with_env(kind: ProviderKind, env: &[(String, String)]) -> Result<(), String> {
     if !cfg!(windows) {
         return Err("o login pelo app é suportado só no Windows por enquanto".into());
     }
@@ -77,6 +88,7 @@ pub fn open_login(kind: ProviderKind) -> Result<(), String> {
 
     Command::new("cmd")
         .args(["/C", "start", "LunaHarness - login", "cmd", "/K"])
+        .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .arg(&program)
         .args(args)
         .spawn()

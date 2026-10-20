@@ -3398,6 +3398,18 @@ textarea:focus-visible {
   color: var(--fg-muted);
 }
 
+.account-extra__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-extra__row > span:first-child {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
 .account-extra__form {
   display: flex;
   flex-wrap: wrap;

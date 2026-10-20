@@ -203,6 +203,7 @@ export const en: Record<MessageKey, string> = {
   "accounts.accountNamePlaceholder": "Account name (e.g. Work)",
   "accounts.create": "Create",
   "accounts.cancel": "Cancel",
+  "accounts.enter": "Sign in",
   "accounts.connect": "Connect",
   "accounts.downloadConnect": "Download and connect",
   "accounts.opencodeInstall": "Install OpenCode from its official site, then come back here to connect.",

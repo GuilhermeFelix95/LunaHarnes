@@ -51,6 +51,16 @@ export function createAccount(provider: ProviderKind, name: string): Promise<Acc
   return invoke("create_account", { provider, name });
 }
 
+/// Se a conta extra está logada no próprio CLI (usa a pasta dela).
+export function accountStatus(account: string): Promise<boolean> {
+  return invoke("account_status", { account });
+}
+
+/// Abre a janela de login do CLI dentro da pasta da conta extra.
+export function accountLogin(account: string): Promise<void> {
+  return invoke("account_login", { account });
+}
+
 /// Avisa o chat que a lista de contas mudou (a página de Contas cria uma conta).
 export const ACCOUNTS_CHANGED = "luna:accounts-changed";
 
