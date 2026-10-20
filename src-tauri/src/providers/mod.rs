@@ -1,6 +1,7 @@
 pub mod claude;
 pub mod cline;
 pub mod codex;
+pub mod copilot;
 pub mod opencode;
 
 use std::path::{Path, PathBuf};
@@ -15,6 +16,7 @@ pub enum ProviderKind {
     Codex,
     OpenCode,
     Cline,
+    Copilot,
 }
 
 /// Navegador do agente, escolhido em Configurações. Só um vale por execução.
@@ -222,6 +224,7 @@ pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
         ProviderKind::OpenCode => Ok(opencode::prompt(request)),
         // O Cline recebe o prompt por arquivo (ver `Session::start_with_env`); o stdin fica vazio.
         ProviderKind::Cline => Ok(String::new()),
+        ProviderKind::Copilot => Ok(request.prompt.clone()),
     }
 }
 
@@ -569,6 +572,7 @@ pub fn parse_line(kind: ProviderKind, line: &str) -> Vec<ProviderEvent> {
         ProviderKind::Codex => codex::parse_line(line),
         ProviderKind::OpenCode => opencode::parse_line(line),
         ProviderKind::Cline => cline::parse_line(line),
+        ProviderKind::Copilot => copilot::parse_line(line),
     }
 }
 
@@ -581,6 +585,7 @@ pub fn cli_args(request: &RunRequest) -> Vec<String> {
         ProviderKind::OpenCode => opencode::args(request),
         // Os argumentos do Cline levam o caminho do arquivo do prompt, que só existe na hora de gravar (ver session.rs).
         ProviderKind::Cline => Vec::new(),
+        ProviderKind::Copilot => copilot::args(request),
     }
 }
 
@@ -591,6 +596,7 @@ pub fn label(kind: ProviderKind) -> &'static str {
         ProviderKind::Codex => "Codex",
         ProviderKind::OpenCode => "OpenCode",
         ProviderKind::Cline => "Cline",
+        ProviderKind::Copilot => "GitHub Copilot",
     }
 }
 
@@ -618,6 +624,7 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
         ProviderKind::Codex => "codex",
         ProviderKind::OpenCode => "opencode",
         ProviderKind::Cline => "cline",
+        ProviderKind::Copilot => "copilot",
     }
 }
 

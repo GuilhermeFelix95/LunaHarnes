@@ -16,7 +16,7 @@ fn install_url(kind: ProviderKind) -> Option<&'static str> {
     match kind {
         ProviderKind::Claude => Some("https://claude.ai/install.ps1"),
         ProviderKind::Codex => Some("https://chatgpt.com/codex/install.ps1"),
-        ProviderKind::OpenCode | ProviderKind::Cline => None,
+        ProviderKind::OpenCode | ProviderKind::Cline | ProviderKind::Copilot => None,
     }
 }
 
@@ -26,6 +26,7 @@ fn program(kind: ProviderKind) -> &'static str {
         ProviderKind::Codex => "codex",
         ProviderKind::OpenCode => "opencode",
         ProviderKind::Cline => "cline",
+        ProviderKind::Copilot => "copilot",
     }
 }
 
@@ -35,6 +36,7 @@ fn display_name(kind: ProviderKind) -> &'static str {
         ProviderKind::Codex => "Codex",
         ProviderKind::OpenCode => "OpenCode",
         ProviderKind::Cline => "Cline",
+        ProviderKind::Copilot => "GitHub Copilot",
     }
 }
 

@@ -4,7 +4,7 @@ import { ROLES, type Orchestrator, type OrchestratorRole, type RoleModel } from 
 import { t, type MessageKey } from "../../i18n";
 import type { ModelOption, ProviderKind } from "../../types";
 
-const PROVIDERS: ProviderKind[] = ["claude", "codex", "opencode", "cline"];
+const PROVIDERS: ProviderKind[] = ["claude", "codex", "opencode", "cline", "copilot"];
 
 const ROLE_KEYS: Record<OrchestratorRole, MessageKey> = {
   plan: "orchestrator.role.plan",

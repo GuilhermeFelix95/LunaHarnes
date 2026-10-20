@@ -6,4 +6,5 @@ export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   codex: "Codex",
   opencode: "OpenCode",
   cline: "Cline",
+  copilot: "GitHub Copilot",
 };

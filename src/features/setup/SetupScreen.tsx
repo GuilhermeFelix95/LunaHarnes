@@ -3,7 +3,7 @@ import { installCli } from "../../api";
 import type { CliStatus, ProviderKind } from "../../types";
 import { t } from "../../i18n";
 
-const NAMES: Record<ProviderKind, string> = { claude: "Claude Code", codex: "Codex", opencode: "OpenCode", cline: "Cline" };
+const NAMES: Record<ProviderKind, string> = { claude: "Claude Code", codex: "Codex", opencode: "OpenCode", cline: "Cline", copilot: "GitHub Copilot" };
 
 interface SetupScreenProps {
   /** Situação atual das CLIs, vinda de `cli_status`. */

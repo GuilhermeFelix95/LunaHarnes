@@ -166,6 +166,13 @@ describe("approvalPrompt por motor", () => {
     expect(prompt).not.toContain("TaskCreate");
   });
 
+  it("o Copilot não recebe instrução de etapas, porque ainda não tem o servidor do Luna", () => {
+    const prompt = approvalPrompt("## Passos\n1. Criar a tela", "copilot");
+    expect(prompt).not.toContain("TaskCreate");
+    expect(prompt).not.toContain("lunatasks");
+    expect(prompt).toContain("execute o plano agora");
+  });
+
   it("o Codex também usa o servidor de etapas, porque não tem TaskCreate", () => {
     const prompt = approvalPrompt("## Passos\n1. Criar a tela", "codex");
     expect(prompt).toContain("tools.lunatasks.set_steps");

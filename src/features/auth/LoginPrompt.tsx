@@ -6,6 +6,7 @@ const LABELS: Record<ProviderKind, string> = {
   codex: "Codex",
   opencode: "OpenCode",
   cline: "Cline",
+  copilot: "GitHub Copilot",
 };
 
 interface LoginPromptProps {

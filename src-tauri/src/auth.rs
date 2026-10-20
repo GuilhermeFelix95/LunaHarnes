@@ -20,6 +20,8 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
         ProviderKind::Codex => (&["login", "status"], "Codex"),
         ProviderKind::OpenCode => (&["auth", "list"], "OpenCode"),
         ProviderKind::Cline => return Ok(crate::providers::cline::logged_in()),
+        // O Copilot não tem comando de status sem gastar uma chamada: sem status, o app mostra "Conectar" sempre.
+        ProviderKind::Copilot => return Ok(false),
     };
     let program = resolve_program(cli_name(kind)).ok_or_else(|| {
         format!("{label} não encontrado no PATH. Instale o CLI antes de entrar na conta.")
@@ -37,7 +39,7 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
         ProviderKind::Codex => output.status.success(),
         // `auth list` marca com "stored" cada provedor com credencial salva; sem nenhum, a lista não traz essa marca.
         ProviderKind::OpenCode => output.status.success() && String::from_utf8_lossy(&output.stdout).contains("stored"),
-        ProviderKind::Cline => unreachable!("o Cline já retornou acima"),
+        ProviderKind::Cline | ProviderKind::Copilot => unreachable!("o Cline e o Copilot já retornaram acima"),
     })
 }
 
@@ -49,6 +51,7 @@ fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(St
         ProviderKind::Codex => ("codex", &["login"]),
         ProviderKind::OpenCode => ("opencode", &["auth", "login"]),
         ProviderKind::Cline => ("cline", &["auth"]),
+        ProviderKind::Copilot => ("copilot", &["login"]),
     };
     let program = resolved.ok_or_else(|| {
         format!("{name} não encontrado no PATH. Instale o CLI antes de entrar na conta.")

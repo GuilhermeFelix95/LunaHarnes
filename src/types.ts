@@ -1,6 +1,6 @@
 // Espelha src-tauri/src/providers/mod.rs. Mantenha os dois lados em sincronia.
 
-export type ProviderKind = "claude" | "codex" | "opencode" | "cline";
+export type ProviderKind = "claude" | "codex" | "opencode" | "cline" | "copilot";
 
 /// Permissão escolhida no composer. Cada CLI recebe o modo equivalente (ver providers/claude.rs e codex.rs).
 export type Permission = "readOnly" | "acceptEdits" | "fullAccess";

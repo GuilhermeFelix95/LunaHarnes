@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Bot, Braces, Check, Copy, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, Bot, Braces, Check, Copy, Cpu, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, X, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
 import { Markdown } from "./Markdown";
 import { resolveLocale, t } from "../../i18n";
 
 /// Avatar de cada agente: o ícone aparece ao lado do nome em cada resposta.
-const PROVIDER_ICONS: Record<ProviderKind, LucideIcon> = { claude: Sparkles, codex: Bot, opencode: Braces, cline: SquareTerminal };
+const PROVIDER_ICONS: Record<ProviderKind, LucideIcon> = { claude: Sparkles, codex: Bot, opencode: Braces, cline: SquareTerminal, copilot: Cpu };
 
 function ProviderIcon({ provider }: { provider: ProviderKind }) {
   const Icon = PROVIDER_ICONS[provider];

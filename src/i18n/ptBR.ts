@@ -203,6 +203,7 @@ export const ptBR = {
   "accounts.downloadConnect": "Baixar e conectar",
   "accounts.opencodeInstall": "Instale o OpenCode pelo site oficial dele e volte aqui para conectar.",
   "accounts.clineInstall": "Instale com npm i -g cline e volte aqui para conectar.",
+  "accounts.copilotInstall": "Instale com winget install GitHub.Copilot e volte aqui para conectar.",
   "accounts.wait": "Aguarde…",
   "catalog.label": "Catálogo",
   "catalog.official": "LunaHarness oficial",

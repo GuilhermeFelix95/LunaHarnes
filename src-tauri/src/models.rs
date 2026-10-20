@@ -193,6 +193,12 @@ fn cline_catalog() -> Vec<ModelOption> {
     .collect()
 }
 
+/// Modelos do Copilot. Por enquanto vazia: `--model gpt-5.6-luna` e `--model gpt-5.4` foram recusados pela CLI
+/// ("not available"), e a CLI não tem comando para listar os nomes válidos. Sem `--model`, a CLI usa Auto, que funciona.
+fn copilot_catalog() -> Vec<ModelOption> {
+    Vec::new()
+}
+
 /// Modelos e níveis do provedor escolhido.
 pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
     match kind {
@@ -200,6 +206,7 @@ pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
         ProviderKind::Codex => codex_catalog(),
         ProviderKind::OpenCode => opencode_catalog(),
         ProviderKind::Cline => Ok(cline_catalog()),
+        ProviderKind::Copilot => Ok(copilot_catalog()),
     }
 }
 
