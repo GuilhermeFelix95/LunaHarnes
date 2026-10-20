@@ -185,3 +185,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Seletor de conta no composer (Claude e Codex): escolher ou criar conta por conversa, persistida em Conversation.account. Conta nova ainda precisa de login feito dentro da pasta dela.
 2026-10-20 | Criar conta saiu do composer e foi para a página Contas (botão "Adicionar conta" em Claude e Codex); o composer só escolhe a conta. O chat relê a lista quando uma conta é criada.
 2026-10-20 | Contas extras ganharam status e botão Entrar na página Contas (login na pasta da própria conta). As contas são globais no app: servem em qualquer projeto. Login real ainda não testado.
+2026-10-20 | Perfis de API aparecem só com o nome (sem "· via Claude Code") no seletor e nas mensagens.

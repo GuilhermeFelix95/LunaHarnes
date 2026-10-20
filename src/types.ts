@@ -165,7 +165,7 @@ export interface ChatMessage {
   provider?: ProviderKind;
   /** Modelo que respondeu, quando o motor informa. Mostra o papel usado no orquestrador. */
   model?: string;
-  /** Nome do agente que respondeu, quando é um perfil de API (ex.: "DeepSeek · via Claude Code"). */
+  /** Nome do agente que respondeu, quando é um perfil de API (ex.: "DeepSeek"). */
   agent?: string;
   /** Estado dos arquivos antes deste turno (só em mensagens do usuário, em repositório git). */
   checkpoint?: string;

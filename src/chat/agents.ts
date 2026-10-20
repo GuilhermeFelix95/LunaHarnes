@@ -19,7 +19,7 @@ export function engineOf(profile: ApiProfile, presets: ApiPreset[]): ProviderKin
   return presets.find((p) => p.preset === profile.preset)?.engine ?? "claude";
 }
 
-/// Opções do seletor: os dois CLIs e depois cada perfil de API ("DeepSeek · via Claude Code").
+/// Opções do seletor: os CLIs e depois cada perfil de API (ex.: "DeepSeek").
 export function agentOptions(profiles: ApiProfile[], presets: ApiPreset[]): AgentOption[] {
   const base: AgentOption[] = [
     { key: "claude", label: PROVIDER_LABELS.claude, engine: "claude" },
@@ -33,7 +33,7 @@ export function agentOptions(profiles: ApiProfile[], presets: ApiPreset[]): Agen
     const engine = engineOf(p, presets);
     return {
       key: agentKey(engine, p.id),
-      label: `${p.name} · via ${PROVIDER_LABELS[engine]}`,
+      label: p.name,
       engine,
       profileId: p.id,
     };

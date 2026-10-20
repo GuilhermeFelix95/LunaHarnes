@@ -32,7 +32,7 @@ function setup(overrides: Partial<Parameters<typeof Composer>[0]> = {}) {
     agent: "claude",
     agents: [
       { key: "claude", label: "Claude Code", engine: "claude" as const },
-      { key: "api:p1", label: "DeepSeek · via Claude Code", engine: "claude" as const, profileId: "p1" },
+      { key: "api:p1", label: "DeepSeek", engine: "claude" as const, profileId: "p1" },
     ],
     onAgent: vi.fn(),
     permission: "acceptEdits" as const,
@@ -102,9 +102,9 @@ describe("Composer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Provedor" }));
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
       "Claude Code",
-      "DeepSeek · via Claude Code",
+      "DeepSeek",
     ]);
-    fireEvent.click(screen.getByRole("option", { name: "DeepSeek · via Claude Code" }));
+    fireEvent.click(screen.getByRole("option", { name: "DeepSeek" }));
     expect(onAgent).toHaveBeenCalledWith("api:p1");
   });
 

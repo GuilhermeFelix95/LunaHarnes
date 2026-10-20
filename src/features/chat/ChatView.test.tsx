@@ -236,7 +236,7 @@ describe("ChatView: continuidade e envio", () => {
     render(<ChatView onPersist={() => {}} />);
 
     await screen.findByRole("button", { name: "Provedor" });
-    await pickAgent("DeepSeek · via Claude Code");
+    await pickAgent("DeepSeek");
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     await send("olá");
@@ -247,7 +247,7 @@ describe("ChatView: continuidade e envio", () => {
     const request = vi.mocked(api.sendPrompt).mock.calls[0][0];
     expect(request.profile).toBe("p1");
     expect(request.provider).toBe("claude");
-    expect(document.querySelector(".message__author")?.textContent).toContain("DeepSeek · via Claude Code");
+    expect(document.querySelector(".message__author")?.textContent).toContain("DeepSeek");
   });
 
   it("anexar um arquivo que não é imagem e enviar sem texto manda o caminho salvo no pedido", async () => {

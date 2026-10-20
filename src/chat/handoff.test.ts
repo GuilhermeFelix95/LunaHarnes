@@ -95,11 +95,11 @@ describe("renderHistory com perfis de API", () => {
     const text = renderHistory(
       [
         { role: "user", text: "oi" },
-        { role: "assistant", text: "tudo bem", provider: "claude", agent: "DeepSeek · via Claude Code" },
+        { role: "assistant", text: "tudo bem", provider: "claude", agent: "DeepSeek" },
       ],
       "claude",
     );
 
-    expect(text).toContain("### DeepSeek · via Claude Code\ntudo bem");
+    expect(text).toContain("### DeepSeek\ntudo bem");
   });
 });
