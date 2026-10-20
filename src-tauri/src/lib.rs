@@ -11,6 +11,7 @@ pub mod conversations;
 pub mod marketplace;
 pub mod mcp;
 pub mod models;
+pub mod playwright;
 pub mod plugins;
 pub mod providers;
 pub mod rules;
@@ -55,6 +56,15 @@ pub fn run() {
                 }
                 Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para o navegador: {e}")),
             }
+            // Navegador do Playwright (alternativa escolhida em Configurações): só grava a configuração MCP.
+            match app.path().app_data_dir() {
+                Ok(dir) => {
+                    if let Err(e) = playwright::start(&dir) {
+                        logfile::error(&e);
+                    }
+                }
+                Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para o Playwright: {e}")),
+            }
             // Plugins padrão (cache de tokens). Falha só vira aviso no terminal: o app abre sem eles.
             match app.path().app_data_dir() {
                 Ok(dir) => {
@@ -88,6 +98,8 @@ pub fn run() {
             browser::browser_set_bounds,
             browser::browser_show,
             browser::browser_navigate,
+            playwright::playwright_status,
+            playwright::playwright_install,
             browser::browser_history,
             browser::browser_reload,
             browser::browser_close_tab,

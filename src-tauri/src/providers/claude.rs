@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use super::{ProviderEvent, TodoItem};
 
-use super::{identity_for, image_media_type, LimitWindow, Permission, RunRequest};
+use super::{identity_for, image_media_type, AgentBrowser, LimitWindow, Permission, RunRequest};
 
 /// Sem isso, o Claude Code oferece as ferramentas de tarefa só para alguns modelos; com esta variável elas ficam ligadas.
 /// Confirmado numa execução real: com ela, o agente cria e atualiza tarefas (TaskCreate / TaskUpdate).
@@ -40,10 +40,14 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     if let Some(dir) = crate::plugins::guide::dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);
     }
-    // Ferramentas do navegador integrado (MCP local). Liberadas sem perguntar: o agente só age na página aberta.
-    if let Some(config) = crate::browser::mcp_config() {
+    // Só o navegador escolhido em Configurações chega ao agente. Liberado sem perguntar, como o embutido.
+    let browser_config = match request.browser {
+        AgentBrowser::Builtin => crate::browser::mcp_config().map(|config| (config, "mcp__luna-browser")),
+        AgentBrowser::Playwright => crate::playwright::mcp_config().map(|config| (config, crate::playwright::CLAUDE_ALLOWED)),
+    };
+    if let Some((config, allowed)) = browser_config {
         args.extend(["--mcp-config".to_string(), config.display().to_string()]);
-        args.extend(["--allowedTools".to_string(), "mcp__luna-browser".to_string()]);
+        args.extend(["--allowedTools".to_string(), allowed.to_string()]);
     }
     // Onde a Luna cria rascunhos de plugin para a pessoa instalar pelo cartão no chat.
     if let Some(dir) = crate::plugins::guide::drafts_dir() {
@@ -334,6 +338,7 @@ mod tests {
             effort: None,
             profile: Some("p1".into()),
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: Vec::new(),
         };
@@ -448,6 +453,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: vec![],
         };
@@ -552,6 +558,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: vec![path.clone()],
         };
@@ -582,6 +589,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: Vec::new(),
         };

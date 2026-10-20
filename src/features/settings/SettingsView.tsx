@@ -34,6 +34,7 @@ import { SkillsSection } from "./SkillsSection";
 import { AboutSection } from "./AboutSection";
 import { SavedThemes } from "./SavedThemes";
 import { PluginThemePicker } from "./PluginThemePicker";
+import { BrowserSection } from "./BrowserSection";
 import { applyPluginTheme, savePluginThemeKey } from "../../plugins/themeRegistry";
 import { loadSavedThemes, saveSavedThemes, type SavedTheme } from "../../themeShare";
 
@@ -46,6 +47,7 @@ type SettingsSection =
   | "general"
   | "notifications"
   | "conversation"
+  | "browser"
   | "rules"
   | "accounts"
   | "providers"
@@ -59,6 +61,7 @@ const SECTIONS: Array<[SettingsSection, MessageKey]> = [
   ["general", "settings.nav.general"],
   ["notifications", "settings.nav.notifications"],
   ["conversation", "settings.nav.conversation"],
+  ["browser", "settings.nav.browser"],
   ["rules", "settings.nav.rules"],
   ["accounts", "settings.nav.accounts"],
   ["providers", "settings.nav.providers"],
@@ -541,6 +544,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {section === "general" && <GeneralSection />}
           {section === "notifications" && <NotificationsSection />}
           {section === "conversation" && <ConversationSection />}
+          {section === "browser" && <BrowserSection />}
           {section === "rules" && <RulesSection />}
           {section === "accounts" && <AccountsSection />}
           {section === "providers" && <ProvidersSection />}

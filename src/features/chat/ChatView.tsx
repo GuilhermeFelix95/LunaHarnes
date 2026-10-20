@@ -29,6 +29,7 @@ import {
   SKILLS_CHANGED,
 } from "../../api";
 import { agentKey, agentOptions } from "../../chat/agents";
+import { getAgentBrowser } from "../../chat/agentBrowser";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
@@ -709,6 +710,8 @@ ${cliPrompt}`;
         sessionId,
         cwd,
         permission: plan || mode ? "readOnly" : permission,
+        // Lido a cada envio: a escolha em Configurações vale para toda execução.
+        browser: getAgentBrowser(),
         model: model || undefined,
         effort: effort || undefined,
         contextWindow: models.find((m) => m.id === model)?.contextWindow,

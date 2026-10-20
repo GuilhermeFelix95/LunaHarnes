@@ -15,6 +15,15 @@ pub enum ProviderKind {
     OpenCode,
 }
 
+/// Navegador do agente, escolhido em Configurações. Só um vale por execução.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AgentBrowser {
+    #[default]
+    Builtin,
+    Playwright,
+}
+
 /// Permissão escolhida no composer. Cada CLI tem o próprio nome para ela (ver claude.rs e codex.rs).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +43,9 @@ pub struct RunRequest {
     pub session_id: Option<String>,
     pub cwd: PathBuf,
     pub permission: Permission,
+    /// Navegador que o agente usa nesta execução. Ausente = o navegador embutido.
+    #[serde(default)]
+    pub browser: AgentBrowser,
     /// Modelo escolhido na lista que a própria CLI expõe. Ausente = padrão da CLI.
     #[serde(default)]
     pub model: Option<String>,
@@ -249,6 +261,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: Vec::new(),
         }

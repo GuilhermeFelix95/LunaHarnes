@@ -285,6 +285,17 @@ describe("ChatView: continuidade e envio", () => {
     expect(second.permission).toBe("acceptEdits");
   });
 
+  it("cada envio leva o navegador escolhido em Configurações", async () => {
+    localStorage.setItem("luna.agentBrowser", "playwright");
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("usa o playwright");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls[0][0].browser).toBe("playwright");
+    localStorage.removeItem("luna.agentBrowser");
+  });
+
   it("troca de agente no meio da conversa sem perder contexto", async () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));

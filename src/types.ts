@@ -5,6 +5,9 @@ export type ProviderKind = "claude" | "codex" | "opencode";
 /// Permissão escolhida no composer. Cada CLI recebe o modo equivalente (ver providers/claude.rs e codex.rs).
 export type Permission = "readOnly" | "acceptEdits" | "fullAccess";
 
+/// Navegador do agente, escolhido em Configurações > Navegador. Só um vale por vez.
+export type AgentBrowser = "builtin" | "playwright";
+
 export interface RunRequest {
   provider: ProviderKind;
   prompt: string;
@@ -12,6 +15,8 @@ export interface RunRequest {
   sessionId?: string;
   cwd: string;
   permission: Permission;
+  /** Navegador do agente nesta execução. Ausente = o embutido. */
+  browser?: AgentBrowser;
   /** Modelo da lista da CLI. Ausente = padrão da CLI. */
   model?: string;
   /** Nível de esforço com o nome da CLI. Ausente = padrão. */

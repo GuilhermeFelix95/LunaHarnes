@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use super::{ProviderEvent, TodoItem};
 
-use super::{identity_for, Permission, RunRequest};
+use super::{identity_for, AgentBrowser, Permission, RunRequest};
 
 /// `codex exec --json -` lê o prompt do stdin e emite JSONL.
 /// `exec resume` não aceita `-s`, então a retomada passa o sandbox por `-c sandbox_mode`.
@@ -33,6 +33,13 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     }
     // Identidade da Luna como instrução do desenvolvedor, nos dois casos (novo e retomada).
     args.extend(["-c".to_string(), format!("developer_instructions=\"{}\"", identity_for(request))]);
+    // Navegador do Playwright só quando escolhido: o Codex sobe o servidor por override de config (sem mexer no config do usuário).
+    if request.browser == AgentBrowser::Playwright {
+        let (command, server_args) = crate::playwright::server_command();
+        let list: Vec<String> = server_args.iter().map(|a| format!("\"{a}\"")).collect();
+        args.extend(["-c".to_string(), format!("mcp_servers.playwright.command=\"{command}\"")]);
+        args.extend(["-c".to_string(), format!("mcp_servers.playwright.args=[{}]", list.join(","))]);
+    }
     // Deixa o agente ler o guia de plugins, e só essa pasta.
     if let Some(dir) = crate::plugins::guide::dir() {
         args.extend(["--add-dir".to_string(), dir.display().to_string()]);
@@ -298,6 +305,7 @@ mod tests {
                 effort: None,
                 profile: None,
                 context_window: None,
+                browser: Default::default(),
                 long_cache: false,
                 images: Vec::new(),
             };
@@ -324,6 +332,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: vec![
                 std::path::PathBuf::from("C:\\a\\1.png"),
@@ -335,6 +344,32 @@ mod tests {
         assert_eq!(flags[first + 1], "C:\\a\\1.png");
         assert_eq!(flags.iter().filter(|a| *a == "-i").count(), 2);
         assert!(first < flags.iter().position(|a| a == "--json").unwrap());
+        assert_eq!(flags.last().unwrap(), "-");
+    }
+
+    /// Com o Playwright escolhido, o Codex sobe o servidor por override de config, antes do `-` do stdin.
+    #[test]
+    fn playwright_is_added_only_when_chosen() {
+        let mut request = RunRequest {
+            provider: crate::providers::ProviderKind::Codex,
+            prompt: "x".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: None,
+            effort: None,
+            profile: None,
+            context_window: None,
+            long_cache: false,
+            browser: crate::providers::AgentBrowser::Builtin,
+            images: Vec::new(),
+        };
+        assert!(!args(&request).iter().any(|a| a.contains("mcp_servers")));
+
+        request.browser = crate::providers::AgentBrowser::Playwright;
+        let flags = args(&request);
+        assert!(flags.iter().any(|a| a.starts_with("mcp_servers.playwright.command=")));
+        assert!(flags.iter().any(|a| a.starts_with("mcp_servers.playwright.args=") && a.contains("@playwright/mcp")));
         assert_eq!(flags.last().unwrap(), "-");
     }
 }

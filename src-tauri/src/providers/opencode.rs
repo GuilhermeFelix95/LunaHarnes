@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 
-use super::{Permission, ProviderEvent, RunRequest};
+use super::{AgentBrowser, Permission, ProviderEvent, RunRequest};
 
 /// `opencode run --standalone --format json` com o prompt pelo stdin (testado na CLI 2.0.32).
 /// `--standalone` é obrigatório: o serviço em segundo plano não lê a configuração do ambiente desta execução.
@@ -21,14 +21,26 @@ pub fn args(request: &RunRequest) -> Vec<String> {
 
 /// Regras de permissão de cada modo da Luna, no formato do `permission` da config do OpenCode.
 /// A última regra que casa vence, por isso o `*` vem primeiro.
-pub fn config_content(permission: Permission) -> String {
-    let read_only = json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow" });
-    let rules = match permission {
-        Permission::ReadOnly => read_only,
+/// Com o Playwright escolhido, o servidor entra na mesma config e as ferramentas dele ficam liberadas
+/// (`playwright_*`), como o navegador embutido. Com o embutido, a config não tem `mcp`.
+pub fn config_content(permission: Permission, browser: AgentBrowser) -> String {
+    let mut rules = match permission {
+        Permission::ReadOnly => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow" }),
         Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "edit": "allow", "write": "allow", "patch": "allow" }),
         Permission::FullAccess => json!({ "*": "allow" }),
     };
-    json!({ "permission": rules }).to_string()
+    let mut config = json!({});
+    if browser == AgentBrowser::Playwright {
+        let (command, args) = crate::playwright::server_command();
+        let mut command_line = vec![command];
+        command_line.extend(args);
+        config["mcp"] = json!({ "playwright": { "type": "local", "command": command_line, "enabled": true } });
+        if let Some(map) = rules.as_object_mut() {
+            map.insert("playwright_*".into(), json!("allow"));
+        }
+    }
+    config["permission"] = rules;
+    config.to_string()
 }
 
 /// Nome que a Luna mostra para cada ferramenta do OpenCode, igual ao que o Claude e o Codex usam.
@@ -201,6 +213,7 @@ mod tests {
             effort: None,
             profile: None,
             context_window: None,
+            browser: Default::default(),
             long_cache: false,
             images: Vec::new(),
         }
@@ -222,7 +235,7 @@ mod tests {
 
     #[test]
     fn read_only_denies_everything_but_reading() {
-        let config: Value = serde_json::from_str(&config_content(Permission::ReadOnly)).unwrap();
+        let config: Value = serde_json::from_str(&config_content(Permission::ReadOnly, AgentBrowser::Builtin)).unwrap();
 
         assert_eq!(config["permission"]["*"], "deny");
         assert_eq!(config["permission"]["read"], "allow");
@@ -231,7 +244,7 @@ mod tests {
 
     #[test]
     fn accept_edits_allows_file_edits_but_not_bash() {
-        let config: Value = serde_json::from_str(&config_content(Permission::AcceptEdits)).unwrap();
+        let config: Value = serde_json::from_str(&config_content(Permission::AcceptEdits, AgentBrowser::Builtin)).unwrap();
 
         assert_eq!(config["permission"]["edit"], "allow");
         assert_eq!(config["permission"]["write"], "allow");
@@ -241,8 +254,22 @@ mod tests {
 
     #[test]
     fn full_access_allows_everything() {
-        let config: Value = serde_json::from_str(&config_content(Permission::FullAccess)).unwrap();
+        let config: Value = serde_json::from_str(&config_content(Permission::FullAccess, AgentBrowser::Builtin)).unwrap();
 
         assert_eq!(config["permission"]["*"], "allow");
+    }
+
+    /// Com o Playwright, o servidor entra na config e as ferramentas dele ficam liberadas, mesmo no modo somente leitura.
+    #[test]
+    fn playwright_server_is_configured_and_allowed_only_when_chosen() {
+        let with: Value = serde_json::from_str(&config_content(Permission::ReadOnly, AgentBrowser::Playwright)).unwrap();
+        let server = &with["mcp"]["playwright"];
+        assert_eq!(server["type"], "local");
+        assert!(server["command"].as_array().unwrap().iter().any(|a| a == "@playwright/mcp@0.0.83"));
+        assert_eq!(with["permission"]["playwright_*"], "allow");
+
+        let without: Value = serde_json::from_str(&config_content(Permission::ReadOnly, AgentBrowser::Builtin)).unwrap();
+        assert!(without.get("mcp").is_none());
+        assert!(without["permission"].get("playwright_*").is_none());
     }
 }

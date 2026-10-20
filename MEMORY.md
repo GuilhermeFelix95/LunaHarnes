@@ -153,3 +153,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | OpenCode na interface: tipo ProviderKind, rótulo, opção no seletor de agentes, seção Contas (sem instalador: pede instalação pelo site oficial), ícone e traduções pt-BR/en.
 2026-10-20 | OpenCode: seletor mostra só os modelos opencode/* (a CLI também lista 20 anthropic/*, que ficam de fora). Testados: anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5 e opencode/big-pickle respondem sem erro.
 2026-10-20 | Painel lateral: o Progresso abre com a execução e fecha quando ela termina; largura padrão de 320 para 240 px (quem já arrastou mantém a largura salva).
+2026-10-20 | Navegador do agente: Configurações > Navegador escolhe embutido ou Playwright (um vale por vez). Vai em cada execução (campo browser). Claude: config --mcp-config. Codex: override -c mcp_servers.playwright. OpenCode: mcp na config por variável de ambiente. Instalação do Chromium só com confirmação.

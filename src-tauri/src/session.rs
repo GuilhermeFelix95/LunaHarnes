@@ -73,7 +73,7 @@ impl Session {
         let mut env = env.to_vec();
         // O OpenCode recebe as permissões do modo por esta variável (ver providers/opencode.rs).
         if request.provider == ProviderKind::OpenCode {
-            env.push(("OPENCODE_CONFIG_CONTENT".into(), crate::providers::opencode::config_content(request.permission)));
+            env.push(("OPENCODE_CONFIG_CONTENT".into(), crate::providers::opencode::config_content(request.permission, request.browser)));
         }
         Self::spawn(
             request.provider,

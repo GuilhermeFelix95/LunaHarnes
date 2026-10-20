@@ -256,6 +256,16 @@ export interface BrowserBookmark {
   url: string;
 }
 
+/// Chromium do Playwright já baixado no computador (o agente só o usa se a escolha for o Playwright).
+export function playwrightStatus(): Promise<boolean> {
+  return invoke("playwright_status");
+}
+
+/// Baixa o Chromium do Playwright. Só chamar depois que a pessoa confirmar.
+export function playwrightInstall(): Promise<void> {
+  return invoke("playwright_install");
+}
+
 export function browserBookmarks(): Promise<BrowserBookmark[]> {
   return invoke("browser_bookmarks");
 }
