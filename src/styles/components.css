@@ -979,10 +979,20 @@
   width: 100%;
   min-height: 24px;
   max-height: 200px;
+  padding: 4px 12px;
+  /* Teto de 12px: o raio do formato não recorta o texto nas bordas */
+  border-radius: min(var(--input-radius), 12px);
+  overflow-wrap: normal;
+  word-break: normal;
   resize: none;
   border: none;
   outline: none;
   background: transparent;
+}
+
+/* O foco do campo aparece na borda da moldura (.composer:focus-within), não num contorno interno */
+.composer textarea:focus-visible {
+  outline: none;
 }
 
 .composer__footer {
