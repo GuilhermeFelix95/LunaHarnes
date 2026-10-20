@@ -160,3 +160,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Servidor de etapas do Luna (lunaharness tasks-mcp, ferramenta set_steps) para OpenCode e Codex. A lista sai da chamada no stream e alimenta o Progresso. Verificado com captura real no OpenCode; Codex sem captura (login pendente).
 2026-10-20 | OpenCode: execute liberado nos modos somente leitura e edição (sem ele, etapas e Playwright não chegam ao agente). Verificado com captura real em edição.
 2026-10-20 | Orquestrador de modelos: escolha de motor e modelo por papel (planejar, executar, conversar, subagentes) em Configurações; o envio aplica o papel. Selo com o modelo que respondeu (Claude). Subagente do Claude verificado com captura real (principal Sonnet, subagente Haiku). Plugin oficial ainda não feito.
+2026-10-20 | Ferramentas em execução: o grupo fica recolhido (uma linha com botão para expandir), em vez de abrir a lista inteira.

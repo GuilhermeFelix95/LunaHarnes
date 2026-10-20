@@ -199,7 +199,7 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                 if (part.kind === "tools") {
                   const working = running && i === items.length - 1 && j === item.parts.length - 1;
                   return (
-                    <details key={j} className="tool-line" open={working || undefined}>
+                    <details key={j} className="tool-line">
                       <summary>
                         {working ? (
                           <WorkingHeader step={step} startedAt={startedAt} />

@@ -190,3 +190,14 @@ describe("MessageList: andamento das ações", () => {
     expect(screen.getByLabelText("Concluída")).toBeTruthy();
   });
 });
+
+describe("MessageList: ferramentas enquanto a execução roda", () => {
+  it("o grupo de ferramentas fica recolhido, mostrando só a linha de resumo", () => {
+    const running: ChatMessage[] = [{ role: "user", text: "lê os arquivos" }, tool("Read", "RideEvaluator.kt"), tool("Read", "RideOffer.kt")];
+    const { container } = render(<MessageList messages={running} fallbackProvider="opencode" running={true} />);
+
+    const group = container.querySelector("details.tool-line") as HTMLDetailsElement;
+    expect(group).toBeTruthy();
+    expect(group.open).toBe(false);
+  });
+});
