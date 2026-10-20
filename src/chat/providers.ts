@@ -8,4 +8,5 @@ export const PROVIDER_LABELS: Record<ProviderKind, string> = {
   cline: "Cline",
   copilot: "GitHub Copilot",
   antigravity: "Antigravity",
+  hermes: "Hermes",
 };

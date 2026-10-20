@@ -8,6 +8,7 @@ const LABELS: Record<ProviderKind, string> = {
   cline: "Cline",
   copilot: "GitHub Copilot",
   antigravity: "Antigravity",
+  hermes: "Hermes",
 };
 
 interface LoginPromptProps {

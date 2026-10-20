@@ -257,6 +257,9 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const [section, setSection] = useState<SettingsSection>(loadSection);
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(loadSavedThemes);
   const [activeName, setActiveName] = useState<string | null>(loadActiveName);
+  // Nome do tema novo enquanto o formulário está aberto (null = fechado), e o erro de validação dele.
+  const [naming, setNaming] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [liquid, setLiquid] = useState<boolean>(loadLiquidGlass);
   const [themesTab, setThemesTabState] = useState<ThemesTab>(loadThemesTab);
   function setThemesTab(tab: ThemesTab) {
@@ -314,13 +317,24 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   }
 
   /// Novo tema: começa com as cores atuais e já vira o tema ativo, com cartão na lista.
-  function createTheme() {
-    let index = savedThemes.length + 1;
-    while (savedThemes.some((saved) => saved.name === t("settings.appearance.defaultThemeName", { index }))) index++;
-    const created: SavedTheme = { name: t("settings.appearance.defaultThemeName", { index }), palette };
+  /// Cria o tema com o nome digitado, começando pelas cores atuais. Nome vazio ou repetido não cria.
+  function createTheme(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) return setNameError(t("settings.appearance.nameRequired"));
+    if (savedThemes.some((saved) => saved.name === trimmed)) return setNameError(t("settings.appearance.nameTaken"));
+    const created: SavedTheme = { name: trimmed, palette };
     storeSaved([...savedThemes, created]);
     applySaved(created);
+    setNaming(null);
+    setNameError(null);
     setThemesTab("mine");
+  }
+
+  /// Nome sugerido para o novo tema: "Tema 1", "Tema 2"... sem repetir um que já existe.
+  function suggestedName(): string {
+    let index = savedThemes.length + 1;
+    while (savedThemes.some((saved) => saved.name === t("settings.appearance.defaultThemeName", { index }))) index++;
+    return t("settings.appearance.defaultThemeName", { index });
   }
 
   function importTheme(imported: SavedTheme) {
@@ -415,7 +429,63 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                 </>
               ) : (
                 <>
-                  <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
+                  <div className="themes-toolbar">
+                    <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
+                    <button
+                      type="button"
+                      className="btn btn--sm"
+                      onClick={() => {
+                        setNaming(suggestedName());
+                        setNameError(null);
+                      }}
+                    >
+                      {t("settings.appearance.newTheme")}
+                    </button>
+                  </div>
+
+                  {naming !== null && (
+                    <form
+                      className="theme-naming"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        createTheme(naming);
+                      }}
+                    >
+                      <label>
+                        <span>{t("settings.appearance.themeName")}</span>
+                        <input
+                          autoFocus
+                          value={naming}
+                          onChange={(e) => {
+                            setNaming(e.target.value);
+                            setNameError(null);
+                          }}
+                        />
+                      </label>
+                      {nameError && (
+                        <p role="alert" className="settings__hint">
+                          {nameError}
+                        </p>
+                      )}
+                      <div className="theme-naming__actions">
+                        <button type="submit" className="btn btn--sm">
+                          {t("settings.appearance.createTheme")}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--sm"
+                          onClick={() => {
+                            setNaming(null);
+                            setNameError(null);
+                          }}
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {savedThemes.length === 0 && <p className="settings__hint">{t("settings.appearance.noYourThemes")}</p>}
               <div
                 className="themes"
                 role="radiogroup"
@@ -441,15 +511,13 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                     </button>
                   </div>
                 ))}
-                <button type="button" className="theme-card theme-card--new" onClick={createTheme}>
-                  <span className="theme-card__plus" aria-hidden="true">+</span>
-                  <span className="theme-card__name">{t("settings.appearance.newTheme")}</span>
-                  <span className="theme-card__desc">{t("settings.appearance.newThemeDesc")}</span>
-                </button>
               </div>
 
               {theme === "custom" && (
                 <div className="custom-palette">
+                  <h3 id="theme-editor-title" className="settings__subhead">
+                    {t("settings.appearance.editorTitle", { name: activeName ?? "" })}
+                  </h3>
                   <fieldset>
                     <legend>{t("settings.appearance.colors")}</legend>
                     {COLOR_FIELDS.map(([field, label]) => (

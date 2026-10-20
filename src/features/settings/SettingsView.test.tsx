@@ -50,7 +50,7 @@ describe("SettingsView", () => {
     expect(screen.queryByRole("radio", { name: /Terminal/ })).toBeNull();
     const mine = screen.getByRole("radiogroup", { name: "Seus temas" });
     expect(mine.textContent).toContain("Mar");
-    expect(mine.textContent).toContain("Novo tema");
+    expect(screen.getByRole("button", { name: /Novo tema/ })).toBeTruthy();
   });
 
   it("a aba escolhida fica salva e volta a abrir nela", () => {
@@ -84,11 +84,42 @@ describe("SettingsView", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
     fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar tema" }));
 
     const saved = JSON.parse(localStorage.getItem("luna.savedThemes")!);
     expect(saved[0].name).toBe("Tema 1");
     expect(screen.getByRole("radio", { name: /Tema 1/ }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByLabelText("Fonte")).toBeTruthy();
+  });
+
+  it("Novo tema pede o nome; o nome digitado vira o nome do cartão", () => {
+    localStorage.setItem(THEME_KEY, "luna");
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
+    fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
+    fireEvent.change(screen.getByLabelText("Nome do tema"), { target: { value: "  Oceano  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Criar tema" }));
+
+    expect(JSON.parse(localStorage.getItem("luna.savedThemes")!)[0].name).toBe("Oceano");
+    expect(screen.getByRole("radio", { name: /Oceano/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("nome vazio ou repetido não cria o tema e mostra o motivo", () => {
+    localStorage.setItem("luna.savedThemes", JSON.stringify([{ name: "Mar", palette: { ...DEFAULT_PALETTE } }]));
+    localStorage.setItem(THEME_KEY, "luna");
+    render(<SettingsView onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
+    fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
+    fireEvent.change(screen.getByLabelText("Nome do tema"), { target: { value: "   " } });
+    fireEvent.click(screen.getByRole("button", { name: "Criar tema" }));
+    expect(screen.getByRole("alert").textContent).toContain("Digite um nome");
+
+    fireEvent.change(screen.getByLabelText("Nome do tema"), { target: { value: "Mar" } });
+    fireEvent.click(screen.getByRole("button", { name: "Criar tema" }));
+    expect(screen.getByRole("alert").textContent).toContain("Já existe");
+    expect(JSON.parse(localStorage.getItem("luna.savedThemes")!)).toHaveLength(1);
   });
 
   it("Novo tema abre a aba Meus temas com o editor; voltar a Temas do Luna mostra a lista de fábrica", () => {
@@ -97,6 +128,7 @@ describe("SettingsView", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
     fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar tema" }));
 
     expect(screen.queryByRole("radio", { name: /Luna/ })).toBeNull();
     expect(screen.getByRole("radiogroup", { name: "Seus temas" }).textContent).toContain("Tema 1");

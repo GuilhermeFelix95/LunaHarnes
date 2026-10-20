@@ -3,6 +3,7 @@ pub mod claude;
 pub mod cline;
 pub mod codex;
 pub mod copilot;
+pub mod hermes;
 pub mod opencode;
 
 use std::path::{Path, PathBuf};
@@ -19,6 +20,7 @@ pub enum ProviderKind {
     Cline,
     Copilot,
     Antigravity,
+    Hermes,
 }
 
 /// Navegador do agente, escolhido em Configurações. Só um vale por execução.
@@ -229,6 +231,7 @@ pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
         ProviderKind::Copilot => Ok(request.prompt.clone()),
         // O Antigravity recebe o prompt colado ao `-p` (ver providers/antigravity.rs); o stdin fica vazio.
         ProviderKind::Antigravity => Ok(String::new()),
+        ProviderKind::Hermes => Ok(String::new()),
     }
 }
 
@@ -578,6 +581,7 @@ pub fn parse_line(kind: ProviderKind, line: &str) -> Vec<ProviderEvent> {
         ProviderKind::Cline => cline::parse_line(line),
         ProviderKind::Copilot => copilot::parse_line(line),
         ProviderKind::Antigravity => antigravity::parse_line(line),
+        ProviderKind::Hermes => hermes::parse_line(line),
     }
 }
 
@@ -592,6 +596,7 @@ pub fn cli_args(request: &RunRequest) -> Vec<String> {
         ProviderKind::Cline => Vec::new(),
         ProviderKind::Copilot => copilot::args(request),
         ProviderKind::Antigravity => antigravity::args(request),
+        ProviderKind::Hermes => Vec::new(),
     }
 }
 
@@ -604,6 +609,7 @@ pub fn label(kind: ProviderKind) -> &'static str {
         ProviderKind::Cline => "Cline",
         ProviderKind::Copilot => "GitHub Copilot",
         ProviderKind::Antigravity => "Antigravity",
+        ProviderKind::Hermes => "Hermes",
     }
 }
 
@@ -633,6 +639,7 @@ pub fn cli_name(kind: ProviderKind) -> &'static str {
         ProviderKind::Cline => "cline",
         ProviderKind::Copilot => "copilot",
         ProviderKind::Antigravity => "agy",
+        ProviderKind::Hermes => "hermes",
     }
 }
 

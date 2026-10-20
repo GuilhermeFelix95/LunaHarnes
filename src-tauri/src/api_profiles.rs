@@ -150,20 +150,20 @@ impl Preset {
                 "minimax-m3",
             ),
             // Endereços e modelos conferidos na documentação de cada provedor (pesquisa de junho/2026; a prévia do Meta pode mudar).
-            Preset::MiniMax => ("MiniMax", ProviderKind::Claude, "https://api.minimax.io/anthropic", &["MiniMax-M3"], "MiniMax-M3"),
+            Preset::MiniMax => ("MiniMax", ProviderKind::Claude, "https://api.minimax.io/anthropic", &["MiniMax-M3", "MiniMax-M2.7"], "MiniMax-M3"),
             Preset::XiaomiMimo => (
                 "Xiaomi MiMo",
                 ProviderKind::Claude,
                 "https://api.xiaomimimo.com/anthropic",
-                &["mimo-v2.5-pro"],
-                "mimo-v2.5-pro",
+                &["mimo-v2.6-pro", "mimo-v2.6-flash"],
+                "mimo-v2.6-pro",
             ),
             // Qwen: o endereço sai do espaço de trabalho da conta no console da Alibaba Cloud (região e workspace), então não tem padrão.
-            Preset::Qwen => ("Qwen (Alibaba Cloud)", ProviderKind::Claude, "", &["qwen3.7-max"], "qwen3.7-max"),
+            Preset::Qwen => ("Qwen (Alibaba Cloud)", ProviderKind::Claude, "", &["qwen3.7-max", "qwen3.8-max"], "qwen3.7-max"),
             // Prévia: a chave vem de dev.meta.ai e o acesso pode depender de lista de espera.
-            Preset::MetaMuse => ("Meta Muse (prévia)", ProviderKind::Claude, "https://api.meta.ai", &["muse-spark-1.1"], "muse-spark-1.1"),
+            Preset::MetaMuse => ("Meta Muse (prévia)", ProviderKind::Claude, "https://api.meta.ai", &["muse-spark-1.2", "muse-spark-1.1"], "muse-spark-1.2"),
             // Ollama local: não exige chave de verdade; qualquer texto serve. Os modelos precisam estar baixados no Ollama.
-            Preset::Ollama => ("Ollama (local)", ProviderKind::Claude, "http://localhost:11434", &["qwen3-coder"], "qwen3-coder"),
+            Preset::Ollama => ("Ollama (local)", ProviderKind::Claude, "http://localhost:11434", &["qwen3.6:27b", "qwen3-coder:30b"], "qwen3.6:27b"),
             // NVIDIA só tem endpoint compatível com OpenAI, então roda pelo OpenCode. Os modelos vêm da própria API (Atualizar lista).
             Preset::Nvidia => ("NVIDIA (via OpenCode)", ProviderKind::OpenCode, "https://integrate.api.nvidia.com/v1", &[], ""),
             // Qualquer endpoint compatível com OpenAI, pelo OpenCode. O endereço precisa incluir o /v1 do provedor.
@@ -499,7 +499,7 @@ pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(S
             env.push((OPENCODE_KEY_VAR.into(), api_key.into()));
             env.push(("OPENCODE_CONFIG_CONTENT".into(), opencode_profile_config(profile)));
         }
-        ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity => {}
+        ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity | ProviderKind::Hermes => {}
     }
     env
 }
@@ -802,14 +802,14 @@ mod tests {
 
         let mimo = Preset::XiaomiMimo.info();
         assert_eq!(mimo.default_base_url, "https://api.xiaomimimo.com/anthropic");
-        assert_eq!(mimo.default_model, "mimo-v2.5-pro");
+        assert_eq!(mimo.default_model, "mimo-v2.6-pro");
 
         // Qwen: o endereço depende do espaço de trabalho da conta; não há um padrão único.
         assert!(Preset::Qwen.info().default_base_url.is_empty());
 
         let muse = Preset::MetaMuse.info();
         assert_eq!(muse.default_base_url, "https://api.meta.ai");
-        assert_eq!(muse.default_model, "muse-spark-1.1");
+        assert_eq!(muse.default_model, "muse-spark-1.2");
 
         let ollama = Preset::Ollama.info();
         assert_eq!(ollama.default_base_url, "http://localhost:11434");

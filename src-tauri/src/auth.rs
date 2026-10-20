@@ -25,6 +25,7 @@ pub fn status_with_env(kind: ProviderKind, env: &[(String, String)]) -> Result<b
         ProviderKind::Codex => (&["login", "status"], "Codex"),
         // --standalone: o servidor em segundo plano não lê as pastas XDG desta conta (ver accounts.rs).
         ProviderKind::OpenCode => (&["auth", "list", "--standalone"], "OpenCode"),
+        ProviderKind::Hermes => (&["auth", "list"], "Hermes"),
         ProviderKind::Cline => return Ok(crate::providers::cline::logged_in_at(env_value(env, "CLINE_DIR"))),
         // O Copilot não tem comando de status: a verificação manda uma pergunta curta (ver providers/copilot.rs).
         ProviderKind::Copilot => return Ok(crate::providers::copilot::logged_in_with(env)),
@@ -48,6 +49,7 @@ pub fn status_with_env(kind: ProviderKind, env: &[(String, String)]) -> Result<b
         ProviderKind::Codex => output.status.success(),
         // `auth list` marca com "stored" cada provedor com credencial salva; sem nenhum, a lista não traz essa marca.
         ProviderKind::OpenCode => output.status.success() && String::from_utf8_lossy(&output.stdout).contains("stored"),
+        ProviderKind::Hermes => crate::providers::hermes::has_credentials(&String::from_utf8_lossy(&output.stdout)),
         ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity => unreachable!("o Cline, o Copilot e o Antigravity já retornaram acima"),
     })
 }
@@ -68,6 +70,7 @@ fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(St
         ProviderKind::Copilot => ("copilot", &["login"]),
         // Sem subcomando de login: o `agy` abre o fluxo de conta (Google) no próprio terminal.
         ProviderKind::Antigravity => ("agy", &[]),
+        ProviderKind::Hermes => ("hermes", &["portal"]),
     };
     let program = resolved.ok_or_else(|| {
         format!("{name} não encontrado no PATH. Instale o CLI antes de entrar na conta.")

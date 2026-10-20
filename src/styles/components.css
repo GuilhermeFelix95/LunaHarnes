@@ -3500,3 +3500,23 @@ textarea:focus-visible {
   height: auto;
   animation: luna-atom-bob 4s ease-in-out infinite;
 }
+
+/* Meus temas: cabeçalho com o botão Novo tema, formulário de nome e o editor do tema ativo. */
+.themes-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.theme-naming {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  max-width: 360px;
+}
+
+.theme-naming__actions {
+  display: flex;
+  gap: 8px;
+}

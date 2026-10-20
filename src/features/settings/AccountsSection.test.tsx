@@ -137,6 +137,20 @@ describe("Contas: contas extras", () => {
     await waitFor(() => expect(accountLogin).toHaveBeenCalledWith("codex-1"));
   });
 
+  it("Hermes instalado e sem login mostra Conectar, que abre o login dele", async () => {
+    vi.mocked(cliStatus).mockResolvedValueOnce([
+      { provider: "claude", installed: true, path: "C:\\claude.exe" },
+      { provider: "codex", installed: true, path: "C:\\codex.exe" },
+      { provider: "hermes", installed: true, path: "C:\\hermes.exe" },
+    ]);
+    render(<AccountsSection />);
+
+    const hermes = (await screen.findByText("Hermes")).closest("li") as HTMLElement;
+    fireEvent.click(await within(hermes).findByRole("button", { name: "Conectar" }));
+
+    await waitFor(() => expect(openLogin).toHaveBeenCalledWith("hermes"));
+  });
+
   it("Cline aceita conta extra, e o Antigravity só explica por que não aceita", async () => {
     render(<AccountsSection />);
 

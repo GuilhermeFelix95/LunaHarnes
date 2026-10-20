@@ -516,10 +516,21 @@ pub fn delete_conversation(app: AppHandle, id: String) -> Result<(), String> {
     conversations::delete(&conversations_dir(&app)?, &id)
 }
 
-/// Situação das CLIs (Claude Code e Codex): instaladas ou não, e onde.
+/// Situação de todas as CLIs da página Contas: instaladas ou não, e onde. Sem isso, o botão de conectar não aparece.
 #[tauri::command]
 pub fn cli_status() -> Vec<setup::CliStatus> {
-    vec![setup::status(ProviderKind::Claude), setup::status(ProviderKind::Codex)]
+    [
+        ProviderKind::Claude,
+        ProviderKind::Codex,
+        ProviderKind::OpenCode,
+        ProviderKind::Cline,
+        ProviderKind::Copilot,
+        ProviderKind::Antigravity,
+        ProviderKind::Hermes,
+    ]
+    .into_iter()
+    .map(setup::status)
+    .collect()
 }
 
 /// Roda o instalador oficial da CLI pedida. Demora (baixa o binário), por isso roda fora da thread principal.

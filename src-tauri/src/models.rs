@@ -231,6 +231,7 @@ pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
         ProviderKind::Cline => Ok(cline_catalog()),
         ProviderKind::Copilot => Ok(copilot_catalog()),
         ProviderKind::Antigravity => antigravity_catalog(),
+        ProviderKind::Hermes => Ok(Vec::new()),
     }
 }
 

@@ -4,7 +4,7 @@ import type { Account, CliStatus, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { t } from "../../i18n";
 
-const ALL_PROVIDERS: ProviderKind[] = ["claude", "codex", "opencode", "cline", "copilot", "antigravity"];
+const ALL_PROVIDERS: ProviderKind[] = ["claude", "codex", "opencode", "cline", "copilot", "antigravity", "hermes"];
 /// O que já foi visto: CLI instalada e login conectado, lembrados no computador.
 const CACHE_KEY = "luna.accounts";
 /// Marca que a checagem completa já rodou nesta abertura do app.
@@ -185,12 +185,12 @@ export function AccountsSection() {
       <h2 id="settings-accounts">{t("settings.nav.accounts")}</h2>
       <p className="settings__hint">{t("accounts.help")}</p>
       <ul className="settings-list">
-        {(["claude", "codex", "opencode", "cline", "copilot", "antigravity"] as ProviderKind[]).map((p) => {
+        {(["claude", "codex", "opencode", "cline", "copilot", "antigravity", "hermes"] as ProviderKind[]).map((p) => {
           const installed = cli[p]?.installed;
           const connected = login[p] === true;
           // Logada: nada a fazer. Instalada mas sem login: só o login. Sem CLI: baixar e conectar.
           // O OpenCode, o Cline, o Copilot e o Antigravity não têm instalador pelo app: sem CLI, a pessoa instala pelo site ou pelo gerenciador.
-          const canDownload = p !== "opencode" && p !== "cline" && p !== "copilot" && p !== "antigravity";
+          const canDownload = p !== "opencode" && p !== "cline" && p !== "copilot" && p !== "antigravity" && p !== "hermes";
           const action = connected || installed === undefined ? null : installed ? t("accounts.connect") : canDownload ? t("accounts.downloadConnect") : null;
           // Estado da conexão: o ponto de cor mostra de relance o que o texto diz.
           const state = login[p] === true ? "connected" : login[p] === undefined ? "checking" : login[p] === null ? "failed" : "off";
@@ -208,7 +208,7 @@ export function AccountsSection() {
               </div>
               {installed && cli[p]?.path && <p className="account-card__path">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</p>}
               {installed === false && !canDownload && (
-                <p className="account-card__hint">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : "accounts.opencodeInstall")}</p>
+                <p className="account-card__hint">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : p === "hermes" ? "accounts.hermesInstall" : "accounts.opencodeInstall")}</p>
               )}
               {errors[p] && (
                 <p className="notice" role="alert">
@@ -216,7 +216,7 @@ export function AccountsSection() {
                 </p>
               )}
               {p === "antigravity" && <p className="account-card__hint">{t("accounts.antigravityNoExtra")}</p>}
-              {p !== "antigravity" && (
+              {p !== "antigravity" && p !== "hermes" && (
                 <div className="account-extra">
                   <strong className="account-extra__title">{t("accounts.extraTitle")}</strong>
                   {accounts
