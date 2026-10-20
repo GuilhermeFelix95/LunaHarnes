@@ -188,3 +188,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Perfis de API aparecem só com o nome (sem "· via Claude Code") no seletor e nas mensagens.
 2026-10-20 | Orquestrador: cada papel escolhe CLI ou perfil de API; papel com CLI não herda o perfil da conversa; subagente só Claude sem perfil.
 2026-10-20 | Temas em duas abas na Aparência: "Temas do Luna" e "Meus temas" (Novo tema e editor ficam em Meus temas). A aba lembrada fica em luna.themesTab.
+2026-10-20 | Alterações: o diff mostra a linha antiga e a nova em cada linha (tabela, parseDiffLines). Painel estreito rola na horizontal.

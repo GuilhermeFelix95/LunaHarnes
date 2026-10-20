@@ -1897,6 +1897,28 @@ textarea:focus-visible {
   color: var(--muted);
 }
 
+/* Diff em tabela: número da linha antiga, número da nova e o texto. Painel estreito rola na horizontal. */
+.diff-table {
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  min-width: 100%;
+  width: max-content;
+}
+
+.diff-num {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 8px 0 0;
+  text-align: right;
+  user-select: none;
+  vertical-align: top;
+}
+
+.diff-code {
+  padding: 0;
+  white-space: pre;
+}
+
 /* Terminal embaixo da coluna do chat */
 .terminal {
   flex: 1;

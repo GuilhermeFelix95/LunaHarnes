@@ -3,6 +3,7 @@ import { discardChange, getChanges, getFileDiff } from "../../api";
 import type { ChangedFile, Changes } from "../../types";
 import { EmptyState } from "../../ui/EmptyState";
 import { t, type MessageKey } from "../../i18n";
+import { parseDiffLines, type DiffLine } from "./diffLines";
 
 interface ChangesPanelProps {
   cwd: string;
@@ -149,22 +150,27 @@ export function ChangesPanel({ cwd, version, active = true }: ChangesPanelProps)
       </ul>
 
       {selected && (
-        <pre className="changes__diff" aria-label={t("changes.diffAria", { path: selected })}>
-          {diff.split("\n").map((line, i) => (
-            <span key={i} className={lineClass(line)}>
-              {line}
-              {"\n"}
-            </span>
-          ))}
-        </pre>
+        <div className="changes__diff" role="region" aria-label={t("changes.diffAria", { path: selected })}>
+          <table className="diff-table">
+            <tbody>
+              {parseDiffLines(diff).map((line, i) => (
+                <tr key={i} className={DIFF_CLASS[line.kind]}>
+                  <td className="diff-num">{line.oldNo ?? ""}</td>
+                  <td className="diff-num">{line.newNo ?? ""}</td>
+                  <td className="diff-code">{line.text}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </aside>
   );
 }
 
-function lineClass(line: string): string {
-  if (line.startsWith("+") && !line.startsWith("+++")) return "diff-line diff-line--add";
-  if (line.startsWith("-") && !line.startsWith("---")) return "diff-line diff-line--del";
-  if (line.startsWith("@@")) return "diff-line diff-line--hunk";
-  return "diff-line";
-}
+const DIFF_CLASS: Record<DiffLine["kind"], string | undefined> = {
+  add: "diff-line--add",
+  del: "diff-line--del",
+  hunk: "diff-line--hunk",
+  ctx: undefined,
+};

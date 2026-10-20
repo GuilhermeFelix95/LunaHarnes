@@ -53,6 +53,20 @@ describe("ChangesPanel", () => {
     expect(document.querySelector(".diff-line--del")?.textContent).toContain("-velho");
   });
 
+  it("o diff mostra o número da linha antiga e da nova em cada linha", async () => {
+    vi.mocked(api.getChanges).mockResolvedValue(changed as never);
+    vi.mocked(api.getFileDiff).mockResolvedValue("@@ -10,2 +10,3 @@\n um\n+tres\n-velho\n dois\n");
+    render(<ChangesPanel cwd={"C:\\projeto"} version={0} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /^src\/a\.ts/ }));
+
+    await waitFor(() => expect(document.querySelector(".diff-line--add")).not.toBeNull());
+    const added = Array.from(document.querySelector(".diff-line--add")!.querySelectorAll(".diff-num")).map((c) => c.textContent);
+    const removed = Array.from(document.querySelector(".diff-line--del")!.querySelectorAll(".diff-num")).map((c) => c.textContent);
+    expect(added).toEqual(["", "11"]);
+    expect(removed).toEqual(["11", ""]);
+  });
+
   it("clicar de novo no arquivo aberto fecha o diff", async () => {
     vi.mocked(api.getChanges).mockResolvedValue(changed as never);
     vi.mocked(api.getFileDiff).mockResolvedValue("@@ -1 +1 @@\n+novo\n");
