@@ -1,36 +1,30 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, File, Folder, FolderOpen, X } from "lucide-react";
-import { listProjectDir, readProjectFile } from "../../api";
+import { ChevronDown, ChevronRight, File, Folder, FolderOpen } from "lucide-react";
+import { listProjectDir } from "../../api";
 import type { ProjectEntry } from "../../types";
 import { t } from "../../i18n";
 
 interface FilesPanelProps {
   /** Pasta do projeto da conversa. Trocar a pasta recomeça a árvore. */
   cwd: string;
-  /** Avisa quando a prévia abre ou fecha, para o painel se alargar ao lado. */
-  onPreview?: (open: boolean) => void;
+  /** Arquivo aberto no editor do chat, marcado na árvore. */
+  activePath?: string | null;
+  /** Clicar num arquivo: o chat dá lugar ao editor desse arquivo. */
+  onOpen?: (path: string) => void;
 }
 
-/// Arquivos do projeto como no Claude Desktop: árvore que abre pastas sob demanda, filtro pelo nome
-/// e um visualizador de texto. Só leitura: nada aqui grava ou apaga arquivo.
-export function FilesPanel({ cwd, onPreview }: FilesPanelProps) {
+/// Arquivos do projeto: árvore que abre pastas sob demanda e filtro pelo nome.
+/// Clicar num arquivo não lê nada aqui: quem abre é o editor no lugar do chat.
+export function FilesPanel({ cwd, activePath, onOpen }: FilesPanelProps) {
   // Itens já lidos de cada pasta ("" = raiz). Pastas só são lidas quando abertas.
   const [children, setChildren] = useState<Record<string, ProjectEntry[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
-  const [viewing, setViewing] = useState<{ path: string; content?: string; error?: string } | null>(null);
-
-  // Prévia aberta = painel mais largo. Fechar o painel também devolve a largura normal.
-  useEffect(() => {
-    onPreview?.(viewing !== null);
-  }, [viewing, onPreview]);
-  useEffect(() => () => onPreview?.(false), [onPreview]);
 
   useEffect(() => {
     setChildren({});
     setExpanded(new Set());
-    setViewing(null);
     setError(null);
     void load("").catch((e) => setError(String(e)));
   }, [cwd]);
@@ -57,16 +51,6 @@ export function FilesPanel({ cwd, onPreview }: FilesPanelProps) {
     }
   }
 
-  async function open(entry: ProjectEntry) {
-    setViewing({ path: entry.path });
-    try {
-      const content = await readProjectFile(cwd, entry.path);
-      setViewing({ path: entry.path, content });
-    } catch (e) {
-      setViewing({ path: entry.path, error: String(e) });
-    }
-  }
-
   const needle = filter.trim().toLowerCase();
   // Com filtro, mostra só o que bate com o nome entre os itens já abertos.
   const matches = (entry: ProjectEntry) => !needle || entry.name.toLowerCase().includes(needle);
@@ -83,10 +67,10 @@ export function FilesPanel({ cwd, onPreview }: FilesPanelProps) {
               type="button"
               role="treeitem"
               aria-expanded={entry.isDir ? isOpen : undefined}
-              aria-selected={viewing?.path === entry.path}
-              className={`files__row${viewing?.path === entry.path ? " files__row--active" : ""}`}
+              aria-selected={activePath === entry.path}
+              className={`files__row${activePath === entry.path ? " files__row--active" : ""}`}
               style={{ paddingLeft: 8 + depth * 14 }}
-              onClick={() => (entry.isDir ? void toggle(entry) : void open(entry))}
+              onClick={() => (entry.isDir ? void toggle(entry) : onOpen?.(entry.path))}
               title={entry.path}
             >
               {entry.isDir ? (
@@ -109,8 +93,7 @@ export function FilesPanel({ cwd, onPreview }: FilesPanelProps) {
   }
 
   return (
-    <div className={viewing ? "files__split files__split--preview" : "files__split"}>
-      <div className="files__list">
+    <div className="files__list">
       <input
         className="files__filter"
         type="search"
@@ -128,27 +111,6 @@ export function FilesPanel({ cwd, onPreview }: FilesPanelProps) {
         {renderLevel("", 0)}
       </ul>
       {!error && children[""] && children[""].length === 0 && <p className="files__empty">{t("files.empty")}</p>}
-      </div>
-
-      {viewing && (
-        <section className="files__viewer" aria-label={viewing.path}>
-          <header className="files__viewer-head">
-            <span className="files__viewer-path">{viewing.path}</span>
-            <button type="button" className="files__viewer-close" aria-label={t("files.close")} onClick={() => setViewing(null)}>
-              <X size={14} aria-hidden="true" />
-            </button>
-          </header>
-          {viewing.error ? (
-            <p role="alert" className="files__error">
-              {viewing.error}
-            </p>
-          ) : viewing.content === undefined ? (
-            <p className="files__empty">{t("files.reading")}</p>
-          ) : (
-            <pre className="files__code">{viewing.content}</pre>
-          )}
-        </section>
-      )}
     </div>
   );
 }

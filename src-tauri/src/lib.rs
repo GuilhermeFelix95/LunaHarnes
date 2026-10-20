@@ -102,6 +102,7 @@ pub fn run() {
             commands::record_spec_decisions,
             commands::list_project_dir,
             commands::read_project_file,
+            commands::write_project_file,
             worktrees::list_git_branches,
             worktrees::create_git_worktree,
             reload::config_fingerprint,

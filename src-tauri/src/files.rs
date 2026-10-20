@@ -80,10 +80,57 @@ pub fn read_text(root: &Path, rel: &str) -> Result<String, String> {
     String::from_utf8(bytes).map_err(|_| format!("`{rel}` não está em UTF-8, não dá para mostrar como texto"))
 }
 
+/// Grava um arquivo de texto que já existe no projeto. Escrita em arquivo temporário e troca no fim,
+/// para uma falha no meio não deixar o arquivo pela metade.
+pub fn write_text(root: &Path, rel: &str, content: &str) -> Result<(), String> {
+    if content.len() as u64 > MAX_READ_BYTES {
+        return Err(format!("o texto é grande demais para salvar aqui ({} KB)", content.len() / 1024));
+    }
+    let file = resolve(root, rel)?;
+    if !file.is_file() {
+        return Err(format!("não é um arquivo: `{rel}`"));
+    }
+    let name = file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let temp = file.with_file_name(format!(".{name}.lunasave"));
+    fs::write(&temp, content).map_err(|e| format!("não foi possível salvar `{rel}`: {e}"))?;
+    fs::rename(&temp, &file).map_err(|e| {
+        let _ = fs::remove_file(&temp);
+        format!("não foi possível salvar `{rel}`: {e}")
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::env;
+
+    #[test]
+    fn writes_over_an_existing_file_inside_the_project() {
+        let dir = project("write");
+
+        write_text(&dir, "src/main.rs", "fn main() { println!(\"oi\"); }").unwrap();
+
+        assert_eq!(read_text(&dir, "src/main.rs").unwrap(), "fn main() { println!(\"oi\"); }");
+        assert!(!dir.join("src").join(".main.rs.lunasave").exists());
+    }
+
+    #[test]
+    fn refuses_to_write_outside_the_project_or_to_create_files() {
+        let dir = project("write-escape");
+
+        assert!(write_text(&dir, "../fora.txt", "x").is_err());
+        assert!(write_text(&dir, "/etc/hosts", "x").is_err());
+        assert!(write_text(&dir, "novo.txt", "x").is_err());
+        assert!(!dir.join("novo.txt").exists());
+    }
+
+    #[test]
+    fn refuses_text_too_large_to_read_back() {
+        let dir = project("write-large");
+        let grande = "a".repeat((MAX_READ_BYTES + 1) as usize);
+
+        assert!(write_text(&dir, "README.md", &grande).unwrap_err().contains("grande demais"));
+    }
 
     fn project(name: &str) -> std::path::PathBuf {
         let dir = env::temp_dir().join(format!("lunaharness-files-{name}-{}", std::process::id()));

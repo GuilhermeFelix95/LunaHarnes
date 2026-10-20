@@ -157,6 +157,11 @@ export function readProjectFile(cwd: string, path: string): Promise<string> {
   return invoke("read_project_file", { cwd, path });
 }
 
+/// Grava o texto de um arquivo que já existe no projeto (o editor do painel de arquivos).
+export function writeProjectFile(cwd: string, path: string, content: string): Promise<void> {
+  return invoke("write_project_file", { cwd, path, content });
+}
+
 /// Arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md...). Só confere; não cria nada.
 export function projectCheck(cwd: string): Promise<ProjectFile[]> {
   return invoke("project_check", { cwd });

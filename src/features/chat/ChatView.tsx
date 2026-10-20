@@ -49,6 +49,7 @@ import { useStickToBottom } from "../../chat/useStickToBottom";
 import { AUTOFIX_MAX_ATTEMPTS, PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
 import { FilesPanel } from "../side/FilesPanel";
+import { FileEditor } from "../side/FileEditor";
 import { cliPrompt, filterSlash, LUNA_COMMANDS, parseLunaCommand, slashQuery, type SlashItem } from "../../chat/slash";
 import { extractPluginOffer } from "../../chat/pluginOffer";
 import { PluginOfferCard } from "./PluginOfferCard";
@@ -247,8 +248,10 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Sempre começa fechado: o painel direito só abre quando o usuário pede.
   const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
-  // Prévia de arquivo aberta na aba Arquivos: o painel fica mais largo (ver RightPanel `wide`).
-  const [filePreview, setFilePreview] = useState(false);
+  // Arquivo aberto no editor, no lugar do chat. Fechar o editor volta ao chat.
+  const [editingPath, setEditingPath] = useState<string | null>(null);
+  // Outra pasta de projeto: o arquivo aberto era de outro lugar, então o editor fecha.
+  useEffect(() => setEditingPath(null), [cwd]);
   // Link aberto com Ctrl+clique numa resposta: o painel do navegador abre uma aba nova com ele.
   const [browserRequest, setBrowserRequest] = useState<{ url: string } | null>(null);
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
@@ -1130,7 +1133,11 @@ ${outgoing}`
       </header>
 
       <div className="chat__split">
-      <div className="chat__column">
+      {editingPath && cwd && (
+        <FileEditor key={`${cwd}:${editingPath}`} cwd={cwd} path={editingPath} onClose={() => setEditingPath(null)} />
+      )}
+      {/* Escondida, não desmontada: a resposta em andamento continua enquanto o editor está aberto. */}
+      <div className="chat__column" hidden={editingPath !== null}>
       <div className="chat__body" ref={body}>
         {loggedIn === false && profileId && (
           <p role="alert" className="chat__notes">
@@ -1328,8 +1335,7 @@ ${outgoing}`
           setSideTab(tab);
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} active={sideOpen && sideTab === "changes"} /> : null}
-        files={cwd ? <FilesPanel cwd={cwd} onPreview={setFilePreview} /> : null}
-        wide={filePreview}
+        files={cwd ? <FilesPanel cwd={cwd} activePath={editingPath} onOpen={setEditingPath} /> : null}
         plan={plan}
         todos={displayTodos(toTodos(tasks), running)}
         running={running}

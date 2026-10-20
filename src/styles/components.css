@@ -1156,6 +1156,11 @@ textarea:focus-visible {
   min-height: 0;
 }
 
+/* hidden precisa ganhar do display: flex acima: com o editor aberto, o chat some sem desmontar */
+.chat__column[hidden] {
+  display: none;
+}
+
 .chat__foot {
   display: flex;
   flex-wrap: wrap;
@@ -1768,23 +1773,12 @@ textarea:focus-visible {
   flex: 1;
 }
 
-/* Árvore e prévia: uma coluna, e com prévia aberta, as duas lado a lado */
-.files__split {
-  display: grid;
-  flex: 1;
-  min-height: 0;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.files__split--preview {
-  grid-template-columns: minmax(170px, 1fr) minmax(0, 2fr);
-}
-
 .files__list {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  flex: 1;
 }
 
 .files__row {
@@ -1830,33 +1824,54 @@ textarea:focus-visible {
   color: var(--error);
 }
 
-.files__viewer {
+/* Editor de arquivo, no lugar do chat */
+.file-editor {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border-left: 1px solid var(--border);
 }
 
-.files__viewer-head {
+.file-editor__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
 }
 
-.files__viewer-path {
+.file-editor__head .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-editor__path {
+  flex: 1;
+  min-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
+}
+
+.file-editor__status,
+.file-editor__auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
-.files__viewer-close {
+.file-editor__auto {
+  cursor: pointer;
+}
+
+.file-editor__close {
   flex: none;
   display: inline-flex;
   padding: 4px;
@@ -1867,13 +1882,21 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
-.files__code {
+.file-editor__text {
+  flex: 1;
+  min-height: 0;
   margin: 0;
-  padding: 8px;
+  padding: 12px;
+  border: none;
+  outline: none;
+  resize: none;
   overflow: auto;
+  background: transparent;
+  color: var(--fg);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   line-height: 1.5;
+  tab-size: 2;
   white-space: pre;
 }
 

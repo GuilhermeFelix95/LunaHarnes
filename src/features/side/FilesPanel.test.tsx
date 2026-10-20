@@ -13,15 +13,13 @@ vi.mock("../../api", () => ({
     if (path === "src") return [{ name: "main.rs", path: "src/main.rs", isDir: false }];
     throw new Error("não é uma pasta");
   }),
-  readProjectFile: vi.fn(async () => "fn main() {}"),
 }));
 
-import { listProjectDir, readProjectFile } from "../../api";
+import { listProjectDir } from "../../api";
 
 describe("aba Arquivos", () => {
   beforeEach(() => {
     vi.mocked(listProjectDir).mockClear();
-    vi.mocked(readProjectFile).mockClear();
   });
 
   it("mostra a raiz do projeto, com pastas antes dos arquivos", async () => {
@@ -41,13 +39,20 @@ describe("aba Arquivos", () => {
     expect(listProjectDir).toHaveBeenCalledWith("/projeto", "src");
   });
 
-  it("clicar num arquivo mostra o conteúdo, só para leitura", async () => {
-    render(<FilesPanel cwd="/projeto" />);
+  it("clicar num arquivo avisa quem abre o editor, sem ler o conteúdo aqui", async () => {
+    const onOpen = vi.fn();
+    render(<FilesPanel cwd="/projeto" onOpen={onOpen} />);
 
     fireEvent.click(await screen.findByRole("treeitem", { name: /README/ }));
 
-    await waitFor(() => expect(document.querySelector(".files__code")?.textContent).toBe("fn main() {}"));
-    expect(readProjectFile).toHaveBeenCalledWith("/projeto", "README.md");
+    expect(onOpen).toHaveBeenCalledWith("README.md");
+  });
+
+  it("o arquivo que está no editor fica marcado na árvore", async () => {
+    render(<FilesPanel cwd="/projeto" activePath="README.md" />);
+
+    expect((await screen.findByRole("treeitem", { name: /README/ })).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("treeitem", { name: /src/ }).getAttribute("aria-selected")).toBe("false");
   });
 
   it("filtro pelo nome esconde arquivos que não batem, mas mantém as pastas", async () => {
@@ -65,29 +70,5 @@ describe("aba Arquivos", () => {
     render(<FilesPanel cwd="/projeto" />);
 
     expect((await screen.findByRole("alert")).textContent).toContain("não foi possível ler a pasta");
-  });
-
-  it("com arquivo aberto, a prévia fica ao lado da árvore e avisa o painel", async () => {
-    const onPreview = vi.fn();
-    const { container } = render(<FilesPanel cwd="/projeto" onPreview={onPreview} />);
-
-    fireEvent.click(await screen.findByRole("treeitem", { name: /README/ }));
-
-    await waitFor(() => expect(container.querySelector(".files__split--preview")).toBeTruthy());
-    expect(container.querySelector(".files__list .files__tree")).toBeTruthy();
-    expect(container.querySelector(".files__viewer .files__code")).toBeTruthy();
-    expect(onPreview).toHaveBeenLastCalledWith(true);
-  });
-
-  it("fechar a prévia devolve o layout de uma coluna e avisa o painel", async () => {
-    const onPreview = vi.fn();
-    const { container } = render(<FilesPanel cwd="/projeto" onPreview={onPreview} />);
-    fireEvent.click(await screen.findByRole("treeitem", { name: /README/ }));
-    await waitFor(() => expect(container.querySelector(".files__code")).toBeTruthy());
-
-    fireEvent.click(screen.getByRole("button", { name: "Fechar arquivo" }));
-
-    expect(container.querySelector(".files__split--preview")).toBeNull();
-    expect(onPreview).toHaveBeenLastCalledWith(false);
   });
 });

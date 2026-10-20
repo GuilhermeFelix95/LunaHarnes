@@ -587,6 +587,14 @@ pub async fn read_project_file(cwd: String, path: String) -> Result<String, Stri
         .map_err(|e| format!("falha ao ler o arquivo: {e}"))?
 }
 
+/// Grava um arquivo de texto que já existe no projeto (editor do painel de arquivos).
+#[tauri::command]
+pub async fn write_project_file(cwd: String, path: String, content: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || files::write_text(Path::new(&cwd), &path, &content))
+        .await
+        .map_err(|e| format!("falha ao salvar o arquivo: {e}"))?
+}
+
 /// Arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md...). Só confere se existem.
 #[tauri::command]
 pub async fn project_check(cwd: String) -> Result<Vec<project::ProjectFile>, String> {

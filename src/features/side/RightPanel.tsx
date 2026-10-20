@@ -12,8 +12,6 @@ export type SideTab = "changes" | "files" | "plan" | "progress" | "terminal" | "
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 240;
 const MIN_WIDTH = 240;
-/// Largura mínima enquanto uma prévia de arquivo está aberta (árvore e texto lado a lado).
-export const PREVIEW_WIDTH = 560;
 const MAX_FRACTION = 0.6;
 const KEY_STEP = 16;
 
@@ -51,8 +49,6 @@ interface RightPanelProps {
   changes: ReactNode;
   /** Árvore de arquivos do projeto. Ausente = sem pasta de projeto. */
   files?: ReactNode;
-  /** Prévia de arquivo aberta: o painel fica no mínimo de PREVIEW_WIDTH. A largura salva não muda. */
-  wide?: boolean;
   /** Último plano da conversa, em Markdown. Ausente = ainda não há plano. */
   plan?: string;
   /** Checklist do agente na última resposta. Vazio = nenhuma tarefa em andamento. */
@@ -80,7 +76,6 @@ export function RightPanel({
   onClose,
   changes,
   files,
-  wide = false,
   plan,
   todos,
   running,
@@ -88,8 +83,7 @@ export function RightPanel({
   browser,
 }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
-  // Com prévia aberta, o painel mostra pelo menos PREVIEW_WIDTH. Fechada a prévia, volta a largura salva.
-  const shown = wide ? clampWidth(Math.max(width, PREVIEW_WIDTH), window.innerWidth) : width;
+  const shown = width;
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
 
   function resize(next: number) {
