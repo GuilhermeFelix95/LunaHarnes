@@ -34,6 +34,11 @@ pub enum Preset {
     Zai,
     Moonshot,
     OpenCodeGo,
+    MiniMax,
+    XiaomiMimo,
+    Qwen,
+    MetaMuse,
+    Ollama,
     CustomAnthropic,
     OpenAi,
 }
@@ -117,8 +122,8 @@ impl Preset {
                 "DeepSeek",
                 ProviderKind::Claude,
                 "https://api.deepseek.com/anthropic",
-                &["deepseek-flash", "deepseek-v4-pro"],
-                "deepseek-flash",
+                &["deepseek-v4-flash", "deepseek-v4-pro"],
+                "deepseek-v4-flash",
             ),
             Preset::Zai => (
                 "Z.ai (GLM)",
@@ -142,6 +147,21 @@ impl Preset {
                 &["minimax-m3"],
                 "minimax-m3",
             ),
+            // Endereços e modelos conferidos na documentação de cada provedor (pesquisa de junho/2026; a prévia do Meta pode mudar).
+            Preset::MiniMax => ("MiniMax", ProviderKind::Claude, "https://api.minimax.io/anthropic", &["MiniMax-M3"], "MiniMax-M3"),
+            Preset::XiaomiMimo => (
+                "Xiaomi MiMo",
+                ProviderKind::Claude,
+                "https://api.xiaomimimo.com/anthropic",
+                &["mimo-v2.5-pro"],
+                "mimo-v2.5-pro",
+            ),
+            // Qwen: o endereço sai do espaço de trabalho da conta no console da Alibaba Cloud (região e workspace), então não tem padrão.
+            Preset::Qwen => ("Qwen (Alibaba Cloud)", ProviderKind::Claude, "", &["qwen3.7-max"], "qwen3.7-max"),
+            // Prévia: a chave vem de dev.meta.ai e o acesso pode depender de lista de espera.
+            Preset::MetaMuse => ("Meta Muse (prévia)", ProviderKind::Claude, "https://api.meta.ai", &["muse-spark-1.1"], "muse-spark-1.1"),
+            // Ollama local: não exige chave de verdade; qualquer texto serve. Os modelos precisam estar baixados no Ollama.
+            Preset::Ollama => ("Ollama (local)", ProviderKind::Claude, "http://localhost:11434", &["qwen3-coder"], "qwen3-coder"),
             Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, "", &[], ""),
             Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, "", &[], ""),
         };
@@ -170,6 +190,11 @@ pub fn presets() -> Vec<PresetInfo> {
         Preset::Zai,
         Preset::Moonshot,
         Preset::OpenCodeGo,
+        Preset::MiniMax,
+        Preset::XiaomiMimo,
+        Preset::Qwen,
+        Preset::MetaMuse,
+        Preset::Ollama,
         Preset::CustomAnthropic,
         Preset::OpenAi,
     ]
@@ -668,7 +693,7 @@ mod tests {
     #[test]
     fn presets_list_has_one_entry_per_preset_with_engine() {
         let list = presets();
-        assert_eq!(list.len(), 8);
+        assert_eq!(list.len(), 13);
         assert_eq!(list.iter().find(|p| p.preset == Preset::OpenAi).unwrap().engine, ProviderKind::Codex);
     }
 
@@ -731,6 +756,38 @@ mod tests {
         let zai = Preset::Zai.info();
         assert_eq!(zai.default_base_url, "https://api.z.ai/api/anthropic");
         assert_eq!(zai.default_model, "glm-5.3-flash");
+    }
+
+    #[test]
+    fn new_claude_presets_use_the_documented_endpoints_and_models() {
+        let minimax = Preset::MiniMax.info();
+        assert_eq!(minimax.default_base_url, "https://api.minimax.io/anthropic");
+        assert_eq!(minimax.default_model, "MiniMax-M3");
+
+        let mimo = Preset::XiaomiMimo.info();
+        assert_eq!(mimo.default_base_url, "https://api.xiaomimimo.com/anthropic");
+        assert_eq!(mimo.default_model, "mimo-v2.5-pro");
+
+        // Qwen: o endereço depende do espaço de trabalho da conta; não há um padrão único.
+        assert!(Preset::Qwen.info().default_base_url.is_empty());
+
+        let muse = Preset::MetaMuse.info();
+        assert_eq!(muse.default_base_url, "https://api.meta.ai");
+        assert_eq!(muse.default_model, "muse-spark-1.1");
+
+        let ollama = Preset::Ollama.info();
+        assert_eq!(ollama.default_base_url, "http://localhost:11434");
+        let new = [Preset::MiniMax, Preset::XiaomiMimo, Preset::Qwen, Preset::MetaMuse, Preset::Ollama];
+        assert!(presets().iter().filter(|p| new.contains(&p.preset)).all(|p| p.engine == ProviderKind::Claude));
+    }
+
+    #[test]
+    fn deepseek_uses_the_v4_names_its_docs_list() {
+        let info = Preset::DeepSeek.info();
+
+        assert_eq!(info.default_base_url, "https://api.deepseek.com/anthropic");
+        assert_eq!(info.suggested_models, ["deepseek-v4-flash", "deepseek-v4-pro"]);
+        assert_eq!(info.default_model, "deepseek-v4-flash");
     }
 
     #[test]

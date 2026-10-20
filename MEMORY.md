@@ -190,3 +190,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Temas em duas abas na Aparência: "Temas do Luna" e "Meus temas" (Novo tema e editor ficam em Meus temas). A aba lembrada fica em luna.themesTab.
 2026-10-20 | Alterações: o diff mostra a linha antiga e a nova em cada linha (tabela, parseDiffLines). Painel estreito rola na horizontal.
 2026-10-20 | Contas extras em todas as CLIs (menos Antigravity): OpenCode, Cline e Copilot ganham pasta própria (XDG, CLINE_DIR, COPILOT_HOME). Login e status reais ainda não testados.
+2026-10-20 | Presets novos: MiniMax, Xiaomi MiMo, Qwen, Meta Muse (prévia) e Ollama local; DeepSeek usa deepseek-v4-flash/pro. NVIDIA e OpenCode com chave ficaram para depois.
