@@ -102,6 +102,47 @@ describe("WorkspaceChip", () => {
     expect(onPickBranch).toHaveBeenCalledWith("feature/x", false);
   });
 
+  it("a branch atual aparece destacada no menu e marcada como atual para leitores de tela", () => {
+    render(
+      <WorkspaceChip
+        cwd="C:\\Users\\guilh\\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={["feature/x", "main"]}
+        currentBranch="main"
+        onPickBranch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "main" }));
+
+    const current = screen.getByRole("menuitem", { name: "main (atual)" });
+    expect(current.getAttribute("aria-current")).toBe("true");
+    expect(current.className).toContain("workspace-chip__item--current");
+    expect(screen.getByRole("menuitem", { name: "feature/x" }).getAttribute("aria-current")).toBeNull();
+  });
+
+  it("abrir o menu de branch pede a lista atualizada, e fechar não pede", () => {
+    const onOpenBranches = vi.fn();
+    render(
+      <WorkspaceChip
+        cwd="C:\\Users\\guilh\\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={["main"]}
+        currentBranch="main"
+        onPickBranch={vi.fn()}
+        onOpenBranches={onOpenBranches}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "main" }));
+    expect(onOpenBranches).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "main" }));
+    expect(onOpenBranches).toHaveBeenCalledOnce();
+  });
+
   it("criar uma branch nova usa o nome digitado e a cria a partir da atual", () => {
     const onPickBranch = vi.fn();
     render(

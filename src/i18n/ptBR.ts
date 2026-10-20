@@ -489,6 +489,7 @@ export const ptBR = {
   "chat.windowHint": "Atualize a lista de modelos para ver a janela",
   "chat.compacted": "Conversa compactada: a próxima mensagem começa com o resumo.",
   "chat.worktreeFailed": "Worktree não criada",
+  "chat.imageMissing": "Imagem indisponível",
   "composer.permission.readOnly": "Só leitura",
   "composer.permission.acceptEdits": "Aceitar edições",
   "composer.permission.fullAccess": "Acesso total",

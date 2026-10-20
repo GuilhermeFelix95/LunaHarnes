@@ -169,6 +169,8 @@ export interface ChatMessage {
   agent?: string;
   /** Estado dos arquivos antes deste turno (só em mensagens do usuário, em repositório git). */
   checkpoint?: string;
+  /** Caminhos das imagens enviadas com esta mensagem, na pasta de anexos do app (miniatura no balão). */
+  images?: string[];
   /** Hora do envio (usuário) ou da primeira parte da resposta, em ms. Ausente em mensagens antigas. */
   at?: number;
   /** Resposta vinda do cache de respostas: o provedor não foi chamado para ela. */

@@ -486,6 +486,7 @@ export const en: Record<MessageKey, string> = {
   "chat.windowHint": "Refresh the model list to see the window",
   "chat.compacted": "Conversation compacted: the next message starts with the summary.",
   "chat.worktreeFailed": "Worktree not created",
+  "chat.imageMissing": "Image unavailable",
   "composer.permission.readOnly": "Read only",
   "composer.permission.acceptEdits": "Accept edits",
   "composer.permission.fullAccess": "Full access",

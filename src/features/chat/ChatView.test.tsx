@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProviderEvent } from "../../types";
+import type { Conversation, ProviderEvent } from "../../types";
 import { PluginHost } from "../../plugins/host";
 import { ChatView } from "./ChatView";
 
@@ -12,6 +12,8 @@ const bridge = vi.hoisted(() => ({
 vi.mock("../../api", () => ({
   checkAuth: vi.fn(async () => true),
   currentGitBranch: vi.fn(async () => null),
+  listGitBranches: vi.fn(async () => [] as string[]),
+  createGitWorktree: vi.fn(async () => "C:\\projeto-feat-nova"),
   freeWorkspace: vi.fn(async () => "C:\app\Sem pasta"),
   onBrowserNavigated: vi.fn(async () => () => {}),
   openLogin: vi.fn(async () => {}),
@@ -30,6 +32,7 @@ vi.mock("../../api", () => ({
   listApiProfiles: vi.fn(async () => []),
   listFiles: vi.fn(async () => []),
   saveAttachment: vi.fn(async () => "C:\\anexos\\foto.png"),
+  readAttachment: vi.fn(async () => ({ mime: "image/png", data: "iVBORw0KGgo=" })),
   saveFileAttachment: vi.fn(async () => "C:\\anexos\\notas.md"),
   PROFILES_CHANGED: "luna:profiles-changed",
   getChanges: vi.fn(async () => ({ isRepo: false, files: [] })),
@@ -569,5 +572,91 @@ describe("Orquestrador: papel escolhido troca o motor do envio", () => {
     await send("oi");
 
     expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "claude" });
+  });
+});
+
+describe("ChatView: branch da pasta", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.listGitBranches).mockResolvedValue([]);
+    vi.mocked(api.currentGitBranch).mockResolvedValue(null);
+  });
+
+  it("branch criada pelo agente aparece no menu e vira a atual, sem trocar de pasta", async () => {
+    vi.mocked(api.listGitBranches).mockResolvedValue(["main"]);
+    vi.mocked(api.currentGitBranch).mockResolvedValue("main");
+    render(<ChatView onPersist={() => {}} />);
+    await screen.findByRole("button", { name: "main" });
+
+    await send("crie a branch feat/nova e trabalhe nela");
+    vi.mocked(api.listGitBranches).mockResolvedValue(["feat/nova", "main"]);
+    vi.mocked(api.currentGitBranch).mockResolvedValue("feat/nova");
+    emit({ kind: "commandResult", ok: true, output: "Switched to a new branch 'feat/nova'" });
+    emit({ kind: "done", ok: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: "feat/nova" }));
+    expect(await screen.findByRole("menuitem", { name: "main" })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /feat\/nova/ })).toBeTruthy();
+  });
+});
+
+describe("ChatView: imagem no histórico", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    URL.createObjectURL = vi.fn(() => "blob:foto");
+    URL.revokeObjectURL = vi.fn();
+    vi.mocked(api.readAttachment).mockResolvedValue({ mime: "image/png", data: "iVBORw0KGgo=" });
+  });
+
+  it("imagem enviada continua no balão do usuário depois da resposta", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    fireEvent.change(input!, { target: { files: [new File(["png"], "foto.png", { type: "image/png" })] } });
+    await screen.findByRole("img", { name: "Imagem anexada" });
+
+    await send("veja isto");
+    emit({ kind: "textDelta", text: "Vi a foto." });
+    emit({ kind: "done", ok: true });
+
+    expect(await screen.findByRole("img", { name: "Imagem anexada" })).toBeTruthy();
+    expect(vi.mocked(api.sendPrompt).mock.calls[0][0].images).toEqual(["C:\\anexos\\foto.png"]);
+  });
+
+  it("a mensagem salva com imagem mostra a miniatura ao reabrir a conversa", async () => {
+    const saved: Conversation = {
+      id: "c-foto",
+      title: "Foto",
+      provider: "claude",
+      cwd: "C:\\projeto",
+      permission: "acceptEdits",
+      planning: false,
+      createdAt: 1,
+      updatedAt: 2,
+      messages: [{ role: "user", text: "veja isto", at: 1, images: ["C:\\anexos\\foto.png"] }],
+    };
+    render(<ChatView initial={saved} onPersist={() => {}} />);
+
+    expect(await screen.findByRole("img", { name: "Imagem anexada" })).toBeTruthy();
+    expect(vi.mocked(api.readAttachment)).toHaveBeenCalledWith("C:\\anexos\\foto.png");
+  });
+
+  it("imagem que não existe mais mostra um aviso curto, sem quebrar a conversa", async () => {
+    vi.mocked(api.readAttachment).mockRejectedValueOnce(new Error("arquivo não encontrado"));
+    const saved: Conversation = {
+      id: "c-sumiu",
+      title: "Foto",
+      provider: "claude",
+      cwd: "C:\\projeto",
+      permission: "acceptEdits",
+      planning: false,
+      createdAt: 1,
+      updatedAt: 2,
+      messages: [{ role: "user", text: "veja isto", at: 1, images: ["C:\\anexos\\sumiu.png"] }],
+    };
+    render(<ChatView initial={saved} onPersist={() => {}} />);
+
+    expect((await screen.findAllByText("veja isto")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("Imagem indisponível")).toBeTruthy();
   });
 });

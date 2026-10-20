@@ -209,6 +209,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Branches da pasta, para o menu de pasta. Fora de um repositório git a lista fica vazia.
   const [branches, setBranches] = useState<string[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string | null>(null);
+  // Sobe a cada comando concluído, a cada fim de turno e a cada abertura do menu: o agente pode ter criado ou trocado de branch.
+  const [branchesVersion, setBranchesVersion] = useState(0);
   // Pasta do app para conversas sem projeto: o menu de pasta oferece "Trabalhar sem pasta".
   const [freeFolder, setFreeFolder] = useState<string | undefined>(undefined);
   useEffect(() => {
@@ -229,7 +231,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     return () => {
       alive = false;
     };
-  }, [cwd]);
+  }, [cwd, branchesVersion]);
   useEffect(() => {
     onRunning?.(conversationId, running);
   }, [running]);
@@ -506,6 +508,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
       }
       if (event.kind === "commandResult") {
         lastCommandRef.current = { ok: event.ok, output: event.output };
+        setBranchesVersion((v) => v + 1);
       }
       if (event.kind === "error") {
         void notifyIfUnfocused(t("chat.errorTitle"), t("chat.errorBody"));
@@ -538,6 +541,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           }
         }
         setChangesVersion((v) => v + 1);
+        setBranchesVersion((v) => v + 1);
         checkConfig();
         // O bloco de perguntas sai do texto e vira o seletor; o resto da resposta fica no chat.
         const parsed: ReplyParts = turnAsk.current
@@ -741,7 +745,8 @@ ${cliPrompt}`;
     turnAgent.current = agentKey(route.provider, route.profileId);
     turnLabel.current = route.profileId ? options.find((o) => o.key === turnAgent.current)?.label : undefined;
     const history = messagesRef.current;
-    const userMsg: ChatMessage = { role: "user", text: shown, at: Date.now() };
+    // Os caminhos das imagens ficam na mensagem: o histórico mostra a miniatura, também depois de recarregar.
+    const userMsg: ChatMessage = { role: "user", text: shown, at: Date.now(), ...(images.length > 0 ? { images } : {}) };
     commit([...history, userMsg]);
     // Quem envia quer ver a resposta: volta a seguir o fim.
     scrollToBottom();
@@ -1322,6 +1327,7 @@ ${outgoing}`
           onBrowse={() => void browseWorkspace()}
           branches={branches}
           currentBranch={currentBranch}
+          onOpenBranches={() => setBranchesVersion((v) => v + 1)}
           onPickBranch={(branch, isNew) => void pickBranch(branch, isNew)}
         />
         {provider === "claude" && (

@@ -135,6 +135,9 @@ docs/                stack, contrato de plugins
   - Layout: `App.tsx` (barra lateral + chat). `ChatView` persiste a conversa ao fim de cada turno.
   - Componentes em `src/features/`: `chat/` (Composer, MessageList, Markdown), `sidebar/` (Sidebar, groupByDay), `auth/` (LoginPrompt).
   - Markdown: `react-markdown` + `remark-gfm`, sem `rehype-raw`. Links não navegam dentro do app.
+  - Branch da pasta (menu do `WorkspaceChip`): a lista e a branch atual são relidas na troca de pasta, no fim do turno, a cada `commandResult` e ao abrir o menu (`branchesVersion` em `ChatView.tsx`). A branch atual leva `workspace-chip__item--current` e `aria-current`.
+  - Imagem enviada: os caminhos ficam em `ChatMessage.images` (JSON da conversa, sem migração). O balão mostra a miniatura por `AttachmentThumb.tsx`, que chama `read_attachment` (Rust, `commands.rs`): só arquivo dentro da pasta de anexos, png/jpeg/webp, até 10 MB. Imagem ausente vira o aviso "Imagem indisponível".
+  - Aprovação do plano (`approvalPrompt` em `src/chat/planning.ts`): pede para marcar todas as etapas como `completed` antes de terminar, no Claude (TaskUpdate) e no OpenCode/Codex (set_steps).
   - Tema: tokens em `src/styles/tokens.css` (escala de tipo, espaço, raio, sombra, movimento) e cores por tema em `src/styles/themes.css` (Sistema, Claro, Escuro, Luna padrão, Aurora, Duna, Grafite). Estilos base e componentes em `src/styles/base.css` e `src/styles/components.css`.
 - Fase A (funcionamento):
   - Executável resolvido só com `.exe`, `.cmd` ou `.bat` no Windows (o script sem extensão instalado pelo npm dava erro 193).

@@ -717,6 +717,24 @@
   white-space: pre-wrap;
 }
 
+/* Miniatura da imagem enviada, dentro do balão do usuário; sem imagem, um aviso curto */
+.message__attachment {
+  display: block;
+  max-width: 240px;
+  max-height: 240px;
+  margin-top: 8px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.message__attachment-missing {
+  display: block;
+  margin-top: 8px;
+  color: var(--user-fg);
+  font-size: 12px;
+  opacity: 0.7;
+}
+
 .message__author {
   display: flex;
   align-items: center;
@@ -1244,6 +1262,12 @@ textarea:focus-visible {
 
 .workspace-chip__item:hover {
   background: var(--hover);
+}
+
+/* Branch atual do menu: barra de acento à esquerda e texto em peso maior */
+.workspace-chip__item--current {
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 600;
 }
 
 /* Seletor de modelo com nome e descrição */
