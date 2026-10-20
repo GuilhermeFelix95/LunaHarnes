@@ -216,6 +216,9 @@ const SHAPE_KEYS: Record<ShapeId, MessageKey> = {
   top: "settings.shape.top",
   bubble: "settings.shape.bubble",
   wave: "settings.shape.wave",
+  drop: "settings.shape.drop",
+  paper: "settings.shape.paper",
+  pebble: "settings.shape.pebble",
 };
 
 const SIZE_KEYS: Record<TextSizeId, MessageKey> = {
@@ -234,6 +237,14 @@ const COLOR_FIELDS: Array<[keyof ThemePalette, MessageKey]> = [
   ["text", "settings.appearance.text"],
   ["terminal", "settings.color.terminal"],
 ];
+
+/// Efeitos ligados e desligados no editor, na ordem em que aparecem.
+const EFFECT_FIELDS = [
+  ["glass", "settings.appearance.glass"],
+  ["scanlines", "settings.appearance.scanlines"],
+  ["grain", "settings.appearance.grain"],
+  ["glow", "settings.appearance.glow"],
+] as const;
 
 /// Formatos disponíveis, na ordem do seletor.
 const SHAPE_IDS = Object.keys(SHAPES) as ShapeId[];
@@ -691,14 +702,16 @@ export function SettingsView({ onClose }: SettingsViewProps) {
 
                   <fieldset>
                     <legend>{t("settings.appearance.effects")}</legend>
-                    <label className="custom-palette__item">
-                      <input
-                        type="checkbox"
-                        checked={palette.glass}
-                        onChange={(e) => changeField("glass", e.target.checked)}
-                      />
-                      <span>{t("settings.appearance.glass")}</span>
-                    </label>
+                    {EFFECT_FIELDS.map(([field, label]) => (
+                      <label key={field} className="custom-palette__item">
+                        <input
+                          type="checkbox"
+                          checked={palette[field]}
+                          onChange={(e) => changeField(field, e.target.checked)}
+                        />
+                        <span>{t(label)}</span>
+                      </label>
+                    ))}
                   </fieldset>
 
                   {activeName && (

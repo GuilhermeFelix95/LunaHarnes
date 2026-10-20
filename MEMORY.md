@@ -203,3 +203,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Hermes: seletor passa a incluir os recomendados grátis e pagos do Nous Portal (cache da CLI), não só o catálogo curado.
 2026-10-20 | Meus temas: renomear tema salvo (lápis no cartão, mesmo formulário de nome), cabeçalho com contagem e lista vazia em bloco tracejado.
 2026-10-20 | Editor do tema Personalizado: painel com cartões por seção, cores em quadrinhos, campos empilhados e compartilhar em cartão (só CSS).
+2026-10-20 | Tema: formatos Gota, Papel e Pedra; efeitos Linhas de tela, Granulado e Brilho no destaque no editor. Hermes: modelos grátis com free no rótulo.

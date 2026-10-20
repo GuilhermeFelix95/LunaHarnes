@@ -79,10 +79,18 @@ describe("theme", () => {
     expect(style.getPropertyValue("--code-radius")).toBe("14px");
   });
 
-  it("há dez formatos de componente, e os assimétricos viram cantos diferentes", () => {
-    expect(Object.keys(SHAPES)).toHaveLength(10);
+  it("há treze formatos de componente, e os assimétricos viram cantos diferentes", () => {
+    expect(Object.keys(SHAPES)).toHaveLength(13);
     applyPalette({ ...DEFAULT_PALETTE, shape: "leaf" });
     expect(document.documentElement.style.getPropertyValue("--radius-md")).toBe("0 12px");
+  });
+
+  it("os efeitos ligam por atributo no html e ficam desligados quando a paleta não pede", () => {
+    applyPalette({ ...DEFAULT_PALETTE, scanlines: true, grain: true, glow: false });
+
+    expect(document.documentElement.dataset.fxScanlines).toBe("on");
+    expect(document.documentElement.dataset.fxGrain).toBe("on");
+    expect(document.documentElement.dataset.fxGlow).toBe("off");
   });
 
   it("as fontes novas viram a pilha certa", () => {

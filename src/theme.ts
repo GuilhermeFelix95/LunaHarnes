@@ -20,7 +20,7 @@ export type FontId =
   | "vt323"
   | "press"
   | "silkscreen";
-export type ShapeId = "square" | "soft" | "round" | "bubbly" | "pill" | "leaf" | "diagonal" | "top" | "bubble" | "wave";
+export type ShapeId = "square" | "soft" | "round" | "bubbly" | "pill" | "leaf" | "diagonal" | "top" | "bubble" | "wave" | "drop" | "paper" | "pebble";
 export type TextSizeId = "small" | "medium" | "large";
 
 /// Tudo o que um tema define. O Personalizado é uma paleta salva pelo usuário.
@@ -61,6 +61,12 @@ export interface ThemePalette {
   inputShape: ShapeId | null;
   /** Vidro translúcido nos painéis (Luna). Desligado = superfícies planas. */
   glass: boolean;
+  /** Linhas de tela por cima de tudo, como um monitor antigo. */
+  scanlines: boolean;
+  /** Granulado fino por cima de tudo. */
+  grain: boolean;
+  /** Brilho na cor de destaque em volta do composer e do balão do usuário. */
+  glow: boolean;
 }
 
 export type ThemeId =
@@ -99,6 +105,9 @@ const BASE: Omit<ThemePalette, "sidebar" | "chat" | "bubble" | "bubbleText" | "a
   cardShape: null,
   inputShape: null,
   glass: false,
+  scanlines: false,
+  grain: false,
+  glow: false,
 };
 
 /// Terminal embutido dos temas de fábrica: sempre escuro, para o caminho e a saída ficarem legíveis.
@@ -221,6 +230,9 @@ export const SHAPES: Record<ShapeId, { label: string; sm: string; md: string; lg
   top: { label: "Aba", sm: "10px 10px 2px 2px", md: "14px 14px 3px 3px", lg: "18px 18px 4px 4px", xl: "24px 24px 6px 6px", pill: "999px" },
   bubble: { label: "Bolha de conversa", sm: "8px 8px 8px 2px", md: "12px 12px 12px 3px", lg: "16px 16px 16px 4px", xl: "20px 20px 20px 4px", pill: "999px" },
   wave: { label: "Ondulado", sm: "4px 14px", md: "6px 18px", lg: "8px 22px", xl: "10px 26px", pill: "999px" },
+  drop: { label: "Gota", sm: "10px 10px 2px 10px", md: "14px 14px 3px 14px", lg: "18px 18px 4px 18px", xl: "24px 24px 6px 24px", pill: "999px" },
+  paper: { label: "Papel", sm: "3px 3px 10px 10px", md: "4px 4px 14px 14px", lg: "5px 5px 18px 18px", xl: "6px 6px 24px 24px", pill: "999px" },
+  pebble: { label: "Pedra", sm: "16px 6px 12px 4px", md: "20px 8px 16px 5px", lg: "24px 10px 20px 6px", xl: "30px 12px 24px 8px", pill: "999px" },
 };
 
 export const TEXT_SIZES: Record<TextSizeId, { label: string; scale: number }> = {
@@ -331,6 +343,9 @@ export function readPalette(value: unknown): ThemePalette | null {
     cardShape: shapeOrNull(p.cardShape),
     inputShape: shapeOrNull(p.inputShape),
     glass: typeof p.glass === "boolean" ? p.glass : BASE.glass,
+    scanlines: typeof p.scanlines === "boolean" ? p.scanlines : BASE.scanlines,
+    grain: typeof p.grain === "boolean" ? p.grain : BASE.grain,
+    glow: typeof p.glow === "boolean" ? p.glow : BASE.glow,
   };
 }
 
@@ -438,6 +453,10 @@ export function themeTokens(p: ThemePalette): Record<string, string> {
 /// Aplica uma paleta inteira. Chamado ao trocar de tema e a cada mudança no editor do Personalizado.
 export function applyPalette(palette: ThemePalette, root: HTMLElement = document.documentElement) {
   for (const [name, value] of Object.entries(themeTokens(palette))) root.style.setProperty(name, value);
+  // Efeitos ligados por atributo: o CSS de theme-layers.css liga cada um só quando estiver "on".
+  root.dataset.fxScanlines = palette.scanlines ? "on" : "off";
+  root.dataset.fxGrain = palette.grain ? "on" : "off";
+  root.dataset.fxGlow = palette.glow ? "on" : "off";
 }
 
 /// Paleta de um tema: a do próprio tema, ou a salva pelo usuário no Personalizado.

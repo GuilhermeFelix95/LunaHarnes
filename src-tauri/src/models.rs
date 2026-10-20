@@ -246,7 +246,7 @@ fn hermes_catalog_in(root: Option<&Path>) -> Vec<ModelOption> {
         }
         let recommended = read(root.join("cache").join("nous_recommended_cache.json"));
         let portal = recommended.as_ref().map(|r| &r[NOUS_PORTAL_BASE]["data"]);
-        for (group, place) in [("freeRecommendedModels", "Nous Portal · grátis"), ("paidRecommendedModels", "Nous Portal")] {
+        for (group, place) in [("freeRecommendedModels", "Nous Portal · free"), ("paidRecommendedModels", "Nous Portal")] {
             for id in portal.map(|p| &p[group]).and_then(Value::as_array).into_iter().flatten().filter_map(|m| m["modelName"].as_str()) {
                 found.push(("nous", id.to_string(), place));
             }
@@ -340,7 +340,7 @@ mod tests {
         );
         assert_eq!(models.iter().filter(|m| m.default).count(), 1);
         assert!(models[0].default);
-        assert_eq!(models[2].label, "poolside/laguna-xs-2.1:free · Nous Portal · grátis");
+        assert_eq!(models[2].label, "poolside/laguna-xs-2.1:free · Nous Portal · free");
         assert_eq!(models[4].label, "z-ai/glm-5.2 · Nous Portal");
     }
 
