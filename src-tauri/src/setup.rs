@@ -51,12 +51,25 @@ pub fn known_dirs() -> Vec<PathBuf> {
     if let Some(local) = env::var_os("LOCALAPPDATA") {
         // Antigravity (agy): a pasta do instalador oficial, que nem sempre entra no PATH do app.
         dirs.push(PathBuf::from(&local).join("agy").join("bin"));
+        // GitHub Copilot (winget): o pacote vai para uma pasta com a versão no nome, e o atalho em Links nem sempre existe.
+        dirs.extend(winget_package_dirs(&PathBuf::from(&local).join("Microsoft").join("WinGet").join("Packages"), "GitHub.Copilot_"));
         dirs.push(PathBuf::from(local).join("Programs").join("OpenAI").join("Codex").join("bin"));
     }
     if let Some(home) = env::var_os("USERPROFILE") {
         dirs.push(PathBuf::from(home).join(".local").join("bin"));
     }
     dirs
+}
+
+/// Pastas de pacote do winget cujo nome começa com `prefix`. O nome leva a versão e um sufixo, então não dá para fixar.
+fn winget_package_dirs(packages: &std::path::Path, prefix: &str) -> Vec<PathBuf> {
+    std::fs::read_dir(packages)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|entry| entry.file_name().to_string_lossy().starts_with(prefix))
+        .map(|entry| entry.path())
+        .collect()
 }
 
 /// Procura `program` no PATH e depois nas pastas conhecidas dos instaladores.
@@ -150,6 +163,19 @@ mod tests {
         let found = find("codex", &[path_dir], &[known_dir.clone()]);
 
         assert_eq!(found, Some(known_dir.join("codex.exe")));
+    }
+
+    /// O pacote do winget leva a versão no nome: a pasta do Copilot é achada pelo prefixo, e as outras ficam de fora.
+    #[test]
+    fn winget_package_dirs_match_by_prefix_only() {
+        let packages = temp_dir("winget");
+        for name in ["GitHub.Copilot_Microsoft.Winget.Source_8wekyb3d8bbwe", "Outro.App_x"] {
+            std::fs::create_dir_all(packages.join(name)).unwrap();
+        }
+
+        let found = winget_package_dirs(&packages, "GitHub.Copilot_");
+
+        assert_eq!(found, vec![packages.join("GitHub.Copilot_Microsoft.Winget.Source_8wekyb3d8bbwe")]);
     }
 
     #[cfg(windows)]

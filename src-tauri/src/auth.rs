@@ -20,8 +20,8 @@ pub fn status(kind: ProviderKind) -> Result<bool, String> {
         ProviderKind::Codex => (&["login", "status"], "Codex"),
         ProviderKind::OpenCode => (&["auth", "list"], "OpenCode"),
         ProviderKind::Cline => return Ok(crate::providers::cline::logged_in()),
-        // O Copilot não tem comando de status sem gastar uma chamada: sem status, o app mostra "Conectar" sempre.
-        ProviderKind::Copilot => return Ok(false),
+        // O Copilot não tem comando de status: a verificação manda uma pergunta curta (ver providers/copilot.rs).
+        ProviderKind::Copilot => return Ok(crate::providers::copilot::logged_in()),
         // O Antigravity também não tem comando de status sem entrar no modo interativo: o app mostra "Conectar".
         ProviderKind::Antigravity => return Ok(false),
     };
@@ -68,6 +68,10 @@ fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(St
 pub fn open_login(kind: ProviderKind) -> Result<(), String> {
     if !cfg!(windows) {
         return Err("o login pelo app é suportado só no Windows por enquanto".into());
+    }
+    // Login novo: a verificação guardada do Copilot deixa de valer.
+    if kind == ProviderKind::Copilot {
+        crate::providers::copilot::forget_login();
     }
     let (program, args) = login_invocation(kind, resolve_program(cli_name(kind)))?;
 

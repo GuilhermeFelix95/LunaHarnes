@@ -1,6 +1,62 @@
+use std::process::Stdio;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
+
 use serde_json::Value;
 
-use super::{Permission, ProviderEvent, RunRequest};
+use super::{cli_name, Permission, ProviderEvent, ProviderKind, RunRequest};
+
+/// O Copilot não tem comando de status. O app manda uma pergunta curta e vê se a CLI responde com sucesso.
+/// Cada verificação gasta uma requisição premium, então o resultado vale por 30 minutos (ou até um login novo).
+const LOGIN_CHECK_TTL: Duration = Duration::from_secs(30 * 60);
+static LOGIN_CHECK: Mutex<Option<(Instant, bool)>> = Mutex::new(None);
+
+/// Argumentos da verificação: uma resposta sem ferramentas, sem perguntas e sem sessão na tela.
+fn login_probe_args() -> Vec<String> {
+    ["-p", "Responda apenas ok.", "-s", "--no-ask-user"].map(String::from).into()
+}
+
+/// Entrou na conta? Usa o resultado guardado enquanto ele é recente; senão, roda a verificação de novo.
+pub fn logged_in() -> bool {
+    if let Ok(guard) = LOGIN_CHECK.lock() {
+        if let Some((at, ok)) = *guard {
+            if at.elapsed() < LOGIN_CHECK_TTL {
+                return ok;
+            }
+        }
+    }
+    let ok = probe();
+    if let Ok(mut guard) = LOGIN_CHECK.lock() {
+        *guard = Some((Instant::now(), ok));
+    }
+    ok
+}
+
+/// Esquece o resultado guardado: depois de um login novo, a próxima verificação roda de verdade.
+pub fn forget_login() {
+    if let Ok(mut guard) = LOGIN_CHECK.lock() {
+        *guard = None;
+    }
+}
+
+/// Roda a verificação. Sem CLI, ou com erro, conta como não conectado e deixa o motivo no log (sem o texto da conta).
+fn probe() -> bool {
+    let Some(program) = crate::session::resolve_program(cli_name(ProviderKind::Copilot)) else {
+        eprintln!("Copilot: CLI não encontrada ao verificar o login.");
+        return false;
+    };
+    match crate::session::hidden_command(&program).args(login_probe_args()).stdin(Stdio::null()).output() {
+        Ok(output) if output.status.success() => true,
+        Ok(output) => {
+            eprintln!("Copilot: a verificação de login terminou com código {:?}; o app mostra como não conectado.", output.status.code());
+            false
+        }
+        Err(e) => {
+            eprintln!("Copilot: não foi possível rodar a verificação de login: {e}");
+            false
+        }
+    }
+}
 
 /// `copilot --output-format json` com o prompt pelo stdin (testado na CLI 1.0.100). Sem `--no-ask-user` a CLI
 /// pausa para pedir permissão e trava a execução sem terminal. A permissão vira lista de ferramentas liberadas:
@@ -156,6 +212,12 @@ mod tests {
         assert_eq!(parse_line(ok), vec![ProviderEvent::SessionStarted { session_id: "e24b7bcc".into() }]);
         let failed = r#"{"type":"result","sessionId":"e24b7bcc","exitCode":1}"#;
         assert!(matches!(parse_line(failed).last(), Some(ProviderEvent::Error { .. })));
+    }
+
+    /// A verificação de login é uma pergunta sem ferramentas e sem sessão na tela, e sem stdin.
+    #[test]
+    fn login_check_asks_one_short_question_without_tools() {
+        assert_eq!(login_probe_args(), ["-p", "Responda apenas ok.", "-s", "--no-ask-user"]);
     }
 
     #[test]
