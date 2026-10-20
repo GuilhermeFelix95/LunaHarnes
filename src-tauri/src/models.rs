@@ -1,6 +1,8 @@
 //! Modelos e níveis de esforço que o seletor mostra.
 //! Codex: vêm do `codex debug models` da própria CLI.
 //! Claude: catálogo do seletor do Claude Desktop (seção principal), com os IDs que a CLI aceita em `--model`.
+use std::path::{Path, PathBuf};
+
 use serde::Serialize;
 use serde_json::Value;
 
@@ -222,19 +224,48 @@ fn copilot_catalog() -> Vec<ModelOption> {
     }]
 }
 
-/// Modelos do Hermes pelo provedor Copilot desta conta (medidos com resposta: gpt-4.1 e gpt-4o). Os modelos do Nous
-/// Portal sem créditos e o padrão do Hermes (gpt-6.1-sol) são recusados, então ficam de fora.
+/// Modelos do Hermes como a própria CLI mostra. Ela guarda as listas na pasta dela: o catálogo curado do Nous Portal
+/// (`cache/model_catalog.json`) e os modelos do Copilot (`provider_models_cache.json`). Os pagos do Nous só respondem
+/// com créditos; a recusa aparece no chat com a mensagem da CLI.
 fn hermes_catalog() -> Vec<ModelOption> {
-    [("gpt-4.1", "GPT-4.1 · Copilot"), ("gpt-4o", "GPT-4o · Copilot")]
-        .into_iter()
-        .map(|(id, label)| ModelOption {
-            id: id.into(),
-            label: label.into(),
-            description: None,
-            efforts: Vec::new(),
-            default: id == crate::providers::hermes::DEFAULT_MODEL,
-        })
-        .collect()
+    let root = std::env::var("LOCALAPPDATA").ok().map(|dir| PathBuf::from(dir).join("hermes"));
+    hermes_catalog_in(root.as_deref())
+}
+
+/// Lista do Hermes a partir da pasta da CLI. Sem os caches (CLI nunca usada), o padrão do Copilot.
+fn hermes_catalog_in(root: Option<&Path>) -> Vec<ModelOption> {
+    let read = |path: PathBuf| -> Option<Value> { serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok() };
+    let mut found: Vec<(&str, String)> = Vec::new();
+    if let Some(root) = root {
+        if let Some(cache) = read(root.join("provider_models_cache.json")) {
+            for id in cache["copilot"]["models"].as_array().into_iter().flatten().filter_map(Value::as_str) {
+                found.push(("copilot", id.to_string()));
+            }
+        }
+        if let Some(catalog) = read(root.join("cache").join("model_catalog.json")) {
+            for id in catalog["providers"]["nous"]["models"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str()) {
+                found.push(("nous", id.to_string()));
+            }
+        }
+    }
+    let mut models: Vec<ModelOption> = found.iter().map(|(provider, id)| hermes_option(provider, id)).collect();
+    // O padrão sempre aparece, mesmo sem o cache da CLI.
+    if !models.iter().any(|m| m.id == crate::providers::hermes::DEFAULT_MODEL) {
+        models.insert(0, hermes_option("copilot", "gpt-4.1"));
+    }
+    models
+}
+
+fn hermes_option(provider: &str, id: &str) -> ModelOption {
+    let place = if provider == "nous" { "Nous Portal" } else { "Copilot" };
+    let key = format!("{provider}:{id}");
+    ModelOption {
+        label: format!("{id} · {place}"),
+        default: key == crate::providers::hermes::DEFAULT_MODEL,
+        id: key,
+        description: None,
+        efforts: Vec::new(),
+    }
 }
 
 /// Modelos e níveis do provedor escolhido.
@@ -265,10 +296,27 @@ mod tests {
     }
 
     #[test]
-    fn hermes_lists_the_copilot_models_with_the_default_one_first() {
-        let models = hermes_catalog();
-        assert_eq!(ids(&models), ["gpt-4.1", "gpt-4o"]);
-        assert!(models[0].default && !models[1].default);
+    fn hermes_without_the_cli_caches_offers_only_the_default() {
+        let models = hermes_catalog_in(None);
+        assert_eq!(ids(&models), ["copilot:gpt-4.1"]);
+        assert!(models[0].default);
+    }
+
+    /// Os dois caches da CLI viram a lista: Copilot e Nous Portal, com o padrão na frente e um só marcado.
+    #[test]
+    fn hermes_lists_every_model_the_cli_caches() {
+        let root = std::env::temp_dir().join(format!("luna-hermes-catalog-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("cache")).unwrap();
+        std::fs::write(root.join("provider_models_cache.json"), r#"{"copilot":{"models":["gpt-5.6-sol"]}}"#).unwrap();
+        std::fs::write(root.join("cache").join("model_catalog.json"), r#"{"providers":{"nous":{"models":[{"id":"z-ai/glm-5.2"}]}}}"#).unwrap();
+
+        let models = hermes_catalog_in(Some(&root));
+        let _ = std::fs::remove_dir_all(&root);
+
+        assert_eq!(ids(&models), ["copilot:gpt-4.1", "copilot:gpt-5.6-sol", "nous:z-ai/glm-5.2"]);
+        assert_eq!(models.iter().filter(|m| m.default).count(), 1);
+        assert!(models[0].default);
+        assert_eq!(models[2].label, "z-ai/glm-5.2 · Nous Portal");
     }
 
     fn ids(models: &[ModelOption]) -> Vec<&str> {

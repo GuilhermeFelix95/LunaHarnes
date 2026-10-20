@@ -6,16 +6,21 @@ use serde_json::Value;
 
 use super::{Permission, ProviderEvent, RunRequest};
 
-/// Provedor que o chat usa. O Nous Portal desta conta estava sem créditos (recusava os modelos pagos); o Copilot respondeu.
-const PROVIDER: &str = "copilot";
+/// Modelo do pedido quando não há escolha: o Copilot, que responde nesta conta (o Nous Portal sem créditos recusa os pagos).
+pub const DEFAULT_MODEL: &str = "copilot:gpt-4.1";
 
-/// Modelo quando o pedido não diz nenhum. O padrão do Hermes (gpt-6.1-sol) é recusado nesta conta.
-pub const DEFAULT_MODEL: &str = "gpt-4.1";
+/// Modelo do seletor no formato `provedor:modelo` (ex.: `nous:z-ai/glm-5.2`). Sem provedor conhecido, vale o modelo como ele é no Copilot.
+pub fn split_model(model: &str) -> (&str, &str) {
+    match model.split_once(':') {
+        Some((provider @ ("nous" | "copilot"), name)) => (provider, name),
+        _ => ("copilot", model),
+    }
+}
 
 /// Argumentos da execução. O prompt vai pelo stdin (`--query-file -`), como nos outros CLIs.
 /// Só o acesso total chega aqui (ver `RunRequest::validate`), por isso `--yolo` vai sempre.
 pub fn args(request: &RunRequest) -> Vec<String> {
-    let model = request.model.clone().unwrap_or_else(|| DEFAULT_MODEL.into());
+    let (provider, model) = split_model(request.model.as_deref().unwrap_or(DEFAULT_MODEL));
     let mut args: Vec<String> = [
         "chat",
         "--query-file",
@@ -25,12 +30,12 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         "--format",
         "stream-json",
         "--provider",
-        PROVIDER,
+        provider,
         "-m",
     ]
     .map(String::from)
     .into();
-    args.push(model);
+    args.push(model.into());
     if let Some(id) = &request.session_id {
         args.extend(["--resume".to_string(), id.clone()]);
     }
@@ -187,6 +192,18 @@ mod tests {
         assert_eq!(args[model + 1], "gpt-4.1");
         let resume = args.iter().position(|a| a == "--resume").unwrap();
         assert_eq!(args[resume + 1], "20261020_1");
+    }
+
+    /// O modelo do Nous Portal leva o provedor dele; o padrão continua no Copilot.
+    #[test]
+    fn the_provider_comes_from_the_model_prefix() {
+        let args = args(&request(Some("nous:z-ai/glm-5.2"), None));
+
+        let provider = args.iter().position(|a| a == "--provider").unwrap();
+        assert_eq!(args[provider + 1], "nous");
+        let model = args.iter().position(|a| a == "-m").unwrap();
+        assert_eq!(args[model + 1], "z-ai/glm-5.2");
+        assert_eq!(split_model("gpt-4.1"), ("copilot", "gpt-4.1"));
     }
 
     #[test]
