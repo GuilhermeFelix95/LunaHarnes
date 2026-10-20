@@ -10,6 +10,7 @@ use crate::api_profiles::{self, ApiProfile, Preset, PresetInfo, RemoteModels};
 use crate::changes::{self, Changes};
 use crate::checkpoints;
 use crate::conversations;
+use crate::files;
 use crate::project;
 use crate::rules;
 use crate::models::{self, ModelOption};
@@ -504,6 +505,22 @@ pub async fn list_models(provider: ProviderKind) -> Result<Vec<ModelOption>, Str
     tauri::async_runtime::spawn_blocking(move || models::load(provider))
         .await
         .map_err(|e| format!("falha ao listar os modelos: {e}"))?
+}
+
+/// Itens de uma pasta do projeto (relativa à pasta de trabalho). Vazio = a raiz. Só leitura.
+#[tauri::command]
+pub async fn list_project_dir(cwd: String, path: String) -> Result<Vec<files::Entry>, String> {
+    tauri::async_runtime::spawn_blocking(move || files::list_dir(Path::new(&cwd), &path))
+        .await
+        .map_err(|e| format!("falha ao listar a pasta: {e}"))?
+}
+
+/// Conteúdo de um arquivo de texto do projeto, para o visualizador. Só leitura.
+#[tauri::command]
+pub async fn read_project_file(cwd: String, path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || files::read_text(Path::new(&cwd), &path))
+        .await
+        .map_err(|e| format!("falha ao ler o arquivo: {e}"))?
 }
 
 /// Arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md...). Só confere se existem.

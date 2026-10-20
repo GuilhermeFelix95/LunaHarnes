@@ -90,6 +90,13 @@ export interface ModelOption {
 }
 
 /// Situação de uma CLI no computador (espelha setup::CliStatus em src-tauri/src/setup.rs).
+/// Item da árvore de arquivos do projeto. `path` é relativo à pasta do projeto, com "/".
+export interface ProjectEntry {
+  name: string;
+  path: string;
+  isDir: boolean;
+}
+
 /// Um arquivo ou pasta do projeto que as CLIs leem, e se ele existe na pasta.
 export interface ProjectFile {
   name: string;

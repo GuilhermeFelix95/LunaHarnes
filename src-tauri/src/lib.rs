@@ -8,6 +8,7 @@ pub mod checkpoints;
 pub mod logfile;
 pub mod commands;
 pub mod conversations;
+pub mod files;
 pub mod marketplace;
 pub mod orchestrator;
 pub mod mcp;
@@ -91,6 +92,8 @@ pub fn run() {
             commands::list_models,
             commands::get_changes,
             commands::project_check,
+            commands::list_project_dir,
+            commands::read_project_file,
             worktrees::list_git_branches,
             worktrees::create_git_worktree,
             reload::config_fingerprint,

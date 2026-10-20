@@ -44,6 +44,7 @@ import { longCacheEnabled } from "../../chat/cacheSettings";
 import { useStickToBottom } from "../../chat/useStickToBottom";
 import { AUTOFIX_MAX_ATTEMPTS, PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
+import { FilesPanel } from "../side/FilesPanel";
 import { cliPrompt, filterSlash, LUNA_COMMANDS, parseLunaCommand, slashQuery, type SlashItem } from "../../chat/slash";
 import { extractPluginOffer } from "../../chat/pluginOffer";
 import { PluginOfferCard } from "./PluginOfferCard";
@@ -1262,6 +1263,7 @@ ${outgoing}`
           setSideTab(tab);
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
+        files={cwd ? <FilesPanel cwd={cwd} /> : null}
         plan={plan}
         todos={displayTodos(toTodos(tasks), running)}
         running={running}

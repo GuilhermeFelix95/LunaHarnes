@@ -176,3 +176,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Progresso: o cabeçalho do painel mostra a porcentagem geral ("1 de 8 concluídas (12%)"). Etapas individuais não têm porcentagem: o agente só informa pendente, em andamento ou concluída.
 2026-10-20 | Apresentação de primeira abertura (4 telas, mostra uma vez). Comando /projeto confere CLAUDE.md, AGENTS.md, .claude, .mcp.json e .git sem criar nada. Instalação do Codex confere com o script oficial; a pasta do Claude ainda não confirmada.
 2026-10-20 | Contas: CLI instalada e login conectado ficam lembrados (localStorage) e aparecem na hora ao entrar; checagem completa só uma vez por abertura do app; ao voltar para o app, confere só quem não está conectado.
+2026-10-20 | Aba Arquivos no painel direito: árvore somente leitura do projeto (pastas sob demanda, filtro e visualizador de texto), com checagem de caminho dentro do projeto no Rust.

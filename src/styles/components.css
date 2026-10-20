@@ -1645,6 +1645,132 @@ textarea:focus-visible {
   }
 }
 
+/* Aba Arquivos: árvore somente leitura e visualizador de texto embaixo */
+.side__files {
+  overflow: hidden;
+}
+
+.files {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  font-size: var(--text-sm);
+}
+
+.files__filter {
+  margin: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+
+.files__tree,
+.files__group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.files__tree {
+  overflow-y: auto;
+  min-height: 80px;
+  flex: 1;
+}
+
+.files__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 3px 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.files__row:hover {
+  background: var(--hover);
+}
+
+.files__row--active {
+  background: var(--hover);
+  font-weight: 600;
+}
+
+.files__spacer {
+  display: inline-block;
+  width: 13px;
+}
+
+.files__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.files__empty,
+.files__error {
+  margin: 8px;
+  color: var(--muted);
+}
+
+.files__error {
+  color: var(--error);
+}
+
+.files__viewer {
+  display: flex;
+  flex-direction: column;
+  max-height: 50%;
+  min-height: 120px;
+  border-top: 1px solid var(--border);
+}
+
+.files__viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.files__viewer-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.files__viewer-close {
+  flex: none;
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.files__code {
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  white-space: pre;
+}
+
 .side__body[hidden] {
   display: none;
 }

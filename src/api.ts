@@ -10,6 +10,7 @@ import type {
   ChangedFile,
   Changes,
   CliStatus,
+  ProjectEntry,
   ProjectFile,
   Conversation,
   ConversationSummary,
@@ -110,6 +111,16 @@ export function renameConversation(id: string, title: string): Promise<void> {
 }
 
 /// Situação das CLIs (Claude Code e Codex) no computador.
+/// Itens de uma pasta do projeto ("" = raiz). Só leitura.
+export function listProjectDir(cwd: string, path: string): Promise<ProjectEntry[]> {
+  return invoke("list_project_dir", { cwd, path });
+}
+
+/// Texto de um arquivo do projeto, para o visualizador. Só leitura.
+export function readProjectFile(cwd: string, path: string): Promise<string> {
+  return invoke("read_project_file", { cwd, path });
+}
+
 /// Arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md...). Só confere; não cria nada.
 export function projectCheck(cwd: string): Promise<ProjectFile[]> {
   return invoke("project_check", { cwd });

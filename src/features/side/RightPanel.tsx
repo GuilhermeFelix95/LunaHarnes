@@ -7,7 +7,7 @@ import { ProgressTimeline } from "./ProgressTimeline";
 import type { TodoItem } from "../../types";
 import { t, type MessageKey } from "../../i18n";
 
-export type SideTab = "changes" | "plan" | "progress" | "terminal" | "browser";
+export type SideTab = "changes" | "files" | "plan" | "progress" | "terminal" | "browser";
 
 export const WIDTH_KEY = "luna.rightPanel.width";
 const DEFAULT_WIDTH = 240;
@@ -47,6 +47,8 @@ interface RightPanelProps {
   /** Fecha o painel pelo X. Pode ser fechado; quem decide quando abre é a conversa. */
   onClose: () => void;
   changes: ReactNode;
+  /** Árvore de arquivos do projeto. Ausente = sem pasta de projeto. */
+  files?: ReactNode;
   /** Último plano da conversa, em Markdown. Ausente = ainda não há plano. */
   plan?: string;
   /** Checklist do agente na última resposta. Vazio = nenhuma tarefa em andamento. */
@@ -59,6 +61,7 @@ interface RightPanelProps {
 
 const TABS: Array<[SideTab, MessageKey]> = [
   ["changes", "side.tab.changes"],
+  ["files", "side.tab.files"],
   ["plan", "side.tab.plan"],
   ["progress", "side.tab.progress"],
   ["terminal", "side.tab.terminal"],
@@ -72,6 +75,7 @@ export function RightPanel({
   onTab,
   onClose,
   changes,
+  files,
   plan,
   todos,
   running,
@@ -151,6 +155,9 @@ export function RightPanel({
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "changes"}>
         {changes}
+      </div>
+      <div className="side__body side__files" role="tabpanel" hidden={tab !== "files"}>
+        {files}
       </div>
       <div className="side__body side__plan" role="tabpanel" hidden={tab !== "plan"}>
         {plan ? (
