@@ -148,3 +148,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Chat: Ctrl+clique (ou Cmd no mac) num link http/https da resposta abre uma aba nova no navegador integrado e mostra a aba Navegador; clique comum não navega.
 2026-10-20 | MCP: se o catálogo falha ao carregar, a tela para de mostrar 'Carregando catálogo…' e exibe o erro.
 2026-10-20 | OpenCode: parser de eventos do 'opencode run --format json' (src-tauri/src/providers/opencode.rs) com captura real da CLI 2.0.32; ainda não ligado como motor.
+2026-10-20 | OpenCode: argumentos do 'opencode run --standalone' e permissão por execução (OPENCODE_CONFIG_CONTENT) para os três modos, testados com a CLI 2.0.32; ainda não ligado como motor.

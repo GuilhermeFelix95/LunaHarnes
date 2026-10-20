@@ -1,6 +1,35 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
-use super::ProviderEvent;
+use super::{Permission, ProviderEvent, RunRequest};
+
+/// `opencode run --standalone --format json` com o prompt pelo stdin (testado na CLI 2.0.32).
+/// `--standalone` é obrigatório: o serviço em segundo plano não lê a configuração do ambiente desta execução.
+/// A permissão vai em `OPENCODE_CONFIG_CONTENT`, ver `config_content`.
+pub fn args(request: &RunRequest) -> Vec<String> {
+    let mut args: Vec<String> = ["run", "--standalone", "--format", "json"].map(String::from).into();
+    if let Some(id) = &request.session_id {
+        args.extend(["--session".to_string(), id.clone()]);
+    }
+    if let Some(model) = &request.model {
+        args.extend(["-m".to_string(), model.clone()]);
+    }
+    for image in &request.images {
+        args.extend(["--file".to_string(), image.display().to_string()]);
+    }
+    args
+}
+
+/// Regras de permissão de cada modo da Luna, no formato do `permission` da config do OpenCode.
+/// A última regra que casa vence, por isso o `*` vem primeiro.
+pub fn config_content(permission: Permission) -> String {
+    let read_only = json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow" });
+    let rules = match permission {
+        Permission::ReadOnly => read_only,
+        Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "edit": "allow", "write": "allow", "patch": "allow" }),
+        Permission::FullAccess => json!({ "*": "allow" }),
+    };
+    json!({ "permission": rules }).to_string()
+}
 
 /// Nome que a Luna mostra para cada ferramenta do OpenCode, igual ao que o Claude e o Codex usam.
 fn tool_name(tool: &str) -> String {
@@ -141,5 +170,61 @@ mod tests {
     #[test]
     fn invalid_json_is_an_error_event() {
         assert!(matches!(parse_line("não é json")[0], ProviderEvent::Error { .. }));
+    }
+
+    fn request(session: Option<&str>, model: Option<&str>) -> RunRequest {
+        RunRequest {
+            provider: crate::providers::ProviderKind::Claude,
+            prompt: "x".into(),
+            session_id: session.map(String::from),
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: model.map(String::from),
+            effort: None,
+            profile: None,
+            context_window: None,
+            long_cache: false,
+            images: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn new_run_is_standalone_json_and_never_carries_the_prompt() {
+        let flags = args(&request(None, Some("anthropic/claude-haiku-4-5")));
+
+        assert_eq!(flags, ["run", "--standalone", "--format", "json", "-m", "anthropic/claude-haiku-4-5"]);
+    }
+
+    #[test]
+    fn resume_passes_the_session_id() {
+        let flags = args(&request(Some("ses_1"), None));
+
+        assert_eq!(flags, ["run", "--standalone", "--format", "json", "--session", "ses_1"]);
+    }
+
+    #[test]
+    fn read_only_denies_everything_but_reading() {
+        let config: Value = serde_json::from_str(&config_content(Permission::ReadOnly)).unwrap();
+
+        assert_eq!(config["permission"]["*"], "deny");
+        assert_eq!(config["permission"]["read"], "allow");
+        assert!(config["permission"].get("edit").is_none());
+    }
+
+    #[test]
+    fn accept_edits_allows_file_edits_but_not_bash() {
+        let config: Value = serde_json::from_str(&config_content(Permission::AcceptEdits)).unwrap();
+
+        assert_eq!(config["permission"]["edit"], "allow");
+        assert_eq!(config["permission"]["write"], "allow");
+        assert!(config["permission"].get("bash").is_none());
+        assert_eq!(config["permission"]["*"], "deny");
+    }
+
+    #[test]
+    fn full_access_allows_everything() {
+        let config: Value = serde_json::from_str(&config_content(Permission::FullAccess)).unwrap();
+
+        assert_eq!(config["permission"]["*"], "allow");
     }
 }
