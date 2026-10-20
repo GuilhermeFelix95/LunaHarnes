@@ -37,8 +37,8 @@ pub fn prompt(request: &RunRequest) -> String {
 /// (`playwright_*`), como o navegador embutido. Com o embutido, a config não tem `mcp`.
 pub fn config_content(permission: Permission, browser: AgentBrowser) -> String {
     let mut rules = match permission {
-        Permission::ReadOnly => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow" }),
-        Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "edit": "allow", "write": "allow", "patch": "allow" }),
+        Permission::ReadOnly => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "execute": "allow" }),
+        Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "edit": "allow", "write": "allow", "patch": "allow", "execute": "allow" }),
         Permission::FullAccess => json!({ "*": "allow" }),
     };
     // O servidor de etapas vale em todos os modos: é o que alimenta o Progresso.
@@ -289,6 +289,16 @@ mod tests {
         assert_eq!(config["permission"]["write"], "allow");
         assert!(config["permission"].get("bash").is_none());
         assert_eq!(config["permission"]["*"], "deny");
+    }
+
+    /// O execute leva as ferramentas do Playwright e das etapas; sem ele, esses dois não funcionam nos modos de leitura e edição.
+    #[test]
+    fn execute_is_allowed_in_every_mode_without_bash() {
+        for permission in [Permission::ReadOnly, Permission::AcceptEdits] {
+            let config: Value = serde_json::from_str(&config_content(permission, AgentBrowser::Builtin)).unwrap();
+            assert_eq!(config["permission"]["execute"], "allow");
+            assert!(config["permission"].get("bash").is_none());
+        }
     }
 
     #[test]

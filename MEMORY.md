@@ -158,3 +158,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Painel de progresso: deixa de abrir a cada envio; abre quando o turno cria etapas (evento de tarefa) e fecha quando a execução termina. Plano não é interrompido.
 2026-10-20 | Plano aprovado: a execução recebe o texto do plano junto com a aprovação (approvalPrompt), para não depender só da memória da sessão.
 2026-10-20 | Servidor de etapas do Luna (lunaharness tasks-mcp, ferramenta set_steps) para OpenCode e Codex. A lista sai da chamada no stream e alimenta o Progresso. Verificado com captura real no OpenCode; Codex sem captura (login pendente).
+2026-10-20 | OpenCode: execute liberado nos modos somente leitura e edição (sem ele, etapas e Playwright não chegam ao agente). Verificado com captura real em edição.

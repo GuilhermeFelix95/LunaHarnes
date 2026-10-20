@@ -237,3 +237,4 @@ docs/                stack, contrato de plugins
 - Painel de progresso (2026-10-20): abre só quando o turno cria etapas (`ChatView` no evento de tarefas), não no envio; em turno de planejamento não abre.
 - Aprovação do plano (2026-10-20): `approvalPrompt` (src/chat/planning.ts) leva o texto do plano; a sessão continua única, como decidido.
 - Servidor de etapas (2026-10-20): `src-tauri/src/tasks_mcp.rs`, modo `lunaharness tasks-mcp`, ferramenta `set_steps` (lista inteira). OpenCode: `mcp.lunatasks` na config e `tools.lunatasks.set_steps` lido do `execute`. Codex: `-c mcp_servers.lunatasks.*` e `mcp_tool_call`. Claude segue com TaskCreate/TaskUpdate.
+- OpenCode, permissões (2026-10-20): `execute` liberado em leitura e edição, para o servidor de etapas e o Playwright. Bash continua negado fora do acesso total.
