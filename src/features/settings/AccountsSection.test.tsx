@@ -16,6 +16,8 @@ import { checkAuth, cliStatus, installCli, openLogin } from "../../api";
 
 describe("Contas: estado de cada CLI", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
     vi.mocked(checkAuth).mockImplementation(async () => false);
     vi.mocked(installCli).mockClear();
     vi.mocked(openLogin).mockClear();
@@ -51,6 +53,31 @@ describe("Contas: estado de cada CLI", () => {
 
     await waitFor(() => expect(openLogin).toHaveBeenCalledWith("claude"));
     expect(installCli).not.toHaveBeenCalled();
+  });
+
+  it("entrar de novo na mesma abertura usa o que já foi visto, sem checar o login outra vez", async () => {
+    vi.mocked(checkAuth).mockImplementation(async (p) => p === "claude");
+    const first = render(<AccountsSection />);
+    expect(await screen.findByText("conectado")).toBeTruthy();
+    first.unmount();
+
+    vi.mocked(checkAuth).mockClear();
+    render(<AccountsSection />);
+
+    expect(screen.getByText("conectado")).toBeTruthy();
+    expect(checkAuth).not.toHaveBeenCalled();
+  });
+
+  it("ao voltar para o app, confere só as CLIs que ainda não estão conectadas", async () => {
+    vi.mocked(checkAuth).mockImplementation(async (p) => p === "claude");
+    render(<AccountsSection />);
+    await screen.findByText("conectado");
+
+    vi.mocked(checkAuth).mockClear();
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() => expect(checkAuth).toHaveBeenCalled());
+    expect(vi.mocked(checkAuth).mock.calls.map(([p]) => p)).not.toContain("claude");
   });
 
   it("CLI que falta: Baixar e conectar instala primeiro e depois abre o login", async () => {

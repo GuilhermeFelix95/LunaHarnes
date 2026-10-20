@@ -1,8 +1,53 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { checkAuth, cliStatus, installCli, openLogin } from "../../api";
 import type { CliStatus, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import { t } from "../../i18n";
+
+const ALL_PROVIDERS: ProviderKind[] = ["claude", "codex", "opencode", "cline", "copilot", "antigravity"];
+/// O que já foi visto: CLI instalada e login conectado, lembrados no computador.
+const CACHE_KEY = "luna.accounts";
+/// Marca que a checagem completa já rodou nesta abertura do app.
+const CHECKED_KEY = "luna.accountsChecked";
+
+interface AccountsCache {
+  cli: Partial<Record<ProviderKind, CliStatus>>;
+  login: Partial<Record<ProviderKind, boolean>>;
+}
+
+function readCache(): AccountsCache {
+  try {
+    const raw = window.localStorage.getItem(CACHE_KEY);
+    if (raw) return JSON.parse(raw) as AccountsCache;
+  } catch {
+    // Cache ilegível ou sem armazenamento: a tela faz a checagem normal.
+  }
+  return { cli: {}, login: {} };
+}
+
+function writeCache(value: AccountsCache) {
+  try {
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(value));
+  } catch {
+    // Sem armazenamento a tela segue igual; só não lembra na próxima vez.
+  }
+}
+
+function alreadyChecked(): boolean {
+  try {
+    return window.sessionStorage.getItem(CHECKED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markChecked() {
+  try {
+    window.sessionStorage.setItem(CHECKED_KEY, "1");
+  } catch {
+    // Sem armazenamento, a próxima entrada confere de novo. Não é erro.
+  }
+}
 
 function loginLabel(state: boolean | null | undefined): string {
   if (state === undefined) return t("accounts.checking");
@@ -12,28 +57,52 @@ function loginLabel(state: boolean | null | undefined): string {
 
 /// Contas: o login de cada CLI. Quem entra aqui é o próprio Claude Code e o Codex, não as chaves de API.
 /// "Baixar e conectar" instala a CLI se ela faltar (o instalador oficial, como na primeira abertura) e abre o login dela.
+/// Entrar de novo nas Contas não confere tudo de novo: mostra o que já foi visto e checa só o que falta.
 export function AccountsSection() {
+  // Começa pelo que já foi visto antes; a checagem atualiza depois, se for preciso.
+  const [cache] = useState(readCache);
   // true/false = conectado ou não; null = a checagem falhou; ausente = ainda verificando.
-  const [login, setLogin] = useState<Partial<Record<ProviderKind, boolean | null>>>({});
-  const [cli, setCli] = useState<Partial<Record<ProviderKind, CliStatus>>>({});
+  const [login, setLogin] = useState<Partial<Record<ProviderKind, boolean | null>>>(cache.login);
+  const [cli, setCli] = useState<Partial<Record<ProviderKind, CliStatus>>>(cache.cli);
   const [busy, setBusy] = useState<ProviderKind | null>(null);
   const [errors, setErrors] = useState<Partial<Record<ProviderKind, string>>>({});
+  const loginRef = useRef(login);
+  loginRef.current = login;
 
-  const refresh = useCallback(() => {
-    void Promise.all([checkAuth("claude"), checkAuth("codex"), checkAuth("opencode"), checkAuth("cline"), checkAuth("copilot"), checkAuth("antigravity")])
-      .then(([claude, codex, opencode, cline, copilot, antigravity]) => setLogin({ claude, codex, opencode, cline, copilot, antigravity }))
-      .catch(() => setLogin({ claude: null, codex: null, opencode: null, cline: null, copilot: null, antigravity: null }));
+  const refresh = useCallback((providers: ProviderKind[]) => {
+    void Promise.all(providers.map((p) => checkAuth(p).then((ok) => [p, ok] as const).catch(() => [p, null] as const))).then((results) =>
+      setLogin((current) => ({ ...current, ...(Object.fromEntries(results) as Partial<Record<ProviderKind, boolean | null>>) })),
+    );
   }, []);
 
   useEffect(() => {
-    refresh();
-    void cliStatus()
-      .then((list) => setCli(Object.fromEntries(list.map((s) => [s.provider, s]))))
-      .catch(() => {});
-    // O login acontece no navegador: ao voltar para o app, confere de novo.
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, [refresh]);
+    // Primeira entrada da abertura: confere tudo. Depois, só detecta de novo as CLIs que ainda não achou.
+    const firstLook = !alreadyChecked();
+    const missingCli = (["claude", "codex"] as ProviderKind[]).some((p) => !cache.cli[p]?.installed);
+    if (firstLook) {
+      markChecked();
+      refresh(ALL_PROVIDERS);
+    }
+    if (firstLook || missingCli) {
+      void cliStatus()
+        .then((list) => setCli((current) => ({ ...current, ...Object.fromEntries(list.map((s) => [s.provider, s])) })))
+        .catch(() => {});
+    }
+    // O login acontece no navegador: ao voltar para o app, confere só quem ainda não entrou.
+    const onFocus = () => refresh(ALL_PROVIDERS.filter((p) => loginRef.current[p] !== true));
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [cache, refresh]);
+
+  // Guarda o que foi visto, para a próxima entrada mostrar sem esperar.
+  useEffect(() => {
+    const loggedIn: Partial<Record<ProviderKind, boolean>> = {};
+    for (const p of ALL_PROVIDERS) {
+      const state = login[p];
+      if (state === true || state === false) loggedIn[p] = state;
+    }
+    writeCache({ cli, login: loggedIn });
+  }, [cli, login]);
 
   async function connect(p: ProviderKind) {
     setBusy(p);
