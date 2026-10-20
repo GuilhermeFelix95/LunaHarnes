@@ -214,3 +214,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Trabalhar sem pasta: pasta "Sem pasta" dentro dos dados do app, escolhida no menu de pasta.
 2026-10-20 | README: plataformas (Windows com instalador; macOS e Linux em preparação) e descrição com outros agentes além de Claude e Codex.
 2026-10-20 | README: lista completa de recursos; macOS e Linux fora do plano (comunidade). Página do GitHub Pages em docs/index.html (fonte: pasta docs da main).
+2026-10-20 | Campo de mensagem do composer não corta mais o texto nos formatos de tema: raio limitado a 12px e padding horizontal em `.composer textarea` (`components.css`), quebra só entre palavras, contorno de foco do campo removido (destaque na moldura). Branch fix/campo-texto-formatos. Teste em composer-textarea.test.ts; spec em specs/001-a-barra-de-de-chat-quando-tem-temas-que/.

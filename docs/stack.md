@@ -136,6 +136,7 @@ docs/                stack, contrato de plugins
   - Componentes em `src/features/`: `chat/` (Composer, MessageList, Markdown), `sidebar/` (Sidebar, groupByDay), `auth/` (LoginPrompt).
   - Markdown: `react-markdown` + `remark-gfm`, sem `rehype-raw`. Links não navegam dentro do app.
   - Tema: tokens em `src/styles/tokens.css` (escala de tipo, espaço, raio, sombra, movimento) e cores por tema em `src/styles/themes.css` (Sistema, Claro, Escuro, Luna padrão, Aurora, Duna, Grafite). Estilos base e componentes em `src/styles/base.css` e `src/styles/components.css`.
+  - Campo de mensagem do composer (`.composer textarea` em `components.css`): raio com teto de 12px (`min(var(--input-radius), 12px)`) e padding horizontal, para o formato do tema não cortar o texto; quebra só entre palavras; sem contorno de foco próprio (o destaque é a borda da moldura `.composer:focus-within`). Moldura segue `--composer-radius`. Teste em `src/styles/composer-textarea.test.ts`.
 - Fase A (funcionamento):
   - Executável resolvido só com `.exe`, `.cmd` ou `.bat` no Windows (o script sem extensão instalado pelo npm dava erro 193).
   - Processos sem janela de console (`hidden_command`). stderr capturado; se o CLI sair sem `Done`, a app emite erro com o motivo.
