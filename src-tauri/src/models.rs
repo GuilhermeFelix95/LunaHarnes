@@ -260,9 +260,10 @@ fn hermes_catalog_in(root: Option<&Path>) -> Vec<ModelOption> {
     let mut models: Vec<ModelOption> = Vec::new();
     for (provider, id, place) in found {
         let key = format!("{provider}:{id}");
-        if !models.iter().any(|m| m.id == key) {
-            models.push(hermes_option(key, &id, place));
+        if HERMES_UNAVAILABLE.contains(&key.as_str()) || models.iter().any(|m| m.id == key) {
+            continue;
         }
+        models.push(hermes_option(key, &id, place));
     }
     // O padrão sempre aparece, mesmo sem o cache da CLI.
     if !models.iter().any(|m| m.id == crate::providers::hermes::DEFAULT_MODEL) {
@@ -270,6 +271,10 @@ fn hermes_catalog_in(root: Option<&Path>) -> Vec<ModelOption> {
     }
     models
 }
+
+/// Modelos que a CLI lista mas não respondem no Nous Portal: a execução fica parada até o tempo esgotar
+/// (medido em 2026-10-20, também pela CLI direta). Saem da lista até a CLI voltar a responder.
+const HERMES_UNAVAILABLE: &[&str] = &["nous:stepfun/step-3.7-flash:free"];
 
 /// Base do Portal como a CLI a guarda no cache de recomendados (ver `fetch_nous_recommended_models`).
 const NOUS_PORTAL_BASE: &str = "https://portal.nousresearch.com";
@@ -327,7 +332,7 @@ mod tests {
         std::fs::write(root.join("cache").join("model_catalog.json"), r#"{"providers":{"nous":{"models":[{"id":"z-ai/glm-5.2"}]}}}"#).unwrap();
         std::fs::write(
             root.join("cache").join("nous_recommended_cache.json"),
-            r#"{"https://portal.nousresearch.com":{"data":{"freeRecommendedModels":[{"modelName":"poolside/laguna-xs-2.1:free"}],"paidRecommendedModels":[{"modelName":"x-ai/grok-4.7"}]},"ts":0}}"#,
+            r#"{"https://portal.nousresearch.com":{"data":{"freeRecommendedModels":[{"modelName":"poolside/laguna-xs-2.1:free"},{"modelName":"stepfun/step-3.7-flash:free"}],"paidRecommendedModels":[{"modelName":"x-ai/grok-4.7"}]},"ts":0}}"#,
         )
         .unwrap();
 
@@ -338,6 +343,7 @@ mod tests {
             ids(&models),
             ["copilot:gpt-4.1", "copilot:gpt-5.6-sol", "nous:poolside/laguna-xs-2.1:free", "nous:x-ai/grok-4.7", "nous:z-ai/glm-5.2"]
         );
+        assert!(!models.iter().any(|m| m.id == "nous:stepfun/step-3.7-flash:free"));
         assert_eq!(models.iter().filter(|m| m.default).count(), 1);
         assert!(models[0].default);
         assert_eq!(models[2].label, "poolside/laguna-xs-2.1:free · Nous Portal · free");

@@ -205,3 +205,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Editor do tema Personalizado: painel com cartões por seção, cores em quadrinhos, campos empilhados e compartilhar em cartão (só CSS).
 2026-10-20 | Tema: formatos Gota, Papel e Pedra; efeitos Linhas de tela, Granulado e Brilho no destaque no editor. Hermes: modelos grátis com free no rótulo.
 2026-10-20 | Orquestrador: cartão por papel com campos legendados (motor ou perfil, modelo).
+2026-10-20 | Hermes: stepfun/step-3.7-flash:free fora da lista (trava no Nous Portal; a CLI direta também dá timeout).
