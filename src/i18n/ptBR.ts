@@ -32,6 +32,7 @@ export const ptBR = {
   "orchestrator.role.subagent": "Subagentes (só Claude)",
   "orchestrator.noModels": "Nenhum modelo disponível neste motor. Entre na conta dele em Contas.",
   "orchestrator.model": "Modelo",
+  "orchestrator.agent": "Motor ou perfil",
   "orchestrator.saveError": "Não foi possível salvar o orquestrador: {error}",
   "orchestrator.subagentNote": "Com um subagente escolhido, cada etapa do plano vai para um subagente do Claude, e o chat mostra o modelo que respondeu.",
   "settings.browser.notInstalled": "O Chromium do Playwright ainda não está instalado neste computador.",

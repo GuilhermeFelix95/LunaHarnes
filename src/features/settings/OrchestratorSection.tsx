@@ -78,6 +78,7 @@ export function OrchestratorSection() {
       <p className="settings__hint">{t("orchestrator.help")}</p>
       <p className="settings__hint">{t("orchestrator.subagentNote")}</p>
 
+      <div className="orchestrator__roles">
       {ROLES.map((role) => {
         const choice = config[role];
         const roleOptions = role === "subagent" ? options.filter((o) => o.engine === "claude" && !o.profileId) : options;
@@ -85,9 +86,11 @@ export function OrchestratorSection() {
         const modelOptions: ModelOption[] = choice ? (choice.profileId ? profileModelOptions(profile) : (models[choice.provider] ?? [])) : [];
         const noModels = !!choice && !choice.profileId && models[choice.provider]?.length === 0;
         return (
-          <div className="settings__row" key={role}>
-            <label>
-              <span>{t(ROLE_KEYS[role])}</span>
+          <div className="orchestrator__role" key={role}>
+            <h3 className="orchestrator__role-name">{t(ROLE_KEYS[role])}</h3>
+            <div className="orchestrator__fields">
+            <label className="orchestrator__field">
+              <span>{t("orchestrator.agent")}</span>
               <select
                 aria-label={t(ROLE_KEYS[role])}
                 value={choice ? keyOf(choice) : ""}
@@ -108,7 +111,8 @@ export function OrchestratorSection() {
               </select>
             </label>
             {choice && (
-              <label>
+              <label className="orchestrator__field">
+                <span>{t("orchestrator.model")}</span>
                 <select
                   aria-label={t("orchestrator.model")}
                   value={choice.model}
@@ -121,12 +125,14 @@ export function OrchestratorSection() {
                     </option>
                   ))}
                 </select>
-                {noModels && <span className="settings__hint">{t("orchestrator.noModels")}</span>}
+                {noModels && <span className="orchestrator__note">{t("orchestrator.noModels")}</span>}
               </label>
             )}
+            </div>
           </div>
         );
       })}
+      </div>
 
       {error && (
         <p role="alert" className="settings__hint">

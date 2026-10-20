@@ -3635,3 +3635,55 @@ textarea:focus-visible {
   display: flex;
   gap: 8px;
 }
+
+/* Orquestrador: um cartão por papel, com o título e os dois campos (motor e modelo) legendados */
+.orchestrator__roles {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.orchestrator__role {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.orchestrator__role-name {
+  margin: 0;
+  font-size: 14px;
+}
+
+.orchestrator__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.orchestrator__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.orchestrator__field select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 13px;
+}
+
+.orchestrator__note {
+  color: var(--fg-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}

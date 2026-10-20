@@ -31,6 +31,7 @@ export const en: Record<MessageKey, string> = {
   "orchestrator.role.subagent": "Subagents (Claude only)",
   "orchestrator.noModels": "No models available for this engine. Sign in to its account under Accounts.",
   "orchestrator.model": "Model",
+  "orchestrator.agent": "Engine or profile",
   "orchestrator.saveError": "Could not save the orchestrator: {error}",
   "orchestrator.subagentNote": "With a subagent chosen, each plan step goes to a Claude subagent, and the chat shows the model that answered.",
   "settings.browser.notInstalled": "The Playwright Chromium is not installed on this computer yet.",
