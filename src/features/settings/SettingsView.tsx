@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import {
   applyLiquidGlass,
@@ -267,6 +267,9 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const [theme, setTheme] = useState<ThemeId>(loadTheme);
   const [palette, setPalette] = useState<ThemePalette>(loadCustomPalette);
   const [section, setSection] = useState<SettingsSection>(loadSection);
+  // Indicador deslizante do menu lateral: posição e altura do item ativo, medidas no DOM.
+  const navRef = useRef<HTMLElement | null>(null);
+  const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null);
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(loadSavedThemes);
   const [activeName, setActiveName] = useState<string | null>(loadActiveName);
   // Nome do tema novo enquanto o formulário está aberto (null = fechado), e o erro de validação dele.
@@ -280,6 +283,23 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     setThemesTabState(tab);
     saveThemesTab(tab);
   }
+
+  // Mede o item ativo a cada troca de seção e ao redimensionar; a transição do CSS faz o deslize.
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const measure = () => {
+      const active = nav.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!active) return setIndicator(null);
+      const navRect = nav.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      if (!activeRect.height) return setIndicator(null);
+      setIndicator({ top: activeRect.top - navRect.top, height: activeRect.height });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [section]);
 
   function open(id: SettingsSection) {
     setSection(id);
@@ -394,7 +414,17 @@ export function SettingsView({ onClose }: SettingsViewProps) {
       </header>
 
       <div className="settings__layout">
-        <nav className="settings-nav" aria-label={t("settings.sectionsNav")}>
+        <nav
+          className="settings-nav"
+          aria-label={t("settings.sectionsNav")}
+          ref={navRef}
+          data-indicator={indicator ? "on" : "off"}
+        >
+          <span
+            className="settings-nav__indicator"
+            aria-hidden="true"
+            style={indicator ? { transform: `translateY(${indicator.top}px)`, height: `${indicator.height}px` } : undefined}
+          />
           {SECTIONS.map(([id, label]) => (
             <button
               key={id}

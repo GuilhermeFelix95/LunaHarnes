@@ -186,6 +186,29 @@ describe("SettingsView", () => {
     expect(second).not.toBe(first);
   });
 
+  it("o indicador do menu desliza até a seção ativa", () => {
+    const rect = (top: number, height = 36): DOMRect =>
+      ({ top, height, bottom: top + height, left: 0, right: 0, width: 0, x: 0, y: top, toJSON: () => ({}) }) as DOMRect;
+    const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains("settings-nav")) return rect(40, 200);
+      return rect(this.textContent === "Regras globais" ? 160 : 80);
+    });
+
+    try {
+      render(<SettingsView onClose={() => {}} />);
+      const indicator = document.querySelector<HTMLElement>(".settings-nav__indicator");
+      expect(indicator).toBeTruthy();
+      expect(indicator!.getAttribute("aria-hidden")).toBe("true");
+      expect(indicator!.style.transform).toBe("translateY(40px)");
+
+      fireEvent.click(screen.getByRole("button", { name: "Regras globais" }));
+
+      expect(indicator!.style.transform).toBe("translateY(120px)");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("botão de voltar fecha a página", () => {
     const onClose = vi.fn();
     render(<SettingsView onClose={onClose} />);

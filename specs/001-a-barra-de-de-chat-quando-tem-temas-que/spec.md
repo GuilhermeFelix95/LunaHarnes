@@ -1,40 +1,48 @@
-# Branch criada pelo chat, destaque da branch atual e miniatura de imagem no histórico
+# Indicador deslizante nas Configurações e subagente em segundo plano
 
 ## Problem Statement
 
-Três problemas afetam o uso diário do chat com projetos git:
+Duas limitações atrapalham o uso diário do app.
 
-- Quando o agente cria ou troca de branch pelo chat, o menu de branch não mostra a branch nova e a barra continua indicando a branch antiga. O usuário precisa trocar de pasta ou reabrir o app para ver o estado real do repositório.
-- No menu de branch, a branch atual não se destaca das outras, então é difícil saber em qual branch a conversa está.
-- Quando o usuário envia uma imagem, a miniatura aparece só durante o envio. Depois que a resposta chega, ela some do histórico, e some também ao recarregar a conversa.
+Nas Configurações, a troca de seção já tem uma animação de entrada, mas o menu lateral não indica movimento: o destaque do item ativo aparece e desaparece de uma vez, sem acompanhar a troca de seção. A navegação parece estática, e o usuário perde a referência de onde estava ao alternar entre seções.
 
-Há ainda um quarto ponto ligado ao plano: etapas que o agente deixa em andamento ao fim de um turno ficam marcadas no painel de progresso, mesmo com o trabalho feito.
+Para tarefas longas, o chat só executa um turno por vez. Quando o agente precisa pesquisar, rodar testes ou revisar arquivos, a conversa fica ocupada até o fim, e o usuário não pode pedir outra coisa enquanto isso. Também não há como delegar uma tarefa e receber o resultado depois, sem prender a conversa.
 
 ## Solution
 
-O estado de branch passa a ser relido nos momentos em que ele pode ter mudado: ao fim do turno, quando um comando do agente termina e quando o usuário abre o menu de branch. A branch atual ganha destaque visual no menu. A mensagem do usuário guarda os caminhos das imagens enviadas, e o balão mostra a miniatura carregando a imagem da pasta de anexos do app. A instrução de aprovação do plano passa a pedir que o agente conclua todas as etapas antes de terminar.
+O menu lateral das Configurações ganha um indicador que desliza até o item ativo. O indicador é uma marca visual com o acento do tema, posicionada sobre o item atual, e o movimento usa a duração e a curva de animação já definidas pelo tema. Com movimento reduzido, o indicador salta para a nova posição sem animar.
+
+No chat, um novo comando da Luna permite delegar uma tarefa a um processo próprio do motor Claude, iniciado pelo app. A conversa continua livre enquanto a tarefa roda. Uma lista na própria conversa mostra o status de cada tarefa e permite parar uma tarefa a qualquer momento. Quando a tarefa termina, a conversa recebe uma mensagem com o resultado, mesmo que outro turno esteja em andamento.
 
 ## User Stories
 
-1. Como usuário, quero que uma branch criada pelo agente no chat apareça no menu de branch assim que o comando termina, para escolher ou conferir sem sair da conversa.
-2. Como usuário, quero que a barra de branch mostre a branch em que o agente está trabalhando, para não achar que a conversa ainda está na main quando não está.
-3. Como usuário, quero ver claramente qual branch está marcada como atual no menu, para distinguir a atual das demais.
-4. Como usuário, quero que a imagem que enviei continue aparecendo no histórico, na mensagem em que a enviei, mesmo depois de recarregar a conversa.
-5. Como usuário, quero que, quando a imagem não estiver mais disponível, o histórico mostre um aviso curto no lugar, sem quebrar a conversa.
-6. Como usuário, quero que o agente marque todas as etapas do plano como concluídas antes de terminar, para o painel de progresso refletir o trabalho feito.
+1. Como usuário, quero que o destaque do menu de Configurações deslize até a seção ativa, para enxergar a navegação como um movimento contínuo.
+2. Como usuário, quero que o indicador use as cores e o formato do tema atual, para a navegação não destoar do restante do app.
+3. Como usuário que prefere menos movimento, quero que o indicador não anime quando o sistema pede movimento reduzido.
+4. Como usuário, quero delegar uma tarefa longa com um comando no chat e continuar conversando enquanto ela roda.
+5. Como usuário, quero ver na conversa quais tarefas em segundo plano estão rodando, com o status de cada uma.
+6. Como usuário, quero poder parar uma tarefa em segundo plano a qualquer momento.
+7. Como usuário, quero receber o resultado da tarefa na conversa assim que ela terminar, sem precisar perguntar.
+8. Como usuário, quero que o app recuse iniciar mais tarefas simultâneas do que o limite, com uma mensagem clara.
+9. Como usuário de outro motor, quero que o recurso não altere o comportamento normal do chat.
 
 ## Implementation Decisions
 
 - O frontend é React com TypeScript. Os estilos são arquivos CSS do próprio projeto, sem framework de estilos.
 - O backend do app é Tauri 2 com Rust. Comandos novos seguem o mesmo padrão dos comandos já existentes: validação do lado Rust, retorno de erro com mensagem clara e registro no mesmo ponto de entrada.
-- Nenhum comando novo aceita caminho arbitrário: a leitura de imagem só alcança a pasta de anexos do próprio app.
-- Só imagens de tipo png, jpeg e webp são lidas. Há limite de tamanho por arquivo.
-- A lista de branches e a branch atual são relidas quando a pasta muda, ao fim de cada turno, ao abrir o menu de branch e quando um comando do agente termina.
-- Criar e listar worktrees continua igual. Muda só o momento em que o estado é relido.
-- A mensagem do usuário guarda somente os caminhos das imagens enviadas, não os bytes. Os bytes ficam na pasta de anexos e são lidos quando o balão é exibido.
-- Conversas salvas antes desta mudança não têm caminhos de imagem e não ganham miniatura.
-- O campo de imagens da mensagem é opcional, para que conversas antigas continuem sendo lidas sem migração.
-- A instrução de concluir etapas fica no texto de aprovação do plano. Nenhuma mudança automática no app marca etapas como concluídas.
+- O indicador do menu é um elemento visual marcado como decorativo para leitores de tela. O estado da seção continua comunicado pelo item ativo do menu, que mantém a marcação de página atual.
+- O indicador mede o item ativo depois de cada troca de seção e quando a janela muda de tamanho. A posição e a altura vêm dessa medição; o deslize é feito pela transição do CSS.
+- A transição usa os tokens de duração e de curva do tema. O movimento reduzido, já tratado pelos tokens globais, zera a animação.
+- Em janelas estreitas, o menu passa a ficar em linha e o indicador vertical é escondido; o item ativo volta a ter fundo próprio.
+- O subagente em segundo plano é uma execução própria do motor Claude, iniciada pelo app, sem depender do processo do turno. O processo do turno continua encerrando ao fim do turno.
+- O recurso existe só no motor Claude. Codex, OpenCode e os demais motores mantêm o comportamento atual.
+- A tarefa em segundo plano usa a mesma pasta de trabalho e a mesma configuração de permissão do turno. Não usa o papel de subagente das etapas do plano, que continua com a função atual.
+- O comando que inicia a tarefa é um comando da Luna, disponível no menu de barra do composer, com a tarefa escrita depois do nome.
+- Há um limite de tarefas simultâneas. Acima do limite, o pedido é recusado com mensagem clara.
+- Cada tarefa tem um identificador, um status e a saída produzida. Parar uma tarefa encerra o processo e muda o status para parada.
+- O app acompanha a conclusão das tarefas e envia o resultado para a conversa na hora em que a tarefa termina. O resultado entra como mensagem própria, sem enviar nada ao agente e sem interromper um turno em andamento.
+- A lista de tarefas em segundo plano aparece na conversa, com status e botão para parar cada tarefa.
+- Ao fechar o app, as tarefas em segundo plano são encerradas.
 - Textos novos entram nos dicionários de português do Brasil e inglês.
 - Testes automatizados usam Vitest no frontend e cargo test no backend.
 
@@ -42,32 +50,37 @@ O estado de branch passa a ser relido nos momentos em que ele pode ter mudado: a
 
 Os testes verificam só o comportamento externo: o que o usuário vê e o que o backend devolve.
 
-- Depois de um turno em que o agente cria uma branch, o menu de branch lista a branch nova sem o usuário trocar de pasta.
-- Depois do mesmo turno, a barra de branch mostra a branch em que o agente está.
-- No menu de branch, a branch atual aparece destacada e marcada como atual para leitores de tela.
-- Ao abrir o menu de branch, a lista atual é carregada, mesmo que nada tenha mudado desde a última abertura.
-- Um caminho de imagem fora da pasta de anexos é recusado com uma mensagem clara.
-- Um arquivo de imagem válido na pasta de anexos volta como imagem para exibir.
-- Um arquivo que não é imagem, ou maior que o limite, é recusado.
-- Uma mensagem do usuário enviada com imagens mostra a miniatura no balão.
-- A mesma mensagem, carregada de novo da conversa salva, continua mostrando a miniatura.
-- Quando a imagem não existe mais, o balão mostra o aviso curto no lugar da miniatura, sem erro na tela.
-- A conversa salva antes da mudança abre normalmente, sem miniatura e sem erro.
-- O texto de aprovação do plano pede que todas as etapas sejam marcadas como concluídas antes do fim do turno.
-- Verificação manual: criar uma branch pelo chat e ver o menu atualizar com destaque; enviar uma imagem e ver a miniatura antes e depois de recarregar a conversa.
+- O menu de Configurações contém o indicador, e ele é decorativo para leitores de tela.
+- Ao trocar de seção, o indicador passa a apontar para o item ativo.
+- O estilo do indicador usa os tokens de movimento do tema, e o movimento reduzido zera a duração.
+- Um arquivo de teste confirma que o comando de tarefa em segundo plano aparece no menu e separa a tarefa do nome do comando.
+- Um teste do backend confirma que, acima do limite, novas tarefas são recusadas com mensagem clara.
+- Um teste do backend confirma que parar uma tarefa muda o status para parada.
+- Um teste do backend confirma que a execução avulsa usa a pasta de trabalho da conversa e não usa a configuração do turno com o papel de subagente das etapas.
+- Um teste da conversa confirma que a conclusão de uma tarefa vira mensagem na conversa.
+- Um teste da conversa confirma que a mensagem de conclusão não interrompe um turno em andamento.
+- Um teste da conversa confirma que o resultado da tarefa não é enviado de volta ao agente.
+- Verificação manual: trocar de seção nas Configurações e observar o destaque deslizando; iniciar uma tarefa em segundo plano, continuar conversando e ver a mensagem de resultado quando ela terminar.
 
 ## Out of Scope
 
-- Miniaturas de imagens de conversas antigas: não há caminho guardado para recuperar.
-- Recuperar imagens cuja pasta de anexos foi apagada.
-- Fechar etapas automaticamente no app quando o agente não as fecha.
-- Mudanças em criação, remoção ou listagem de worktrees, além do momento de recarregar.
+- Subagentes em segundo plano nos motores Codex e OpenCode.
+- Subagentes aninhados ou tarefas iniciadas por outra tarefa em segundo plano.
+- Histórico de tarefas em segundo plano entre sessões do app.
+- Recuperar tarefas em segundo plano depois de fechar o app.
+- Mostrar a saída parcial da tarefa durante a execução.
+- Alterar o papel de subagente usado pelas etapas do plano.
+- Alterar o fluxo normal do turno do chat.
+- Mudar a criação, a remoção ou a listagem de worktrees.
 - Cache de respostas, cache de prompt e plugin Cache de Tokens: são outra tarefa.
-- Publicação, push ou merge da branch.
+- Publicação, push ou merge das branches.
 
 ## Further Notes
 
-- A branch de trabalho é fix/branch-imagem-progresso, criada a partir da main.
-- Os motores que não emitem o evento de comando concluído recebem a atualização ao fim do turno e ao abrir o menu.
-- Diferenças de comportamento entre motores (Claude, Codex e outros) são verificadas na execução com cada um, quando houver conta disponível.
-- A pasta de anexos é a mesma usada pelo envio de imagens; qualquer mudança nela afeta as miniaturas.
+- As duas mudanças ficam em branches separadas, ambas criadas a partir da main: uma para o indicador das Configurações e outra para o subagente em segundo plano.
+- O indicador reaproveita a animação de entrada que a tela de Configurações e o painel de seção já têm.
+- A conversa recebe o resultado da tarefa como mensagem separada. Se um turno estiver em andamento, a mensagem aparece sem alterar o turno.
+- Sem resposta a um pedido de permissão, uma ação que exija confirmação falha. A falha aparece no status da tarefa.
+- Cada tarefa em segundo plano consome tokens como uma execução completa. O limite de tarefas simultâneas e o botão de parar são as proteções previstas.
+- Fechar o app encerra as tarefas em segundo plano; não há retomada depois de reabrir.
+- A verificação manual depende de uma conta configurada no motor Claude.
