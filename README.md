@@ -27,26 +27,42 @@ A ideia é ter um lugar só para trabalhar com o agente, sem perder o que as CLI
 
 ## Recursos
 
+**Agentes (motores)**
+- **Claude Code** e **Codex**: as CLIs oficiais, com o login que você já fez nelas.
+- **OpenCode**, **Cline**, **GitHub Copilot**, **Hermes** e **Antigravity**, cada um como uma CLI, quando estiver instalada.
+- **Perfis de API** para provedores como OpenRouter e DeepSeek, com chave guardada no cofre do sistema.
+- **Orquestrador**: você escolhe qual agente e modelo cuida de cada papel (planejar, executar, conversar e subagentes).
+- **Contas extras**: mais de uma conta por CLI, em pastas separadas.
+
 **Conversa**
-- Chat com streaming, anexos de imagem e de arquivo, e menu `/` com comandos da Luna, skills e comandos das CLIs.
-- Modo de planejamento: o plano completo fica no painel **Plano**, e o balão do chat mostra só o resumo.
-- Compactação de contexto, manual (`/compactar`) ou automática perto do limite.
-- Regras globais: um texto seu que vai para o `CLAUDE.md` e o `AGENTS.md` das duas CLIs.
+- Respostas em tempo real, com anexos de imagem e de arquivo.
+- Menu `/` com comandos da Luna, skills e comandos de cada CLI.
+- Modo de planejamento: o plano completo vai para o painel **Plano**, e o chat mostra o resumo.
+- Compactação de contexto, manual ou automática perto do limite.
+- Trocar de agente, modelo, esforço e permissão sem perder a conversa.
+- Regras globais: um texto seu que vai para o `CLAUDE.md` e o `AGENTS.md`.
+
+**Projeto e git**
+- Conversa com pasta de projeto, ou **sem pasta**, como no Claude Code.
+- **Worktrees**: trabalhar numa branch sem mexer na pasta atual. O seletor mostra a branch atual e as outras.
+- Painel **Alterações**: lista de arquivos mudados, com diff e desfazer.
 
 **Painel lateral**
-- **Alterações:** lista de arquivos mudados, com diff e desfazer.
-- **Plano** e **Progresso:** o plano do agente e as etapas da tarefa, em ordem.
-- **Terminal:** um shell na pasta do projeto (`Ctrl + `` `).
-- **Navegador:** uma página embutida, que o agente também pode controlar (ver [Estado atual](#estado-atual)).
+- **Plano** e **Progresso**: o plano do agente e as etapas da tarefa, em ordem.
+- **Arquivos**: árvore do projeto. Clicar num arquivo abre um **editor** no lugar do chat, com salvar, Ctrl+S e auto-salvar opcional.
+- **Terminal**: um shell na pasta do projeto.
+- **Navegador**: uma página embutida, com abas e favoritos. Veja o [Estado atual](#estado-atual).
 
 **Extensões**
-- **Skills** e **servidores MCP** em catálogos oficiais ou por URL. Instalados nas configurações globais das duas CLIs.
-- **Plugins** que acrescentam comportamento ao chat: painéis na barra lateral, comandos e avisos. Um plugin padrão, o **Cache de Tokens**, mostra quanto do prompt foi reaproveitado do cache do provedor.
-- Segredos de MCP ficam nas variáveis de ambiente do seu usuário. O app nunca guarda nem mostra o valor.
+- **Skills**, **servidores MCP** e **plugins**, instalados pelo catálogo do app ou pelo comando `luna`, e usados nas CLIs.
+- Plugins podem criar painéis na barra lateral, comandos e avisos. O plugin de exemplo **Cache de Tokens** mostra o aproveitamento do cache do provedor.
+- Segredos de MCP ficam nas variáveis de ambiente do seu usuário. O app nunca mostra o valor.
 
-**Visual**
-- Temas claros e noturnos, com opção de efeito de vidro.
-- Sons de resposta opcionais e avisos quando a janela não está em foco.
+**Visual e uso**
+- Temas claros e noturnos, temas próprios (com editor e formatos de componente) e efeito de vidro.
+- Interface em português, inglês e outros idiomas do dicionário.
+- Avisos quando a janela não está em foco, e sons de resposta opcionais.
+- Atualização pelo próprio app, em Configurações > Sobre.
 
 ## Como funciona
 
@@ -68,8 +84,8 @@ flowchart LR
 | Sistema | Situação | Como obter |
 |---|---|---|
 | **Windows 10 (1809+) e Windows 11** | Disponível | Instalador na [página de releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases) (`.exe`). |
-| **macOS** | Em preparação | Ainda não há instalador. O código ainda usa caminhos e comandos do Windows. |
-| **Linux** | Em preparação | Ainda não há pacote. O código ainda usa caminhos e comandos do Windows. |
+| **macOS** | Não disponível | Não há instalador. Porte para a comunidade. |
+| **Linux** | Não disponível | Não há pacote. Porte para a comunidade. |
 
 - Requisitos no Windows: pelo menos um CLI instalado e logado (`claude`, `codex` ou outro). Não é preciso Node.js nem Rust para quem só usa o app.
 - O instalador ainda não tem assinatura de código: o Windows pode mostrar um aviso do SmartScreen. Escolha "Mais informações" e depois "Executar assim mesmo".
@@ -83,7 +99,7 @@ Hoje o desenvolvimento e o build funcionam só no **Windows**:
 - **Rust** (toolchain `stable`, `x86_64-pc-windows-msvc`) e as ferramentas de build do Visual Studio (C++).
 - Pelo menos uma CLI instalada e logada: Claude Code, [Codex](https://github.com/openai/codex) ou outra.
 
-Para macOS e Linux, os pré-requisitos ainda não estão documentados porque o build não roda nesses sistemas.
+macOS e Linux não são suportados por enquanto.
 
 ## Instalação e execução
 
@@ -145,7 +161,7 @@ spec/                especificações de recursos (cache de prompt, cache de res
 
 ## Estado atual
 
-Plataformas: **Windows** é o único sistema com instalador e build. **macOS** e **Linux** estão em preparação (os scripts de build e parte do código ainda são do Windows).
+Plataformas: **Windows** é o único sistema com instalador e build. macOS e Linux não estão no plano agora; a comunidade pode fazer o porte.
 
 Partes já funcionando e testadas:
 

@@ -213,3 +213,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Seletor de pasta: a branch atual aparece ao lado da pasta (repositório git), e o menu lista as outras com "(atual)".
 2026-10-20 | Trabalhar sem pasta: pasta "Sem pasta" dentro dos dados do app, escolhida no menu de pasta.
 2026-10-20 | README: plataformas (Windows com instalador; macOS e Linux em preparação) e descrição com outros agentes além de Claude e Codex.
+2026-10-20 | README: lista completa de recursos; macOS e Linux fora do plano (comunidade). Página do GitHub Pages em docs/index.html (fonte: pasta docs da main).

@@ -44,6 +44,8 @@ docs/                stack, contrato de plugins
 
 ## Estado atual
 
+- Página (2026-10-20): `docs/index.html` (um arquivo, CSS embutido, sem scripts) publicada pelo GitHub Pages a partir da pasta `docs/` da branch `main`. Mascote em `docs/assets/atom.png`. O resto de `docs/` continua sendo documentação em Markdown.
+
 - Plataformas (2026-10-20): só o Windows tem build e instalador. Os scripts `build:app`, `release:app`, `dev:app` e `test:rust` chamam `scripts\with-msvc.cmd`. O código ainda tem trechos só do Windows: `setup.rs` instala CLIs pelo PowerShell, `session.rs` executa `.cmd` pelo `cmd.exe`, `terminal.rs` abre o PowerShell, e há caminhos de `APPDATA`, `LOCALAPPDATA` e `USERPROFILE` (em `mcp.rs`, `models.rs`, `playwright.rs`, `setup.rs`, `cline.rs`, `slash.rs`, `migrate.rs`). macOS e Linux dependem de um porte desses trechos e de runners próprios para build.
 
 - Progresso (2026-10-18): o mascote compacto (`luna-atom--compact`) fica ao lado do resumo das tarefas (`timeline__head`) ou do texto de espera (`side__progress-empty`), no topo do painel.

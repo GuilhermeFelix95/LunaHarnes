@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LunaCode · um app para trabalhar com agentes de código</title>
+  <meta name="description" content="App desktop para Windows que reúne Claude Code, Codex e outros agentes de código numa interface só, com plugins, skills, MCP e navegador." />
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --card: #ffffff;
+      --fg: #1d1d1f;
+      --muted: #5b5b63;
+      --accent: #2a6f97;
+      --accent-soft: #e4f0f7;
+      --border: #e2ddd2;
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #101417;
+        --card: #182026;
+        --fg: #eef2f4;
+        --muted: #a5b0b8;
+        --accent: #7cc4e8;
+        --accent-soft: #1d2f3a;
+        --border: #2a363f;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #101417;
+      --card: #182026;
+      --fg: #eef2f4;
+      --muted: #a5b0b8;
+      --accent: #7cc4e8;
+      --accent-soft: #1d2f3a;
+      --border: #2a363f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+    header.hero { padding: 72px 0 56px; text-align: center; }
+    .hero img { width: 120px; height: auto; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); margin: 12px 0 8px; letter-spacing: -0.02em; }
+    .hero p.lead { font-size: 1.15rem; color: var(--muted); max-width: 680px; margin: 0 auto 28px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .btn {
+      display: inline-block; padding: 12px 22px; border-radius: 999px; text-decoration: none;
+      font-weight: 600; border: 1px solid var(--accent); color: var(--accent);
+    }
+    .btn--primary { background: var(--accent); color: #fff; }
+    .btn--primary:hover { filter: brightness(1.08); }
+    .note { font-size: .9rem; color: var(--muted); margin-top: 14px; }
+    section { padding: 48px 0; }
+    h2 { font-size: 1.7rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1.05rem; }
+    .card p, .card li { margin: 0; color: var(--muted); font-size: .95rem; }
+    .card ul { margin: 0; padding-left: 18px; }
+    .card li + li { margin-top: 4px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .tag {
+      background: var(--accent-soft); color: var(--accent); border-radius: 999px;
+      padding: 4px 12px; font-size: .9rem; font-weight: 600;
+    }
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .steps li { counter-increment: step; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 16px 16px 56px; position: relative; }
+    .steps li::before {
+      content: counter(step); position: absolute; left: 16px; top: 14px; width: 28px; height: 28px;
+      border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center;
+    }
+    .platforms { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .platform { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+    .platform strong { display: block; margin-bottom: 4px; }
+    .platform span { color: var(--muted); font-size: .95rem; }
+    footer { border-top: 1px solid var(--border); padding: 28px 0; color: var(--muted); font-size: .92rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .92em; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <img src="assets/atom.png" alt="Mascote da Luna" />
+      <h1>LunaCode</h1>
+      <p class="lead">Um app desktop para conversar com o Claude Code, o Codex e outros agentes de código numa interface só. O app não é um modelo de IA: ele usa as CLIs oficiais que você já tem instaladas e o login que você já fez nelas.</p>
+      <div class="buttons">
+        <a class="btn btn--primary" href="https://github.com/GuilhermeFelix95/LunaHarnes/releases/latest">Baixar para Windows</a>
+        <a class="btn" href="https://github.com/GuilhermeFelix95/LunaHarnes">Ver código no GitHub</a>
+      </div>
+      <p class="note">Instalador para Windows 10 (1809+) e Windows 11. macOS e Linux não são suportados por enquanto.</p>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <h2>O que ele faz</h2>
+      <p class="sub">Tudo numa janela só, com o que o agente faz ao lado da conversa.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>Conversa</h3>
+          <ul>
+            <li>Respostas em tempo real</li>
+            <li>Anexos de imagem e de arquivo</li>
+            <li>Menu <code>/</code> com comandos, skills e comandos das CLIs</li>
+            <li>Planejamento com plano completo no painel</li>
+            <li>Compactação de contexto</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Projeto e git</h3>
+          <ul>
+            <li>Conversa com pasta de projeto ou sem pasta</li>
+            <li>Worktrees: trabalhar numa branch sem mexer na pasta atual</li>
+            <li>Painel de alterações com diff e desfazer</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Painel lateral</h3>
+          <ul>
+            <li>Plano e progresso das tarefas</li>
+            <li>Árvore de arquivos com editor no lugar do chat</li>
+            <li>Terminal na pasta do projeto</li>
+            <li>Navegador com abas e favoritos</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Extensões</h3>
+          <ul>
+            <li>Skills e servidores MCP, do catálogo ou por URL</li>
+            <li>Plugins que acrescentam painéis, comandos e avisos</li>
+            <li>Segredos de MCP ficam nas variáveis do seu usuário</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Visual</h3>
+          <ul>
+            <li>Temas claros e noturnos</li>
+            <li>Tema próprio, com editor e formatos de componente</li>
+            <li>Efeito de vidro opcional</li>
+            <li>Interface em português, inglês e outros idiomas</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Atualização</h3>
+          <ul>
+            <li>Atualização pelo próprio app, em Configurações &gt; Sobre</li>
+            <li>Antes de instalar, encerra execuções em andamento</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Agentes</h2>
+      <p class="sub">Você escolhe o motor de cada conversa, e pode montar um orquestrador para dividir os papéis.</p>
+      <div class="card">
+        <h3>CLIs instaladas no seu computador</h3>
+        <div class="tags">
+          <span class="tag">Claude Code</span>
+          <span class="tag">Codex</span>
+          <span class="tag">OpenCode</span>
+          <span class="tag">Cline</span>
+          <span class="tag">GitHub Copilot</span>
+          <span class="tag">Hermes</span>
+          <span class="tag">Antigravity</span>
+        </div>
+        <h3 style="margin-top:18px">Perfis de API</h3>
+        <p>Provedores como OpenRouter e DeepSeek, com a chave guardada no cofre do sistema.</p>
+        <h3 style="margin-top:18px">Orquestrador</h3>
+        <p>Cada papel (planejar, executar, conversar e subagentes) pode usar um agente e um modelo diferentes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Como funciona</h2>
+      <p class="sub">Uma casca em volta das ferramentas que você já usa.</p>
+      <ol class="steps">
+        <li>Instale e faça login em pelo menos uma CLI, como <code>claude</code> ou <code>codex</code>.</li>
+        <li>Abra o LunaCode e escolha a pasta do projeto, ou trabalhe sem pasta.</li>
+        <li>Converse com o agente. O plano, as alterações, o progresso e o terminal aparecem ao lado.</li>
+        <li>Instale skills, MCP e plugins uma vez e use nas CLIs.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Baixar</h2>
+      <p class="sub">Instalador e notas de cada versão ficam na página de releases.</p>
+      <div class="platforms">
+        <div class="platform">
+          <strong>Windows 10 (1809+) e 11</strong>
+          <span>Disponível. Instalador <code>.exe</code>. O Windows pode mostrar um aviso do SmartScreen, porque o instalador ainda não tem assinatura de código.</span>
+        </div>
+        <div class="platform">
+          <strong>macOS</strong>
+          <span>Não suportado por enquanto. Porte para a comunidade.</span>
+        </div>
+        <div class="platform">
+          <strong>Linux</strong>
+          <span>Não suportado por enquanto. Porte para a comunidade.</span>
+        </div>
+      </div>
+      <p class="note" style="margin-top:18px"><a href="https://github.com/GuilhermeFelix95/LunaHarnes/releases/latest">Ir para a última versão</a> · <a href="https://github.com/GuilhermeFelix95/LunaHarnes#readme">Leia o README</a></p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>LunaCode · licença Apache-2.0</span>
+      <span>Não é afiliado à Anthropic nem à OpenAI.</span>
+      <span><a href="https://github.com/GuilhermeFelix95/LunaHarnes/blob/main/docs/privacidade.md">Privacidade</a></span>
+    </div>
+  </footer>
+</body>
+</html>
