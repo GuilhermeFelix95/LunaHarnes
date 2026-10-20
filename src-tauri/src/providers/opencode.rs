@@ -21,6 +21,18 @@ pub fn args(request: &RunRequest) -> Vec<String> {
 
 /// Regras de permissão de cada modo da Luna, no formato do `permission` da config do OpenCode.
 /// A última regra que casa vence, por isso o `*` vem primeiro.
+/// Orientação que vai junto do prompt quando o Playwright é o navegador. O OpenCode não expõe as ferramentas
+/// do servidor como chamadas diretas: elas ficam no namespace `tools.playwright`, dentro da ferramenta `execute`.
+const PLAYWRIGHT_NOTE: &str = "Navegador: use a ferramenta execute. As ferramentas do Playwright ficam no namespace tools.playwright; ache-as com search({ namespace: \"playwright\" }) e chame com await tools.playwright.<nome>({ ... }), por exemplo await tools.playwright.browser_navigate({ url: \"https://exemplo.com\" }). Não use o navegador embutido do Luna.";
+
+/// Prompt que vai pelo stdin. Com o Playwright escolhido, a orientação vem antes da mensagem da pessoa.
+pub fn prompt(request: &RunRequest) -> String {
+    match request.browser {
+        AgentBrowser::Playwright => format!("{PLAYWRIGHT_NOTE}\n\n{}", request.prompt),
+        AgentBrowser::Builtin => request.prompt.clone(),
+    }
+}
+
 /// Com o Playwright escolhido, o servidor entra na mesma config e as ferramentas dele ficam liberadas
 /// (`playwright_*`), como o navegador embutido. Com o embutido, a config não tem `mcp`.
 pub fn config_content(permission: Permission, browser: AgentBrowser) -> String {
@@ -257,6 +269,18 @@ mod tests {
         let config: Value = serde_json::from_str(&config_content(Permission::FullAccess, AgentBrowser::Builtin)).unwrap();
 
         assert_eq!(config["permission"]["*"], "allow");
+    }
+
+    /// Com o Playwright, a mensagem sai com a orientação de como achar as ferramentas; com o embutido, sai igual.
+    #[test]
+    fn prompt_names_the_playwright_namespace_only_when_chosen() {
+        let mut req = request(None, None);
+        assert_eq!(prompt(&req), "x");
+
+        req.browser = AgentBrowser::Playwright;
+        let text = prompt(&req);
+        assert!(text.contains("tools.playwright"));
+        assert!(text.ends_with("\n\nx"));
     }
 
     /// Com o Playwright, o servidor entra na config e as ferramentas dele ficam liberadas, mesmo no modo somente leitura.

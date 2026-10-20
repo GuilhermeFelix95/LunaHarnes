@@ -207,7 +207,8 @@ pub fn image_media_type(path: &Path) -> Option<&'static str> {
 pub fn stdin_input(request: &RunRequest) -> Result<String, String> {
     match request.provider {
         ProviderKind::Claude => claude::input(request),
-        ProviderKind::Codex | ProviderKind::OpenCode => Ok(request.prompt.clone()),
+        ProviderKind::Codex => Ok(request.prompt.clone()),
+        ProviderKind::OpenCode => Ok(opencode::prompt(request)),
     }
 }
 
