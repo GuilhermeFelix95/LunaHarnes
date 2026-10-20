@@ -37,7 +37,7 @@ describe("Contas: estado de cada CLI", () => {
     render(<AccountsSection />);
 
     const card = (await screen.findByText(/Instale o OpenCode/)).closest("li") as HTMLElement;
-    expect(card.querySelector("button")).toBeNull();
+    expect(within(card).queryByRole("button", { name: "Baixar e conectar" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Baixar e conectar" })).toBeNull();
   });
 
@@ -137,10 +137,13 @@ describe("Contas: contas extras", () => {
     await waitFor(() => expect(accountLogin).toHaveBeenCalledWith("codex-1"));
   });
 
-  it("CLI sem contas extras (Cline) não mostra o botão de adicionar", async () => {
+  it("Cline aceita conta extra, e o Antigravity só explica por que não aceita", async () => {
     render(<AccountsSection />);
 
     const cline = (await screen.findByText("Cline")).closest("li") as HTMLElement;
-    expect(within(cline).queryByRole("button", { name: "Adicionar conta" })).toBeNull();
+    expect(within(cline).getByRole("button", { name: "Adicionar conta" })).toBeTruthy();
+    const antigravity = (await screen.findByText("Antigravity")).closest("li") as HTMLElement;
+    expect(within(antigravity).queryByRole("button", { name: "Adicionar conta" })).toBeNull();
+    expect(within(antigravity).getByText(/cofre do Windows e não aceita conta extra/)).toBeTruthy();
   });
 });

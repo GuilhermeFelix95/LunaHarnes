@@ -24,13 +24,19 @@ pub fn write_prompt(prompt: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-/// Login do Cline: o `cline auth` guarda o provedor em `~/.cline/data/settings/providers.json`.
-/// Só se lê se há credencial para o provedor escolhido; o conteúdo não sai daqui.
-pub fn logged_in() -> bool {
-    let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) else {
-        return false;
+/// Login do Cline: o `cline auth` guarda o provedor em `<pasta>/data/settings/providers.json`.
+/// A pasta é a da conta (`CLINE_DIR`) ou, sem conta, `~/.cline`. Só se lê se há credencial para o provedor escolhido; o conteúdo não sai daqui.
+pub fn logged_in_at(base: Option<&str>) -> bool {
+    let root = match base {
+        Some(dir) => PathBuf::from(dir),
+        None => {
+            let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) else {
+                return false;
+            };
+            PathBuf::from(home).join(".cline")
+        }
     };
-    let path = PathBuf::from(home).join(".cline").join("data").join("settings").join("providers.json");
+    let path = root.join("data").join("settings").join("providers.json");
     let Ok(raw) = std::fs::read_to_string(path) else {
         return false;
     };
@@ -189,5 +195,23 @@ mod tests {
     fn hooks_and_bad_json_do_not_break_the_chat() {
         assert!(parse_line(r#"{"type":"hook_event","hookEventName":"agent_start"}"#).is_empty());
         assert!(matches!(parse_line("não é json")[0], ProviderEvent::Error { .. }));
+    }
+
+    #[test]
+    fn login_is_read_from_the_account_folder_only_when_it_has_a_credential() {
+        let root = std::env::temp_dir().join(format!("lunaharness-cline-login-{}", std::process::id()));
+        let settings = root.join("data").join("settings");
+        std::fs::create_dir_all(&settings).unwrap();
+        let base = root.to_string_lossy().into_owned();
+
+        assert!(!logged_in_at(Some(&base)));
+        std::fs::write(
+            settings.join("providers.json"),
+            r#"{"lastUsedProvider":"openrouter","providers":{"openrouter":{"settings":{"auth":{"apiKey":"k"}}}}}"#,
+        )
+        .unwrap();
+        assert!(logged_in_at(Some(&base)));
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

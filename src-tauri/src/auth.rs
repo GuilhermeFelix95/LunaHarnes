@@ -23,10 +23,11 @@ pub fn status_with_env(kind: ProviderKind, env: &[(String, String)]) -> Result<b
     let (args, label): (&[&str], &str) = match kind {
         ProviderKind::Claude => (&["auth", "status"], "Claude Code"),
         ProviderKind::Codex => (&["login", "status"], "Codex"),
-        ProviderKind::OpenCode => (&["auth", "list"], "OpenCode"),
-        ProviderKind::Cline => return Ok(crate::providers::cline::logged_in()),
+        // --standalone: o servidor em segundo plano não lê as pastas XDG desta conta (ver accounts.rs).
+        ProviderKind::OpenCode => (&["auth", "list", "--standalone"], "OpenCode"),
+        ProviderKind::Cline => return Ok(crate::providers::cline::logged_in_at(env_value(env, "CLINE_DIR"))),
         // O Copilot não tem comando de status: a verificação manda uma pergunta curta (ver providers/copilot.rs).
-        ProviderKind::Copilot => return Ok(crate::providers::copilot::logged_in()),
+        ProviderKind::Copilot => return Ok(crate::providers::copilot::logged_in_with(env)),
         // O Antigravity também não tem comando de status sem entrar no modo interativo: o app mostra "Conectar".
         ProviderKind::Antigravity => return Ok(false),
     };
@@ -51,13 +52,18 @@ pub fn status_with_env(kind: ProviderKind, env: &[(String, String)]) -> Result<b
     })
 }
 
+/// Valor de uma variável da lista de ambiente (a pasta da conta), se existir.
+fn env_value<'a>(env: &'a [(String, String)], key: &str) -> Option<&'a str> {
+    env.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
+}
+
 /// Programa e argumentos do login oficial. O programa vem já resolvido: logo após instalar o CLI,
 /// o PATH do app ainda não tem a pasta nova, e um nome puro não seria encontrado.
 fn login_invocation(kind: ProviderKind, resolved: Option<PathBuf>) -> Result<(String, &'static [&'static str]), String> {
     let (name, args): (&str, &'static [&'static str]) = match kind {
         ProviderKind::Claude => ("claude", &["auth", "login"]),
         ProviderKind::Codex => ("codex", &["login"]),
-        ProviderKind::OpenCode => ("opencode", &["auth", "login"]),
+        ProviderKind::OpenCode => ("opencode", &["auth", "login", "--standalone"]),
         ProviderKind::Cline => ("cline", &["auth"]),
         ProviderKind::Copilot => ("copilot", &["login"]),
         // Sem subcomando de login: o `agy` abre o fluxo de conta (Google) no próprio terminal.
@@ -121,6 +127,14 @@ mod tests {
 
         assert_eq!(program, r"C:\Tools\claude.exe");
         assert_eq!(args, ["auth", "login"]);
+    }
+
+    #[test]
+    fn opencode_login_runs_standalone_so_the_account_folder_is_used() {
+        let resolved = Some(std::path::PathBuf::from(r"C:\Tools\opencode.exe"));
+        let (_, args) = login_invocation(ProviderKind::OpenCode, resolved).unwrap();
+
+        assert_eq!(args, ["auth", "login", "--standalone"]);
     }
 
     #[test]

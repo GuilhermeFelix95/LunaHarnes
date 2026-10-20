@@ -201,6 +201,7 @@ export const en: Record<MessageKey, string> = {
     'Each CLI uses its own account. "Download and connect" installs the CLI if it is missing and opens its login. API keys are in Providers.',
   "accounts.cliAt": "CLI at {path}",
   "accounts.extraTitle": "Extra accounts",
+  "accounts.antigravityNoExtra": "Antigravity keeps its login in the Windows vault and does not accept extra accounts.",
   "accounts.addAccount": "Add account",
   "accounts.accountNamePlaceholder": "Account name (e.g. Work)",
   "accounts.create": "Create",

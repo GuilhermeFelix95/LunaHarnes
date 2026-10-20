@@ -23,9 +23,13 @@ pub struct Account {
     pub name: String,
 }
 
-/// Motores com pasta de login isolável testada (ver docs/stack.md, experimento de contas).
+/// Motores que aceitam conta extra. O Antigravity guarda o login no cofre do Windows (uma entrada só),
+/// então não tem como isolar uma segunda conta.
 pub fn supported(provider: ProviderKind) -> bool {
-    matches!(provider, ProviderKind::Claude | ProviderKind::Codex)
+    matches!(
+        provider,
+        ProviderKind::Claude | ProviderKind::Codex | ProviderKind::OpenCode | ProviderKind::Cline | ProviderKind::Copilot
+    )
 }
 
 /// Pasta de uma conta. O id vem do app (`<motor>-<millis>`), mas é validado mesmo assim: não pode sair da pasta de dados.
@@ -42,6 +46,14 @@ pub fn env_for(provider: ProviderKind, account_dir: &Path) -> Vec<(String, Strin
     match provider {
         ProviderKind::Claude => vec![("CLAUDE_CONFIG_DIR".into(), value)],
         ProviderKind::Codex => vec![("CODEX_HOME".into(), value)],
+        // O OpenCode guarda login, estado e configuração em pastas XDG: as três apontam para a pasta da conta.
+        ProviderKind::OpenCode => vec![
+            ("XDG_DATA_HOME".into(), value.clone()),
+            ("XDG_STATE_HOME".into(), value.clone()),
+            ("XDG_CONFIG_HOME".into(), value),
+        ],
+        ProviderKind::Cline => vec![("CLINE_DIR".into(), value)],
+        ProviderKind::Copilot => vec![("COPILOT_HOME".into(), value)],
         _ => Vec::new(),
     }
 }
@@ -66,6 +78,9 @@ fn save_all(app_data: &Path, accounts: &[Account]) -> Result<(), String> {
 
 /// Cria a conta: pasta própria, regras/MCP/skills copiados de `home` e a conta gravada na lista.
 pub fn create(app_data: &Path, home: &Path, provider: ProviderKind, name: &str) -> Result<Account, String> {
+    if provider == ProviderKind::Antigravity {
+        return Err("o Antigravity guarda o login no cofre do Windows e não aceita conta extra".into());
+    }
     if !supported(provider) {
         return Err(format!("contas extras ainda não são suportadas para {provider:?}"));
     }
@@ -90,6 +105,9 @@ fn slug(provider: ProviderKind) -> &'static str {
     match provider {
         ProviderKind::Claude => "claude",
         ProviderKind::Codex => "codex",
+        ProviderKind::OpenCode => "opencode",
+        ProviderKind::Cline => "cline",
+        ProviderKind::Copilot => "copilot",
         _ => "outro",
     }
 }
@@ -169,7 +187,22 @@ mod tests {
         let dir = Path::new("C:\\app\\accounts\\x");
         assert_eq!(env_for(ProviderKind::Claude, dir)[0].0, "CLAUDE_CONFIG_DIR");
         assert_eq!(env_for(ProviderKind::Codex, dir)[0].0, "CODEX_HOME");
-        assert!(env_for(ProviderKind::OpenCode, dir).is_empty());
+        assert_eq!(env_for(ProviderKind::Cline, dir)[0].0, "CLINE_DIR");
+        assert_eq!(env_for(ProviderKind::Copilot, dir)[0].0, "COPILOT_HOME");
+    }
+
+    #[test]
+    fn opencode_isolates_data_state_and_config_together() {
+        let dir = Path::new("C:\\app\\accounts\\x");
+        let names: Vec<String> = env_for(ProviderKind::OpenCode, dir).into_iter().map(|(k, _)| k).collect();
+
+        assert_eq!(names, ["XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CONFIG_HOME"]);
+    }
+
+    #[test]
+    fn antigravity_has_no_account_folder() {
+        assert!(!supported(ProviderKind::Antigravity));
+        assert!(env_for(ProviderKind::Antigravity, Path::new("X")).is_empty());
     }
 
     #[test]
@@ -200,7 +233,8 @@ mod tests {
     #[test]
     fn create_refuses_unsupported_clis_and_empty_names() {
         let root = temp("refuse");
-        assert!(create(&root, &root, ProviderKind::OpenCode, "x").is_err());
+        let refused = create(&root, &root, ProviderKind::Antigravity, "x").unwrap_err();
+        assert!(refused.contains("cofre do Windows"));
         assert!(create(&root, &root, ProviderKind::Claude, "   ").is_err());
         assert!(load_all(&root).unwrap().is_empty());
         let _ = fs::remove_dir_all(&root);

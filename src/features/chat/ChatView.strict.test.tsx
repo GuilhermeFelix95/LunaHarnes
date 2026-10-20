@@ -31,6 +31,8 @@ vi.mock("../../plugins/loader", () => ({
 }));
 
 vi.mock("../../api", () => ({
+  listAccounts: vi.fn(async () => []),
+  ACCOUNTS_CHANGED: "luna:accounts-changed",
   checkAuth: vi.fn(async () => true),
   openLogin: vi.fn(async () => {}),
   cancelPrompt: vi.fn(async () => {}),

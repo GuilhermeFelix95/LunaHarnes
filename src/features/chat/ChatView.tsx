@@ -1033,8 +1033,8 @@ ${outgoing}`
   }
 
   const agentK = agentKey(provider, profileId);
-  // Contas só para Claude e Codex (ver accounts.rs), e não com perfil de API.
-  const accountsEnabled = !profileId && (provider === "claude" || provider === "codex");
+  // Contas em todas as CLIs, menos o Antigravity (ver accounts.rs), e não com perfil de API.
+  const accountsEnabled = !profileId && provider !== "antigravity";
   const accountsOfEngine = accounts.filter((a) => a.provider === provider);
   const activeAccount = accountsOfEngine.some((a) => a.id === account) ? account : "";
 

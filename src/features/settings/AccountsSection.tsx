@@ -68,7 +68,7 @@ export function AccountsSection() {
   const [errors, setErrors] = useState<Partial<Record<ProviderKind, string>>>({});
   const loginRef = useRef(login);
   loginRef.current = login;
-  // Contas extras (Claude e Codex). `adding` é a CLI cujo formulário de nova conta está aberto.
+  // Contas extras (todas as CLIs, menos o Antigravity). `adding` é a CLI cujo formulário de nova conta está aberto.
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [adding, setAdding] = useState<ProviderKind | null>(null);
   const [newName, setNewName] = useState("");
@@ -215,7 +215,8 @@ export function AccountsSection() {
                   {errors[p]}
                 </p>
               )}
-              {(p === "claude" || p === "codex") && (
+              {p === "antigravity" && <p className="account-card__hint">{t("accounts.antigravityNoExtra")}</p>}
+              {p !== "antigravity" && (
                 <div className="account-extra">
                   <strong className="account-extra__title">{t("accounts.extraTitle")}</strong>
                   {accounts

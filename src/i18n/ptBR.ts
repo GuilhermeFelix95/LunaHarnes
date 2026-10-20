@@ -202,6 +202,7 @@ export const ptBR = {
     'Cada CLI usa a própria conta. "Baixar e conectar" instala a CLI se ela faltar e abre o login dela. As chaves de API ficam em Provedores.',
   "accounts.cliAt": "CLI em {path}",
   "accounts.extraTitle": "Contas extras",
+  "accounts.antigravityNoExtra": "O Antigravity guarda o login no cofre do Windows e não aceita conta extra.",
   "accounts.addAccount": "Adicionar conta",
   "accounts.accountNamePlaceholder": "Nome da conta (ex.: Trabalho)",
   "accounts.create": "Criar",

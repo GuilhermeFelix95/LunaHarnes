@@ -16,8 +16,12 @@ fn login_probe_args() -> Vec<String> {
     ["-p", "Responda apenas ok.", "-s", "--no-ask-user"].map(String::from).into()
 }
 
-/// Entrou na conta? Usa o resultado guardado enquanto ele é recente; senão, roda a verificação de novo.
-pub fn logged_in() -> bool {
+/// Entrou na conta? Sem conta extra (env vazio), usa o resultado guardado enquanto ele é recente.
+/// Com conta extra, roda a verificação na hora, na pasta da conta (`COPILOT_HOME`), sem guardar o resultado.
+pub fn logged_in_with(env: &[(String, String)]) -> bool {
+    if !env.is_empty() {
+        return probe(env);
+    }
     if let Ok(guard) = LOGIN_CHECK.lock() {
         if let Some((at, ok)) = *guard {
             if at.elapsed() < LOGIN_CHECK_TTL {
@@ -25,7 +29,7 @@ pub fn logged_in() -> bool {
             }
         }
     }
-    let ok = probe();
+    let ok = probe(&[]);
     if let Ok(mut guard) = LOGIN_CHECK.lock() {
         *guard = Some((Instant::now(), ok));
     }
@@ -40,12 +44,17 @@ pub fn forget_login() {
 }
 
 /// Roda a verificação. Sem CLI, ou com erro, conta como não conectado e deixa o motivo no log (sem o texto da conta).
-fn probe() -> bool {
+fn probe(env: &[(String, String)]) -> bool {
     let Some(program) = crate::session::resolve_program(cli_name(ProviderKind::Copilot)) else {
         eprintln!("Copilot: CLI não encontrada ao verificar o login.");
         return false;
     };
-    match crate::session::hidden_command(&program).args(login_probe_args()).stdin(Stdio::null()).output() {
+    let output = crate::session::hidden_command(&program)
+        .args(login_probe_args())
+        .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
+        .stdin(Stdio::null())
+        .output();
+    match output {
         Ok(output) if output.status.success() => true,
         Ok(output) => {
             eprintln!("Copilot: a verificação de login terminou com código {:?}; o app mostra como não conectado.", output.status.code());
