@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Um app desktop para conversar com o <strong>Claude Code</strong> e o <strong>Codex</strong> numa interface só, com plugins, skills, servidores MCP e um navegador para o agente.
+  Um app desktop para conversar com o <strong>Claude Code</strong>, o <strong>Codex</strong> e outros agentes de código numa interface só, com plugins, skills, servidores MCP e um navegador para o agente.
 </p>
 
 ---
@@ -65,18 +65,29 @@ flowchart LR
 
 ## Baixar
 
-- Quando houver uma versão publicada, o instalador para Windows fica na [página de releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
-- Requisitos: Windows 10 (versão 1809 ou mais nova) ou Windows 11, e pelo menos um CLI instalado e logado (`claude` ou `codex`). Não é preciso Node.js nem Rust.
+| Sistema | Situação | Como obter |
+|---|---|---|
+| **Windows 10 (1809+) e Windows 11** | Disponível | Instalador na [página de releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases) (`.exe`). |
+| **macOS** | Em preparação | Ainda não há instalador. O código ainda usa caminhos e comandos do Windows. |
+| **Linux** | Em preparação | Ainda não há pacote. O código ainda usa caminhos e comandos do Windows. |
+
+- Requisitos no Windows: pelo menos um CLI instalado e logado (`claude`, `codex` ou outro). Não é preciso Node.js nem Rust para quem só usa o app.
 - O instalador ainda não tem assinatura de código: o Windows pode mostrar um aviso do SmartScreen. Escolha "Mais informações" e depois "Executar assim mesmo".
 
 ## Pré-requisitos
 
-- **Windows 10 ou 11** (o projeto hoje é preparado para Windows; os scripts de build usam o MSVC).
+Hoje o desenvolvimento e o build funcionam só no **Windows**:
+
+- **Windows 10 ou 11**.
 - **Node.js** LTS e **npm**.
 - **Rust** (toolchain `stable`, `x86_64-pc-windows-msvc`) e as ferramentas de build do Visual Studio (C++).
-- Pelo menos uma CLI instalada e logada: Claude Code e/ou [Codex](https://github.com/openai/codex).
+- Pelo menos uma CLI instalada e logada: Claude Code, [Codex](https://github.com/openai/codex) ou outra.
+
+Para macOS e Linux, os pré-requisitos ainda não estão documentados porque o build não roda nesses sistemas.
 
 ## Instalação e execução
+
+Os comandos abaixo rodam no Windows (PowerShell ou Git Bash com Node e Rust instalados).
 
 ```bash
 git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
@@ -133,6 +144,8 @@ spec/                especificações de recursos (cache de prompt, cache de res
 - [`spec/cache-de-prompt.md`](spec/cache-de-prompt.md): como o app mede o cache do provedor.
 
 ## Estado atual
+
+Plataformas: **Windows** é o único sistema com instalador e build. **macOS** e **Linux** estão em preparação (os scripts de build e parte do código ainda são do Windows).
 
 Partes já funcionando e testadas:
 

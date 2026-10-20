@@ -212,3 +212,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Navegador: evento browser://navigated a cada página carregada; a estrela de favorito e o endereço acompanham cliques em links.
 2026-10-20 | Seletor de pasta: a branch atual aparece ao lado da pasta (repositório git), e o menu lista as outras com "(atual)".
 2026-10-20 | Trabalhar sem pasta: pasta "Sem pasta" dentro dos dados do app, escolhida no menu de pasta.
+2026-10-20 | README: plataformas (Windows com instalador; macOS e Linux em preparação) e descrição com outros agentes além de Claude e Codex.
