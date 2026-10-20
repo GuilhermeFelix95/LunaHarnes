@@ -8,6 +8,8 @@ interface ChangesPanelProps {
   cwd: string;
   /** Muda ao fim de cada turno, para recarregar a lista. */
   version: number;
+  /** Aba aberta. Fechada, não consulta o git; ao abrir de novo (ou voltar para a janela), relê. */
+  active?: boolean;
 }
 
 const STATUS_KEYS: Record<string, MessageKey> = {
@@ -19,7 +21,7 @@ const STATUS_KEYS: Record<string, MessageKey> = {
 };
 
 /// Painel à direita com os arquivos que o agente mexeu, pelo git. Clicar num arquivo mostra o diff.
-export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
+export function ChangesPanel({ cwd, version, active = true }: ChangesPanelProps) {
   const [changes, setChanges] = useState<Changes | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<string | null>(null);
@@ -29,21 +31,30 @@ export function ChangesPanel({ cwd, version }: ChangesPanelProps) {
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    let active = true;
+    if (!active) return;
+    let current = true;
     getChanges(cwd)
       .then((result) => {
-        if (active) {
+        if (current) {
           setChanges(result);
           setError(undefined);
         }
       })
       .catch((e) => {
-        if (active) setError(String(e));
+        if (current) setError(String(e));
       });
     return () => {
-      active = false;
+      current = false;
     };
-  }, [cwd, version, reload]);
+  }, [cwd, version, reload, active]);
+
+  // Voltar para a janela com a aba aberta relê: o agente ou o usuário podem ter mexido nos arquivos.
+  useEffect(() => {
+    if (!active) return;
+    const onFocus = () => setReload((n) => n + 1);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [active]);
 
   /// Clicar no arquivo aberto fecha o diff; clicar em outro troca.
   async function open(path: string) {

@@ -92,4 +92,32 @@ describe("ChangesPanel: desfazer", () => {
     fireEvent.click(undo);
     await waitFor(() => expect(api.discardChange).toHaveBeenCalledWith("/projeto", "src/a.ts", "modified"));
   });
+
+  it("ao abrir a aba de novo, relê o git (o agente pode ter mexido em arquivos sem fechar um turno)", async () => {
+    vi.mocked(api.getChanges).mockResolvedValue(changed as never);
+    const { rerender } = render(<ChangesPanel cwd={"/projeto"} version={0} active={false} />);
+    expect(api.getChanges).not.toHaveBeenCalled();
+
+    rerender(<ChangesPanel cwd={"/projeto"} version={0} active />);
+
+    expect(await screen.findByText("src/a.ts")).toBeTruthy();
+    expect(api.getChanges).toHaveBeenCalledTimes(1);
+  });
+
+  it("ao voltar para a janela com a aba aberta, relê o git", async () => {
+    vi.mocked(api.getChanges).mockResolvedValue(changed as never);
+    render(<ChangesPanel cwd={"/projeto"} version={0} active />);
+    await screen.findByText("src/a.ts");
+
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() => expect(api.getChanges).toHaveBeenCalledTimes(2));
+  });
+
+  it("uma falha ao ler o git aparece como alerta visível", async () => {
+    vi.mocked(api.getChanges).mockRejectedValue("git não encontrado no PATH.");
+    render(<ChangesPanel cwd={"/projeto"} version={0} active />);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("git não encontrado");
+  });
 });

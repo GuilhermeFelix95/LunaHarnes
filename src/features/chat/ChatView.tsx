@@ -299,6 +299,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     fixDue.current = null;
     fixAttempts.current = AUTOFIX_MAX_ATTEMPTS;
     setRunning(false);
+    // Parar não passa pelo `done`: a lista de alterações precisa ser lida de novo mesmo assim.
+    setChangesVersion((v) => v + 1);
     cancelPrompt(conversationId).catch((err) => {
       setNotes((current) => [...current, t("chat.stopFailed", { error: String(err) })]);
     });
@@ -742,6 +744,7 @@ ${cliPrompt}`;
       }, conversationId);
     } catch (e) {
       setRunning(false);
+      setChangesVersion((v) => v + 1);
       commit(applyEvent(messagesRef.current, { kind: "error", message: String(e) }));
       persist(messagesRef.current);
     }
@@ -1264,7 +1267,7 @@ ${outgoing}`
           if (tab === "terminal") setTerminalOpened(true);
           setSideTab(tab);
         }}
-        changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
+        changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} active={sideOpen && sideTab === "changes"} /> : null}
         files={cwd ? <FilesPanel cwd={cwd} onPreview={setFilePreview} /> : null}
         wide={filePreview}
         plan={plan}
