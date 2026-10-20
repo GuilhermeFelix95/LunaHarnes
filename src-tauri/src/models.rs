@@ -170,14 +170,32 @@ pub fn parse_opencode_catalog(raw: &str) -> Vec<ModelOption> {
         .collect()
 }
 
+/// Modelos do Cline que já rodaram com a CLI 3.0.73 (captura real). O Cline não tem comando para listar os modelos,
+/// então a lista é fixa e curta. O padrão da CLI é o Claude Sonnet 5.5, que é pago: por isso ele fica por último.
+fn cline_catalog() -> Vec<ModelOption> {
+    [
+        ("minimax/minimax-m3.1-flash", "MiniMax M3.1 Flash · grátis"),
+        ("xiaomi/mimo-v2.6-flash", "MiMo-V2.6 Flash · pago (centavos)"),
+        ("anthropic/claude-sonnet-5.5", "Claude Sonnet 5.5 · pago"),
+    ]
+    .into_iter()
+    .map(|(id, label)| ModelOption {
+        id: id.to_string(),
+        label: label.to_string(),
+        description: None,
+        efforts: Vec::new(),
+        default: false,
+    })
+    .collect()
+}
+
 /// Modelos e níveis do provedor escolhido.
 pub fn load(kind: ProviderKind) -> Result<Vec<ModelOption>, String> {
     match kind {
         ProviderKind::Claude => Ok(claude_catalog()),
         ProviderKind::Codex => codex_catalog(),
         ProviderKind::OpenCode => opencode_catalog(),
-        // Sem lista: o modelo do Cline é o escolhido no `cline auth`, e a lista do app fica vazia (padrão da CLI).
-        ProviderKind::Cline => Ok(Vec::new()),
+        ProviderKind::Cline => Ok(cline_catalog()),
     }
 }
 
@@ -186,6 +204,13 @@ mod tests {
     use super::*;
 
     const FIXTURE: &str = include_str!("../tests/fixtures/codex_models.json");
+
+    #[test]
+    fn cline_lists_the_models_that_ran_and_marks_the_free_one() {
+        let models = cline_catalog();
+        assert!(models.iter().any(|m| m.id == "minimax/minimax-m3.1-flash" && m.label.contains("grátis")));
+        assert!(models.iter().all(|m| !m.default));
+    }
 
     fn ids(models: &[ModelOption]) -> Vec<&str> {
         models.iter().map(|m| m.id.as_str()).collect()
