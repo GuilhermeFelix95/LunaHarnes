@@ -78,8 +78,15 @@ impl Session {
         };
         let mut env = env.to_vec();
         // O OpenCode recebe as permissões do modo por esta variável (ver providers/opencode.rs).
+        // Com perfil de API, o perfil já trouxe o bloco `provider` nessa mesma variável: as duas configs se juntam.
         if request.provider == ProviderKind::OpenCode {
-            env.push(("OPENCODE_CONFIG_CONTENT".into(), crate::providers::opencode::config_content(request.permission, request.browser)));
+            let profile = env.iter().find(|(k, _)| k == "OPENCODE_CONFIG_CONTENT").map(|(_, v)| v.clone());
+            let config = crate::providers::opencode::merge_profile(
+                &crate::providers::opencode::config_content(request.permission, request.browser),
+                profile.as_deref(),
+            );
+            env.retain(|(k, _)| k != "OPENCODE_CONFIG_CONTENT");
+            env.push(("OPENCODE_CONFIG_CONTENT".into(), config));
         }
         Self::spawn(
             request.provider,

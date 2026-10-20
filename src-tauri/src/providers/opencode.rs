@@ -11,12 +11,31 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         args.extend(["--session".to_string(), id.clone()]);
     }
     if let Some(model) = &request.model {
-        args.extend(["-m".to_string(), model.clone()]);
+        // Com perfil de API, o modelo é do provedor do perfil (bloco `provider`, ver api_profiles::opencode_profile_config).
+        let model = if request.profile.is_some() { format!("{PROFILE_PROVIDER}/{model}") } else { model.clone() };
+        args.extend(["-m".to_string(), model]);
     }
     for image in &request.images {
         args.extend(["--file".to_string(), image.display().to_string()]);
     }
     args
+}
+
+/// Id do provedor do perfil de API no bloco `provider` da config.
+pub const PROFILE_PROVIDER: &str = "luna";
+
+/// Junta a config das permissões com o bloco `provider` do perfil de API (quando há um). As permissões ganham.
+pub fn merge_profile(config: &str, profile: Option<&str>) -> String {
+    let Some(profile) = profile else {
+        return config.to_string();
+    };
+    let (Ok(mut base), Ok(extra)) = (serde_json::from_str::<Value>(config), serde_json::from_str::<Value>(profile)) else {
+        return config.to_string();
+    };
+    if let (Some(map), Some(provider)) = (base.as_object_mut(), extra.get("provider")) {
+        map.insert("provider".into(), provider.clone());
+    }
+    base.to_string()
 }
 
 /// Regras de permissão de cada modo da Luna, no formato do `permission` da config do OpenCode.
@@ -239,6 +258,26 @@ mod tests {
     #[test]
     fn invalid_json_is_an_error_event() {
         assert!(matches!(parse_line("não é json")[0], ProviderEvent::Error { .. }));
+    }
+
+    #[test]
+    fn profile_model_is_called_through_the_profile_provider() {
+        let mut with_profile = request(None, Some("nvidia/llama"));
+        with_profile.profile = Some("p1".into());
+
+        assert_eq!(args(&with_profile)[4..], ["-m", "luna/nvidia/llama"]);
+        assert_eq!(args(&request(None, Some("anthropic/claude-haiku-4-5")))[4..], ["-m", "anthropic/claude-haiku-4-5"]);
+    }
+
+    #[test]
+    fn profile_block_joins_the_permissions_and_permissions_win() {
+        let profile = r#"{"provider":{"luna":{"options":{"apiKey":"{env:LUNA_PROFILE_KEY}"}}}}"#;
+        let merged: Value = serde_json::from_str(&merge_profile(&config_content(Permission::ReadOnly, AgentBrowser::Builtin), Some(profile))).unwrap();
+
+        assert_eq!(merged["provider"]["luna"]["options"]["apiKey"], "{env:LUNA_PROFILE_KEY}");
+        assert_eq!(merged["permission"]["edit"], Value::Null);
+        assert!(merged["mcp"].is_object());
+        assert_eq!(merge_profile("{}", None), "{}");
     }
 
     fn request(session: Option<&str>, model: Option<&str>) -> RunRequest {

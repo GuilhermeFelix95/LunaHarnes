@@ -39,6 +39,8 @@ pub enum Preset {
     Qwen,
     MetaMuse,
     Ollama,
+    Nvidia,
+    OpenCodeCompatible,
     CustomAnthropic,
     OpenAi,
 }
@@ -162,6 +164,10 @@ impl Preset {
             Preset::MetaMuse => ("Meta Muse (prévia)", ProviderKind::Claude, "https://api.meta.ai", &["muse-spark-1.1"], "muse-spark-1.1"),
             // Ollama local: não exige chave de verdade; qualquer texto serve. Os modelos precisam estar baixados no Ollama.
             Preset::Ollama => ("Ollama (local)", ProviderKind::Claude, "http://localhost:11434", &["qwen3-coder"], "qwen3-coder"),
+            // NVIDIA só tem endpoint compatível com OpenAI, então roda pelo OpenCode. Os modelos vêm da própria API (Atualizar lista).
+            Preset::Nvidia => ("NVIDIA (via OpenCode)", ProviderKind::OpenCode, "https://integrate.api.nvidia.com/v1", &[], ""),
+            // Qualquer endpoint compatível com OpenAI, pelo OpenCode. O endereço precisa incluir o /v1 do provedor.
+            Preset::OpenCodeCompatible => ("OpenCode (compatível com OpenAI)", ProviderKind::OpenCode, "", &[], ""),
             Preset::CustomAnthropic => ("Compatível com Anthropic (personalizado)", ProviderKind::Claude, "", &[], ""),
             Preset::OpenAi => ("OpenAI (chave)", ProviderKind::Codex, "", &[], ""),
         };
@@ -195,6 +201,8 @@ pub fn presets() -> Vec<PresetInfo> {
         Preset::Qwen,
         Preset::MetaMuse,
         Preset::Ollama,
+        Preset::Nvidia,
+        Preset::OpenCodeCompatible,
         Preset::CustomAnthropic,
         Preset::OpenAi,
     ]
@@ -372,8 +380,8 @@ impl ApiProfile {
         if name.is_empty() || name.chars().count() > MAX_NAME_CHARS {
             return Err(format!("o nome do perfil precisa ter de 1 a {MAX_NAME_CHARS} caracteres"));
         }
-        if self.preset == Preset::CustomAnthropic && self.base_url.trim().is_empty() {
-            return Err("o perfil personalizado precisa de um endereço (URL) da API".into());
+        if matches!(self.preset, Preset::CustomAnthropic | Preset::OpenCodeCompatible) && self.base_url.trim().is_empty() {
+            return Err("o perfil precisa de um endereço (URL) da API".into());
         }
         if !self.base_url.trim().is_empty() {
             validate_base_url(&self.base_url)?;
@@ -434,6 +442,30 @@ pub fn long_cache_env(profile: &ApiProfile) -> Vec<(String, String)> {
     }
 }
 
+/// Variável que leva a chave de um perfil do OpenCode até a config (`{env:LUNA_PROFILE_KEY}`).
+pub const OPENCODE_KEY_VAR: &str = "LUNA_PROFILE_KEY";
+
+/// Bloco `provider` da config do OpenCode para o perfil: endereço, chave por variável e os modelos do perfil.
+/// O id do provedor é fixo (`luna`), e a execução chama o modelo como `luna/<modelo>` (ver providers/opencode.rs).
+pub fn opencode_profile_config(profile: &ApiProfile) -> String {
+    let models: serde_json::Map<String, serde_json::Value> =
+        profile.models.iter().map(|m| (m.clone(), serde_json::json!({ "name": m }))).collect();
+    serde_json::json!({
+        "provider": {
+            crate::providers::opencode::PROFILE_PROVIDER: {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": profile.name,
+                "options": {
+                    "baseURL": profile.effective_base_url().unwrap_or_default(),
+                    "apiKey": format!("{{env:{OPENCODE_KEY_VAR}}}"),
+                },
+                "models": models,
+            }
+        }
+    })
+    .to_string()
+}
+
 pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(String, String)> {
     let mut env = Vec::new();
     match profile.engine() {
@@ -462,8 +494,12 @@ pub fn env_for(profile: &ApiProfile, api_key: &str, config_dir: &Path) -> Vec<(S
             }
         }
         ProviderKind::Codex => env.push(("OPENAI_API_KEY".into(), api_key.into())),
-        // Nenhum perfil de API usa o motor OpenCode nem o Cline ainda.
-        ProviderKind::OpenCode | ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity => {}
+        ProviderKind::OpenCode => {
+            // A chave vai por variável, lida pelo OpenCode com {env:...}: nunca escrita no JSON da config.
+            env.push((OPENCODE_KEY_VAR.into(), api_key.into()));
+            env.push(("OPENCODE_CONFIG_CONTENT".into(), opencode_profile_config(profile)));
+        }
+        ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity => {}
     }
     env
 }
@@ -693,7 +729,7 @@ mod tests {
     #[test]
     fn presets_list_has_one_entry_per_preset_with_engine() {
         let list = presets();
-        assert_eq!(list.len(), 13);
+        assert_eq!(list.len(), 15);
         assert_eq!(list.iter().find(|p| p.preset == Preset::OpenAi).unwrap().engine, ProviderKind::Codex);
     }
 
@@ -858,6 +894,30 @@ mod tests {
             );
             assert!(info.suggested_models.iter().all(|m| is_model_token(m)));
         }
+    }
+
+    #[test]
+    fn opencode_profile_passes_the_key_by_variable_and_never_in_the_config() {
+        let mut p = profile(Preset::Nvidia);
+        p.models = vec!["meta/llama-3.3-70b-instruct".into()];
+        let env = env_for(&p, "nvapi-123", Path::new("X"));
+        let map = env_map(&env);
+
+        assert_eq!(map["LUNA_PROFILE_KEY"], "nvapi-123");
+        let config: serde_json::Value = serde_json::from_str(map["OPENCODE_CONFIG_CONTENT"]).unwrap();
+        let block = &config["provider"]["luna"];
+        assert_eq!(block["options"]["baseURL"], "https://integrate.api.nvidia.com/v1");
+        assert_eq!(block["options"]["apiKey"], "{env:LUNA_PROFILE_KEY}");
+        assert!(block["models"]["meta/llama-3.3-70b-instruct"].is_object());
+        assert!(!map["OPENCODE_CONFIG_CONTENT"].contains("nvapi-123"));
+    }
+
+    #[test]
+    fn opencode_compatible_profile_needs_its_own_address() {
+        let mut p = profile(Preset::OpenCodeCompatible);
+        assert!(p.validate().is_err());
+        p.base_url = "https://api.exemplo.com/v1".into();
+        assert!(p.validate().is_ok());
     }
 
     #[test]
