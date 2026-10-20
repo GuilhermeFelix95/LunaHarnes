@@ -152,3 +152,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | OpenCode: ProviderKind::OpenCode no backend (spawn com --standalone e OPENCODE_CONFIG_CONTENT, login via 'opencode auth login', status via 'auth list', modelos via 'opencode models', saída 0 fecha o turno); instalação pelo app fica desligada. Interface ainda não mostra o motor.
 2026-10-20 | OpenCode na interface: tipo ProviderKind, rótulo, opção no seletor de agentes, seção Contas (sem instalador: pede instalação pelo site oficial), ícone e traduções pt-BR/en.
 2026-10-20 | OpenCode: seletor mostra só os modelos opencode/* (a CLI também lista 20 anthropic/*, que ficam de fora). Testados: anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5 e opencode/big-pickle respondem sem erro.
+2026-10-20 | Painel lateral: o Progresso abre com a execução e fecha quando ela termina; largura padrão de 320 para 240 px (quem já arrastou mantém a largura salva).

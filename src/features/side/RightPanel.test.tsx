@@ -68,8 +68,8 @@ describe("RightPanel", () => {
     fireEvent.pointerMove(handle, { clientX: 600, pointerId: 1 });
     fireEvent.pointerUp(handle, { clientX: 600, pointerId: 1 });
 
-    expect(panel.style.width).toBe("420px");
-    expect(localStorage.getItem(WIDTH_KEY)).toBe("420");
+    expect(panel.style.width).toBe("340px");
+    expect(localStorage.getItem(WIDTH_KEY)).toBe("340");
   });
 
   it("teclas de seta ajustam a largura respeitando os limites", () => {
@@ -157,7 +157,7 @@ describe("RightPanel", () => {
     localStorage.setItem(WIDTH_KEY, "abc");
     setup();
 
-    expect(screen.getByRole("complementary", { name: "Painel lateral" }).style.width).toBe("320px");
+    expect(screen.getByRole("complementary", { name: "Painel lateral" }).style.width).toBe("240px");
   });
 });
 

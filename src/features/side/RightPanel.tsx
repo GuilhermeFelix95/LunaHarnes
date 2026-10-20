@@ -10,7 +10,7 @@ import { t, type MessageKey } from "../../i18n";
 export type SideTab = "changes" | "plan" | "progress" | "terminal" | "browser";
 
 export const WIDTH_KEY = "luna.rightPanel.width";
-const DEFAULT_WIDTH = 320;
+const DEFAULT_WIDTH = 240;
 const MIN_WIDTH = 240;
 const MAX_FRACTION = 0.6;
 const KEY_STEP = 16;

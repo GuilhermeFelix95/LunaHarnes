@@ -452,6 +452,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
           tasksRef.current = [];
           setTasks([]);
         }
+        // O painel de progresso abre com a execução e fecha quando ela termina (outras abas ficam como estão).
+        if (live.current.sideTab === "progress") setSideOpen(false);
         const firstUser = messagesRef.current.find((m) => m.role === "user");
         const subject = firstUser ? truncate(firstUser.text, 40) : t("chat.theConversation");
         const session = sessions.current[turn];

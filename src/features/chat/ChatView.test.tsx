@@ -392,6 +392,19 @@ describe("Progresso de um plano novo", () => {
     expect(screen.queryByText("Ler o arquivo")).toBeNull();
     expect(screen.getByText(/Quando o agente montar as etapas/)).toBeTruthy();
   });
+
+  it("o painel de progresso abre só enquanto a execução roda e fecha quando ela termina", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    const panel = screen.getByRole("complementary", { name: "Painel lateral" });
+    expect(panel.style.width).toBe("0px");
+
+    await send("tarefa qualquer");
+    expect(panel.style.width).not.toBe("0px");
+
+    emit({ kind: "done", ok: true });
+    expect(panel.style.width).toBe("0px");
+  });
 });
 
 describe("ChatView: recarregar depois de instalar MCP, skill ou plugin", () => {
