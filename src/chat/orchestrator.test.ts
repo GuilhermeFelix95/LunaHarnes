@@ -15,11 +15,22 @@ describe("routeFor", () => {
     expect(route).toEqual({ provider: "codex", profileId: null, model: "gpt-5.5", effort: "xhigh" });
   });
 
-  it("perfil de API só continua quando o motor é o mesmo da conversa", () => {
+  it("papel sem perfil usa a CLI, mesmo com a conversa num perfil de API", () => {
     const withProfile: Route = { ...current, profileId: "deepseek" };
 
-    expect(routeFor("chat", withProfile, { chat: { provider: "claude", model: "claude-haiku-5-5" } }).profileId).toBe("deepseek");
+    expect(routeFor("chat", withProfile, { chat: { provider: "claude", model: "claude-haiku-5-5" } }).profileId).toBeNull();
     expect(routeFor("chat", withProfile, { chat: { provider: "opencode", model: "opencode/big-pickle" } }).profileId).toBeNull();
+  });
+
+  it("papel com perfil leva o perfil e o modelo do próprio perfil", () => {
+    const withProfile: Route = { ...current, profileId: "deepseek" };
+
+    expect(routeFor("chat", withProfile, { chat: { provider: "claude", profileId: "openrouter", model: "qwen/qwen3-coder:free" } })).toEqual({
+      provider: "claude",
+      profileId: "openrouter",
+      model: "qwen/qwen3-coder:free",
+      effort: "",
+    });
   });
 
   it("sem esforço escolhido, o envio fica sem esforço", () => {

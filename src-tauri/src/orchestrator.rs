@@ -58,7 +58,7 @@ pub fn write_agents(dir: &Path, subagent: Option<&RoleModel>) -> Result<(), Stri
     }
 }
 
-/// Motor, modelo e esforço escolhidos para um papel.
+/// Motor, modelo e esforço escolhidos para um papel. Com `profile_id`, o papel usa um perfil de API desse motor.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoleModel {
@@ -66,6 +66,8 @@ pub struct RoleModel {
     pub model: String,
     #[serde(default)]
     pub effort: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile_id: Option<String>,
 }
 
 /// Os quatro papéis. Ausente = o papel usa a conversa atual.
@@ -112,6 +114,15 @@ pub fn validate(orchestrator: &Orchestrator) -> Result<(), String> {
         if !is_model_token(&choice.model) {
             return Err(format!("modelo inválido no papel {role}: {:?}", choice.model));
         }
+        if let Some(profile) = &choice.profile_id {
+            if !is_plain_token(profile) {
+                return Err(format!("perfil inválido no papel {role}: {profile:?}"));
+            }
+        }
+        // O subagente é do Claude Code, sem perfil: o arquivo de --agents só leva o modelo.
+        if role == "subagent" && choice.profile_id.is_some() {
+            return Err("o subagente usa só a conta do Claude, sem perfil de API".into());
+        }
         if let Some(effort) = &choice.effort {
             if !is_plain_token(effort) {
                 return Err(format!("esforço inválido no papel {role}: {effort:?}"));
@@ -145,7 +156,7 @@ mod tests {
     }
 
     fn choice(provider: ProviderKind, model: &str) -> RoleModel {
-        RoleModel { provider, model: model.into(), effort: Some("high".into()) }
+        RoleModel { provider, model: model.into(), effort: Some("high".into()), profile_id: None }
     }
 
     #[test]
@@ -164,10 +175,34 @@ mod tests {
 
     #[test]
     fn a_model_or_effort_that_is_not_a_plain_token_is_refused() {
-        let bad_model = Orchestrator { chat: Some(RoleModel { provider: ProviderKind::Claude, model: "x --dangerous".into(), effort: None }), ..Default::default() };
+        let bad_model = Orchestrator { chat: Some(RoleModel { provider: ProviderKind::Claude, model: "x --dangerous".into(), effort: None, profile_id: None }), ..Default::default() };
         assert!(validate(&bad_model).is_err());
-        let bad_effort = Orchestrator { plan: Some(RoleModel { provider: ProviderKind::Codex, model: "gpt-5.5".into(), effort: Some("a b".into()) }), ..Default::default() };
+        let bad_effort = Orchestrator { plan: Some(RoleModel { provider: ProviderKind::Codex, model: "gpt-5.5".into(), effort: Some("a b".into()), profile_id: None }), ..Default::default() };
         assert!(validate(&bad_effort).is_err());
+    }
+
+    #[test]
+    fn a_role_can_point_to_an_api_profile_but_the_subagent_cannot() {
+        let with_profile = RoleModel { provider: ProviderKind::Claude, model: "deepseek-flash".into(), effort: None, profile_id: Some("p1700".into()) };
+        let saved = Orchestrator { chat: Some(with_profile.clone()), ..Default::default() };
+        assert!(validate(&saved).is_ok());
+
+        let dir = temp_dir("perfil");
+        save(&dir, &saved).unwrap();
+        assert_eq!(load(&dir).unwrap().chat, Some(with_profile.clone()));
+        let _ = fs::remove_dir_all(&dir);
+
+        let subagent = Orchestrator { subagent: Some(with_profile), ..Default::default() };
+        assert!(validate(&subagent).is_err());
+    }
+
+    #[test]
+    fn a_file_without_profile_still_loads() {
+        let dir = temp_dir("sem-perfil");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join(FILE_NAME), r#"{"chat":{"provider":"claude","model":"claude-haiku-5-5"}}"#).unwrap();
+        assert_eq!(load(&dir).unwrap().chat.unwrap().profile_id, None);
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

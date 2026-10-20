@@ -7,6 +7,10 @@ vi.mock("../../api", () => ({
   getOrchestrator: vi.fn(async () => ({})),
   listModels: vi.fn(async () => [{ id: "gpt-5.5", label: "GPT-5.5", description: null, efforts: [], default: true }]),
   saveOrchestrator: vi.fn(async () => {}),
+  listApiProfiles: vi.fn(async () => [
+    { id: "p1", name: "DeepSeek", preset: "deepseek", baseUrl: "", models: ["deepseek-flash"], defaultModel: "deepseek-flash" },
+  ]),
+  apiPresets: vi.fn(async () => [{ preset: "deepseek", label: "DeepSeek", engine: "claude", defaultBaseUrl: "", suggestedModels: [], defaultModel: "" }]),
 }));
 
 describe("Configurações > Orquestrador", () => {
@@ -38,11 +42,25 @@ describe("Configurações > Orquestrador", () => {
     await waitFor(() => expect(saveOrchestrator).toHaveBeenCalledWith({ plan: { provider: "codex", model: "gpt-5.5" } }));
   });
 
-  it("subagentes oferecem só o Claude", async () => {
+  it("subagentes oferecem só o Claude, sem perfil", async () => {
     render(<OrchestratorSection />);
     const subagentProvider = (await screen.findAllByRole("combobox"))[3];
 
     const options = Array.from(subagentProvider.querySelectorAll("option")).map((option) => option.value);
     expect(options).toEqual(["", "claude"]);
+  });
+
+  it("um papel pode usar um perfil de API: lista os modelos do perfil e grava o perfil", async () => {
+    render(<OrchestratorSection />);
+    const chatProvider = (await screen.findAllByRole("combobox"))[2];
+
+    fireEvent.change(chatProvider, { target: { value: "api:p1" } });
+    const chatModel = (await screen.findAllByRole("combobox", { name: "Modelo" }))[0];
+    fireEvent.change(chatModel, { target: { value: "deepseek-flash" } });
+
+    await waitFor(() =>
+      expect(saveOrchestrator).toHaveBeenCalledWith({ chat: { provider: "claude", profileId: "p1", model: "deepseek-flash" } }),
+    );
+    expect(listModels).not.toHaveBeenCalledWith("claude");
   });
 });

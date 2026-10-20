@@ -7,6 +7,8 @@ export const ROLES: OrchestratorRole[] = ["plan", "execute", "chat", "subagent"]
 
 export interface RoleModel {
   provider: ProviderKind;
+  /** Perfil de API do papel (id em api-profiles.json). Ausente = login da CLI. */
+  profileId?: string;
   model: string;
   effort?: string;
 }
@@ -22,14 +24,15 @@ export interface Route {
   effort: string;
 }
 
-/// Motor e modelo que um envio usa. Sem escolha para o papel, vale a conversa atual.
-/// Perfil de API só vale quando o motor é o mesmo da conversa.
+/// Motor, perfil e modelo que um envio usa. Sem escolha para o papel, vale a conversa atual.
+/// Com escolha, vale só o que o papel escolheu: o perfil da conversa não passa para o papel
+/// (um modelo do Claude não pode ir para o endpoint de outro provedor).
 export function routeFor(role: OrchestratorRole | null, current: Route, orchestrator: Orchestrator): Route {
   const choice = role ? orchestrator[role] : undefined;
   if (!choice) return current;
   return {
     provider: choice.provider,
-    profileId: choice.provider === current.provider ? current.profileId : null,
+    profileId: choice.profileId ?? null,
     model: choice.model,
     effort: choice.effort ?? "",
   };
