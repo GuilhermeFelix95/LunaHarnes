@@ -41,18 +41,38 @@ pub fn config_content(permission: Permission, browser: AgentBrowser) -> String {
         Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "edit": "allow", "write": "allow", "patch": "allow" }),
         Permission::FullAccess => json!({ "*": "allow" }),
     };
-    let mut config = json!({});
+    // O servidor de etapas vale em todos os modos: é o que alimenta o Progresso.
+    let mut servers = json!({ crate::tasks_mcp::SERVER: { "type": "local", "command": crate::tasks_mcp::command(), "enabled": true } });
+    if let Some(map) = rules.as_object_mut() {
+        map.insert(format!("{}_*", crate::tasks_mcp::SERVER), json!("allow"));
+    }
     if browser == AgentBrowser::Playwright {
         let (command, args) = crate::playwright::server_command();
         let mut command_line = vec![command];
         command_line.extend(args);
-        config["mcp"] = json!({ "playwright": { "type": "local", "command": command_line, "enabled": true } });
+        servers["playwright"] = json!({ "type": "local", "command": command_line, "enabled": true });
         if let Some(map) = rules.as_object_mut() {
             map.insert("playwright_*".into(), json!("allow"));
         }
     }
+    let mut config = json!({});
+    config["mcp"] = servers;
     config["permission"] = rules;
     config.to_string()
+}
+
+/// Etapas que o agente registrou com o servidor lunatasks (`set_steps`), chamadas dentro do execute.
+/// A lista sai no começo da chamada, para o Progresso acompanhar em tempo real. Outras chamadas não geram nada.
+fn steps_event(value: &Value) -> Vec<ProviderEvent> {
+    let part = &value["part"];
+    if value.get("type").and_then(Value::as_str) != Some("tool_use") || part["tool"].as_str() != Some("execute") {
+        return vec![];
+    }
+    part["state"]["input"]["code"]
+        .as_str()
+        .and_then(crate::tasks_mcp::steps_in_code)
+        .map(|items| vec![ProviderEvent::Todos { items }])
+        .unwrap_or_default()
 }
 
 /// Nome que a Luna mostra para cada ferramenta do OpenCode, igual ao que o Claude e o Codex usam.
@@ -88,6 +108,13 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
             }]
         }
     };
+    let mut events = steps_event(&value);
+    events.extend(event_for(&value));
+    events
+}
+
+/// Linha que vira evento de conversa (texto, ferramenta, erro). As etapas ficam em `steps_event`.
+fn event_for(value: &Value) -> Vec<ProviderEvent> {
     let part = &value["part"];
 
     match value.get("type").and_then(Value::as_str) {
@@ -283,6 +310,37 @@ mod tests {
         assert!(text.ends_with("\n\nx"));
     }
 
+    /// Captura real (OpenCode com o servidor lunatasks): cada chamada set_steps completa vira uma lista, na ordem.
+    #[test]
+    fn captured_steps_calls_become_the_checklist_in_order() {
+        const STEPS: &str = include_str!("../../tests/fixtures/opencode_steps.jsonl");
+        let lists: Vec<Vec<crate::providers::TodoItem>> = STEPS
+            .lines()
+            .flat_map(parse_line)
+            .filter_map(|event| match event {
+                ProviderEvent::Todos { items } => Some(items),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(lists.len(), 4);
+        assert_eq!(lists[0].iter().map(|t| t.status.as_str()).collect::<Vec<_>>(), ["pending", "pending"]);
+        assert_eq!(lists[2][0].status, "completed");
+        assert!(lists[3].iter().all(|t| t.status == "completed"));
+    }
+
+    /// O servidor de etapas entra em todos os modos, e a lista que o agente manda no execute vira o checklist.
+    #[test]
+    fn tasks_server_is_configured_in_every_mode_and_its_steps_become_todos() {
+        for permission in [Permission::ReadOnly, Permission::AcceptEdits, Permission::FullAccess] {
+            let config: Value = serde_json::from_str(&config_content(permission, AgentBrowser::Builtin)).unwrap();
+            assert_eq!(config["mcp"]["lunatasks"]["enabled"], true);
+            assert_eq!(config["mcp"]["lunatasks"]["command"][1], "tasks-mcp");
+        }
+        let line = r#"{"type":"tool_use","sessionID":"s","part":{"id":"p3","type":"tool","tool":"execute","state":{"status":"running","input":{"code":"await tools.lunatasks.set_steps({ steps: [{ content: \"Criar hello\", status: \"in_progress\" }] })"}}}}"#;
+        let expected = crate::providers::TodoItem { content: "Criar hello".into(), status: "in_progress".into() };
+        assert!(parse_line(line).contains(&ProviderEvent::Todos { items: vec![expected] }));
+    }
+
     /// Com o Playwright, o servidor entra na config e as ferramentas dele ficam liberadas, mesmo no modo somente leitura.
     #[test]
     fn playwright_server_is_configured_and_allowed_only_when_chosen() {
@@ -293,7 +351,7 @@ mod tests {
         assert_eq!(with["permission"]["playwright_*"], "allow");
 
         let without: Value = serde_json::from_str(&config_content(Permission::ReadOnly, AgentBrowser::Builtin)).unwrap();
-        assert!(without.get("mcp").is_none());
+        assert!(without["mcp"]["playwright"].is_null());
         assert!(without["permission"].get("playwright_*").is_none());
     }
 }

@@ -157,3 +157,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | OpenCode + Playwright: a mensagem ganha uma orientação (PLAYWRIGHT_NOTE) que aponta as ferramentas em tools.playwright via execute; o OpenCode não as lista como ferramentas diretas. Só quando o navegador escolhido é Playwright (opencode::prompt, enviado pelo stdin).
 2026-10-20 | Painel de progresso: deixa de abrir a cada envio; abre quando o turno cria etapas (evento de tarefa) e fecha quando a execução termina. Plano não é interrompido.
 2026-10-20 | Plano aprovado: a execução recebe o texto do plano junto com a aprovação (approvalPrompt), para não depender só da memória da sessão.
+2026-10-20 | Servidor de etapas do Luna (lunaharness tasks-mcp, ferramenta set_steps) para OpenCode e Codex. A lista sai da chamada no stream e alimenta o Progresso. Verificado com captura real no OpenCode; Codex sem captura (login pendente).

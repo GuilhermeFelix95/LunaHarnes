@@ -11,5 +11,9 @@ fn main() {
     if args.get(1).map(String::as_str) == Some("browser-mcp") {
         std::process::exit(lunaharness::browser::mcp_stdio());
     }
+    // `lunaharness tasks-mcp` é o servidor de etapas para o OpenCode e o Codex (stdin/stdout).
+    if args.get(1).map(String::as_str) == Some("tasks-mcp") {
+        std::process::exit(lunaharness::tasks_mcp::mcp_stdio());
+    }
     lunaharness::run();
 }

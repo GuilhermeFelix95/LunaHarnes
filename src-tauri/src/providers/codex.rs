@@ -33,6 +33,10 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     }
     // Identidade da Luna como instrução do desenvolvedor, nos dois casos (novo e retomada).
     args.extend(["-c".to_string(), format!("developer_instructions=\"{}\"", identity_for(request))]);
+    // Servidor de etapas (lunatasks): sempre, pelo mesmo caminho do Playwright. Sem ele, o checklist depende só do Codex.
+    let tasks = crate::tasks_mcp::command();
+    args.extend(["-c".to_string(), format!("mcp_servers.{}.command=\"{}\"", crate::tasks_mcp::SERVER, tasks[0])]);
+    args.extend(["-c".to_string(), format!("mcp_servers.{}.args=[\"{}\"]", crate::tasks_mcp::SERVER, tasks[1])]);
     // Navegador do Playwright só quando escolhido: o Codex sobe o servidor por override de config (sem mexer no config do usuário).
     if request.browser == AgentBrowser::Playwright {
         let (command, server_args) = crate::playwright::server_command();
@@ -85,6 +89,15 @@ fn codex_todos(item: &Value) -> Vec<ProviderEvent> {
     vec![ProviderEvent::Todos { items }]
 }
 
+/// Etapas de uma chamada `set_steps` do servidor lunatasks. None para as outras chamadas de ferramenta.
+/// Formato do item (mcp_tool_call: server, tool, arguments) da documentação do Codex; sem captura real ainda (login pendente nesta máquina).
+fn steps_call(item: &Value) -> Option<Vec<ProviderEvent>> {
+    if item["server"].as_str() != Some(crate::tasks_mcp::SERVER) || item["tool"].as_str() != Some(crate::tasks_mcp::TOOL) {
+        return None;
+    }
+    crate::tasks_mcp::parse_steps(&item["arguments"]).ok().map(|items| vec![ProviderEvent::Todos { items }])
+}
+
 /// Eventos `error` de nível superior são avisos de reconexão do próprio Codex,
 /// então são ignorados. Falha real chega em `turn.failed`.
 pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
@@ -101,6 +114,12 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
     let is_item_event = value.get("type").and_then(Value::as_str).is_some_and(|t| t.starts_with("item."));
     if is_item_event && value["item"]["type"].as_str() == Some("todo_list") {
         return codex_todos(&value["item"]);
+    }
+    // Chamada de set_steps do servidor lunatasks: a lista vem nos argumentos, e o Progresso acompanha a cada chamada.
+    if is_item_event && value["item"]["type"].as_str() == Some("mcp_tool_call") {
+        if let Some(events) = steps_call(&value["item"]) {
+            return events;
+        }
     }
 
     match value.get("type").and_then(Value::as_str) {
@@ -349,6 +368,30 @@ mod tests {
 
     /// Com o Playwright escolhido, o Codex sobe o servidor por override de config, antes do `-` do stdin.
     #[test]
+    fn tasks_server_is_always_added_and_its_calls_become_steps() {
+        let request = RunRequest {
+            provider: crate::providers::ProviderKind::Codex,
+            prompt: "x".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: None,
+            effort: None,
+            profile: None,
+            context_window: None,
+            browser: Default::default(),
+            long_cache: false,
+            images: Vec::new(),
+        };
+        let flags = args(&request);
+        assert!(flags.iter().any(|a| a.starts_with("mcp_servers.lunatasks.command=")));
+        assert!(flags.iter().any(|a| a == "mcp_servers.lunatasks.args=[\"tasks-mcp\"]"));
+
+        let line = r#"{"type":"item.started","item":{"id":"i1","type":"mcp_tool_call","server":"lunatasks","tool":"set_steps","arguments":{"steps":[{"content":"Criar hello","status":"in_progress"}]}}}"#;
+        assert_eq!(parse_line(line), vec![ProviderEvent::Todos { items: vec![TodoItem { content: "Criar hello".into(), status: "in_progress".into() }] }]);
+    }
+
+    #[test]
     fn playwright_is_added_only_when_chosen() {
         let mut request = RunRequest {
             provider: crate::providers::ProviderKind::Codex,
@@ -364,7 +407,7 @@ mod tests {
             browser: crate::providers::AgentBrowser::Builtin,
             images: Vec::new(),
         };
-        assert!(!args(&request).iter().any(|a| a.contains("mcp_servers")));
+        assert!(!args(&request).iter().any(|a| a.contains("mcp_servers.playwright")));
 
         request.browser = crate::providers::AgentBrowser::Playwright;
         let flags = args(&request);

@@ -311,6 +311,10 @@ mod tests {
         if let Some(at) = args.iter().position(|a| a.starts_with("developer_instructions=")) {
             args.drain(at - 1..at + 1);
         }
+        // O servidor de etapas tem o caminho do executável, que muda a cada build: os testes comparam sem ele.
+        while let Some(at) = args.iter().position(|a| a.starts_with(&format!("mcp_servers.{}.", crate::tasks_mcp::SERVER))) {
+            args.drain(at - 1..at + 1);
+        }
         args
     }
 

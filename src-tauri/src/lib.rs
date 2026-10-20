@@ -19,6 +19,7 @@ pub mod reload;
 pub mod session;
 pub mod setup;
 pub mod skills;
+pub mod tasks_mcp;
 pub mod slash;
 pub mod spec;
 pub mod terminal;
