@@ -76,6 +76,29 @@ const SECTIONS: Array<[SettingsSection, MessageKey]> = [
 
 const SECTION_KEY = "luna.settings.section";
 const ACTIVE_THEME_KEY = "luna.activeCustomTheme";
+const THEMES_TAB_KEY = "luna.themesTab";
+
+/// Aba da Aparência: "Temas do Luna" (fábrica e plugins) ou "Meus temas" (personalizados e editor).
+type ThemesTab = "luna" | "mine";
+
+/// Aba lembrada; sem valor, abre em "Meus temas" quando o tema ativo é personalizado.
+function loadThemesTab(): ThemesTab {
+  try {
+    const saved = localStorage.getItem(THEMES_TAB_KEY);
+    if (saved === "luna" || saved === "mine") return saved;
+  } catch {
+    // Sem armazenamento: começa pelo padrão.
+  }
+  return localStorage.getItem("luna.theme") === "custom" ? "mine" : "luna";
+}
+
+function saveThemesTab(tab: ThemesTab) {
+  try {
+    localStorage.setItem(THEMES_TAB_KEY, tab);
+  } catch {
+    // Sem armazenamento, a aba vale só nesta sessão.
+  }
+}
 
 /// Nome do tema personalizado que está sendo editado. Sem valor, o editor vale só para o tema ativo sem cartão.
 function loadActiveName(): string | null {
@@ -235,8 +258,11 @@ export function SettingsView({ onClose }: SettingsViewProps) {
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(loadSavedThemes);
   const [activeName, setActiveName] = useState<string | null>(loadActiveName);
   const [liquid, setLiquid] = useState<boolean>(loadLiquidGlass);
-  /// Modo de edição: some a lista de temas de fábrica e fica só Seus temas com o editor.
-  const [editing, setEditing] = useState(false);
+  const [themesTab, setThemesTabState] = useState<ThemesTab>(loadThemesTab);
+  function setThemesTab(tab: ThemesTab) {
+    setThemesTabState(tab);
+    saveThemesTab(tab);
+  }
 
   function open(id: SettingsSection) {
     setSection(id);
@@ -294,7 +320,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
     const created: SavedTheme = { name: t("settings.appearance.defaultThemeName", { index }), palette };
     storeSaved([...savedThemes, created]);
     applySaved(created);
-    setEditing(true);
+    setThemesTab("mine");
   }
 
   function importTheme(imported: SavedTheme) {
@@ -346,14 +372,16 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               className="settings__section"
               aria-labelledby="settings-theme"
             >
-              {editing ? (
-                <div className="settings__head">
-                  <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
-                  <button type="button" className="btn btn--sm" onClick={() => setEditing(false)}>
-                    {t("settings.appearance.backToThemes")}
-                  </button>
-                </div>
-              ) : (
+              <div className="segmented" role="tablist" aria-label={t("settings.appearance.theme")}>
+                <button type="button" role="tab" aria-selected={themesTab === "luna"} onClick={() => setThemesTab("luna")}>
+                  {t("settings.appearance.lunaThemes")}
+                </button>
+                <button type="button" role="tab" aria-selected={themesTab === "mine"} onClick={() => setThemesTab("mine")}>
+                  {t("settings.appearance.myThemes")}
+                </button>
+              </div>
+
+              {themesTab === "luna" ? (
                 <>
                   <h2 id="settings-theme">{t("settings.appearance.theme")}</h2>
                   <label className="custom-palette__item">
@@ -384,12 +412,10 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                   ))}
 
                   <PluginThemePicker />
-
-                  <h3 id="settings-user-themes" className="settings__subhead">
-                    {t("settings.appearance.yourThemes")}
-                  </h3>
                 </>
-              )}
+              ) : (
+                <>
+                  <h2 id="settings-user-themes">{t("settings.appearance.yourThemes")}</h2>
               <div
                 className="themes"
                 role="radiogroup"
@@ -540,6 +566,8 @@ export function SettingsView({ onClose }: SettingsViewProps) {
                     onImport={importTheme}
                   />
                 </div>
+              )}
+                </>
               )}
             </section>
           )}

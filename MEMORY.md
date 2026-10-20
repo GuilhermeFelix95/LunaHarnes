@@ -187,3 +187,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Contas extras ganharam status e botão Entrar na página Contas (login na pasta da própria conta). As contas são globais no app: servem em qualquer projeto. Login real ainda não testado.
 2026-10-20 | Perfis de API aparecem só com o nome (sem "· via Claude Code") no seletor e nas mensagens.
 2026-10-20 | Orquestrador: cada papel escolhe CLI ou perfil de API; papel com CLI não herda o perfil da conversa; subagente só Claude sem perfil.
+2026-10-20 | Temas em duas abas na Aparência: "Temas do Luna" e "Meus temas" (Novo tema e editor ficam em Meus temas). A aba lembrada fica em luna.themesTab.

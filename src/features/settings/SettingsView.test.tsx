@@ -36,17 +36,31 @@ describe("SettingsView", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("lista os 12 temas de fábrica, depois Seus temas com cartão de cada tema salvo e o botão Novo tema", () => {
+  it("Temas do Luna mostra os 12 temas de fábrica; Meus temas mostra cada tema salvo e o botão Novo tema", () => {
     localStorage.setItem(THEME_KEY, "terminal");
     localStorage.setItem("luna.savedThemes", JSON.stringify([{ name: "Mar", palette: { ...DEFAULT_PALETTE, accent: "#2a9d8f" } }]));
     render(<SettingsView onClose={() => {}} />);
 
     // 13 = 12 temas de fábrica + "Padrão do app" dos temas de plugin.
-    expect(screen.getAllByRole("radio")).toHaveLength(14);
+    expect(screen.getAllByRole("radio")).toHaveLength(13);
+    expect(screen.getByRole("radio", { name: /Terminal/ }).getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
+
+    expect(screen.queryByRole("radio", { name: /Terminal/ })).toBeNull();
     const mine = screen.getByRole("radiogroup", { name: "Seus temas" });
     expect(mine.textContent).toContain("Mar");
     expect(mine.textContent).toContain("Novo tema");
-    expect(screen.getByRole("radio", { name: /Terminal/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("a aba escolhida fica salva e volta a abrir nela", () => {
+    const { unmount } = render(<SettingsView onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
+    expect(localStorage.getItem("luna.themesTab")).toBe("mine");
+    unmount();
+
+    render(<SettingsView onClose={() => {}} />);
+    expect(screen.getByRole("tab", { name: "Meus temas" }).getAttribute("aria-selected")).toBe("true");
   });
 
   it("Geral troca o idioma da interface para inglês e volta para português", () => {
@@ -68,6 +82,7 @@ describe("SettingsView", () => {
     localStorage.setItem(THEME_KEY, "luna");
     render(<SettingsView onClose={() => {}} />);
 
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
     fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
 
     const saved = JSON.parse(localStorage.getItem("luna.savedThemes")!);
@@ -76,20 +91,21 @@ describe("SettingsView", () => {
     expect(screen.getByLabelText("Fonte")).toBeTruthy();
   });
 
-  it("Novo tema abre o editor só com Seus temas, e Voltar aos temas restaura a lista de fábrica", () => {
+  it("Novo tema abre a aba Meus temas com o editor; voltar a Temas do Luna mostra a lista de fábrica", () => {
     localStorage.setItem(THEME_KEY, "luna");
     render(<SettingsView onClose={() => {}} />);
 
+    fireEvent.click(screen.getByRole("tab", { name: "Meus temas" }));
     fireEvent.click(screen.getByRole("button", { name: /Novo tema/ }));
 
     expect(screen.queryByRole("radio", { name: /Luna/ })).toBeNull();
     expect(screen.getByRole("radiogroup", { name: "Seus temas" }).textContent).toContain("Tema 1");
+    expect(screen.getByRole("tab", { name: "Meus temas" }).getAttribute("aria-selected")).toBe("true");
 
-    fireEvent.click(screen.getByRole("button", { name: "Voltar aos temas" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Temas do Luna" }));
 
     // 13 = 12 temas de fábrica + "Padrão do app" dos temas de plugin.
-    expect(screen.getAllByRole("radio")).toHaveLength(14);
-    expect(screen.queryByRole("button", { name: "Voltar aos temas" })).toBeNull();
+    expect(screen.getAllByRole("radio")).toHaveLength(13);
   });
 
   it("o editor do Personalizado troca a fonte e o formato na hora", () => {
