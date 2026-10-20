@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { Markdown } from "./Markdown";
 
 describe("Markdown", () => {
@@ -33,10 +33,31 @@ describe("Markdown", () => {
     expect(container.textContent).toContain("<script>");
   });
 
-  it("links não viram âncoras navegáveis dentro do app", () => {
-    const { container } = render(<Markdown text={"veja [o site](https://example.com)"} />);
+  it("Ctrl+clique num link http(s) abre o endereço no navegador integrado", () => {
+    const onOpenLink = vi.fn();
+    const { container } = render(<Markdown text={"veja [o site](https://example.com/a)"} onOpenLink={onOpenLink} />);
+
+    fireEvent.click(container.querySelector("a")!, { ctrlKey: true });
+
+    expect(onOpenLink).toHaveBeenCalledWith("https://example.com/a");
+  });
+
+  it("clique comum não abre nada e não navega a janela", () => {
+    const onOpenLink = vi.fn();
+    const { container } = render(<Markdown text={"veja [o site](https://example.com)"} onOpenLink={onOpenLink} />);
+
+    const notPrevented = fireEvent.click(container.querySelector("a")!);
+
+    expect(onOpenLink).not.toHaveBeenCalled();
+    expect(notPrevented).toBe(false);
+  });
+
+  it("esquemas que não são http(s) continuam como texto", () => {
+    const onOpenLink = vi.fn();
+    const { container } = render(<Markdown text={"[clique](javascript:alert(1))"} onOpenLink={onOpenLink} />);
 
     expect(container.querySelector("a")).toBeNull();
-    expect(container.querySelector(".md-link")?.textContent).toBe("o site");
+    expect(container.querySelector(".md-link")?.textContent).toBe("clique");
+    expect(onOpenLink).not.toHaveBeenCalled();
   });
 });

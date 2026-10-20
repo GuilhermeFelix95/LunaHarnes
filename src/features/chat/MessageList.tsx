@@ -27,6 +27,8 @@ interface MessageListProps {
   step?: string | null;
   /** Momento em que o turno começou, para o tempo decorrido no cabeçalho do trabalho. */
   startedAt?: number | null;
+  /** Ctrl+clique num link da resposta: abre o endereço no navegador integrado. */
+  onOpenLink?: (url: string) => void;
 }
 
 type Tool = NonNullable<ChatMessage["tool"]>;
@@ -162,7 +164,7 @@ function ReplyActions({ parts }: { parts: Part[] }) {
 
 /// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
 /// ferramentas recolhidas e o texto em destaque.
-export function MessageList({ messages, fallbackProvider, running, onRewind, pending, step, startedAt }: MessageListProps) {
+export function MessageList({ messages, fallbackProvider, running, onRewind, pending, step, startedAt, onOpenLink }: MessageListProps) {
   const items = group(messages, fallbackProvider);
   // Pedido enviado e nenhuma resposta ainda: o agente aparece "pensando" até o primeiro pedaço chegar.
   const waiting = running && items.at(-1)?.kind === "user";
@@ -232,7 +234,7 @@ export function MessageList({ messages, fallbackProvider, running, onRewind, pen
                 const m = part.message;
                 return (
                   <div key={j}>
-                    {m.text && <Markdown text={m.text} />}
+                    {m.text && <Markdown text={m.text} onOpenLink={onOpenLink} />}
                     {m.error && (
                       <p role="alert" className="notice">
                         <AlertCircle size={15} aria-hidden="true" />

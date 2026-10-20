@@ -219,6 +219,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Sempre começa fechado: o painel direito só abre quando o usuário pede.
   const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
+  // Link aberto com Ctrl+clique numa resposta: o painel do navegador abre uma aba nova com ele.
+  const [browserRequest, setBrowserRequest] = useState<{ url: string } | null>(null);
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
   const [terminalOpened, setTerminalOpened] = useState(false);
   const [changesVersion, setChangesVersion] = useState(0);
@@ -258,6 +260,12 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   }, []);
 
   /// Abre o painel na aba pedida; se ela já está à mostra, fecha o painel.
+  function openLinkInBrowser(url: string) {
+    setBrowserRequest({ url });
+    setSideOpen(true);
+    setSideTab("browser");
+  }
+
   function toggleSide(tab: SideTab) {
     if (tab === "terminal") setTerminalOpened(true);
     setSideOpen((open) => !(open && live.current.sideTab === tab));
@@ -1075,6 +1083,7 @@ ${outgoing}`
             pending={{ provider, label: agentLabel }}
             step={displayTodos(toTodos(tasks), running).find((todo) => todo.status === "in_progress")?.content ?? null}
             startedAt={turnStartedAt}
+            onOpenLink={openLinkInBrowser}
             onRewind={(m) => {
               const index = messagesRef.current.indexOf(m);
               if (index >= 0 && m.checkpoint) void rewind(index, m.checkpoint);
@@ -1217,7 +1226,7 @@ ${outgoing}`
         todos={displayTodos(toTodos(tasks), running)}
         running={running}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
-        browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} />}
+        browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} openRequest={browserRequest} />}
       />
       </div>
     </div>

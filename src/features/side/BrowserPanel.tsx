@@ -24,6 +24,8 @@ import { t } from "../../i18n";
 interface BrowserPanelProps {
   /** Aba do navegador à mostra. Fora dela, a página sai de cena para não cobrir o chat. */
   active: boolean;
+  /** Endereço pedido de fora (Ctrl+clique num link do chat): abre numa aba nova. */
+  openRequest?: { url: string } | null;
 }
 
 /// Limite de abas, igual ao do Rust (que é quem recusa de fato). Aqui só desabilita o botão de nova aba.
@@ -46,7 +48,7 @@ function tabLabel(tab: BrowserTab): string {
 }
 
 /// Navegador embutido, com várias abas. Cada aba é uma webview filha da janela, então não usa iframe e funciona com sites que bloqueiam iframes.
-export function BrowserPanel({ active }: BrowserPanelProps) {
+export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
   const area = useRef<HTMLDivElement>(null);
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
@@ -83,6 +85,11 @@ export function BrowserPanel({ active }: BrowserPanelProps) {
       unlisten.then((stop) => stop()).catch(() => {});
     };
   }, []);
+
+  // Link pedido de fora (Ctrl+clique no chat): cada pedido novo abre uma aba com o endereço.
+  useEffect(() => {
+    if (openRequest) void openTab(openRequest.url);
+  }, [openRequest]);
 
   // Mostra a página da aba ativa quando a aba do painel está à vista e esconde quando sai.
   useEffect(() => {

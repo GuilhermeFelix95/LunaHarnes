@@ -1,4 +1,4 @@
-import { Children, isValidElement, useRef, useState, type ReactNode } from "react";
+import { Children, isValidElement, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -35,18 +35,57 @@ function CodeBlock({ children }: { children?: ReactNode }) {
   );
 }
 
-const components: Components = {
-  pre: CodeBlock,
-  // Links não navegam dentro da janela do app. Sem HTML bruto: react-markdown escapa tags.
-  a: ({ href, children }) => (
-    <span className="md-link" title={href}>
-      {children}
-    </span>
-  ),
-};
+/// Só http e https viram link; qualquer outro esquema (javascript:, file:) continua texto.
+function webUrl(href?: string): string | undefined {
+  try {
+    const url = new URL(href ?? "");
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+let controlWatched = false;
+
+/// Marca o <html> com `ctrl-down` enquanto Ctrl estiver apertado, para os links mostrarem que são clicáveis.
+function watchControlKey() {
+  if (controlWatched) return;
+  controlWatched = true;
+  const root = document.documentElement;
+  const sync = (e: KeyboardEvent | MouseEvent) => root.classList.toggle("ctrl-down", e.ctrlKey);
+  window.addEventListener("keydown", sync);
+  window.addEventListener("keyup", sync);
+  window.addEventListener("blur", () => root.classList.remove("ctrl-down"));
+}
+
+function buildComponents(onOpenLink?: (url: string) => void): Components {
+  return {
+    pre: CodeBlock,
+    // Links não navegam dentro da janela do app. Ctrl+clique abre o link no navegador integrado. Sem HTML bruto: react-markdown escapa tags.
+    a: ({ href, children }) => {
+      const url = webUrl(href);
+      if (!url) return <span className="md-link">{children}</span>;
+      return (
+        <a
+          href={url}
+          className="md-link md-link--web"
+          title={url}
+          onClick={(e) => {
+            e.preventDefault();
+            if ((e.ctrlKey || e.metaKey) && onOpenLink) onOpenLink(url);
+          }}
+        >
+          {children}
+        </a>
+      );
+    },
+  };
+}
 
 /// Renderiza a resposta do modelo como markdown (GFM). HTML bruto aparece como texto.
-export function Markdown({ text }: { text: string }) {
+export function Markdown({ text, onOpenLink }: { text: string; onOpenLink?: (url: string) => void }) {
+  useEffect(() => watchControlKey(), []);
+  const components = useMemo(() => buildComponents(onOpenLink), [onOpenLink]);
   return (
     <div className="markdown">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>

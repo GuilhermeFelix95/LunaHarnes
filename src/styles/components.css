@@ -856,6 +856,15 @@
   text-decoration: underline;
 }
 
+/* Link web: só vira mão com Ctrl apertado (o clique simples não abre nada). */
+.md-link--web {
+  cursor: text;
+}
+
+.ctrl-down .md-link--web {
+  cursor: pointer;
+}
+
 /* Composer */
 .composer {
   width: 100%;
