@@ -183,39 +183,79 @@
   color: var(--muted);
 }
 
-/* Editor de cores do tema Personalizado */
+/* Editor do tema Personalizado: um painel com uma seção em cartão por assunto (cores, texto, formato, efeitos) */
 .custom-palette {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.custom-palette > h3 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.01em;
 }
 
 .custom-palette fieldset {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  min-width: 0;
   margin: 0;
-  padding: 12px 16px;
+  padding: 16px 18px 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  background: var(--bg);
 }
 
 .custom-palette legend {
   padding: 0 6px;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
 .custom-palette__item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
   font-size: 13px;
 }
 
+/* Cores: cada uma é um quadrinho com o amostrador e o nome */
+.custom-palette fieldset:has(input[type="color"]) .custom-palette__item {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+/* Campos com lista: o nome em cima e a lista ocupando a largura */
+.custom-palette__item:has(select) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.custom-palette__item:has(select) > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .custom-palette__select {
-  padding: 4px 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -224,13 +264,61 @@
 }
 
 .custom-palette__item input[type="color"] {
-  width: 32px;
-  height: 32px;
+  flex: none;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 10px;
   background: none;
   cursor: pointer;
+}
+
+/* Ações do tema (excluir) no rodapé do painel, separadas do conteúdo */
+.custom-palette > .api-form__actions {
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Compartilhar e importar: cartão próprio, com o código em fonte monoespaçada */
+.saved-themes {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.saved-themes > h3 {
+  margin: 0;
+}
+
+.saved-themes label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.saved-themes textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.saved-themes__share,
+.saved-themes__import {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 /* Layout: barra lateral + área principal */

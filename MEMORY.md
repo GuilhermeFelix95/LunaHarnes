@@ -202,3 +202,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Hermes: modelos vêm dos caches da própria CLI (Nous Portal e Copilot) com o provedor no id (nous:... ou copilot:...). Login do Nous pelo card de Contas (hermes portal).
 2026-10-20 | Hermes: seletor passa a incluir os recomendados grátis e pagos do Nous Portal (cache da CLI), não só o catálogo curado.
 2026-10-20 | Meus temas: renomear tema salvo (lápis no cartão, mesmo formulário de nome), cabeçalho com contagem e lista vazia em bloco tracejado.
+2026-10-20 | Editor do tema Personalizado: painel com cartões por seção, cores em quadrinhos, campos empilhados e compartilhar em cartão (só CSS).
