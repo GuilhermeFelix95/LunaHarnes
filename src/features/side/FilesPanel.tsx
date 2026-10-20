@@ -7,17 +7,25 @@ import { t } from "../../i18n";
 interface FilesPanelProps {
   /** Pasta do projeto da conversa. Trocar a pasta recomeça a árvore. */
   cwd: string;
+  /** Avisa quando a prévia abre ou fecha, para o painel se alargar ao lado. */
+  onPreview?: (open: boolean) => void;
 }
 
 /// Arquivos do projeto como no Claude Desktop: árvore que abre pastas sob demanda, filtro pelo nome
 /// e um visualizador de texto. Só leitura: nada aqui grava ou apaga arquivo.
-export function FilesPanel({ cwd }: FilesPanelProps) {
+export function FilesPanel({ cwd, onPreview }: FilesPanelProps) {
   // Itens já lidos de cada pasta ("" = raiz). Pastas só são lidas quando abertas.
   const [children, setChildren] = useState<Record<string, ProjectEntry[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [viewing, setViewing] = useState<{ path: string; content?: string; error?: string } | null>(null);
+
+  // Prévia aberta = painel mais largo. Fechar o painel também devolve a largura normal.
+  useEffect(() => {
+    onPreview?.(viewing !== null);
+  }, [viewing, onPreview]);
+  useEffect(() => () => onPreview?.(false), [onPreview]);
 
   useEffect(() => {
     setChildren({});
@@ -101,7 +109,8 @@ export function FilesPanel({ cwd }: FilesPanelProps) {
   }
 
   return (
-    <div className="files">
+    <div className={viewing ? "files__split files__split--preview" : "files__split"}>
+      <div className="files__list">
       <input
         className="files__filter"
         type="search"
@@ -119,6 +128,7 @@ export function FilesPanel({ cwd }: FilesPanelProps) {
         {renderLevel("", 0)}
       </ul>
       {!error && children[""] && children[""].length === 0 && <p className="files__empty">{t("files.empty")}</p>}
+      </div>
 
       {viewing && (
         <section className="files__viewer" aria-label={viewing.path}>

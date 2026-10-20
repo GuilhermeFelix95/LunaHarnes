@@ -234,6 +234,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Sempre começa fechado: o painel direito só abre quando o usuário pede.
   const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
+  // Prévia de arquivo aberta na aba Arquivos: o painel fica mais largo (ver RightPanel `wide`).
+  const [filePreview, setFilePreview] = useState(false);
   // Link aberto com Ctrl+clique numa resposta: o painel do navegador abre uma aba nova com ele.
   const [browserRequest, setBrowserRequest] = useState<{ url: string } | null>(null);
   // Abre o terminal na primeira vez; depois ele só esconde, para não perder o shell.
@@ -1263,7 +1265,8 @@ ${outgoing}`
           setSideTab(tab);
         }}
         changes={cwd ? <ChangesPanel cwd={cwd} version={changesVersion} /> : null}
-        files={cwd ? <FilesPanel cwd={cwd} /> : null}
+        files={cwd ? <FilesPanel cwd={cwd} onPreview={setFilePreview} /> : null}
+        wide={filePreview}
         plan={plan}
         todos={displayTodos(toTodos(tasks), running)}
         running={running}

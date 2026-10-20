@@ -1677,8 +1677,26 @@ textarea:focus-visible {
 
 .files__tree {
   overflow-y: auto;
-  min-height: 80px;
   flex: 1;
+}
+
+/* Árvore e prévia: uma coluna, e com prévia aberta, as duas lado a lado */
+.files__split {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.files__split--preview {
+  grid-template-columns: minmax(170px, 1fr) minmax(0, 2fr);
+}
+
+.files__list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 
 .files__row {
@@ -1727,9 +1745,9 @@ textarea:focus-visible {
 .files__viewer {
   display: flex;
   flex-direction: column;
-  max-height: 50%;
-  min-height: 120px;
-  border-top: 1px solid var(--border);
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border);
 }
 
 .files__viewer-head {

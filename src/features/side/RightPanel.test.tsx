@@ -173,4 +173,18 @@ describe("RightPanel fechado", () => {
     expect(panel.hasAttribute("inert")).toBe(true);
     expect(screen.getByText("shell")).toBeTruthy();
   });
+
+  it("com prévia aberta o painel fica pelo menos PREVIEW_WIDTH, e volta à largura salva ao fechar", () => {
+    localStorage.setItem(WIDTH_KEY, "300");
+    const props = { open: true, tab: "files" as SideTab, onTab: vi.fn(), onClose: vi.fn(), changes: null, todos: [], running: false, terminal: null, browser: null };
+    const { container, rerender } = render(<RightPanel {...props} />);
+    const aside = () => container.querySelector("aside") as HTMLElement;
+    expect(aside().style.width).toBe("300px");
+
+    rerender(<RightPanel {...props} wide />);
+    expect(aside().style.width).toBe("560px");
+
+    rerender(<RightPanel {...props} wide={false} />);
+    expect(aside().style.width).toBe("300px");
+  });
 });

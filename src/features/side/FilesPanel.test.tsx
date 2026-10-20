@@ -66,4 +66,28 @@ describe("aba Arquivos", () => {
 
     expect((await screen.findByRole("alert")).textContent).toContain("não foi possível ler a pasta");
   });
+
+  it("com arquivo aberto, a prévia fica ao lado da árvore e avisa o painel", async () => {
+    const onPreview = vi.fn();
+    const { container } = render(<FilesPanel cwd="/projeto" onPreview={onPreview} />);
+
+    fireEvent.click(await screen.findByRole("treeitem", { name: /README/ }));
+
+    await waitFor(() => expect(container.querySelector(".files__split--preview")).toBeTruthy());
+    expect(container.querySelector(".files__list .files__tree")).toBeTruthy();
+    expect(container.querySelector(".files__viewer .files__code")).toBeTruthy();
+    expect(onPreview).toHaveBeenLastCalledWith(true);
+  });
+
+  it("fechar a prévia devolve o layout de uma coluna e avisa o painel", async () => {
+    const onPreview = vi.fn();
+    const { container } = render(<FilesPanel cwd="/projeto" onPreview={onPreview} />);
+    fireEvent.click(await screen.findByRole("treeitem", { name: /README/ }));
+    await waitFor(() => expect(container.querySelector(".files__code")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Fechar arquivo" }));
+
+    expect(container.querySelector(".files__split--preview")).toBeNull();
+    expect(onPreview).toHaveBeenLastCalledWith(false);
+  });
 });
