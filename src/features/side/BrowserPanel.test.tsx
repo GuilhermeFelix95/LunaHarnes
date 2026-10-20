@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api";
 import { BrowserPanel } from "./BrowserPanel";
@@ -6,15 +6,22 @@ import { BrowserPanel } from "./BrowserPanel";
 // Substitui a ponte com o Rust: o teste só confere o que o painel pede.
 vi.mock("../../api", () => ({
   browserShow: vi.fn(async () => {}),
-  browserOpen: vi.fn(async () => {}),
   browserSetBounds: vi.fn(async () => {}),
+  browserNewTab: vi.fn(async () => 1),
+  browserSwitchTab: vi.fn(async () => {}),
+  browserCloseTab: vi.fn(async () => null),
+  browserState: vi.fn(async () => ({ tabs: [], active: null })),
   browserNavigate: vi.fn(async (url: string) => `https://${url}/`),
   browserHistory: vi.fn(async () => {}),
   browserReload: vi.fn(async () => {}),
+  browserBookmarks: vi.fn(async () => []),
+  browserBookmarkAdd: vi.fn(async () => []),
+  browserBookmarkRemove: vi.fn(async () => []),
   onBrowserOpened: vi.fn(async () => () => {}),
 }));
 
 const AREA = { x: 12, y: 40, width: 300, height: 500, left: 12, top: 40, right: 312, bottom: 540, toJSON: () => ({}) };
+const BOUNDS = { x: 12, y: 40, width: 300, height: 500 };
 
 /// Botão pelo nome acessível; o jsdom não tem as asserções do jest-dom neste projeto.
 function button(name: string) {
@@ -26,9 +33,15 @@ function submit(text: string) {
   fireEvent.submit(screen.getByLabelText("Endereço").closest("form")!);
 }
 
+function withTabs(tabs: { id: number; url: string }[], active: number | null) {
+  vi.mocked(api.browserState).mockResolvedValue({ tabs, active });
+}
+
 describe("BrowserPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null });
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
     vi.stubGlobal(
       "ResizeObserver",
       class {
@@ -39,40 +52,121 @@ describe("BrowserPanel", () => {
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
   });
 
-  it("sem navegador aberto, explica o que fazer e não deixa voltar", async () => {
-    vi.mocked(api.browserShow).mockRejectedValueOnce(new Error("o navegador ainda não foi aberto"));
+  it("sem aba aberta, explica o que fazer e não deixa voltar", async () => {
     render(<BrowserPanel active />);
 
-    await waitFor(() => expect(api.browserShow).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(api.browserState).toHaveBeenCalled());
     expect(screen.getByText(/Digite um endereço acima/)).toBeTruthy();
     expect(button("Voltar").disabled).toBe(true);
   });
 
-  it("enviar um endereço abre a página sobre a área da aba", async () => {
-    vi.mocked(api.browserShow).mockRejectedValueOnce(new Error("o navegador ainda não foi aberto"));
+  it("enviar um endereço sem aba abre a primeira aba com ele", async () => {
     render(<BrowserPanel active />);
-    await waitFor(() => expect(api.browserShow).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(api.browserState).toHaveBeenCalled());
 
     submit("exemplo.com");
 
-    await waitFor(() =>
-      expect(api.browserOpen).toHaveBeenCalledWith("exemplo.com", { x: 12, y: 40, width: 300, height: 500 }),
-    );
-    expect(button("Voltar").disabled).toBe(false);
+    await waitFor(() => expect(api.browserNewTab).toHaveBeenCalledWith("exemplo.com", BOUNDS));
+    expect(api.browserNavigate).not.toHaveBeenCalled();
   });
 
-  it("com a página aberta, um endereço novo navega em vez de abrir outra webview", async () => {
+  it("com uma aba ativa, um endereço novo navega a aba atual", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
     render(<BrowserPanel active />);
     await waitFor(() => expect(button("Voltar").disabled).toBe(false));
 
     submit("outro.com");
 
     await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("outro.com"));
-    expect(api.browserOpen).not.toHaveBeenCalled();
+    expect(api.browserNewTab).not.toHaveBeenCalled();
     expect((screen.getByLabelText("Endereço") as HTMLInputElement).value).toBe("https://outro.com/");
   });
 
+  it("nova aba em branco fica ativa e aparece na barra", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+    vi.mocked(api.browserNewTab).mockResolvedValueOnce(2);
+    render(<BrowserPanel active />);
+    await waitFor(() => expect(screen.getByRole("tab", { name: "a.com" })).toBeTruthy());
+
+    fireEvent.click(button("Nova aba"));
+
+    await waitFor(() => expect(api.browserNewTab).toHaveBeenCalledWith(null, BOUNDS));
+    expect(screen.getByRole("tab", { name: "Nova aba" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("com seis abas, o botão de nova aba fica desabilitado", async () => {
+    withTabs(
+      [1, 2, 3, 4, 5, 6].map((id) => ({ id, url: `https://site${id}.com/` })),
+      1,
+    );
+    render(<BrowserPanel active />);
+
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(6));
+    expect(button("Nova aba").disabled).toBe(true);
+  });
+
+  it("clicar numa aba troca a ativa", async () => {
+    withTabs(
+      [
+        { id: 1, url: "https://a.com/" },
+        { id: 2, url: "https://b.com/" },
+      ],
+      1,
+    );
+    render(<BrowserPanel active />);
+    await waitFor(() => expect(screen.getByRole("tab", { name: "b.com" })).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("tab", { name: "b.com" }));
+
+    await waitFor(() => expect(api.browserSwitchTab).toHaveBeenCalledWith(2, BOUNDS));
+    expect(screen.getByRole("tab", { name: "b.com" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("fechar uma aba mantém as outras e a aba que o Rust escolheu como ativa", async () => {
+    withTabs(
+      [
+        { id: 1, url: "https://a.com/" },
+        { id: 2, url: "https://b.com/" },
+      ],
+      2,
+    );
+    vi.mocked(api.browserCloseTab).mockResolvedValueOnce(1);
+    render(<BrowserPanel active />);
+    await waitFor(() => expect(screen.getByRole("tab", { name: "b.com" })).toBeTruthy());
+
+    fireEvent.click(button("Fechar b.com"));
+
+    await waitFor(() => expect(api.browserCloseTab).toHaveBeenCalledWith(2));
+    await waitFor(() => expect(screen.queryByRole("tab", { name: "b.com" })).toBeNull());
+    expect(screen.getByRole("tab", { name: "a.com" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("salvar a página atual nos favoritos guarda o endereço e mostra o favorito na lista", async () => {
+    withTabs([{ id: 1, url: "https://vps.exemplo.com/" }], 1);
+    vi.mocked(api.browserBookmarkAdd).mockResolvedValueOnce([{ id: "x", title: "vps.exemplo.com", url: "https://vps.exemplo.com/" }]);
+    render(<BrowserPanel active />);
+    await waitFor(() => expect(button("Salvar nos favoritos").disabled).toBe(false));
+
+    fireEvent.click(button("Salvar nos favoritos"));
+
+    await waitFor(() => expect(api.browserBookmarkAdd).toHaveBeenCalledWith("https://vps.exemplo.com/", "vps.exemplo.com"));
+    expect(await screen.findByRole("list", { name: "Favoritos" })).toBeTruthy();
+    expect(button("Tirar dos favoritos")).toBeTruthy();
+  });
+
+  it("abrir um favorito navega a aba atual até a página dele", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+    vi.mocked(api.browserBookmarks).mockResolvedValueOnce([{ id: "x", title: "VPS", url: "https://vps.exemplo.com/" }]);
+    render(<BrowserPanel active />);
+    const list = within(await screen.findByRole("list", { name: "Favoritos" }));
+
+    fireEvent.click(list.getByRole("button", { name: "VPS" }));
+
+    await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("https://vps.exemplo.com/"));
+  });
+
   it("ao sair da aba, a página some; ao voltar, aparece de novo", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
     const { rerender } = render(<BrowserPanel active={false} />);
     await waitFor(() => expect(api.browserShow).toHaveBeenCalledWith(false));
 
@@ -81,17 +175,17 @@ describe("BrowserPanel", () => {
   });
 
   it("um endereço recusado mostra o motivo para a pessoa", async () => {
-    vi.mocked(api.browserShow).mockRejectedValueOnce(new Error("sem página"));
-    vi.mocked(api.browserOpen).mockRejectedValueOnce(new Error("só http e https são permitidos, não \"file\""));
+    vi.mocked(api.browserNewTab).mockRejectedValueOnce(new Error("só http e https são permitidos, não \"file\""));
     render(<BrowserPanel active />);
-    await waitFor(() => expect(api.browserShow).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(api.browserState).toHaveBeenCalled());
 
     submit("file:///C:/segredo.txt");
 
     expect((await screen.findByRole("alert")).textContent).toContain("só http e https são permitidos");
   });
 
-  it("voltar e avançar pedem ao navegador o histórico certo", async () => {
+  it("voltar e avançar pedem ao navegador o histórico da aba ativa", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
     render(<BrowserPanel active />);
     await waitFor(() => expect(button("Voltar").disabled).toBe(false));
 
@@ -108,6 +202,7 @@ describe("BrowserPanel", () => {
       fire = handler;
       return () => {};
     });
+    withTabs([{ id: 1, url: "https://exemplo.com/" }], 1);
     render(<BrowserPanel active={false} />);
     await act(async () => fire("https://exemplo.com/"));
     await waitFor(() => expect((screen.getByLabelText("Endereço") as HTMLInputElement).value).toBe("https://exemplo.com/"));

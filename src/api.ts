@@ -218,9 +218,54 @@ export interface BrowserBounds {
   height: number;
 }
 
-/// Abre a página na webview do navegador, ou só navega se ela já existe.
-export function browserOpen(url: string, bounds: BrowserBounds): Promise<void> {
-  return invoke("browser_open", { url, bounds });
+/// Uma aba do navegador: o id e o endereço da página.
+export interface BrowserTab {
+  id: number;
+  url: string;
+}
+
+export interface BrowserState {
+  tabs: BrowserTab[];
+  active: number | null;
+}
+
+/// Abre uma aba nova (em branco sem endereço) e a torna a ativa. Devolve o id.
+export function browserNewTab(url: string | null, bounds: BrowserBounds): Promise<number> {
+  return invoke("browser_new_tab", { url, bounds });
+}
+
+/// Mostra a aba escolhida e esconde as outras.
+export function browserSwitchTab(tabId: number, bounds: BrowserBounds): Promise<void> {
+  return invoke("browser_switch_tab", { tabId, bounds });
+}
+
+/// Fecha uma aba. Devolve a aba ativa depois do fechamento, ou `null` se não sobrou nenhuma.
+export function browserCloseTab(tabId: number): Promise<number | null> {
+  return invoke("browser_close_tab", { tabId });
+}
+
+/// Abas abertas e a ativa, como o Rust as guarda.
+export function browserState(): Promise<BrowserState> {
+  return invoke("browser_state");
+}
+
+/// Favorito do navegador: uma página salva para abrir depois.
+export interface BrowserBookmark {
+  id: string;
+  title: string;
+  url: string;
+}
+
+export function browserBookmarks(): Promise<BrowserBookmark[]> {
+  return invoke("browser_bookmarks");
+}
+
+export function browserBookmarkAdd(url: string, title: string): Promise<BrowserBookmark[]> {
+  return invoke("browser_bookmark_add", { url, title });
+}
+
+export function browserBookmarkRemove(id: string): Promise<BrowserBookmark[]> {
+  return invoke("browser_bookmark_remove", { id });
 }
 
 export function browserSetBounds(bounds: BrowserBounds): Promise<void> {

@@ -144,3 +144,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-19 | Chave do atualizador trocada (a anterior se perdeu antes de publicar); pública nova em tauri.conf.json, privada fora do repositório.
 2026-10-19 | Prévia 0.1.0 publicada como pré-release (tag v0.1.0); push de af82ddf e 9ec4b90 para origin/main.
 2026-10-20 | Painel direito sempre começa fechado; abre e fecha com animação (largura e fade, sem display none); botão de branch ao lado da pasta quando há mais de uma branch.
+2026-10-20 | Navegador: até 6 abas (uma webview por aba, só a ativa visível), favoritos em browser-bookmarks.json (estrela e lista), salvamento de senha do WebView2 ligado no perfil; agente usa a aba ativa.

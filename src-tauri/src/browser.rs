@@ -7,12 +7,14 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
+
+use crate::logfile;
 
 /// Rótulo fixo da webview do navegador.
 pub const LABEL: &str = "luna-browser";
@@ -34,6 +36,48 @@ const TOOL_NAMES: [&str; 4] = ["browser_navigate", "browser_read", "browser_clic
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static TOKEN: OnceLock<String> = OnceLock::new();
 static CONFIG: OnceLock<PathBuf> = OnceLock::new();
+/// Abas abertas. Cada aba é uma webview com rótulo `LABEL-<id>`; a ativa é a que o painel mostra e o agente usa.
+static TABS: Mutex<TabSet> = Mutex::new(TabSet::new());
+
+/// Limite de abas: cada uma é um processo do WebView2, então é preciso pôr um teto.
+pub const MAX_TABS: usize = 6;
+
+/// Ids das abas abertas, na ordem em que foram abertas.
+#[derive(Default)]
+struct TabSet {
+    next: u32,
+    ids: Vec<u32>,
+    active: Option<u32>,
+}
+
+impl TabSet {
+    const fn new() -> Self {
+        Self { next: 0, ids: Vec::new(), active: None }
+    }
+
+    /// Reserva o id de uma aba nova, ou recusa quando o limite já foi atingido.
+    fn reserve(&mut self) -> Result<u32, String> {
+        if self.ids.len() >= MAX_TABS {
+            return Err(format!("o navegador aceita até {MAX_TABS} abas; feche uma para abrir outra"));
+        }
+        self.next += 1;
+        self.ids.push(self.next);
+        Ok(self.next)
+    }
+
+    /// Tira a aba da lista. Se ela era a ativa, a última aberta passa a ser a ativa, e a devolve.
+    fn forget(&mut self, id: u32) -> Option<u32> {
+        self.ids.retain(|other| *other != id);
+        if self.active == Some(id) {
+            self.active = self.ids.last().copied();
+        }
+        self.active
+    }
+}
+
+fn tab_label(id: u32) -> String {
+    format!("{LABEL}-{id}")
+}
 
 /// Retângulo da aba em pixels lógicos, relativo à janela.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -84,28 +128,103 @@ fn app() -> Result<&'static AppHandle, String> {
     APP.get().ok_or_else(|| "o app ainda não terminou de iniciar".to_string())
 }
 
+/// A aba ativa. Sem aba aberta, o agente e o painel recebem a mesma mensagem.
 fn webview() -> Result<Webview, String> {
+    let id = TABS
+        .lock()
+        .map_err(|_| "estado do navegador travado".to_string())?
+        .active
+        .ok_or_else(|| "o navegador ainda não foi aberto: navegue com browser_navigate ou abra a aba Navegador".to_string())?;
     app()?
-        .get_webview(LABEL)
-        .ok_or_else(|| "o navegador ainda não foi aberto: navegue com browser_navigate ou abra a aba Navegador".to_string())
+        .get_webview(&tab_label(id))
+        .ok_or_else(|| "a aba ativa do navegador não existe mais".to_string())
 }
 
-/// Cria a webview filha na janela principal, ou só navega se ela já existe.
-fn open_at(url: Url, bounds: Bounds) -> Result<Webview, String> {
+/// Cria uma aba com a página e a torna a ativa. Só a ativa fica visível.
+fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
     let app = app()?;
-    if let Some(existing) = app.get_webview(LABEL) {
-        existing.navigate(url).map_err(|e| format!("não foi possível navegar: {e}"))?;
-        return Ok(existing);
-    }
     let window = app.get_window(MAIN_WINDOW).ok_or("janela principal não encontrada")?;
-    window
-        .add_child(
-            // Sem foco: a página não rouba o teclado do chat quando nasce.
-            WebviewBuilder::new(LABEL, WebviewUrl::External(url)).focused(false),
-            LogicalPosition::new(bounds.x, bounds.y),
-            LogicalSize::new(bounds.width, bounds.height),
-        )
-        .map_err(|e| format!("não foi possível abrir o navegador: {e}"))
+    let id = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?.reserve()?;
+    let created = window.add_child(
+        // Sem foco: a página não rouba o teclado do chat quando nasce.
+        WebviewBuilder::new(&tab_label(id), WebviewUrl::External(url)).focused(false),
+        LogicalPosition::new(bounds.x, bounds.y),
+        LogicalSize::new(bounds.width, bounds.height),
+    );
+    if let Err(e) = created {
+        // A aba não chegou a existir: tira o id reservado.
+        TABS.lock().map_err(|_| "estado do navegador travado".to_string())?.forget(id);
+        return Err(format!("não foi possível abrir o navegador: {e}"));
+    }
+    if let Some(view) = app.get_webview(&tab_label(id)) {
+        // Sem a senha salva, o navegador só lembra a sessão: falha aqui só vai para o log, e a aba segue.
+        if let Err(e) = enable_password_autosave(&view) {
+            logfile::error(&format!("não foi possível ligar o salvamento de senha da aba {id}: {e}"));
+        }
+    }
+    let mut tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
+    let others = tabs.ids.iter().copied().filter(|other| *other != id).collect::<Vec<_>>();
+    tabs.active = Some(id);
+    drop(tabs);
+    for other in others {
+        if let Some(view) = app.get_webview(&tab_label(other)) {
+            let _ = view.hide();
+        }
+    }
+    if !visible {
+        if let Some(view) = app.get_webview(&tab_label(id)) {
+            view.hide().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(id)
+}
+
+/// Liga o salvamento de senha do WebView2 no perfil do app: o navegador pergunta se quer salvar e preenche depois.
+/// A propriedade fica no perfil (`ICoreWebView2Profile6`), então vale para todas as abas do app.
+#[cfg(windows)]
+fn enable_password_autosave(view: &Webview) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{ICoreWebView2Profile6, ICoreWebView2_13};
+    use windows_core::Interface;
+    view.with_webview(|platform| {
+        let controller = platform.controller();
+        let result = unsafe {
+            controller
+                .CoreWebView2()
+                .and_then(|core| core.cast::<ICoreWebView2_13>())
+                .and_then(|core| core.Profile())
+                .and_then(|profile| profile.cast::<ICoreWebView2Profile6>())
+                .and_then(|profile| profile.SetIsPasswordAutosaveEnabled(true))
+        };
+        if let Err(e) = result {
+            logfile::error(&format!("WebView2 não aceitou ligar o salvamento de senha: {e}"));
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+fn enable_password_autosave(_view: &Webview) -> Result<(), String> {
+    Ok(())
+}
+
+/// Mostra uma aba e esconde as outras. Usado ao trocar de aba no painel.
+fn activate_tab(id: u32) -> Result<(), String> {
+    let app = app()?;
+    let others: Vec<u32> = {
+        let mut tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
+        if !tabs.ids.contains(&id) {
+            return Err("essa aba não está aberta".to_string());
+        }
+        tabs.active = Some(id);
+        tabs.ids.iter().copied().filter(|other| *other != id).collect()
+    };
+    for other in others {
+        if let Some(view) = app.get_webview(&tab_label(other)) {
+            let _ = view.hide();
+        }
+    }
+    let view = app.get_webview(&tab_label(id)).ok_or("a aba não existe mais")?;
+    view.show().map_err(|e| e.to_string())
 }
 
 /// Roda JavaScript na página e espera o resultado. O Tauri devolve o valor já serializado como texto JSON,
@@ -148,15 +267,64 @@ fn act_script(action: &str, selector: &str, text: &str) -> Result<String, String
 
 /// Assíncrono de propósito: criar a webview num comando síncrono trava no Windows (ver `add_child`).
 #[tauri::command]
-pub async fn browser_open(url: String, bounds: Bounds) -> Result<(), String> {
+pub async fn browser_new_tab(url: Option<String>, bounds: Bounds) -> Result<u32, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let url = parse_url(&url)?;
-        let view = open_at(url, bounds)?;
+        // Sem endereço, a aba abre em branco: o usuário digita depois.
+        let url = match url {
+            Some(url) => parse_url(&url)?,
+            None => Url::parse("about:blank").map_err(|e| e.to_string())?,
+        };
+        let id = create_tab(url, bounds, true)?;
+        let view = app()?.get_webview(&tab_label(id)).ok_or("a aba não existe mais")?;
         view.set_bounds(rect(bounds)?).map_err(|e| e.to_string())?;
-        view.show().map_err(|e| e.to_string())
+        Ok(id)
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Uma aba aberta: o id e o endereço atual da página.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TabInfo {
+    pub id: u32,
+    pub url: String,
+}
+
+/// Abas abertas e a ativa. O painel usa para montar a barra de abas, inclusive depois de fechado e aberto.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserState {
+    pub tabs: Vec<TabInfo>,
+    pub active: Option<u32>,
+}
+
+#[tauri::command]
+pub fn browser_state() -> Result<BrowserState, String> {
+    let (ids, active) = {
+        let tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
+        (tabs.ids.clone(), tabs.active)
+    };
+    let app = app()?;
+    let tabs = ids
+        .into_iter()
+        .map(|id| TabInfo {
+            id,
+            url: app
+                .get_webview(&tab_label(id))
+                .and_then(|view| view.url().ok())
+                .map(|url| url.to_string())
+                .unwrap_or_default(),
+        })
+        .collect();
+    Ok(BrowserState { tabs, active })
+}
+
+/// Troca a aba ativa e posiciona a página na área do painel.
+#[tauri::command]
+pub fn browser_switch_tab(tab_id: u32, bounds: Bounds) -> Result<(), String> {
+    activate_tab(tab_id)?;
+    webview()?.set_bounds(rect(bounds)?).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -202,10 +370,17 @@ pub fn browser_reload() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn browser_close() -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(|| match webview() {
-        Ok(view) => view.close().map_err(|e| e.to_string()),
-        Err(_) => Ok(()),
+/// Fecha uma aba. Se era a ativa, a última aberta assume. Devolve a aba ativa depois do fechamento, se houver.
+pub async fn browser_close_tab(tab_id: u32) -> Result<Option<u32>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Some(view) = app()?.get_webview(&tab_label(tab_id)) {
+            view.close().map_err(|e| e.to_string())?;
+        }
+        let next = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?.forget(tab_id);
+        if let Some(id) = next {
+            activate_tab(id)?;
+        }
+        Ok(next)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -227,16 +402,15 @@ fn read_page() -> Result<String, String> {
 /// Abre a página para o agente. Sem a aba aberta, a webview nasce escondida: a aba mostra depois.
 fn tool_navigate(url: &str) -> Result<String, String> {
     let url = parse_url(url)?;
-    let app = app()?;
-    match app.get_webview(LABEL) {
-        Some(view) => view.navigate(url.clone()).map_err(|e| e.to_string())?,
-        None => {
-            let view = open_at(url.clone(), DEFAULT_BOUNDS)?;
-            view.hide().map_err(|e| e.to_string())?;
+    match webview() {
+        Ok(view) => view.navigate(url.clone()).map_err(|e| e.to_string())?,
+        // Sem aba ativa, o agente abre uma nova, escondida: a aba do painel mostra depois.
+        Err(_) => {
+            create_tab(url.clone(), DEFAULT_BOUNDS, false)?;
         }
     }
     // Avisa o painel, para que o endereço apareça mesmo com a aba fechada.
-    let _ = app.emit(OPENED_EVENT, url.as_str());
+    let _ = app()?.emit(OPENED_EVENT, url.as_str());
     wait_until_loaded();
     Ok(format!("Página aberta: {url}"))
 }
@@ -576,5 +750,59 @@ mod tests {
         assert_eq!(answer("/tool", None, "{}").0, 401);
         assert_eq!(answer("/tool", Some("outro"), "{}").0, 401);
         assert_eq!(answer("/outra", Some("segredo-do-teste"), "{}").0, 404);
+    }
+}
+
+#[cfg(test)]
+mod tab_tests {
+    use super::*;
+
+    #[test]
+    fn reserves_up_to_the_limit_then_refuses() {
+        let mut tabs = TabSet::new();
+        for expected in 1..=MAX_TABS as u32 {
+            assert_eq!(tabs.reserve(), Ok(expected));
+        }
+
+        let err = tabs.reserve().unwrap_err();
+        assert!(err.contains("6 abas"), "{err}");
+    }
+
+    #[test]
+    fn closing_the_active_tab_hands_over_to_the_last_one() {
+        let mut tabs = TabSet::new();
+        let first = tabs.reserve().unwrap();
+        let second = tabs.reserve().unwrap();
+        let third = tabs.reserve().unwrap();
+        tabs.active = Some(first);
+
+        assert_eq!(tabs.forget(first), Some(third));
+        assert_eq!(tabs.ids, vec![second, third]);
+    }
+
+    #[test]
+    fn closing_an_inactive_tab_keeps_the_active_one() {
+        let mut tabs = TabSet::new();
+        let first = tabs.reserve().unwrap();
+        let second = tabs.reserve().unwrap();
+        tabs.active = Some(second);
+
+        assert_eq!(tabs.forget(first), Some(second));
+    }
+
+    #[test]
+    fn closing_the_last_tab_leaves_no_active_tab() {
+        let mut tabs = TabSet::new();
+        let only = tabs.reserve().unwrap();
+        tabs.active = Some(only);
+
+        assert_eq!(tabs.forget(only), None);
+        assert!(tabs.ids.is_empty());
+    }
+
+    #[test]
+    fn tab_labels_are_unique_per_tab() {
+        assert_ne!(tab_label(1), tab_label(2));
+        assert!(tab_label(3).starts_with(LABEL));
     }
 }

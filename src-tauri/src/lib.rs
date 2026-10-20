@@ -1,6 +1,7 @@
 pub mod api_profiles;
 pub mod auth;
 pub mod browser;
+pub mod browser_bookmarks;
 pub mod changes;
 pub mod worktrees;
 pub mod checkpoints;
@@ -78,13 +79,18 @@ pub fn run() {
             worktrees::list_git_branches,
             worktrees::create_git_worktree,
             reload::config_fingerprint,
-            browser::browser_open,
+            browser::browser_new_tab,
+            browser::browser_switch_tab,
+            browser::browser_state,
+            browser_bookmarks::browser_bookmarks,
+            browser_bookmarks::browser_bookmark_add,
+            browser_bookmarks::browser_bookmark_remove,
             browser::browser_set_bounds,
             browser::browser_show,
             browser::browser_navigate,
             browser::browser_history,
             browser::browser_reload,
-            browser::browser_close,
+            browser::browser_close_tab,
             browser::browser_read,
             commands::get_file_diff,
             commands::discard_change,
