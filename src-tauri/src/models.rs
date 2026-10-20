@@ -154,11 +154,12 @@ fn opencode_catalog() -> Result<Vec<ModelOption>, String> {
     Ok(parse_opencode_catalog(&String::from_utf8_lossy(&output.stdout)))
 }
 
-/// Linhas com `/` são modelos; o resto da saída (avisos, linhas em branco) é ignorado.
+/// Só os modelos do próprio OpenCode (`opencode/...`). Os de outro provedor (ex.: `anthropic/...`) ficam de fora;
+/// o resto da saída (avisos, linhas em branco) também é ignorado.
 pub fn parse_opencode_catalog(raw: &str) -> Vec<ModelOption> {
     raw.lines()
         .map(str::trim)
-        .filter(|id| id.contains('/'))
+        .filter(|id| id.starts_with("opencode/"))
         .map(|id| ModelOption {
             id: id.to_string(),
             label: id.to_string(),
@@ -260,9 +261,9 @@ mod tests {
     }
 
     #[test]
-    fn opencode_catalog_keeps_only_provider_model_lines() {
+    fn opencode_catalog_keeps_only_the_opencode_models() {
         let raw = "anthropic/claude-haiku-4-5\n\nAviso: algo\nopencode/big-pickle\n";
 
-        assert_eq!(ids(&parse_opencode_catalog(raw)), ["anthropic/claude-haiku-4-5", "opencode/big-pickle"]);
+        assert_eq!(ids(&parse_opencode_catalog(raw)), ["opencode/big-pickle"]);
     }
 }
