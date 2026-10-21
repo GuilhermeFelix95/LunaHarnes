@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Download, Eye, Globe2, Search } from "lucide-react";
 import {
   browserPasswords,
   importBrowserHtml,
@@ -134,86 +135,106 @@ export function BrowserSection() {
 
   return (
     <section className="settings__section" aria-labelledby="settings-browser">
-      <h2 id="settings-browser">{t("settings.browser.title")}</h2>
-      <p className="settings__hint">{t("settings.browser.help")}</p>
-      <div role="radiogroup" aria-labelledby="settings-browser">
-        {OPTIONS.map(([id, key]) => (
-          <label key={id} className="settings__check">
-            <input type="radio" name="agent-browser" value={id} checked={choice === id} onChange={() => change(id)} />
-            <span>{t(key)}</span>
-          </label>
-        ))}
-      </div>
-
-      <h3 id="settings-search-engine" className="settings__sub">{t("settings.searchEngine.title")}</h3>
-      <p className="settings__hint">{t("settings.searchEngine.help")}</p>
-      <div role="radiogroup" aria-labelledby="settings-search-engine">
-        {ENGINES.map(([id, key]) => (
-          <label key={id} className="settings__check">
-            <input type="radio" name="search-engine" value={id} checked={engine === id} onChange={() => changeEngine(id)} />
-            <span>{t(key)}</span>
-          </label>
-        ))}
-      </div>
-
-      <h3 id="settings-browser-import" className="settings__sub">{t("settings.browser.import.title")}</h3>
-      <p className="settings__hint">{t("settings.browser.import.help")}</p>
-      <div className="settings__row">
-        <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void importHtml("bookmarks")}>
-          {t("settings.browser.importFavorites")}
-        </button>
-        <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void importHtml("history")}>
-          {t("settings.browser.importHistory")}
-        </button>
-        <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void importPasswords()}>
-          {t("settings.browser.importPasswords")}
-        </button>
-      </div>
-      {notice && (
-        <p className="settings__hint" role="status">
-          {notice}
-        </p>
-      )}
-
-      <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void showPasswords()}>
-        {t("settings.browser.passwordsShow")}
-      </button>
-      {passwords && (
-        <div>
-          <h4 className="settings__sub" style={{ margin: "8px 0" }}>{t("settings.browser.passwordsTitle")}</h4>
-          {passwords.length ? (
-            <ul className="settings__passwords">
-              {passwords.map((entry) => (
-                <li key={`${entry.url}:${entry.login}`}>
-                  <button
-                    type="button"
-                    className="btn btn--sm"
-                    aria-label={t("settings.browser.passwordCopy", { login: entry.login })}
-                    onClick={() => void copyPassword(entry)}
-                  >
-                    {t("settings.browser.passwordCopy", { login: entry.login })}
-                  </button>
-                  <span title={entry.url}>{entry.url}</span>
-                  {copiedLogin === entry.login && (
-                    <span role="status">{t("settings.browser.passwordCopied")}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="settings__hint">{t("settings.browser.passwordsEmpty")}</p>
+      <div className="settings__cards">
+        <article className="settings__card">
+          <header className="settings__card-head">
+            <h2 id="settings-browser" className="settings__card-title">{t("settings.browser.title")}</h2>
+            <p className="settings__hint">{t("settings.browser.help")}</p>
+          </header>
+          <div role="radiogroup" aria-labelledby="settings-browser" className="settings__chips">
+            {OPTIONS.map(([id, key]) => (
+              <label key={id} className="settings__chip">
+                <input type="radio" name="agent-browser" value={id} checked={choice === id} onChange={() => change(id)} />
+                <span>{t(key)}</span>
+              </label>
+            ))}
+          </div>
+          {choice === "playwright" && installed === false && (
+            <div className="settings__install">
+              <p className="settings__hint">{t("settings.browser.notInstalled")}</p>
+              <button type="button" className="btn btn--sm" disabled={busy} onClick={() => setConfirming(true)}>
+                {busy ? t("settings.browser.installing") : t("settings.browser.install")}
+              </button>
+            </div>
           )}
-        </div>
-      )}
+        </article>
 
-      {choice === "playwright" && installed === false && (
-        <div>
-          <p className="settings__hint">{t("settings.browser.notInstalled")}</p>
-          <button type="button" className="btn btn--sm" disabled={busy} onClick={() => setConfirming(true)}>
-            {busy ? t("settings.browser.installing") : t("settings.browser.install")}
-          </button>
-        </div>
-      )}
+        <article className="settings__card">
+          <header className="settings__card-head">
+            <h3 id="settings-search-engine" className="settings__card-title">
+              <Search size={14} aria-hidden="true" /> {t("settings.searchEngine.title")}
+            </h3>
+            <p className="settings__hint">{t("settings.searchEngine.help")}</p>
+          </header>
+          <div role="radiogroup" aria-labelledby="settings-search-engine" className="settings__chips">
+            {ENGINES.map(([id, key]) => (
+              <label key={id} className="settings__chip">
+                <input type="radio" name="search-engine" value={id} checked={engine === id} onChange={() => changeEngine(id)} />
+                <span>{t(key)}</span>
+              </label>
+            ))}
+          </div>
+        </article>
+
+        <article className="settings__card">
+          <header className="settings__card-head">
+            <h3 id="settings-browser-import" className="settings__card-title">
+              <Globe2 size={14} aria-hidden="true" /> {t("settings.browser.import.title")}
+            </h3>
+            <p className="settings__hint">{t("settings.browser.import.help")}</p>
+          </header>
+          <div className="settings__actions">
+            <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void importHtml("bookmarks")}>
+              <Download size={13} aria-hidden="true" /> {t("settings.browser.importFavorites")}
+            </button>
+            <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void importHtml("history")}>
+              <Download size={13} aria-hidden="true" /> {t("settings.browser.importHistory")}
+            </button>
+            <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void importPasswords()}>
+              <Download size={13} aria-hidden="true" /> {t("settings.browser.importPasswords")}
+            </button>
+          </div>
+          {notice && (
+            <p className="settings__hint" role="status">
+              {notice}
+            </p>
+          )}
+
+          <div className="settings__actions">
+            <button type="button" className="btn btn--sm" disabled={busy} onClick={() => void showPasswords()}>
+              <Eye size={13} aria-hidden="true" /> {t("settings.browser.passwordsShow")}
+            </button>
+          </div>
+          {passwords && (
+            <div className="settings__vault">
+              <h4 className="settings__vault-title">{t("settings.browser.passwordsTitle")}</h4>
+              {passwords.length ? (
+                <ul className="settings__passwords">
+                  {passwords.map((entry) => (
+                    <li key={`${entry.url}:${entry.login}`}>
+                      <button
+                        type="button"
+                        className="btn btn--sm"
+                        aria-label={t("settings.browser.passwordCopy", { login: entry.login })}
+                        onClick={() => void copyPassword(entry)}
+                      >
+                        {t("settings.browser.passwordCopy", { login: entry.login })}
+                      </button>
+                      <span title={entry.url}>{entry.url}</span>
+                      {copiedLogin === entry.login && (
+                        <span role="status">{t("settings.browser.passwordCopied")}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="settings__hint">{t("settings.browser.passwordsEmpty")}</p>
+              )}
+            </div>
+          )}
+        </article>
+      </div>
+
       {error && (
         <p className="settings__hint" role="alert">
           {error}

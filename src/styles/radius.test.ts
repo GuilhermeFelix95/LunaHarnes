@@ -38,4 +38,12 @@ describe("raio de campos e áreas grandes", () => {
   it("o formato Pílula de fato tem raio de 999px em --radius-md (causa do problema)", () => {
     expect(SHAPES.pill.md).toBe("999px");
   });
+
+  /// Chips e fichas usam --chip-radius, que antes não era definido e caía em raio inválido (0).
+  it("--chip-radius é definido nos tokens, na raio de pílula", () => {
+    const match = tokensCss.match(/--chip-radius:\s*([^;]+);/);
+
+    expect(match).not.toBeNull();
+    expect(match![1].trim()).toBe("var(--radius-pill)");
+  });
 });

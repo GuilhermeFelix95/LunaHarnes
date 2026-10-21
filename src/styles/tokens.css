@@ -31,6 +31,8 @@
   --radius-field: 10px;
   /* Nomes antigos, mantidos para o que ainda os usa */
   --radius: var(--radius-lg);
+  /* Chips e fichas: sempre pílula, o formato do tema não os deforma */
+  --chip-radius: var(--radius-pill);
 
   --shadow-1: 0 1px 2px rgb(0 0 0 / 12%);
   --shadow-2: 0 8px 24px rgb(0 0 0 / 18%);

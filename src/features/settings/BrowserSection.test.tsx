@@ -133,4 +133,14 @@ describe("Configurações > Navegador > busca e importação", () => {
     fireEvent.click(screen.getByRole("button", { name: /Copiar senha de ana/ }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("segredo"));
   });
+
+  it("a seção organiza o conteúdo em cartões e as escolhas viram fichas", () => {
+    const { container } = render(<BrowserSection />);
+
+    // Três cartões sempre visíveis: navegador do agente, busca e importação (o cofre só aparece aberto).
+    expect(container.querySelectorAll(".settings__card").length).toBe(3);
+    // Seis fichas de escolha: navegador do agente (2) e motor de busca (4), todas com o círculo fora do olhar.
+    expect(container.querySelectorAll(".settings__chip").length).toBe(6);
+    expect(container.querySelectorAll(".settings__chip input[type=radio]").length).toBe(6);
+  });
 });
