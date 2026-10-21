@@ -1183,6 +1183,8 @@ textarea:focus-visible {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  /* Container: o composer se ajusta à largura real da coluna, inclusive na sidebar do agente */
+  container-type: inline-size;
 }
 
 /* hidden precisa ganhar do display: flex acima: com o editor aberto, o chat some sem desmontar */
@@ -1193,12 +1195,37 @@ textarea:focus-visible {
 /* Modo navegador: o navegador ocupa a tela e o chat vira a sidebar do agente, à direita, com alça na borda esquerda */
 .chat--browser .side {
   order: 1;
+  animation: browser-mode-side calc(var(--dur) * 2) var(--ease) both;
 }
 
 .chat--browser .chat__column {
   order: 2;
   position: relative;
   border-left: 1px solid var(--glass-border);
+  animation: browser-mode-agent calc(var(--dur) * 2) var(--ease) both;
+}
+
+/* Entrada do modo navegador: os dois lados deslizam para o lugar, sem pular de tamanho */
+@keyframes browser-mode-side {
+  from {
+    opacity: 0.4;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes browser-mode-agent {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .chat--browser .side__tabs,
@@ -1220,6 +1247,40 @@ textarea:focus-visible {
 .chat__agent-resize:focus-visible {
   background: var(--accent);
   opacity: 0.35;
+}
+
+/* Coluna estreita: o composer ganha margem dos dois lados, e os chips quebram dentro da moldura sem encostar na borda */
+@container (max-width: 420px) {
+  .chat__body {
+    padding: 16px 12px;
+  }
+
+  .chat__foot {
+    margin: -4px 12px 10px;
+  }
+
+  .composer {
+    margin: 0 12px 12px;
+    padding: 8px 10px;
+  }
+
+  .composer__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .composer__selectors {
+    justify-content: flex-start;
+  }
+
+  .composer__selectors .select-menu__trigger {
+    max-width: 100%;
+  }
+
+  .composer__actions {
+    justify-content: flex-end;
+    margin-left: 0;
+  }
 }
 
 .chat__foot {
