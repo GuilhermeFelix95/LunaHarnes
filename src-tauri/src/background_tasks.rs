@@ -98,14 +98,16 @@ impl Board {
             .iter_mut()
             .find(|entry| entry.task.id == id)
             .ok_or_else(|| format!("tarefa em segundo plano `{id}` não encontrada"))?;
-        if entry.task.status == TaskStatus::Running {
-            if let Some(cancel) = &entry.cancel {
-                cancel
-                    .cancel()
-                    .map_err(|e| format!("não foi possível parar a tarefa `{id}`: {e}"))?;
-            }
-            entry.task.status = TaskStatus::Stopped;
+        if entry.task.status != TaskStatus::Running {
+            return Ok(entry.task.clone());
         }
+        // Sem processo ligado, marcar "parada" deixaria o CLI rodando e gastando tokens.
+        let cancel = entry
+            .cancel
+            .as_ref()
+            .ok_or_else(|| format!("a tarefa em segundo plano `{id}` ainda está iniciando; tente parar em instantes"))?;
+        cancel.cancel().map_err(|e| format!("não foi possível parar a tarefa `{id}`: {e}"))?;
+        entry.task.status = TaskStatus::Stopped;
         Ok(entry.task.clone())
     }
 
@@ -156,7 +158,7 @@ fn new_task_id() -> String {
 }
 
 /// Inicia uma tarefa em segundo plano no Claude. Devolve já com o id para a lista da conversa.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn start_background_task(
     app: AppHandle,
     tasks: State<'_, BackgroundTasks>,
@@ -229,13 +231,13 @@ pub fn start_background_task(
 }
 
 /// Para uma tarefa em andamento e devolve o estado novo dela.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn stop_background_task(tasks: State<'_, BackgroundTasks>, id: String) -> Result<BackgroundTask, String> {
     tasks.0.lock().expect("lock das tarefas em segundo plano").stop(&id)
 }
 
 /// Tarefas desta sessão do app, na ordem em que foram criadas.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_background_tasks(tasks: State<'_, BackgroundTasks>, conversation_id: String) -> Vec<BackgroundTask> {
     tasks
         .0
@@ -265,21 +267,66 @@ mod tests {
         assert_eq!(board.list().len(), MAX_BACKGROUND_TASKS);
     }
 
-    /// Parar muda o status para parada e libera uma vaga.
+    /// Processo de teste que fica rodando até ser parado (ping de 60 s).
+    #[cfg(windows)]
+    fn processo_longo() -> Session {
+        Session::spawn(
+            crate::providers::ProviderKind::Claude,
+            "",
+            "C:\\Windows\\System32\\cmd.exe",
+            vec!["/C".into(), "ping".into(), "-n".into(), "60".into(), "127.0.0.1".into()],
+            None,
+            &[],
+        )
+        .expect("cmd.exe deve existir")
+    }
+
+    /// Parar uma tarefa ligada ao processo mata o processo e muda o status para parada.
     #[test]
-    fn parar_muda_o_status_e_libera_uma_vaga() {
+    #[cfg(windows)]
+    fn parar_mata_o_processo_e_muda_o_status_para_parada() {
         let mut board = Board::default();
         board.reserve("t1", "primeira", "c1").unwrap();
-        board.reserve("t2", "segunda", "c1").unwrap();
+        let mut session = processo_longo();
+        board.attach("t1", session.cancel_handle());
 
-        let stopped = board.stop("t1").expect("tarefa existente");
+        let stopped = board.stop("t1").expect("tarefa ligada deve parar");
 
         assert_eq!(stopped.status, TaskStatus::Stopped);
-        assert_eq!(
-            board.list().into_iter().find(|task| task.id == "t1").map(|task| task.status),
-            Some(TaskStatus::Stopped)
-        );
-        board.reserve("t3", "terceira", "c1").expect("a vaga liberada deve aceitar outra tarefa");
+        let started = std::time::Instant::now();
+        session.finish().expect("processo deve terminar depois de parado");
+        assert!(started.elapsed() < std::time::Duration::from_secs(30));
+    }
+
+    /// Enquanto o processo ainda não está ligado, parar não pode marcar a tarefa como parada:
+    /// o CLI continuaria rodando e gastando tokens. O pedido é recusado com mensagem clara.
+    #[test]
+    fn parar_antes_de_ligar_o_processo_devolve_erro() {
+        let mut board = Board::default();
+        board.reserve("t1", "primeira", "c1").unwrap();
+
+        let error = board.stop("t1").expect_err("sem processo ligado não pode parar");
+
+        assert!(error.contains("iniciando"), "mensagem: {error}");
+        assert_eq!(board.list()[0].status, TaskStatus::Running);
+    }
+
+    /// Parar libera uma vaga para outra tarefa.
+    #[test]
+    #[cfg(windows)]
+    fn parar_libera_uma_vaga() {
+        let mut board = Board::default();
+        let mut sessions = Vec::new();
+        for index in 1..=MAX_BACKGROUND_TASKS {
+            let id = format!("t{index}");
+            board.reserve(&id, "tarefa", "c1").unwrap();
+            let session = processo_longo();
+            board.attach(&id, session.cancel_handle());
+            sessions.push(session);
+        }
+
+        board.stop("t1").expect("tarefa ligada deve parar");
+        board.reserve("t4", "outra tarefa", "c1").expect("a vaga liberada deve aceitar outra tarefa");
     }
 
     /// A lista de uma conversa não mostra tarefas pedidas por outra.

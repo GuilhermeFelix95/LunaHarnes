@@ -576,7 +576,7 @@ fn home() -> Result<PathBuf, String> {
     home_dir().ok_or_else(|| "não foi possível localizar a pasta do usuário".to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_mcp_servers(app: AppHandle) -> Result<Vec<McpServer>, String> {
     list_in(&home()?, &app_data_dir(&app)?)
 }
@@ -586,13 +586,13 @@ pub fn set_mcp_enabled(app: AppHandle, name: String, enabled: bool) -> Result<()
     set_enabled_in(&home()?, &app_data_dir(&app)?, &name, enabled)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn remove_mcp_server(app: AppHandle, name: String) -> Result<(), String> {
     remove_in(&home()?, &app_data_dir(&app)?, &name)
 }
 
 /// Troca o segredo em texto por referência. Não recebe nem devolve valores.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn reconfigure_mcp_server(app: AppHandle, name: String) -> Result<(), String> {
     reconfigure_in(&home()?, &app_data_dir(&app)?, &name)
 }
@@ -626,7 +626,7 @@ pub async fn install_mcp_from_catalog(app: AppHandle, id: String, source: Option
     install_from_catalog_in(&home()?, &app_data_dir(&app)?, &catalog, &id)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_mcp_sources(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(crate::marketplace::load_sources_in(&app_data_dir(&app)?, SOURCES_FILE)?.urls)
 }
@@ -641,7 +641,7 @@ pub async fn add_mcp_source(app: AppHandle, url: String) -> Result<Vec<String>, 
     Ok(crate::marketplace::add_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn remove_mcp_source(app: AppHandle, url: String) -> Result<Vec<String>, String> {
     Ok(crate::marketplace::remove_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
 }

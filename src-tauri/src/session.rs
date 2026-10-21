@@ -111,7 +111,7 @@ impl Session {
         )
     }
 
-    fn spawn(
+    pub(crate) fn spawn(
         kind: ProviderKind,
         prompt: &str,
         program: &str,

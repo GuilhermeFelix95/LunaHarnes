@@ -99,7 +99,7 @@ fn cli_files(home: &Path) -> [PathBuf; 2] {
     [home.join(".claude").join("CLAUDE.md"), home.join(".codex").join("AGENTS.md")]
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_rules(app: AppHandle) -> Result<String, String> {
     load(&app_data_dir(&app)?)
 }
@@ -129,7 +129,7 @@ pub fn save_rules(app: AppHandle, text: String) -> Result<Vec<String>, String> {
 }
 
 /// Lê o bloco atual do `~/.claude/CLAUDE.md` (ou o arquivo inteiro), para colar nas regras.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn import_rules() -> Result<String, String> {
     let home = crate::slash::home_dir().ok_or("não foi possível localizar a pasta do usuário")?;
     let path = &cli_files(&home)[0];

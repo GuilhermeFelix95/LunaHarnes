@@ -47,7 +47,7 @@ struct RunEvent<'a> {
 }
 
 /// Contas extras cadastradas (todas as CLIs).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_accounts(app: AppHandle) -> Result<Vec<Account>, String> {
     accounts::load_all(&app_data_dir(&app)?)
 }
@@ -79,7 +79,7 @@ pub async fn record_spec_decisions(cwd: String, spec_dir: String, lines: Vec<Str
 }
 
 /// Inicia o CLI, envia o prompt e devolve sem esperar o fim: a saída chega por eventos.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn send_prompt(
     app: AppHandle,
     runs: State<'_, ActiveRuns>,
@@ -224,12 +224,12 @@ fn profile_env(dir: &Path, profile: &ApiProfile, provider: ProviderKind) -> Resu
 }
 
 /// Provedores prontos para criar um perfil.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn api_presets() -> Vec<PresetInfo> {
     api_profiles::presets()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_api_profiles(app: AppHandle) -> Result<Vec<ApiProfile>, String> {
     api_profiles::load_all(&app_data_dir(&app)?)
 }
@@ -248,7 +248,7 @@ pub fn save_api_profile(app: AppHandle, profile: ApiProfile) -> Result<ApiProfil
     Ok(ready)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn delete_api_profile(app: AppHandle, id: String) -> Result<(), String> {
     let dir = app_data_dir(&app)?;
     let mut all = api_profiles::load_all(&dir)?;
@@ -265,7 +265,7 @@ pub fn set_api_profile_key(app: AppHandle, id: String, key: String) -> Result<()
 }
 
 /// Diz só se há chave salva; o valor não sai do cofre.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn api_profile_has_key(id: String) -> Result<bool, String> {
     api_profiles::read_key(&id).map(|key| key.is_some())
 }
@@ -346,13 +346,13 @@ fn plugins_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// Lista os plugins instalados e os erros de validação de cada um.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_plugins(app: AppHandle) -> Result<PluginScan, String> {
     Ok(loader::scan(&plugins_dir(&app)?))
 }
 
 /// Devolve o código do plugin para o frontend carregar como módulo.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_plugin_entry(app: AppHandle, id: String) -> Result<String, String> {
     // Plugin desligado não sai do disco: o host nunca recebe o código dele.
     marketplace::ensure_enabled(&app_data_dir(&app)?, &id)?;
@@ -366,7 +366,7 @@ pub struct PluginAsset {
     pub data: String,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_plugin_asset(app: AppHandle, id: String, path: String) -> Result<PluginAsset, String> {
     marketplace::ensure_enabled(&app_data_dir(&app)?, &id)?;
     let (mime, bytes) = loader::read_asset(&plugins_dir(&app)?, &id, &path)?;
@@ -388,7 +388,7 @@ async fn catalog_of(app: &AppHandle, source: &str) -> Result<Catalog, String> {
     marketplace::fetch_catalog(source).await
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_catalog_sources(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(marketplace::load_sources(&app_data_dir(&app)?)?.urls)
 }
@@ -402,7 +402,7 @@ pub async fn add_catalog_source(app: AppHandle, url: String) -> Result<Catalog, 
     Ok(catalog)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn remove_catalog_source(app: AppHandle, url: String) -> Result<(), String> {
     marketplace::remove_source(&app_data_dir(&app)?, &url).map(|_| ())
 }
@@ -434,14 +434,14 @@ pub async fn install_catalog_plugin(app: AppHandle, source: String, id: String) 
     marketplace::update_files(&plugins_dir(&app)?, &plugin, &contents)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn uninstall_plugin(app: AppHandle, id: String) -> Result<(), String> {
     marketplace::uninstall(&plugins_dir(&app)?, &id)?;
     // Sem a pasta, o estado ligado/desligado deste id não serve para mais nada: volta ao padrão (ligado).
     marketplace::set_enabled(&app_data_dir(&app)?, &id, true).map(|_| ())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_plugins_state(app: AppHandle) -> Result<PluginsState, String> {
     marketplace::load_state(&app_data_dir(&app)?)
 }
@@ -452,19 +452,19 @@ pub fn set_plugin_enabled(app: AppHandle, id: String, enabled: bool) -> Result<P
 }
 
 /// Lê o manifesto de uma pasta escolhida sem instalar, para mostrar as permissões antes.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn inspect_local_plugin(folder: String) -> Result<Manifest, String> {
     local::inspect_folder(Path::new(&folder))
 }
 
 /// Instala um plugin de uma pasta escolhida no computador (manifest.json e entry).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn install_local_plugin(app: AppHandle, folder: String) -> Result<Manifest, String> {
     local::install_from_folder(&plugins_dir(&app)?, Path::new(&folder))
 }
 
 /// Abre a pasta de plugins no gerenciador de arquivos (cria a pasta se ainda não existir).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_plugins_folder(app: AppHandle) -> Result<(), String> {
     let dir = plugins_dir(&app)?;
     std::fs::create_dir_all(&dir).map_err(|e| format!("não foi possível criar a pasta de plugins: {e}"))?;
@@ -483,7 +483,7 @@ pub fn open_plugins_folder(app: AppHandle) -> Result<(), String> {
 }
 
 /// Cria um plugin novo com o modelo, na pasta de plugins. Devolve a pasta criada.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn create_plugin(app: AppHandle, id: String, name: String) -> Result<String, String> {
     local::create_plugin(&plugins_dir(&app)?, &id, &name).map(|folder| folder.display().to_string())
 }
@@ -496,12 +496,12 @@ fn conversations_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| format!("não foi possível localizar a pasta de dados do app: {e}"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_conversations(app: AppHandle) -> Result<Vec<conversations::Summary>, String> {
     Ok(conversations::list(&conversations_dir(&app)?))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn load_conversation(app: AppHandle, id: String) -> Result<conversations::Conversation, String> {
     conversations::load(&conversations_dir(&app)?, &id)
 }
@@ -517,7 +517,7 @@ pub fn delete_conversation(app: AppHandle, id: String) -> Result<(), String> {
 }
 
 /// Situação de todas as CLIs da página Contas: instaladas ou não, e onde. Sem isso, o botão de conectar não aparece.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn cli_status() -> Vec<setup::CliStatus> {
     [
         ProviderKind::Claude,
@@ -555,13 +555,13 @@ pub fn free_workspace_in(base: &Path) -> Result<PathBuf, String> {
 }
 
 /// "Trabalhar sem pasta", como no Claude Code: a conversa roda numa pasta própria do app.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn free_workspace(app: AppHandle) -> Result<String, String> {
     free_workspace_in(&app_data_dir(&app)?).map(|dir| dir.display().to_string())
 }
 
 /// Pasta de trabalho inicial: a pasta de onde o `luna` foi rodado.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_workspace() -> Result<String, String> {
     std::env::current_dir()
         .map(|dir| dir.display().to_string())
@@ -694,7 +694,7 @@ fn read_attachment_in(folder: &Path, file: &Path) -> Result<AttachmentImage, Str
 }
 
 /// Imagem enviada antes, pelo caminho que ficou na mensagem. A pasta é sempre a de anexos do app.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn read_attachment(app: AppHandle, path: String) -> Result<AttachmentImage, String> {
     let folder = app_data_dir(&app)?.join("attachments");
     read_attachment_in(&folder, Path::new(&path))
@@ -775,7 +775,7 @@ pub async fn get_file_diff(cwd: String, path: String) -> Result<String, String> 
 static NEXT_TERMINAL: AtomicU64 = AtomicU64::new(1);
 
 /// Abre um shell (PowerShell) na pasta dada. A saída chega pelo evento `terminal-data`.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn terminal_open(
     app: AppHandle,
     terminals: State<'_, Terminals>,
@@ -825,7 +825,7 @@ pub fn terminal_resize(terminals: State<'_, Terminals>, id: String, cols: u16, r
 }
 
 /// Encerra o shell e tira o terminal da lista.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn terminal_close(terminals: State<'_, Terminals>, id: String) -> Result<(), String> {
     if let Some(mut terminal) = terminals.0.lock().expect("lock dos terminais").remove(&id) {
         terminal.kill();
@@ -834,7 +834,7 @@ pub fn terminal_close(terminals: State<'_, Terminals>, id: String) -> Result<(),
 }
 
 /// Abre a janela de login oficial do CLI do provedor.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_login(provider: ProviderKind) -> Result<(), String> {
     crate::auth::open_login(provider)
 }
@@ -861,7 +861,7 @@ pub async fn account_status(app: AppHandle, account: String) -> Result<bool, Str
 }
 
 /// Abre a janela de login do CLI dentro da pasta da conta extra.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn account_login(app: AppHandle, account: String) -> Result<(), String> {
     let (provider, env) = account_login_env(&app, &account)
         .map_err(|e| format!("não foi possível abrir o login da conta: {e}"))?;
@@ -869,7 +869,7 @@ pub fn account_login(app: AppHandle, account: String) -> Result<(), String> {
 }
 
 /// Encerra todas as execuções e terminais antes de instalar uma atualização (o instalador não troca arquivos em uso).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn stop_all_for_update(runs: State<'_, ActiveRuns>, terminals: State<'_, Terminals>) -> Result<(), String> {
     for handle in runs.0.lock().expect("lock das execuções ativas").values() {
         handle
@@ -883,7 +883,7 @@ pub fn stop_all_for_update(runs: State<'_, ActiveRuns>, terminals: State<'_, Ter
 }
 
 /// Para a execução de uma conversa, se houver.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn cancel_prompt(run_id: String, runs: State<'_, ActiveRuns>) -> Result<(), String> {
     let active = runs.0.lock().expect("lock das execuções ativas");
     match active.get(&run_id) {

@@ -365,21 +365,21 @@ fn base64_decode(text: &str) -> Result<Vec<u8>, String> {
     base64::engine::general_purpose::STANDARD.decode(text).map_err(|_| "o cofre de senhas estÃƒÂ¡ corrompido".into())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_import_html(app: AppHandle, path: String, target: ImportTarget) -> Result<usize, String> {
     let dir = app_data_dir(&app)?;
     let html = fs::read_to_string(&path).map_err(|e| format!("nÃƒÂ£o foi possÃƒÂ­vel ler {}: {e}", path))?;
     import_html_in(&dir, &html, target)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_import_passwords(app: AppHandle, path: String) -> Result<usize, String> {
     let dir = app_data_dir(&app)?;
     let csv = fs::read_to_string(&path).map_err(|e| format!("nÃƒÂ£o foi possÃƒÂ­vel ler {}: {e}", path))?;
     import_passwords_in(&dir, &csv)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_passwords(app: AppHandle) -> Result<Vec<PasswordOut>, String> {
     passwords_in(&app_data_dir(&app)?)
 }

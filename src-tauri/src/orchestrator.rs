@@ -134,7 +134,7 @@ pub fn validate(orchestrator: &Orchestrator) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_orchestrator(app: AppHandle) -> Result<Orchestrator, String> {
     load(&app_data_dir(&app)?)
 }

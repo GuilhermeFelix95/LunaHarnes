@@ -44,7 +44,7 @@ pub fn fingerprint(home: &Path, plugins_dir: &Path) -> String {
 }
 
 /// Impressão digital do estado atual. Sem a pasta do usuário ou de dados, devolve erro com o motivo.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn config_fingerprint(app: AppHandle) -> Result<String, String> {
     let home: PathBuf = home_dir().ok_or_else(|| "não foi possível localizar a pasta do usuário".to_string())?;
     let data = app

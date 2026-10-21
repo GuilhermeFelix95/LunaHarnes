@@ -58,7 +58,7 @@ pub fn record_in(dir: &Path, url: &str) -> Result<Vec<Visit>, String> {
     Ok(list)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_visits(app: AppHandle) -> Result<Vec<Visit>, String> {
     Ok(load_in(&app_data_dir(&app)?))
 }

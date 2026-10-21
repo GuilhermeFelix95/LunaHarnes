@@ -182,7 +182,7 @@ fn home() -> Result<PathBuf, String> {
     home_dir().ok_or_else(|| "não foi possível localizar a pasta do usuário".to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_skills() -> Result<Vec<InstalledSkill>, String> {
     Ok(list_in(&home()?))
 }
@@ -228,7 +228,7 @@ pub async fn install_skill(app: AppHandle, id: String, source: Option<String>) -
     install_in(&home()?, entry)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_skill_sources(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(crate::marketplace::load_sources_in(&app_data_dir(&app)?, SOURCES_FILE)?.urls)
 }
@@ -243,12 +243,12 @@ pub async fn add_skill_source(app: AppHandle, url: String) -> Result<Vec<String>
     Ok(crate::marketplace::add_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn remove_skill_source(app: AppHandle, url: String) -> Result<Vec<String>, String> {
     Ok(crate::marketplace::remove_source_in(&app_data_dir(&app)?, SOURCES_FILE, &url)?.urls)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn uninstall_skill(id: String) -> Result<(), String> {
     uninstall_in(&home()?, &id)
 }

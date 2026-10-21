@@ -65,17 +65,17 @@ pub fn remove_in(dir: &Path, id: &str) -> Result<Vec<Bookmark>, String> {
     Ok(list)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_bookmarks(app: AppHandle) -> Result<Vec<Bookmark>, String> {
     Ok(load_in(&app_data_dir(&app)?))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_bookmark_add(app: AppHandle, url: String, title: String) -> Result<Vec<Bookmark>, String> {
     add_in(&app_data_dir(&app)?, &url, &title)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_bookmark_remove(app: AppHandle, id: String) -> Result<Vec<Bookmark>, String> {
     remove_in(&app_data_dir(&app)?, &id)
 }

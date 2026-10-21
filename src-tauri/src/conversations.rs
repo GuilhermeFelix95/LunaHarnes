@@ -98,7 +98,7 @@ fn file_for(dir: &Path, id: &str) -> Result<std::path::PathBuf, String> {
 /// Salva a conversa. Se o usuário renomeou a conversa, o título guardado vence o que o chat enviou.
 pub fn save(dir: &Path, conversation: &Conversation) -> Result<(), String> {
     let mut next = conversation.clone();
-    if let Ok(saved) = load(dir, &conversation.id) {
+    if let Ok(saved) = head(dir, &conversation.id) {
         if saved.title_locked {
             next.title = saved.title;
             next.title_locked = true;
@@ -127,12 +127,31 @@ pub fn rename(dir: &Path, id: &str, title: &str) -> Result<(), String> {
 fn write(dir: &Path, conversation: &Conversation) -> Result<(), String> {
     let file = file_for(dir, &conversation.id)?;
     fs::create_dir_all(dir).map_err(|e| format!("não foi possível criar a pasta de conversas: {e}"))?;
-    let text = serde_json::to_string_pretty(conversation)
+    let text = serde_json::to_string(conversation)
         .map_err(|e| format!("não foi possível serializar a conversa: {e}"))?;
     // Temporário e depois troca de nome: queda no meio não deixa a conversa pela metade.
     let tmp = file.with_extension("json.tmp");
     fs::write(&tmp, text).map_err(|e| format!("não foi possível salvar a conversa `{}`: {e}", conversation.id))?;
     fs::rename(&tmp, &file).map_err(|e| format!("não foi possível salvar a conversa `{}`: {e}", conversation.id))
+}
+
+/// Só o cabeçalho da conversa (título, provedor, pasta e data). O serde pula as mensagens sem montá-las.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Head {
+    id: String,
+    title: String,
+    #[serde(default)]
+    title_locked: bool,
+    provider: ProviderKind,
+    cwd: String,
+    updated_at: u64,
+}
+
+fn head(dir: &Path, id: &str) -> Result<Head, String> {
+    let file = file_for(dir, id)?;
+    let text = fs::read_to_string(&file).map_err(|e| format!("conversa `{id}` não encontrada: {e}"))?;
+    serde_json::from_str(&text).map_err(|e| format!("conversa `{id}` está corrompida: {e}"))
 }
 
 pub fn load(dir: &Path, id: &str) -> Result<Conversation, String> {
@@ -150,7 +169,7 @@ pub fn list(dir: &Path) -> Vec<Summary> {
     let mut summaries: Vec<Summary> = entries
         .flatten()
         .filter_map(|entry| fs::read_to_string(entry.path()).ok())
-        .filter_map(|text| serde_json::from_str::<Conversation>(&text).ok())
+        .filter_map(|text| serde_json::from_str::<Head>(&text).ok())
         .map(|c| Summary {
             id: c.id,
             title: c.title,

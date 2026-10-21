@@ -401,7 +401,6 @@
   padding: 12px;
   overflow: hidden;
   background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
-  backdrop-filter: blur(18px);
   border-right: 1px solid var(--glass-border);
 }
 
@@ -706,7 +705,6 @@
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   background: var(--glass);
-  backdrop-filter: blur(12px);
   font-size: 13px;
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
@@ -1038,7 +1036,6 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--composer-radius);
   background: var(--glass);
-  backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
@@ -1267,8 +1264,6 @@ textarea:focus-visible {
   position: relative;
   overflow: hidden;
   border-left: 1px solid var(--glass-border);
-  will-change: width;
-  transition: width calc(var(--dur) * 2.6) var(--ease-smooth);
 }
 
 .chat--browser .chat__column[data-resizing="true"] {
@@ -1695,7 +1690,6 @@ textarea:focus-visible {
   min-height: 0;
   border-left: 1px solid var(--glass-border);
   background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
-  backdrop-filter: blur(18px);
 }
 
 .side[hidden] {
@@ -2726,7 +2720,6 @@ textarea:focus-visible {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   background: var(--glass);
-  backdrop-filter: blur(12px);
 }
 
 .profile__head {
@@ -3358,7 +3351,6 @@ textarea:focus-visible {
   border-radius: var(--radius-lg);
   background: var(--glass);
   box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
-  backdrop-filter: blur(18px);
 }
 
 .qpick__head {

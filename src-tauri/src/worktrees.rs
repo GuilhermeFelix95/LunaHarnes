@@ -55,17 +55,17 @@ pub fn create_worktree(repo: &Path, branch: &str, new_branch: bool) -> Result<Pa
     Ok(path)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_git_branches(cwd: String) -> Result<Vec<String>, String> {
     list_branches(Path::new(&cwd))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn current_git_branch(cwd: String) -> Result<Option<String>, String> {
     current_branch(Path::new(&cwd))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn create_git_worktree(cwd: String, branch: String, new_branch: bool) -> Result<String, String> {
     create_worktree(Path::new(&cwd), &branch, new_branch).map(|p| p.to_string_lossy().into_owned())
 }
