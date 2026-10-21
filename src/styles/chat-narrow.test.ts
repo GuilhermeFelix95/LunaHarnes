@@ -41,4 +41,8 @@ describe("coluna do chat estreita (sidebar do agente)", () => {
     // Movimento reduzido zera --dur em tokens.css, então a duração fica em 0.
     expect(read("./tokens.css")).toMatch(/--dur: 0ms;/);
   });
+
+  it("o cabeçalho do chat some no modo navegador, para a página ganhar a altura toda", () => {
+    expect(blockAfter(".chat--browser .chat__header {")).toContain("display: none;");
+  });
 });

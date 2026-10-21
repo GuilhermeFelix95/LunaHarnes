@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Globe, History, Plus, RotateCw, Star, X } from "lucide-react";
 import {
   browserBookmarkAdd,
@@ -30,6 +31,10 @@ interface BrowserPanelProps {
   active: boolean;
   /** Endereço pedido de fora (Ctrl+clique num link do chat): abre numa aba nova. */
   openRequest?: { url: string } | null;
+  /** Controles fixos no início da faixa de abas (ex.: voltar ao LunaCode). Ausente = nada ali. */
+  toolbarStart?: ReactNode;
+  /** Controles fixos no fim da faixa de abas (ex.: mostrar o chat). Ausente = nada ali. */
+  toolbarEnd?: ReactNode;
 }
 
 /// Limite de abas, igual ao do Rust (que é quem recusa de fato). Aqui só desabilita o botão de nova aba.
@@ -61,7 +66,7 @@ function hostnameOf(url: string): string {
 }
 
 /// Navegador embutido, com várias abas. Cada aba é uma webview filha da janela, então não usa iframe e funciona com sites que bloqueiam iframes.
-export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
+export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: BrowserPanelProps) {
   const area = useRef<HTMLDivElement>(null);
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
@@ -280,39 +285,43 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
 
   return (
     <div className="browser">
-      <div className="browser__tabs" role="tablist" aria-label={t("browser.tabsAria")}>
-        {tabs.map((tab) => (
-          <div key={tab.id} className={`browser__tab${tab.id === current ? " browser__tab--active" : ""}`}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab.id === current}
-              className="browser__tab-title"
-              title={tab.url || t("browser.blankTab")}
-              onClick={() => void switchTo(tab)}
-            >
-              {tabLabel(tab)}
-            </button>
-            <button
-              type="button"
-              className="browser__tab-close"
-              aria-label={t("browser.closeTab", { title: tabLabel(tab) })}
-              onClick={() => void closeTab(tab.id)}
-            >
-              <X size={12} aria-hidden="true" />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          className="browser__btn"
-          aria-label={t("browser.newTab")}
-          title={tabs.length >= MAX_TABS ? t("browser.tabLimit", { max: MAX_TABS }) : t("browser.newTab")}
-          disabled={tabs.length >= MAX_TABS}
-          onClick={() => void openTab(null)}
-        >
-          <Plus size={14} aria-hidden="true" />
-        </button>
+      <div className="browser__tabbar">
+        {toolbarStart}
+        <div className="browser__tabs" role="tablist" aria-label={t("browser.tabsAria")}>
+          {tabs.map((tab) => (
+            <div key={tab.id} className={`browser__tab${tab.id === current ? " browser__tab--active" : ""}`}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab.id === current}
+                className="browser__tab-title"
+                title={tab.url || t("browser.blankTab")}
+                onClick={() => void switchTo(tab)}
+              >
+                {tabLabel(tab)}
+              </button>
+              <button
+                type="button"
+                className="browser__tab-close"
+                aria-label={t("browser.closeTab", { title: tabLabel(tab) })}
+                onClick={() => void closeTab(tab.id)}
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="browser__btn"
+            aria-label={t("browser.newTab")}
+            title={tabs.length >= MAX_TABS ? t("browser.tabLimit", { max: MAX_TABS }) : t("browser.newTab")}
+            disabled={tabs.length >= MAX_TABS}
+            onClick={() => void openTab(null)}
+          >
+            <Plus size={14} aria-hidden="true" />
+          </button>
+      </div>
+        {toolbarEnd}
       </div>
 
       <form className="browser__bar" onSubmit={go}>

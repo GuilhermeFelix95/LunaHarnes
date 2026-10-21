@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { ArrowDown, ArrowLeft, GitCompare, Globe, Terminal } from "lucide-react";
+import { ArrowDown, ArrowLeft, GitCompare, Globe, PanelRightClose, PanelRightOpen, Terminal } from "lucide-react";
 import {
   cancelPrompt,
   checkAuth,
@@ -1475,11 +1475,34 @@ ${outgoing}`
         todos={displayTodos(toTodos(tasks), running)}
         running={running}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
-        browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} openRequest={browserRequest} />}
+        browser={
+          <BrowserPanel
+            active={visible && sideOpen && sideTab === "browser"}
+            openRequest={browserRequest}
+            toolbarStart={
+              browserMode ? (
+                <button type="button" className="side__luna" onClick={onExitBrowserMode}>
+                  {t("sidebar.lunaCodeMode")}
+                </button>
+              ) : undefined
+            }
+            toolbarEnd={
+              browserMode ? (
+                <button
+                  type="button"
+                  className="side__agent-toggle"
+                  aria-pressed={agentOpen}
+                  aria-label={agentOpen ? t("chat.agentHide") : t("chat.agentShow")}
+                  title={agentOpen ? t("chat.agentHide") : t("chat.agentShow")}
+                  onClick={() => setAgentOpen((open) => !open)}
+                >
+                  {agentOpen ? <PanelRightClose size={15} aria-hidden="true" /> : <PanelRightOpen size={15} aria-hidden="true" />}
+                </button>
+              ) : undefined
+            }
+          />
+        }
         browserMode={browserMode}
-        agentOpen={agentOpen}
-        onToggleAgent={() => setAgentOpen((open) => !open)}
-        onExitBrowserMode={onExitBrowserMode}
       />
       </div>
     </div>

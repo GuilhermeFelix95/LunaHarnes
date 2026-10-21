@@ -1236,6 +1236,11 @@ textarea:focus-visible {
   display: none;
 }
 
+/* O cabeçalho do chat some no modo navegador: a página ganha a altura toda, e o chat fica na sidebar */
+.chat--browser .chat__header {
+  display: none;
+}
+
 /* Topbar do modo navegador: voltar ao LunaCode à esquerda, mostrar o chat à direita */
 .chat--browser .side__luna {
   padding: 4px 10px;
@@ -2280,13 +2285,22 @@ textarea:focus-visible {
 }
 
 /* Abas: uma linha com rolagem horizontal, para caber até 6 sem quebrar o painel */
-.browser__tabs {
+/* Faixa de cima do navegador: controles fixos nas pontas e as abas no meio, que rolam se faltar espaço */
+.browser__tabbar {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   padding: 6px 8px 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg-sidebar);
+}
+
+.browser__tabs {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  gap: 2px;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: thin;
 }

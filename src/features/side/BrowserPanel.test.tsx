@@ -324,3 +324,19 @@ describe("BrowserPanel: área acompanha o painel por quadro", () => {
     expect(api.browserSetBounds).toHaveBeenCalledWith(BOUNDS);
   });
 });
+
+describe("BrowserPanel: controles na faixa de abas", () => {
+  it("os controles de início e de fim ficam na mesma faixa das abas, fora da lista de abas", async () => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    render(
+      <BrowserPanel active openRequest={null} toolbarStart={<button type="button">Modo LunaCode</button>} toolbarEnd={<button type="button">Mostrar o chat</button>} />,
+    );
+
+    const start = screen.getByRole("button", { name: "Modo LunaCode" });
+    const end = screen.getByRole("button", { name: "Mostrar o chat" });
+    expect(start.closest('[role="tablist"]')).toBeNull();
+    expect(end.closest('[role="tablist"]')).toBeNull();
+    expect(start.parentElement).toBe(end.parentElement);
+    vi.unstubAllGlobals();
+  });
+});

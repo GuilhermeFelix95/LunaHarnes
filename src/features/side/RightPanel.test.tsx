@@ -189,49 +189,11 @@ describe("RightPanel fechado", () => {  it("recolhe para largura zero e fica ine
   });
 });
 
-describe("Topbar do modo navegador", () => {
-  function renderBar(extras: { agentOpen?: boolean; onExitBrowserMode?: () => void; onToggleAgent?: () => void }) {
-    return render(
-      <RightPanel
-        open
-        tab="browser"
-        onTab={() => {}}
-        onClose={() => {}}
-        changes={<p>alterações</p>}
-        todos={[]}
-        running={false}
-        terminal={<p>shell</p>}
-        browser={<p>navegador</p>}
-        browserMode
-        agentOpen={extras.agentOpen ?? false}
-        onExitBrowserMode={extras.onExitBrowserMode ?? (() => {})}
-        onToggleAgent={extras.onToggleAgent ?? (() => {})}
-      />,
-    );
-  }
+describe("Modo navegador: painel sem barra de abas", () => {
+  it("no modo navegador o painel não mostra a barra de abas, e o navegador segue na tela", () => {
+    setup("browser", undefined, [], { browserMode: true });
 
-  it("o Modo LunaCode fica na topbar e volta ao normal", () => {
-    const onExitBrowserMode = vi.fn();
-    renderBar({ onExitBrowserMode });
-
-    fireEvent.click(screen.getByRole("button", { name: "Modo LunaCode" }));
-
-    expect(onExitBrowserMode).toHaveBeenCalledOnce();
-  });
-
-  it("o botão da direita mostra e esconde o chat, com o estado em aria-pressed", () => {
-    const onToggleAgent = vi.fn();
-    renderBar({ agentOpen: false, onToggleAgent });
-
-    const toggle = screen.getByRole("button", { name: "Mostrar o chat" });
-    expect(toggle.getAttribute("aria-pressed")).toBe("false");
-    fireEvent.click(toggle);
-    expect(onToggleAgent).toHaveBeenCalledOnce();
-  });
-
-  it("no modo navegador as abas de conteúdo somem da topbar", () => {
-    renderBar({});
-
-    expect(screen.queryByRole("tab", { name: "Alterações" })).toBeNull();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.getByText("página do navegador")).toBeTruthy();
   });
 });
