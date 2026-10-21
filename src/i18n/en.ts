@@ -422,6 +422,8 @@ export const en: Record<MessageKey, string> = {
   "sidebar.browserMode": "Browser mode",
   "sidebar.lunaCodeMode": "LunaCode mode",
   "chat.agentResize": "Resize the agent sidebar",
+  "chat.agentShow": "Show chat",
+  "chat.agentHide": "Hide chat",
   "sidebar.addProject": "Add project",
   "sidebar.searchAria": "Search conversations",
   "sidebar.emptyNone": "Your conversations appear here, grouped by project.",

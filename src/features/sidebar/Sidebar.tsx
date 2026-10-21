@@ -147,7 +147,7 @@ export function Sidebar({
   const projects = groupByProject(matching, new Date());
 
   return (
-    <aside className="sidebar" aria-label={t("sidebar.label")} style={{ width: `${width}px` }}>
+    <aside className={`sidebar${browserMode ? " sidebar--collapsed" : ""}`} aria-label={t("sidebar.label")} style={{ width: `${width}px` }}>
       <div
         className="sidebar__resize"
         role="separator"

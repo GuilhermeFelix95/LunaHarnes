@@ -209,3 +209,13 @@ describe("Sidebar: modo navegador abaixo de Configurações", () => {
     expect(screen.queryByRole("button", { name: "Modo navegador" })).toBeNull();
   });
 });
+
+describe("Sidebar: recolhida no modo navegador", () => {
+  it("no modo navegador a sidebar recebe a classe de recolhida", () => {
+    const { container } = render(
+      <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} browserMode onBrowserMode={vi.fn()} />,
+    );
+
+    expect(container.querySelector(".sidebar")!.className).toContain("sidebar--collapsed");
+  });
+});

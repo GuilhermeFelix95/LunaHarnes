@@ -212,7 +212,7 @@ export function App() {
   const recentFolders = [...new Set(summaries.map((s) => s.cwd))];
 
   return (
-    <div className="app">
+    <div className={`app${browserMode ? " app--browser" : ""}`}>
       <Toaster />
       {showOnboarding ? (
         <Onboarding onDone={() => setShowOnboarding(false)} />
@@ -264,6 +264,7 @@ export function App() {
             onRunning={onRunning}
             visible={view === "chat" && chat.key === activeKey}
             browserMode={browserMode}
+            onExitBrowserMode={() => setBrowserMode(false)}
           />
         </div>
       ))}

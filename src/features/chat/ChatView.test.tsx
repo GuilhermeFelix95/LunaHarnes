@@ -684,3 +684,32 @@ describe("ChatView: modo navegador", () => {
     expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).not.toContain("side--expanded");
   });
 });
+
+describe("ChatView: chat lateral no modo navegador", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("começa fechado e o botão da topbar abre com o chat à vista", async () => {
+    render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    const column = document.querySelector(".chat__column")!;
+    expect(column.hasAttribute("inert")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar o chat" }));
+
+    expect(column.hasAttribute("inert")).toBe(false);
+    expect(screen.getByRole("button", { name: "Ocultar o chat" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("o Modo LunaCode da topbar avisa a tela para voltar ao normal", async () => {
+    const onExitBrowserMode = vi.fn();
+    render(<ChatView onPersist={() => {}} browserMode onExitBrowserMode={onExitBrowserMode} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByRole("button", { name: "Modo LunaCode" }));
+
+    expect(onExitBrowserMode).toHaveBeenCalledOnce();
+  });
+});

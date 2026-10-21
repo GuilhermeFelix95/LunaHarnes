@@ -1193,19 +1193,34 @@ textarea:focus-visible {
 }
 
 /* Modo navegador: o navegador ocupa a tela e o chat vira a sidebar do agente, à direita, com alça na borda esquerda */
+/* Sidebar esquerda recolhida: a tela inteira vai para o navegador */
+.app--browser {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sidebar--collapsed {
+  display: none;
+}
+
 .chat--browser .side {
   order: 1;
   animation: browser-mode-side calc(var(--dur) * 2) var(--ease) both;
 }
 
+/* Chat lateral: abre e fecha pela largura, no mesmo tempo da entrada do modo; a alça não anima para acompanhar o dedo */
 .chat--browser .chat__column {
   order: 2;
   position: relative;
+  overflow: hidden;
   border-left: 1px solid var(--glass-border);
-  animation: browser-mode-agent calc(var(--dur) * 2) var(--ease) both;
+  transition: width calc(var(--dur) * 2) var(--ease);
 }
 
-/* Entrada do modo navegador: os dois lados deslizam para o lugar, sem pular de tamanho */
+.chat--browser .chat__column[data-resizing="true"] {
+  transition: none;
+}
+
+/* Entrada do modo navegador: o navegador ganha a tela aos poucos, sem pular de tamanho */
 @keyframes browser-mode-side {
   from {
     opacity: 0.4;
@@ -1216,21 +1231,43 @@ textarea:focus-visible {
   }
 }
 
-@keyframes browser-mode-agent {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.chat--browser .side__tabs,
 .chat--browser .side__resize {
   display: none;
+}
+
+/* Topbar do modo navegador: voltar ao LunaCode à esquerda, mostrar o chat à direita */
+.chat--browser .side__luna {
+  padding: 4px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--fg);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.chat--browser .side__luna:hover {
+  background: var(--hover);
+}
+
+.chat--browser .side__agent-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+}
+
+.chat--browser .side__agent-toggle:hover,
+.chat--browser .side__agent-toggle[aria-pressed="true"] {
+  background: var(--hover);
+  color: var(--fg);
 }
 
 .chat__agent-resize {

@@ -425,6 +425,8 @@ export const ptBR = {
   "sidebar.browserMode": "Modo navegador",
   "sidebar.lunaCodeMode": "Modo LunaCode",
   "chat.agentResize": "Redimensionar a sidebar do agente",
+  "chat.agentShow": "Mostrar o chat",
+  "chat.agentHide": "Ocultar o chat",
   "sidebar.addProject": "Adicionar projeto",
   "sidebar.searchAria": "Buscar conversas",
   "sidebar.emptyNone": "Suas conversas aparecem aqui, agrupadas por projeto.",

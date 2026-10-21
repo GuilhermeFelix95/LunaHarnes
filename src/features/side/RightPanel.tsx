@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { ListChecks, PanelRightClose, ScrollText } from "lucide-react";
+import { ListChecks, PanelRightClose, PanelRightOpen, ScrollText } from "lucide-react";
 import { EmptyState } from "../../ui/EmptyState";
 import { Markdown } from "../chat/Markdown";
 import { LunaAtom } from "./LunaAtom";
@@ -57,8 +57,14 @@ interface RightPanelProps {
   running: boolean;
   terminal: ReactNode;
   browser: ReactNode;
-  /** Modo navegador: o painel ocupa a tela e o chat vira a sidebar lateral. */
+  /** Modo navegador: o painel ocupa a tela e a topbar mostra só o voltar e o chat. */
   browserMode: boolean;
+  /** Chat lateral aberto no modo navegador. */
+  agentOpen?: boolean;
+  /** Mostra ou esconde o chat lateral no modo navegador. */
+  onToggleAgent?: () => void;
+  /** Volta ao modo LunaCode normal. */
+  onExitBrowserMode?: () => void;
 }
 
 const TABS: Array<[SideTab, MessageKey]> = [
@@ -84,6 +90,9 @@ export function RightPanel({
   terminal,
   browser,
   browserMode,
+  agentOpen = false,
+  onToggleAgent,
+  onExitBrowserMode,
 }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
   const shown = width;
@@ -141,21 +150,42 @@ export function RightPanel({
         onKeyDown={onKeyDown}
       />
       <div className="side__tabs" role="tablist" aria-label={t("side.label")}>
-        {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className="side__tab"
-            onClick={() => onTab(id)}
-          >
-            {t(label)}
-          </button>
-        ))}
-        <button type="button" className="side__close" aria-label={t("side.close")} title={t("side.closeTitle")} onClick={onClose}>
-          <PanelRightClose size={15} aria-hidden="true" />
-        </button>
+        {browserMode ? (
+          // Topbar do modo navegador: voltar ao LunaCode à esquerda, mostrar o chat à direita.
+          <>
+            <button type="button" className="side__luna" onClick={onExitBrowserMode}>
+              {t("sidebar.lunaCodeMode")}
+            </button>
+            <button
+              type="button"
+              className="side__agent-toggle"
+              aria-pressed={agentOpen}
+              aria-label={agentOpen ? t("chat.agentHide") : t("chat.agentShow")}
+              title={agentOpen ? t("chat.agentHide") : t("chat.agentShow")}
+              onClick={onToggleAgent}
+            >
+              {agentOpen ? <PanelRightClose size={15} aria-hidden="true" /> : <PanelRightOpen size={15} aria-hidden="true" />}
+            </button>
+          </>
+        ) : (
+          <>
+            {TABS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                className="side__tab"
+                onClick={() => onTab(id)}
+              >
+                {t(label)}
+              </button>
+            ))}
+            <button type="button" className="side__close" aria-label={t("side.close")} title={t("side.closeTitle")} onClick={onClose}>
+              <PanelRightClose size={15} aria-hidden="true" />
+            </button>
+          </>
+        )}
       </div>
       <div className="side__body" role="tabpanel" hidden={tab !== "changes"}>
         {changes}

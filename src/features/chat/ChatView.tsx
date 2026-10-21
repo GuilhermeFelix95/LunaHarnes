@@ -106,6 +106,8 @@ interface ChatViewProps {
   visible?: boolean;
   /** Modo navegador: o navegador ocupa a tela e este chat vira a sidebar lateral. */
   browserMode?: boolean;
+  /** Volta ao modo LunaCode normal, pelo botão da topbar do navegador. */
+  onExitBrowserMode?: () => void;
 }
 
 /// Largura da sidebar do agente no modo navegador: entre 300 px e 60% da janela.
@@ -148,7 +150,16 @@ async function loadOrchestrator(): Promise<Orchestrator> {
   }
 }
 
-export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning, visible = true, browserMode = false }: ChatViewProps) {
+export function ChatView({
+  initial,
+  startCwd,
+  recentFolders = [],
+  onPersist,
+  onRunning,
+  visible = true,
+  browserMode = false,
+  onExitBrowserMode,
+}: ChatViewProps) {
   useLocale();
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
   const createdAt = useRef(initial?.createdAt ?? Date.now());
@@ -294,11 +305,14 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Sempre começa fechado: o painel direito só abre quando o usuário pede.
   const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
-  // Modo navegador: a aba Navegador abre sozinha, e o chat vira a sidebar lateral à direita.
+  // Modo navegador: a aba Navegador abre sozinha, e o chat lateral começa fechado.
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentResizing, setAgentResizing] = useState(false);
   useEffect(() => {
     if (!browserMode) return;
     setSideOpen(true);
     setSideTab("browser");
+    setAgentOpen(false);
   }, [browserMode]);
   const [agentWidth, setAgentWidth] = useState(loadAgentWidth);
   const agentDrag = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -306,6 +320,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // A alça fica na borda esquerda do chat: arrastar para a esquerda alarga a sidebar.
   function onAgentResizeDown(e: ReactPointerEvent<HTMLDivElement>) {
     agentDrag.current = { startX: e.clientX, startWidth: agentWidth };
+    setAgentResizing(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
@@ -318,6 +333,7 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
     if (!agentDrag.current) return;
     const final = clampAgentWidth(agentDrag.current.startWidth + (agentDrag.current.startX - e.clientX), window.innerWidth);
     agentDrag.current = null;
+    setAgentResizing(false);
     setAgentWidth(final);
     saveAgentWidth(final);
   }
@@ -1228,8 +1244,15 @@ ${outgoing}`
       )}
       {/* Escondida, não desmontada: a resposta em andamento continua enquanto o editor está aberto.
           No modo navegador ela vira a sidebar do agente, com largura própria. */}
-      <div className="chat__column" hidden={editingPath !== null} style={browserMode ? { width: agentWidth, flex: "0 0 auto" } : undefined}>
-      {browserMode && (
+      <div
+        className="chat__column"
+        hidden={editingPath !== null}
+        // No modo navegador a coluna abre e fecha pela largura; fechada, nada dela recebe foco.
+        style={browserMode ? { width: agentOpen ? agentWidth : 0, flex: "0 0 auto" } : undefined}
+        inert={browserMode && !agentOpen}
+        data-resizing={agentResizing}
+      >
+      {browserMode && agentOpen && (
         <div
           className="chat__agent-resize"
           role="separator"
@@ -1450,6 +1473,9 @@ ${outgoing}`
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
         browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} openRequest={browserRequest} />}
         browserMode={browserMode}
+        agentOpen={agentOpen}
+        onToggleAgent={() => setAgentOpen((open) => !open)}
+        onExitBrowserMode={onExitBrowserMode}
       />
       </div>
     </div>
