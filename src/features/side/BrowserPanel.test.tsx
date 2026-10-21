@@ -10,6 +10,7 @@ vi.mock("../../api", () => ({
   browserNewTab: vi.fn(async () => 1),
   browserSwitchTab: vi.fn(async () => {}),
   browserCloseTab: vi.fn(async () => null),
+  browserSetEconomy: vi.fn(async () => {}),
   browserState: vi.fn(async () => ({ tabs: [], active: null })),
   browserNavigate: vi.fn(async (url: string) => `https://${url}/`),
   browserHistory: vi.fn(async () => {}),
@@ -116,15 +117,15 @@ describe("BrowserPanel", () => {
     expect(screen.getByRole("tab", { name: "Nova aba" }).getAttribute("aria-selected")).toBe("true");
   });
 
-  it("com seis abas, o botão de nova aba fica desabilitado", async () => {
+  it("com sete abas, o botão de nova aba ainda está liberado", async () => {
     withTabs(
-      [1, 2, 3, 4, 5, 6].map((id) => ({ id, url: `https://site${id}.com/` })),
+      [1, 2, 3, 4, 5, 6, 7].map((id) => ({ id, url: `https://site${id}.com/` })),
       1,
     );
     render(<BrowserPanel active />);
 
-    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(6));
-    expect(button("Nova aba").disabled).toBe(true);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(7));
+    expect(button("Nova aba").disabled).toBe(false);
   });
 
   it("clicar numa aba troca a ativa", async () => {
@@ -338,5 +339,42 @@ describe("BrowserPanel: controles na faixa de abas", () => {
     expect(end.closest('[role="tablist"]')).toBeNull();
     expect(start.parentElement).toBe(end.parentElement);
     vi.unstubAllGlobals();
+  });
+});
+
+describe("BrowserPanel: economia de memória e limite de abas", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("cada aba tem um botão que liga e desliga a economia de memória, com o estado anunciado", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+    render(<BrowserPanel active openRequest={null} />);
+
+    const toggle = await screen.findByRole("button", { name: "Economizar memória de a.com" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(api.browserSetEconomy).toHaveBeenCalledWith(1, true));
+    expect(screen.getByRole("button", { name: "Economizar memória de a.com" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("aceita até 8 abas: com oito abertas, o botão de nova aba fica desabilitado", async () => {
+    withTabs(
+      Array.from({ length: 8 }, (_, i) => ({ id: i + 1, url: `https://site${i + 1}.com/` })),
+      1,
+    );
+    render(<BrowserPanel active openRequest={null} />);
+
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(8));
+    expect(button("Nova aba").disabled).toBe(true);
   });
 });

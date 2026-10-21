@@ -2305,6 +2305,28 @@ textarea:focus-visible {
   scrollbar-width: thin;
 }
 
+/* Economia de memória de uma aba: folha discreta, acesa quando a economia está ligada */
+.browser__tab-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-muted);
+  opacity: 0.6;
+}
+
+.browser__tab-save:hover,
+.browser__tab-save--on {
+  opacity: 1;
+  color: var(--accent);
+}
+
 .browser__tab {
   display: inline-flex;
   align-items: center;

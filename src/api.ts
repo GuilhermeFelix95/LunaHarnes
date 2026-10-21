@@ -295,6 +295,8 @@ export interface BrowserBounds {
 export interface BrowserTab {
   id: number;
   url: string;
+  /** Economia de memória ligada: a aba é suspensa quando fica escondida. */
+  economize?: boolean;
 }
 
 export interface BrowserState {
@@ -315,6 +317,11 @@ export function browserSwitchTab(tabId: number, bounds: BrowserBounds): Promise<
 /// Fecha uma aba. Devolve a aba ativa depois do fechamento, ou `null` se não sobrou nenhuma.
 export function browserCloseTab(tabId: number): Promise<number | null> {
   return invoke("browser_close_tab", { tabId });
+}
+
+/// Liga ou desliga a economia de memória de uma aba. Ligada, a aba é suspensa quando fica escondida.
+export function browserSetEconomy(tabId: number, economize: boolean): Promise<void> {
+  return invoke("browser_set_economy", { tabId, economize });
 }
 
 /// Abas abertas e a ativa, como o Rust as guarda.

@@ -44,19 +44,37 @@ static CONFIG: OnceLock<PathBuf> = OnceLock::new();
 static TABS: Mutex<TabSet> = Mutex::new(TabSet::new());
 
 /// Limite de abas: cada uma é um processo do WebView2, então é preciso pôr um teto.
-pub const MAX_TABS: usize = 6;
+pub const MAX_TABS: usize = 8;
 
-/// Ids das abas abertas, na ordem em que foram abertas.
+/// Ids das abas abertas, na ordem em que foram abertas. `economy` guarda as abas em que o usuário
+/// pediu para economizar memória: só essas são suspensas quando ficam escondidas.
 #[derive(Default)]
 struct TabSet {
     next: u32,
     ids: Vec<u32>,
     active: Option<u32>,
+    economy: Vec<u32>,
 }
 
 impl TabSet {
     const fn new() -> Self {
-        Self { next: 0, ids: Vec::new(), active: None }
+        Self { next: 0, ids: Vec::new(), active: None, economy: Vec::new() }
+    }
+
+    fn is_economy(&self, id: u32) -> bool {
+        self.economy.contains(&id)
+    }
+
+    /// Liga ou desliga a economia de memória de uma aba aberta. Devolve false se ela não existe.
+    fn set_economy(&mut self, id: u32, on: bool) -> bool {
+        if !self.ids.contains(&id) {
+            return false;
+        }
+        self.economy.retain(|other| *other != id);
+        if on {
+            self.economy.push(id);
+        }
+        true
     }
 
     /// Reserva o id de uma aba nova, ou recusa quando o limite já foi atingido.
@@ -72,6 +90,7 @@ impl TabSet {
     /// Tira a aba da lista. Se ela era a ativa, a última aberta passa a ser a ativa, e a devolve.
     fn forget(&mut self, id: u32) -> Option<u32> {
         self.ids.retain(|other| *other != id);
+        self.economy.retain(|other| *other != id);
         if self.active == Some(id) {
             self.active = self.ids.last().copied();
         }
@@ -186,15 +205,7 @@ fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
             logfile::error(&format!("não foi possível ligar o salvamento de senha da aba {id}: {e}"));
         }
     }
-    let mut tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
-    let others = tabs.ids.iter().copied().filter(|other| *other != id).collect::<Vec<_>>();
-    tabs.active = Some(id);
-    drop(tabs);
-    for other in others {
-        if let Some(view) = app.get_webview(&tab_label(other)) {
-            let _ = view.hide();
-        }
-    }
+    show_only(app, id)?;
     if !visible {
         if let Some(view) = app.get_webview(&tab_label(id)) {
             view.hide().map_err(|e| e.to_string())?;
@@ -231,24 +242,83 @@ fn enable_password_autosave(_view: &Webview) -> Result<(), String> {
     Ok(())
 }
 
-/// Mostra uma aba e esconde as outras. Usado ao trocar de aba no painel.
-fn activate_tab(id: u32) -> Result<(), String> {
-    let app = app()?;
-    let others: Vec<u32> = {
+/// Torna `id` a aba ativa: esconde as outras e acorda a escolhida. Abas em modo economia são suspensas ao esconder;
+/// as demais ficam rodando, para a página não recarregar nem perder o estado ao voltar a elas.
+fn show_only(app: &AppHandle, id: u32) -> Result<(), String> {
+    let others: Vec<(u32, bool)> = {
         let mut tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
         if !tabs.ids.contains(&id) {
             return Err("essa aba não está aberta".to_string());
         }
         tabs.active = Some(id);
-        tabs.ids.iter().copied().filter(|other| *other != id).collect()
+        tabs.ids
+            .iter()
+            .copied()
+            .filter(|other| *other != id)
+            .map(|other| (other, tabs.is_economy(other)))
+            .collect()
     };
-    for other in others {
+    for (other, economy) in others {
         if let Some(view) = app.get_webview(&tab_label(other)) {
             let _ = view.hide();
+            if economy {
+                set_sleeping(&view, other, true);
+            }
         }
     }
+    if let Some(view) = app.get_webview(&tab_label(id)) {
+        set_sleeping(&view, id, false);
+    }
+    Ok(())
+}
+
+/// Mostra uma aba e esconde as outras. Usado ao trocar de aba no painel.
+fn activate_tab(id: u32) -> Result<(), String> {
+    let app = app()?;
+    show_only(app, id)?;
     let view = app.get_webview(&tab_label(id)).ok_or("a aba não existe mais")?;
     view.show().map_err(|e| e.to_string())
+}
+
+/// Suspende (`sleeping`) ou acorda uma aba. Falha só vai para o log: a aba segue, do jeito que estava.
+fn set_sleeping(view: &Webview, id: u32, sleeping: bool) {
+    if let Err(e) = apply_sleep(view, sleeping) {
+        let action = if sleeping { "suspender" } else { "acordar" };
+        logfile::error(&format!("não foi possível {action} a aba {id} do navegador: {e}"));
+    }
+}
+
+#[cfg(windows)]
+fn apply_sleep(view: &Webview, sleeping: bool) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2_19, ICoreWebView2_3, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+    };
+    use windows_core::Interface;
+    view.with_webview(move |platform| {
+        let controller = platform.controller();
+        let result = unsafe {
+            controller.CoreWebView2().and_then(|core| {
+                let level = if sleeping { COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW } else { COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL };
+                core.cast::<ICoreWebView2_19>()?.SetMemoryUsageTargetLevel(level)?;
+                let tabs = core.cast::<ICoreWebView2_3>()?;
+                if sleeping {
+                    tabs.TrySuspend(&webview2_com::TrySuspendCompletedHandler::create(Box::new(|_, _| Ok(()))))
+                } else {
+                    tabs.Resume()
+                }
+            })
+        };
+        if let Err(e) = result {
+            let action = if sleeping { "suspender" } else { "acordar" };
+            logfile::error(&format!("o WebView2 recusou {action} a aba do navegador: {e}"));
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+fn apply_sleep(_view: &Webview, _sleeping: bool) -> Result<(), String> {
+    Ok(())
 }
 
 /// Roda JavaScript na página e espera o resultado. O Tauri devolve o valor já serializado como texto JSON,
@@ -313,6 +383,8 @@ pub async fn browser_new_tab(url: Option<String>, bounds: Bounds) -> Result<u32,
 pub struct TabInfo {
     pub id: u32,
     pub url: String,
+    /// Aba em modo economia de memória: suspensa quando fica escondida.
+    pub economize: bool,
 }
 
 /// Abas abertas e a ativa. O painel usa para montar a barra de abas, inclusive depois de fechado e aberto.
@@ -325,9 +397,9 @@ pub struct BrowserState {
 
 #[tauri::command]
 pub fn browser_state() -> Result<BrowserState, String> {
-    let (ids, active) = {
+    let (ids, active, economy) = {
         let tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
-        (tabs.ids.clone(), tabs.active)
+        (tabs.ids.clone(), tabs.active, tabs.economy.clone())
     };
     let app = app()?;
     let tabs = ids
@@ -339,9 +411,20 @@ pub fn browser_state() -> Result<BrowserState, String> {
                 .and_then(|view| view.url().ok())
                 .map(|url| url.to_string())
                 .unwrap_or_default(),
+            economize: economy.contains(&id),
         })
         .collect();
     Ok(BrowserState { tabs, active })
+}
+
+/// Liga ou desliga a economia de memória de uma aba. Ligada, a aba é suspensa quando fica escondida.
+#[tauri::command]
+pub fn browser_set_economy(tab_id: u32, economize: bool) -> Result<(), String> {
+    let mut tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
+    if !tabs.set_economy(tab_id, economize) {
+        return Err("essa aba não está aberta".to_string());
+    }
+    Ok(())
 }
 
 /// Troca a aba ativa e posiciona a página na área do painel.
@@ -789,7 +872,7 @@ mod tab_tests {
         }
 
         let err = tabs.reserve().unwrap_err();
-        assert!(err.contains("6 abas"), "{err}");
+        assert!(err.contains(&format!("{MAX_TABS} abas")), "{err}");
     }
 
     #[test]
@@ -822,6 +905,19 @@ mod tab_tests {
 
         assert_eq!(tabs.forget(only), None);
         assert!(tabs.ids.is_empty());
+    }
+
+    #[test]
+    fn economy_is_set_per_tab_and_leaves_with_the_tab() {
+        let mut set = TabSet::new();
+        let first = set.reserve().unwrap();
+        let second = set.reserve().unwrap();
+        assert!(set.set_economy(first, true));
+        assert!(set.is_economy(first));
+        assert!(!set.is_economy(second));
+        set.forget(first);
+        assert!(!set.is_economy(first));
+        assert!(!set.set_economy(first, true), "aba fechada não recebe economia");
     }
 
     #[test]

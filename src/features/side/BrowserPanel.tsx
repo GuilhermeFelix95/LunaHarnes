@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Globe, History, Plus, RotateCw, Star, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, History, Leaf, Plus, RotateCw, Star, X } from "lucide-react";
 import {
   browserBookmarkAdd,
   browserBookmarkRemove,
@@ -11,6 +11,7 @@ import {
   browserNewTab,
   browserReload,
   browserSetBounds,
+  browserSetEconomy,
   browserShow,
   browserState,
   browserSwitchTab,
@@ -38,7 +39,7 @@ interface BrowserPanelProps {
 }
 
 /// Limite de abas, igual ao do Rust (que é quem recusa de fato). Aqui só desabilita o botão de nova aba.
-const MAX_TABS = 6;
+const MAX_TABS = 8;
 
 /// Área onde a página aparece: a webview da aba ativa fica exatamente sobre este elemento.
 function measure(area: HTMLElement): BrowserBounds {
@@ -209,6 +210,18 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
     }
   }
 
+  /// Liga ou desliga a economia de memória de uma aba. A aba continua do mesmo jeito; só muda se é suspensa ao ficar escondida.
+  async function toggleEconomy(tab: BrowserTab) {
+    setError(undefined);
+    const economize = !tab.economize;
+    try {
+      await browserSetEconomy(tab.id, economize);
+      setTabs((list) => list.map((other) => (other.id === tab.id ? { ...other, economize } : other)));
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   async function closeTab(id: number) {
     setError(undefined);
     try {
@@ -299,6 +312,16 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
                 onClick={() => void switchTo(tab)}
               >
                 {tabLabel(tab)}
+              </button>
+              <button
+                type="button"
+                className={`browser__tab-save${tab.economize ? " browser__tab-save--on" : ""}`}
+                aria-pressed={Boolean(tab.economize)}
+                aria-label={t("browser.economy", { title: tabLabel(tab) })}
+                title={tab.economize ? t("browser.economyOnHint") : t("browser.economyOffHint")}
+                onClick={() => void toggleEconomy(tab)}
+              >
+                <Leaf size={12} aria-hidden="true" />
               </button>
               <button
                 type="button"
