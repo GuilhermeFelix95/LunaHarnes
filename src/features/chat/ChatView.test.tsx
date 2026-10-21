@@ -1,12 +1,13 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Conversation, ProviderEvent } from "../../types";
+import type { BackgroundTask, Conversation, ProviderEvent } from "../../types";
 import { PluginHost } from "../../plugins/host";
 import { ChatView } from "./ChatView";
 
 // Substitui a ponte com o Rust: o teste controla quando os eventos do CLI chegam.
 const bridge = vi.hoisted(() => ({
   emit: null as null | ((event: ProviderEvent) => void),
+  background: null as null | ((task: unknown) => void),
 }));
 
 vi.mock("../../api", () => ({
@@ -66,6 +67,13 @@ vi.mock("../../api", () => ({
   configFingerprint: vi.fn(async () => "igual"),
   onProviderEvent: vi.fn(async (_runId: string, handler: (event: ProviderEvent) => void) => {
     bridge.emit = handler;
+    return () => {};
+  }),
+  startBackgroundTask: vi.fn(async (prompt: string) => ({ id: "t1", prompt, status: "running", output: "", conversationId: "conv-teste" })),
+  stopBackgroundTask: vi.fn(async (id: string) => ({ id, prompt: "", status: "stopped", output: "" })),
+  listBackgroundTasks: vi.fn(async () => []),
+  onBackgroundTask: vi.fn(async (handler: (task: unknown) => void) => {
+    bridge.background = handler;
     return () => {};
   }),
 }));
@@ -658,6 +666,86 @@ describe("ChatView: imagem no histórico", () => {
 
     expect((await screen.findAllByText("veja isto")).length).toBeGreaterThan(0);
     expect(await screen.findByText("Imagem indisponível")).toBeTruthy();
+  });
+});
+
+function emitBackground(task: BackgroundTask) {
+  act(() => bridge.background!(task));
+}
+
+describe("ChatView: subagente em segundo plano", () => {
+  const conversation: Conversation = {
+    id: "conv-teste",
+    title: "Teste",
+    provider: "claude",
+    cwd: "C:\\projeto",
+    permission: "acceptEdits",
+    planning: false,
+    createdAt: 1,
+    updatedAt: 2,
+    messages: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("/subagente inicia a tarefa e a conclusão vira mensagem na conversa", async () => {
+    render(<ChatView initial={conversation} onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    fireEvent.change(screen.getByLabelText("Mensagem"), { target: { value: "/subagente revisar os testes" } });
+    fireEvent.click(screen.getByLabelText("Enviar"));
+
+    await waitFor(() =>
+      expect(vi.mocked(api.startBackgroundTask)).toHaveBeenCalledWith("revisar os testes", "C:\\projeto", "acceptEdits", "conv-teste"),
+    );
+    expect(vi.mocked(api.sendPrompt)).not.toHaveBeenCalled();
+
+    emitBackground({ id: "t1", prompt: "revisar os testes", status: "done", output: "tudo certo", conversationId: "conv-teste" });
+
+    expect(await screen.findByText(/tudo certo/)).toBeTruthy();
+    expect(vi.mocked(api.sendPrompt)).not.toHaveBeenCalled();
+  });
+
+  it("a conclusão não interrompe um turno em andamento", async () => {
+    render(<ChatView initial={conversation} onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("oi");
+    emitBackground({ id: "t2", prompt: "outra tarefa", status: "done", output: "resultado pronto", conversationId: "conv-teste" });
+
+    expect(await screen.findByText(/resultado pronto/)).toBeTruthy();
+    expect(screen.getByLabelText("Parar")).toBeTruthy();
+    expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(1);
+  });
+
+  it("parar uma tarefa atualiza o status na lista", async () => {
+    vi.mocked(api.listBackgroundTasks).mockResolvedValueOnce([
+      { id: "t3", prompt: "tarefa longa", status: "running", output: "", conversationId: "conv-teste" },
+    ]);
+    render(<ChatView initial={conversation} onPersist={() => {}} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Parar tarefa" }));
+
+    await waitFor(() => expect(vi.mocked(api.stopBackgroundTask)).toHaveBeenCalledWith("t3"));
+    expect(await screen.findByText("Parada")).toBeTruthy();
+  });
+
+  it("resultado de tarefa de outra conversa não entra nesta", async () => {
+    render(<ChatView initial={conversation} onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    emitBackground({
+      id: "t9",
+      prompt: "tarefa alheia",
+      status: "done",
+      output: "não deve aparecer",
+      conversationId: "conv-outra",
+    });
+
+    expect(screen.queryByText(/não deve aparecer/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Parar tarefa" })).toBeNull();
   });
 });
 

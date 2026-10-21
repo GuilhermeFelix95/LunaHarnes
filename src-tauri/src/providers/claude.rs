@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use super::{ProviderEvent, TodoItem};
 
-use super::{identity_for, image_media_type, AgentBrowser, LimitWindow, Permission, RunRequest};
+use super::{identity_for, image_media_type, AgentBrowser, LimitWindow, Permission, ProviderKind, RunRequest};
 
 /// Sem isso, o Claude Code oferece as ferramentas de tarefa só para alguns modelos; com esta variável elas ficam ligadas.
 /// Confirmado numa execução real: com ela, o agente cria e atualiza tarefas (TaskCreate / TaskUpdate).
@@ -70,6 +70,49 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         args.push(id.clone());
     }
     args
+}
+
+/// Execução avulsa (segundo plano): mesmo motor Claude, mesma pasta e permissão do turno,
+/// sem retomar a sessão da conversa nem usar o subagente das etapas do plano.
+pub fn background_request(
+    prompt: String,
+    cwd: std::path::PathBuf,
+    permission: Permission,
+    model: Option<String>,
+) -> RunRequest {
+    RunRequest {
+        provider: ProviderKind::Claude,
+        prompt,
+        session_id: None,
+        cwd,
+        permission,
+        browser: Default::default(),
+        subagents: false,
+        model,
+        effort: None,
+        profile: None,
+        context_window: None,
+        long_cache: false,
+        images: Vec::new(),
+    }
+}
+
+/// Argumentos de uma execução avulsa: os do turno menos `--resume` e `--agents`.
+pub fn background_args(request: &RunRequest) -> Vec<String> {
+    let mut kept = Vec::new();
+    let mut skip_next = false;
+    for arg in args(request) {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if arg == "--resume" || arg == "--agents" {
+            skip_next = true;
+            continue;
+        }
+        kept.push(arg);
+    }
+    kept
 }
 
 /// Entrada do CLI pelo stdin. Sem imagens é o prompt puro. Com imagens, uma linha stream-json:
@@ -623,5 +666,29 @@ mod tests {
         };
         assert_eq!(input(&request).unwrap(), "oi");
         assert!(!args(&request).iter().any(|a| a == "--input-format"));
+    }
+
+    /// A tarefa em segundo plano usa a pasta da conversa e a permissão do turno, sem retomar a sessão
+    /// e sem o subagente das etapas do plano. O pedido vai pelo stdin, não como argumento.
+    #[test]
+    fn background_run_keeps_the_workspace_and_skips_the_conversation_binding() {
+        let request = background_request(
+            "revisar os testes".into(),
+            std::path::PathBuf::from("C:\\projeto"),
+            Permission::AcceptEdits,
+            None,
+        );
+
+        assert_eq!(request.cwd, std::path::PathBuf::from("C:\\projeto"));
+        assert_eq!(request.permission, Permission::AcceptEdits);
+        assert!(request.session_id.is_none());
+        assert!(!request.subagents);
+
+        let flags = background_args(&request);
+        assert!(!flags.iter().any(|arg| arg == "--resume"), "não retoma a conversa: {flags:?}");
+        assert!(!flags.iter().any(|arg| arg == "--agents"), "sem o papel luna-etapa: {flags:?}");
+        assert!(flags.windows(2).any(|window| window == ["--permission-mode", "acceptEdits"]));
+        assert!(!flags.iter().any(|arg| arg.contains("revisar os testes")), "o pedido vai pelo stdin: {flags:?}");
+        assert_eq!(input(&request).unwrap(), "revisar os testes");
     }
 }

@@ -19,7 +19,7 @@ describe("menu de /", () => {
 
     expect(filterSlash(items, "pl").map((i) => i.name)).toEqual(["plano", "plugin instalar"]);
     expect(filterSlash(items, "xyz").map((i) => i.name)).toEqual([]);
-    expect(filterSlash(items, "su").map((i) => i.name)).toEqual(["resumo"]);
+    expect(filterSlash(items, "su").map((i) => i.name)).toEqual(["subagente", "resumo"]);
     expect(filterSlash([...CLI], "re").map((i) => i.name)).toEqual(["resumo"]);
   });
 });
@@ -39,6 +39,12 @@ describe("comandos da Luna", () => {
     expect(LUNA_COMMANDS.map((i) => i.name)).toContain("meta");
     expect(parseLunaCommand("/meta todos os testes passam")).toEqual({ id: "meta", condition: "todos os testes passam" });
     expect(parseLunaCommand("/meta")).toBeNull();
+  });
+
+  it("reconhece /subagente com a tarefa, e exige a tarefa", () => {
+    expect(LUNA_COMMANDS.map((i) => i.name)).toContain("subagente");
+    expect(parseLunaCommand("/subagente revisar os testes")).toEqual({ id: "subagente", task: "revisar os testes" });
+    expect(parseLunaCommand("/subagente")).toBeNull();
   });
 
   it("outras entradas não são comando da Luna", () => {

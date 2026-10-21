@@ -98,6 +98,19 @@ impl Session {
         )
     }
 
+    /// Como `start`, mas com os argumentos já montados (execução avulsa, fora do turno).
+    pub fn start_with_args(request: &RunRequest, args: Vec<String>) -> Result<Self, String> {
+        let input = stdin_input(request)?;
+        Self::spawn(
+            request.provider,
+            &input,
+            cli_name(request.provider),
+            args,
+            Some(&request.cwd),
+            &[],
+        )
+    }
+
     fn spawn(
         kind: ProviderKind,
         prompt: &str,

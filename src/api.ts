@@ -8,6 +8,7 @@ import type {
   Account,
   ApiPreset,
   ApiProfile,
+  BackgroundTask,
   ChangedFile,
   Changes,
   CliStatus,
@@ -16,6 +17,7 @@ import type {
   Conversation,
   ConversationSummary,
   ModelOption,
+  Permission,
   ProviderEvent,
   ProviderKind,
   RemoteModels,
@@ -86,6 +88,35 @@ export function onProviderEvent(
   return listen<{ runId: string; event: ProviderEvent }>(PROVIDER_EVENT, (e) => {
     if (e.payload.runId === runId) handler(e.payload.event);
   });
+}
+
+/// Nome do evento de tarefa em segundo plano (espelha background_tasks::TASK_EVENT no Rust).
+export const BACKGROUND_TASK_EVENT = "background-task";
+
+/// Inicia uma tarefa em segundo plano no Claude. A saída chega pelo evento `background-task`.
+/// `conversationId` prende a tarefa à conversa que a pediu: a lista e o resultado ficam só nela.
+export function startBackgroundTask(
+  prompt: string,
+  cwd: string,
+  permission: Permission,
+  conversationId: string,
+): Promise<BackgroundTask> {
+  return invoke("start_background_task", { prompt, cwd, permission, conversationId });
+}
+
+/// Para uma tarefa em andamento e devolve o estado novo dela.
+export function stopBackgroundTask(id: string): Promise<BackgroundTask> {
+  return invoke("stop_background_task", { id });
+}
+
+/// Tarefas em segundo plano desta sessão do app, só as da conversa.
+export function listBackgroundTasks(conversationId: string): Promise<BackgroundTask[]> {
+  return invoke("list_background_tasks", { conversationId });
+}
+
+/// Cada tarefa emitida quando termina.
+export function onBackgroundTask(handler: (task: BackgroundTask) => void): Promise<UnlistenFn> {
+  return listen<BackgroundTask>(BACKGROUND_TASK_EVENT, (e) => handler(e.payload));
 }
 
 export interface PluginScan {

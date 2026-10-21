@@ -135,6 +135,19 @@ export interface TodoItem {
   status: "pending" | "in_progress" | "completed";
 }
 
+/// Situação de uma tarefa em segundo plano (espelha background_tasks::TaskStatus).
+export type BackgroundTaskStatus = "running" | "done" | "failed" | "stopped";
+
+/// Tarefa em segundo plano: execução própria do Claude CLI, com status e saída (ver background_tasks.rs).
+export interface BackgroundTask {
+  id: string;
+  prompt: string;
+  status: BackgroundTaskStatus;
+  output: string;
+  /** Conversa que pediu a tarefa: a lista e o resultado ficam só nela. */
+  conversationId: string;
+}
+
 export type ProviderEvent =
   | { kind: "sessionStarted"; sessionId: string }
   | { kind: "textDelta"; text: string }
@@ -178,6 +191,8 @@ export interface ChatMessage {
   at?: number;
   /** Resposta vinda do cache de respostas: o provedor não foi chamado para ela. */
   cached?: true;
+  /** Resultado de uma tarefa em segundo plano: não recebe os pedaços do turno em andamento. */
+  background?: true;
 }
 
 /// Sessão nativa de um agente e quantas mensagens do histórico ele já viu (ver src/chat/handoff.ts).

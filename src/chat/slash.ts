@@ -14,6 +14,7 @@ export const LUNA_COMMANDS: SlashItem[] = [
   { name: "projeto", description: "Confere os arquivos do projeto que as CLIs leem (CLAUDE.md, AGENTS.md)", origin: "luna" },
   { name: "plugin instalar", description: "Instala o plugin de uma pasta, depois de revisar as permissões", origin: "luna" },
   { name: "meta", description: "Repete o pedido até a condição ser cumprida (ex.: /meta todos os testes passam)", origin: "luna" },
+  { name: "subagente", description: "Roda uma tarefa em segundo plano no Claude enquanto a conversa segue (ex.: /subagente revisar os testes)", origin: "luna" },
 ];
 
 export const ORIGIN_LABELS: Record<SlashOrigin, string> = {
@@ -45,7 +46,8 @@ export type LunaCommand =
   | { id: "compactar" }
   | { id: "projeto" }
   | { id: "plugin"; folder: string }
-  | { id: "meta"; condition: string };
+  | { id: "meta"; condition: string }
+  | { id: "subagente"; task: string };
 
 /// Reconhece os comandos da Luna digitados. Qualquer outra entrada devolve null.
 export function parseLunaCommand(input: string): LunaCommand | null {
@@ -57,6 +59,8 @@ export function parseLunaCommand(input: string): LunaCommand | null {
   if (install) return { id: "plugin", folder: install[1].trim() };
   const meta = /^\/meta\s+(.+)$/s.exec(text);
   if (meta) return { id: "meta", condition: meta[1].trim() };
+  const subagent = /^\/subagente\s+(.+)$/s.exec(text);
+  if (subagent) return { id: "subagente", task: subagent[1].trim() };
   return null;
 }
 
