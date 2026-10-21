@@ -3,6 +3,19 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "../../types";
 import { MessageList } from "./MessageList";
 
+// Textos que o Markdown recebe a cada renderização: mostra quais respostas foram refeitas.
+const rendered = vi.hoisted(() => [] as string[]);
+vi.mock("./Markdown", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./Markdown")>();
+  return {
+    ...actual,
+    Markdown: (props: { text: string; onOpenLink?: (url: string) => void }) => {
+      rendered.push(props.text);
+      return <actual.Markdown {...props} />;
+    },
+  };
+});
+
 const tool = (name: string, detail: string): ChatMessage => ({
   role: "assistant",
   text: "",
@@ -199,5 +212,22 @@ describe("MessageList: ferramentas enquanto a execução roda", () => {
     const group = container.querySelector("details.tool-line") as HTMLDetailsElement;
     expect(group).toBeTruthy();
     expect(group.open).toBe(false);
+  });
+});
+
+describe("MessageList: só o que mudou é refeito", () => {
+  it("mensagens antigas não são refeitas quando só a última muda", () => {
+    const pergunta: ChatMessage = { role: "user", text: "oi", at: 1 };
+    const antiga: ChatMessage = { role: "assistant", text: "resposta antiga", at: 2, provider: "claude" };
+    const pergunta2: ChatMessage = { role: "user", text: "e agora?", at: 3 };
+    const ultima: ChatMessage = { role: "assistant", text: "A", at: 4, provider: "claude" };
+    const base = { fallbackProvider: "claude" as const, running: true };
+    const { rerender } = render(<MessageList messages={[pergunta, antiga, pergunta2, ultima]} {...base} />);
+
+    rendered.length = 0;
+    rerender(<MessageList messages={[pergunta, antiga, pergunta2, { ...ultima, text: "AB" }]} {...base} />);
+
+    expect(rendered).not.toContain("resposta antiga");
+    expect(rendered).toContain("AB");
   });
 });

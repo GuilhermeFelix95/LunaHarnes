@@ -400,8 +400,7 @@
   gap: 4px;
   padding: 12px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
-  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--bg-sidebar) 96%, transparent);
   border-right: 1px solid var(--glass-border);
 }
 
@@ -705,8 +704,7 @@
   padding: 7px 14px;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
-  background: var(--glass);
-  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg-sidebar) 96%, transparent);
   font-size: 13px;
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
@@ -1038,8 +1036,7 @@
   gap: 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--composer-radius);
-  background: var(--glass);
-  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--bg-sidebar) 96%, transparent);
   box-shadow: var(--shadow);
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
@@ -1279,7 +1276,7 @@ textarea:focus-visible {
 
 .chat--browser .side {
   order: 1;
-  animation: browser-mode-side calc(var(--dur) * 2.6) var(--ease-smooth) both;
+  animation: browser-mode-side calc(var(--dur) * 1.5) var(--ease-smooth) both;
 }
 
 /* Chat lateral: abre e fecha pela largura, no mesmo tempo da entrada do modo; a alça não anima para acompanhar o dedo */
@@ -1288,8 +1285,6 @@ textarea:focus-visible {
   position: relative;
   overflow: hidden;
   border-left: 1px solid var(--glass-border);
-  will-change: width;
-  transition: width calc(var(--dur) * 2.6) var(--ease-smooth);
 }
 
 .chat--browser .chat__column[data-resizing="true"] {
@@ -1668,10 +1663,12 @@ textarea:focus-visible {
 
 .usage__fill {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: var(--accent);
-  transition: width var(--dur) var(--ease);
+  transform-origin: left;
+  transition: transform var(--dur) var(--ease);
 }
 
 /* Seletor de som: segue o tema (borda, fundo, texto e seta), e não a caixa padrão do sistema */
@@ -1715,8 +1712,7 @@ textarea:focus-visible {
   flex-shrink: 0;
   min-height: 0;
   border-left: 1px solid var(--glass-border);
-  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
-  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--bg-sidebar) 96%, transparent);
 }
 
 .side[hidden] {
@@ -2746,8 +2742,7 @@ textarea:focus-visible {
   padding: 10px 12px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg-sidebar) 96%, transparent);
 }
 
 .profile__head {
@@ -3144,9 +3139,11 @@ textarea:focus-visible {
 
 .timeline__bar > span {
   display: block;
+  width: 100%;
   height: 100%;
   background: var(--accent);
-  transition: width var(--dur) var(--ease);
+  transform-origin: left;
+  transition: transform var(--dur) var(--ease);
 }
 
 .timeline__steps {
@@ -3204,7 +3201,18 @@ textarea:focus-visible {
 }
 
 .timeline__step--in_progress .timeline__node {
+  position: relative;
   border-color: var(--accent);
+}
+
+/* O anel pulsa por um pseudo-elemento: só transform e opacidade animam, sem repintar a sombra a cada quadro */
+.timeline__step--in_progress .timeline__node::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
   animation: timeline-ring 1.6s var(--ease) infinite;
 }
 
@@ -3254,10 +3262,12 @@ textarea:focus-visible {
 
 @keyframes timeline-ring {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+    transform: scale(1);
+    opacity: 0.45;
   }
   100% {
-    box-shadow: 0 0 0 8px transparent;
+    transform: scale(1.8);
+    opacity: 0;
   }
 }
 
@@ -3377,9 +3387,8 @@ textarea:focus-visible {
   padding: 14px 16px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  background: var(--glass);
+  background: color-mix(in srgb, var(--bg-sidebar) 96%, transparent);
   box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
-  backdrop-filter: blur(18px);
 }
 
 .qpick__head {
@@ -4237,11 +4246,11 @@ textarea:focus-visible {
 }
 
 .mode-warp--in {
-  animation: mode-warp-in calc(var(--dur) * 3.5) var(--ease-smooth) both;
+  animation: mode-warp-in calc(var(--dur) * 2) var(--ease-smooth) both;
 }
 
 .mode-warp--out {
-  animation: mode-warp-out calc(var(--dur) * 3.5) var(--ease-smooth) both;
+  animation: mode-warp-out calc(var(--dur) * 2) var(--ease-smooth) both;
 }
 
 @keyframes mode-warp-in {

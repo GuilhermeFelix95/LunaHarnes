@@ -28,7 +28,7 @@ export function ProgressTimeline({ todos, aside }: { todos: TodoItem[]; aside?: 
             aria-valuemax={todos.length}
             aria-valuenow={done}
           >
-            <span style={{ width: `${percent}%` }} />
+            <span style={{ transform: `scaleX(${percent / 100})` }} />
           </div>
         </div>
         {aside}
