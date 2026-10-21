@@ -37,11 +37,12 @@
   --shadow-3: 0 18px 48px rgb(0 0 0 / 34%);
   --shadow: var(--shadow-2);
 
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Movimento mais perceptível e suave: saída desacelerada no lugar da ease padrão */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* Curva de desaceleração longa, para movimentos grandes como o modo navegador */
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-fast: 120ms;
-  --dur: 200ms;
+  --dur-fast: 180ms;
+  --dur: 320ms;
 
   /* Cabeçalho e lista de conversas: a largura de leitura do chat */
   --reading-width: 760px;
