@@ -231,3 +231,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Navegador: bloqueador de anúncios ligado por padrão (src-tauri/src/adblock.rs, filtro WebResourceRequested por lista de domínios), com botão de pausa na barra de endereço. Verificação no app pendente. Branch feat/navegador-modo.
 2026-10-20 | Navegador: tradução da página para português pela tradução do Google (src-tauri/src/translate.rs), com botão de voltar ao original na barra de endereço. Branch feat/navegador-modo.
 2026-10-20 | Animação do modo navegador trocada: a onda de cor sai do botão de modo (clip-path e opacidade, sem filtro). Verificação visual no app pendente. Branch feat/navegador-modo.
+=======
+2026-10-20 | Modo /meta (comando e ícone ao lado do anexar) repete o pedido até o agente sinalizar META_CONCLUIDA, com teto de 20 rodadas e parada; campo e botão Criar do menu de branch seguem o tema. Branch feat/meta-e-ajustes-branch.

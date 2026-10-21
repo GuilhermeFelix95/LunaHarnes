@@ -268,3 +268,14 @@ describe("Composer: @arquivo e imagens", () => {
   });
 
 });
+
+describe("Composer: modo /meta", () => {
+  it("o botão /meta reflete o modo ligado e alterna ao clicar", () => {
+    const props = setup({ goalOn: true, onToggleGoal: vi.fn() });
+    const goal = screen.getByLabelText("Modo /meta");
+
+    expect(goal.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(goal);
+    expect(props.onToggleGoal).toHaveBeenCalledOnce();
+  });
+});

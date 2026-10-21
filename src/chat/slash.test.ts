@@ -35,6 +35,12 @@ describe("comandos da Luna", () => {
     expect(parseLunaCommand("/plugin instalar  C:\\planos\\meu ")).toEqual({ id: "plugin", folder: "C:\\planos\\meu" });
   });
 
+  it("reconhece /meta com a condição, e exige a condição", () => {
+    expect(LUNA_COMMANDS.map((i) => i.name)).toContain("meta");
+    expect(parseLunaCommand("/meta todos os testes passam")).toEqual({ id: "meta", condition: "todos os testes passam" });
+    expect(parseLunaCommand("/meta")).toBeNull();
+  });
+
   it("outras entradas não são comando da Luna", () => {
     expect(parseLunaCommand("/plugin instalar")).toBeNull();
     expect(parseLunaCommand("/planejar")).toBeNull();

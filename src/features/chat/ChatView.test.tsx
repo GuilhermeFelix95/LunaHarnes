@@ -725,3 +725,77 @@ describe("ChatView: sair do modo navegador fecha o painel lateral", () => {
     expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).toContain("side--closed");
   });
 });
+
+describe("ChatView: /meta repete o pedido até o agente sinalizar o fim", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("/meta repete sem o sinal e para quando o marcador chega, sem mostrá-lo", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("/meta todos os testes passam");
+    emit({ kind: "textDelta", text: "ainda falta um teste" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(api.sendPrompt).mock.calls[0][0].prompt).toContain("todos os testes passam");
+
+    emit({ kind: "textDelta", text: "feito\nMETA_CONCLUIDA" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+    expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("feito")).toBeTruthy();
+    expect(screen.queryByText(/META_CONCLUIDA/)).toBeNull();
+  });
+
+  it("sem sinal, para no teto de 20 rodadas e avisa", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("/meta organizar o módulo");
+    for (let round = 1; round <= 20; round++) {
+      emit({ kind: "textDelta", text: "ainda não" });
+      emit({ kind: "done", ok: true });
+      await waitFor(() => expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(Math.min(round + 1, 20)));
+    }
+
+    expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(20);
+    expect(await screen.findByText(/não foi confirmada em 20 rodadas/)).toBeTruthy();
+  });
+
+  it("o ícone vale só para a mensagem em que foi ligado", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByLabelText("Modo /meta"));
+    await send("organizar o módulo");
+    expect(vi.mocked(api.sendPrompt).mock.calls[0][0].prompt).toContain("organizar o módulo");
+    emit({ kind: "textDelta", text: "feito\nMETA_CONCLUIDA" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    await send("oi");
+    expect(vi.mocked(api.sendPrompt).mock.calls[1][0].prompt).not.toContain("META_CONCLUIDA");
+    expect(screen.getByLabelText("Modo /meta").getAttribute("aria-pressed")).toBe("false");
+  });
+});
+
+describe("ChatView: Parar encerra o /meta sem nova rodada", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("parar no meio do /meta não envia a próxima rodada", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("/meta organizar o módulo");
+    fireEvent.click(screen.getByLabelText("Parar"));
+    emit({ kind: "textDelta", text: "ainda não" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(1);
+  });
+});
