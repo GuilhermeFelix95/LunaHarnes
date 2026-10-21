@@ -230,3 +230,4 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Navegador: abas escondidas continuam vivas (só suspensas quando o usuário liga a economia de memória da aba, botão em cada aba); limite subiu de 6 para 8 abas (browser.rs e BrowserPanel.tsx). Branch feat/navegador-modo.
 2026-10-20 | Navegador: bloqueador de anúncios ligado por padrão (src-tauri/src/adblock.rs, filtro WebResourceRequested por lista de domínios), com botão de pausa na barra de endereço. Verificação no app pendente. Branch feat/navegador-modo.
 2026-10-20 | Navegador: tradução da página para português pela tradução do Google (src-tauri/src/translate.rs), com botão de voltar ao original na barra de endereço. Branch feat/navegador-modo.
+2026-10-20 | Animação do modo navegador trocada: a onda de cor sai do botão de modo (clip-path e opacidade, sem filtro). Verificação visual no app pendente. Branch feat/navegador-modo.

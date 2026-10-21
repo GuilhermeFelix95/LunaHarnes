@@ -45,4 +45,12 @@ describe("coluna do chat estreita (sidebar do agente)", () => {
   it("o cabeçalho do chat some no modo navegador, para a página ganhar a altura toda", () => {
     expect(blockAfter(".chat--browser .chat__header {")).toContain("display: none;");
   });
+
+  it("a transição do modo navegador anima só clip-path e opacidade, sem filtro que repinta a página a cada quadro", () => {
+    for (const name of ["mode-warp-in", "mode-warp-out"]) {
+      const frames = blockAfter(`@keyframes ${name} {`);
+      expect(frames).toContain("clip-path");
+      expect(frames).not.toMatch(/filter|transform/);
+    }
+  });
 });

@@ -4019,15 +4019,15 @@ textarea:focus-visible {
   line-height: 1.4;
 }
 
-/* Efeito de portal do modo navegador: anéis que se abrem a partir do centro ao entrar e se fecham ao sair */
+/* Transição do modo navegador: uma onda de cor que cresce a partir do botão de modo, na sidebar, e se recolhe ao sair.
+   Só clip-path e opacidade animam, então não há repintura da página a cada quadro. */
 .mode-warp {
   position: fixed;
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  background: repeating-radial-gradient(circle at 50% 50%, rgb(122 162 255 / 0.22) 0 2px, transparent 2px 34px);
-  mix-blend-mode: screen;
-  will-change: transform, opacity, filter;
+  background: radial-gradient(circle at 8% 88%, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 65%);
+  will-change: clip-path, opacity;
 }
 
 .mode-warp--in {
@@ -4040,36 +4040,28 @@ textarea:focus-visible {
 
 @keyframes mode-warp-in {
   0% {
-    opacity: 0;
-    transform: scale(0.3);
-    filter: hue-rotate(0deg) blur(6px);
+    opacity: 1;
+    clip-path: circle(0% at 8% 88%);
   }
 
-  45% {
+  70% {
     opacity: 1;
   }
 
   100% {
     opacity: 0;
-    transform: scale(1.5);
-    filter: hue-rotate(140deg) blur(0);
+    clip-path: circle(150% at 8% 88%);
   }
 }
 
 @keyframes mode-warp-out {
   0% {
-    opacity: 0;
-    transform: scale(1.5);
-    filter: hue-rotate(140deg) blur(0);
-  }
-
-  45% {
     opacity: 1;
+    clip-path: circle(150% at 8% 88%);
   }
 
   100% {
     opacity: 0;
-    transform: scale(0.3);
-    filter: hue-rotate(0deg) blur(6px);
+    clip-path: circle(0% at 8% 88%);
   }
 }
