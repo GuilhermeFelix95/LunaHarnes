@@ -78,6 +78,9 @@ function hostnameOf(url: string): string {
   }
 }
 
+/// Painel que mostra a webview global agora (null = nenhum).
+let browserOwner: object | null = null;
+
 /// Navegador embutido, com várias abas. Cada aba é uma webview filha da janela, então não usa iframe e funciona com sites que bloqueiam iframes.
 export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: BrowserPanelProps) {
   const area = useRef<HTMLDivElement>(null);
@@ -143,13 +146,22 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
   }, [openRequest]);
 
   // Mostra a página da aba ativa quando a aba do painel está à vista e esconde quando sai.
+  // A webview é uma só para o app: só o painel que a mostra pode escondê-la, senão uma conversa inativa apaga a página de outra.
+  const ownerToken = useRef({}).current;
   useEffect(() => {
     if (!active) {
-      browserShow(false).catch(() => {});
+      if (browserOwner === null || browserOwner === ownerToken) {
+        browserOwner = null;
+        browserShow(false).catch(() => {});
+      }
       return;
     }
+    browserOwner = ownerToken;
     browserShow(true).catch(() => {});
-  }, [active, current]);
+  }, [active, current, ownerToken]);
+  useEffect(() => () => {
+    if (browserOwner === ownerToken) browserOwner = null;
+  }, [ownerToken]);
 
   // Acompanha a área com a webview: muda com o tamanho do painel e da janela.
   // Um ajuste por quadro: a animação do painel dispara o ResizeObserver a cada quadro, e cada pedido ao Rust move a webview.
