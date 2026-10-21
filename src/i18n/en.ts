@@ -670,6 +670,8 @@ export const en: Record<MessageKey, string> = {
   "browser.economy": "Save memory for {title}",
   "browser.economyOnHint": "Memory saving on: the tab is suspended while hidden",
   "browser.economyOffHint": "Memory saving off: the tab keeps running in the background",
+  "browser.adblockOn": "Ad blocker on",
+  "browser.adblockOff": "Ad blocker paused",
   "browser.bookmarkAdd": "Save to favorites",
   "browser.bookmarkRemove": "Remove from favorites",
   "browser.bookmarksAria": "Favorites",

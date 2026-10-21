@@ -302,6 +302,13 @@ export interface BrowserTab {
 export interface BrowserState {
   tabs: BrowserTab[];
   active: number | null;
+  /** Bloqueador de anúncios ligado (padrão) ou pausado. */
+  adblock: boolean;
+}
+
+/// Liga ou pausa o bloqueador de anúncios, em todas as abas.
+export function browserSetAdblock(on: boolean): Promise<void> {
+  return invoke("browser_set_adblock", { on });
 }
 
 /// Abre uma aba nova (em branco sem endereço) e a torna a ativa. Devolve o id.

@@ -204,6 +204,7 @@ fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
         if let Err(e) = enable_password_autosave(&view) {
             logfile::error(&format!("não foi possível ligar o salvamento de senha da aba {id}: {e}"));
         }
+        crate::adblock::install(&view);
     }
     show_only(app, id)?;
     if !visible {
@@ -393,6 +394,8 @@ pub struct TabInfo {
 pub struct BrowserState {
     pub tabs: Vec<TabInfo>,
     pub active: Option<u32>,
+    /// Bloqueador de anúncios ligado (padrão) ou pausado pelo usuário.
+    pub adblock: bool,
 }
 
 #[tauri::command]
@@ -414,7 +417,13 @@ pub fn browser_state() -> Result<BrowserState, String> {
             economize: economy.contains(&id),
         })
         .collect();
-    Ok(BrowserState { tabs, active })
+    Ok(BrowserState { tabs, active, adblock: crate::adblock::is_enabled() })
+}
+
+/// Liga ou pausa o bloqueador de anúncios. Vale para todas as abas, na hora.
+#[tauri::command]
+pub fn browser_set_adblock(on: bool) {
+    crate::adblock::set_enabled(on);
 }
 
 /// Liga ou desliga a economia de memória de uma aba. Ligada, a aba é suspensa quando fica escondida.

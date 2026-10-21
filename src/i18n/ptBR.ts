@@ -668,6 +668,8 @@ export const ptBR = {
   "browser.economy": "Economizar memória de {title}",
   "browser.economyOnHint": "Economia ligada: a aba é suspensa quando fica escondida",
   "browser.economyOffHint": "Economia desligada: a aba segue ativa em segundo plano",
+  "browser.adblockOn": "Bloqueador de anúncios ligado",
+  "browser.adblockOff": "Bloqueador de anúncios pausado",
   "browser.bookmarkAdd": "Salvar nos favoritos",
   "browser.bookmarkRemove": "Tirar dos favoritos",
   "browser.bookmarksAria": "Favoritos",

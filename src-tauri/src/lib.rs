@@ -1,4 +1,5 @@
 pub mod accounts;
+pub mod adblock;
 pub mod api_profiles;
 pub mod auth;
 pub mod browser;
@@ -128,6 +129,7 @@ pub fn run() {
             browser::browser_reload,
             browser::browser_close_tab,
             browser::browser_set_economy,
+            browser::browser_set_adblock,
             browser::browser_read,
             commands::get_file_diff,
             commands::discard_change,

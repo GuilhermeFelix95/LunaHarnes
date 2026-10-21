@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Globe, History, Leaf, Plus, RotateCw, Star, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, History, Leaf, Plus, RotateCw, ShieldCheck, ShieldOff, Star, X } from "lucide-react";
 import {
   browserBookmarkAdd,
   browserBookmarkRemove,
@@ -11,6 +11,7 @@ import {
   browserNewTab,
   browserReload,
   browserSetBounds,
+  browserSetAdblock,
   browserSetEconomy,
   browserShow,
   browserState,
@@ -76,6 +77,8 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
   const [error, setError] = useState<string | undefined>(undefined);
   // Histórico do app: as visitas só são pedidas quando o botão abre a lista.
   const [visits, setVisits] = useState<BrowserVisit[] | null>(null);
+  // Bloqueador de anúncios: começa ligado; a pausa vale para todas as abas.
+  const [adblock, setAdblock] = useState(true);
 
   const currentTab = tabs.find((tab) => tab.id === current) ?? null;
   const currentBookmark = currentTab ? bookmarks.find((b) => b.url === currentTab.url) : undefined;
@@ -87,6 +90,7 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
         setTabs(state.tabs);
         setCurrent(state.active);
         setAddress(state.tabs.find((tab) => tab.id === state.active)?.url ?? "");
+        setAdblock(state.adblock);
       },
       () => {},
     );
@@ -205,6 +209,18 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
       await browserSwitchTab(tab.id, box);
       setCurrent(tab.id);
       setAddress(tab.url);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  /// Pausa ou religa o bloqueador de anúncios para todas as abas.
+  async function toggleAdblock() {
+    setError(undefined);
+    const next = !adblock;
+    try {
+      await browserSetAdblock(next);
+      setAdblock(next);
     } catch (err) {
       setError(String(err));
     }
@@ -384,6 +400,16 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
           onClick={() => void toggleVisits()}
         >
           <History size={14} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={`browser__btn${adblock ? " browser__btn--on" : ""}`}
+          aria-pressed={adblock}
+          aria-label={adblock ? t("browser.adblockOn") : t("browser.adblockOff")}
+          title={adblock ? t("browser.adblockOn") : t("browser.adblockOff")}
+          onClick={() => void toggleAdblock()}
+        >
+          {adblock ? <ShieldCheck size={14} aria-hidden="true" /> : <ShieldOff size={14} aria-hidden="true" />}
         </button>
       </form>
 

@@ -11,6 +11,7 @@ vi.mock("../../api", () => ({
   browserSwitchTab: vi.fn(async () => {}),
   browserCloseTab: vi.fn(async () => null),
   browserSetEconomy: vi.fn(async () => {}),
+  browserSetAdblock: vi.fn(async () => {}),
   browserState: vi.fn(async () => ({ tabs: [], active: null })),
   browserNavigate: vi.fn(async (url: string) => `https://${url}/`),
   browserHistory: vi.fn(async () => {}),
@@ -376,5 +377,31 @@ describe("BrowserPanel: economia de memória e limite de abas", () => {
 
     await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(8));
     expect(button("Nova aba").disabled).toBe(true);
+  });
+});
+
+describe("BrowserPanel: bloqueador de anúncios", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("vem ligado e pode ser pausado e religado, com o estado anunciado", async () => {
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null, adblock: true });
+    render(<BrowserPanel active openRequest={null} />);
+
+    const on = await screen.findByRole("button", { name: "Bloqueador de anúncios ligado" });
+    expect(on.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(on);
+
+    await waitFor(() => expect(api.browserSetAdblock).toHaveBeenCalledWith(false));
+    expect(screen.getByRole("button", { name: "Bloqueador de anúncios pausado" }).getAttribute("aria-pressed")).toBe("false");
   });
 });
