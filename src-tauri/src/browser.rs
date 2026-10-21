@@ -421,7 +421,7 @@ pub fn browser_state() -> Result<BrowserState, String> {
 }
 
 /// Liga ou pausa o bloqueador de anúncios. Vale para todas as abas, na hora.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_set_adblock(on: bool) {
     crate::adblock::set_enabled(on);
 }
@@ -441,7 +441,7 @@ pub fn browser_translate(on: bool) -> Result<String, String> {
 }
 
 /// Liga ou desliga a economia de memória de uma aba. Ligada, a aba é suspensa quando fica escondida.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn browser_set_economy(tab_id: u32, economize: bool) -> Result<(), String> {
     let mut tabs = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?;
     if !tabs.set_economy(tab_id, economize) {
