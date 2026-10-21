@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import { ArrowUp, Gauge, Paperclip, Square, Target, X } from "lucide-react";
 import type { Account, ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
@@ -34,9 +34,15 @@ const ORIGIN_KEYS: Record<SlashOrigin, MessageKey> = {
 
 const MAX_HEIGHT_PX = 200;
 
+/// Ponte para a conversa pôr texto no campo (sugestão, comando ou arquivo escolhido, volta no tempo).
+export interface ComposerHandle {
+  setValue(value: string): void;
+}
+
 interface ComposerProps {
-  draft: string;
+  /** Recebe cada tecla digitada. O texto em si fica no composer. */
   onDraft: (value: string) => void;
+  composerRef?: Ref<ComposerHandle>;
   onSend: () => void;
   onStop: () => void;
   running: boolean;
@@ -93,7 +99,9 @@ interface ComposerProps {
 
 /// Caixa de mensagem com Enter para enviar, Shift+Enter para quebrar linha e os seletores embaixo.
 export function Composer(props: ComposerProps) {
-  const { draft, onDraft, onSend, onStop, running, blocked } = props;
+  const { onDraft, onSend, onStop, running, blocked } = props;
+  const [draft, setDraft] = useState("");
+  useImperativeHandle(props.composerRef, () => ({ setValue: setDraft }), []);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const hasAttachments = (props.attachments?.length ?? 0) + (props.fileAttachments?.length ?? 0) > 0;
   const canSend = (draft.trim().length > 0 || hasAttachments) && !blocked && !running;
@@ -224,7 +232,10 @@ export function Composer(props: ComposerProps) {
         aria-label={t("composer.messageAria")}
         placeholder={props.planning ? t("composer.placeholderPlan") : t("composer.placeholderChat")}
         value={draft}
-        onChange={(e) => onDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          onDraft(e.target.value);
+        }}
         onKeyDown={handleKeyDown}
         onPaste={(e) => {
           const images = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));

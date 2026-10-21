@@ -22,6 +22,11 @@ describe("remodelação do chat", () => {
     expect(blockAfter(".composer__footer {")).toContain("border-top: 1px solid var(--border)");
     expect(blockAfter(".messages {")).toContain("gap: 28px");
   });
+
+  it("a escrita e os balões usam leitura confortável: fonte de 15px no campo e entrelinha de 1.6 nos balões", () => {
+    expect(blockAfter(".composer textarea {")).toContain("font-size: 15px");
+    expect(blockAfter(".message__bubble {")).toContain("line-height: 1.6");
+  });
 });
 
 /// Corpo de uma regra, do `{` que segue o seletor até o `}` que fecha.

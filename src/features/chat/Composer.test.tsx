@@ -1,6 +1,7 @@
+import { act, createRef } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Composer } from "./Composer";
+import { Composer, type ComposerHandle } from "./Composer";
 
 const effort = (id: string, label: string, recommended = false) => ({ id, label, recommended });
 
@@ -21,9 +22,12 @@ const CLAUDE_MODELS = [
   },
 ];
 
-function setup(overrides: Partial<Parameters<typeof Composer>[0]> = {}) {
+/// O texto inicial entra pela ponte, como a conversa faz ao sugerir ou escolher algo.
+function setup(overrides: Partial<Parameters<typeof Composer>[0]> & { draft?: string } = {}) {
+  const { draft = "olá", ...rest } = overrides;
+  const composerRef = createRef<ComposerHandle>();
   const props = {
-    draft: "olá",
+    composerRef,
     onDraft: vi.fn(),
     onSend: vi.fn(),
     onStop: vi.fn(),
@@ -47,13 +51,29 @@ function setup(overrides: Partial<Parameters<typeof Composer>[0]> = {}) {
     modes: [] as { id: string; label: string; description: string; instruction: string; permission: "readOnly" }[],
     mode: "",
     onMode: vi.fn(),
-    ...overrides,
+    ...rest,
   };
   render(<Composer {...props} />);
+  act(() => composerRef.current?.setValue(draft));
   return props;
 }
 
 describe("Composer", () => {
+  it("digitar guarda o texto no próprio campo e avisa a conversa a cada tecla", () => {
+    const props = setup({ draft: "" });
+    const field = screen.getByLabelText("Mensagem");
+    fireEvent.change(field, { target: { value: "oi" } });
+
+    expect((field as HTMLTextAreaElement).value).toBe("oi");
+    expect(props.onDraft).toHaveBeenCalledWith("oi");
+  });
+
+  it("a conversa põe texto no campo pela ponte", () => {
+    setup({ draft: "/plano " });
+
+    expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).value).toBe("/plano ");
+  });
+
   it("Enter envia a mensagem", () => {
     const props = setup();
     fireEvent.keyDown(screen.getByLabelText("Mensagem"), { key: "Enter" });

@@ -764,8 +764,8 @@
 
 .message__bubble {
   max-width: 80%;
-  padding: 10px 14px;
-  line-height: 1.5;
+  padding: 10px 16px;
+  line-height: 1.6;
   border: none;
   border-radius: var(--bubble-radius);
   background: var(--user-bubble);
@@ -1032,10 +1032,10 @@
   width: 100%;
   max-width: 768px;
   margin: 0 auto 16px;
-  padding: 10px 12px;
+  padding: 12px 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--composer-radius);
   background: var(--glass);
@@ -1054,6 +1054,9 @@
   min-height: 24px;
   max-height: 200px;
   padding: 4px 12px;
+  /* Tamanho de leitura para o texto que a pessoa escreve */
+  font-size: 15px;
+  line-height: 1.5;
   /* Teto de 12px: o raio do formato não recorta o texto nas bordas */
   border-radius: min(var(--input-radius), 12px);
   overflow-wrap: normal;
