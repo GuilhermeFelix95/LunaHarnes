@@ -26,6 +26,14 @@ describe("animações das Configurações", () => {
     expect(componentsCss).toContain("@keyframes settings-pane-in");
   });
 
+  it("o indicador do menu desliza com os tokens de movimento", () => {
+    const block = componentsCss.match(/\.settings-nav__indicator\s*\{[^}]*\}/)?.[0] ?? "";
+
+    expect(block).toContain("transition:");
+    expect(block).toContain("var(--dur)");
+    expect(block).toContain("var(--ease)");
+  });
+
   it("movimento reduzido zera as animações pelo token global", () => {
     expect(tokensCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(tokensCss).toContain("animation-duration: 0.01ms !important");

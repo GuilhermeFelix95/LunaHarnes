@@ -233,3 +233,5 @@ Formato: `AAAA-MM-DD | o que mudou` (ordem cronológica, linhas antigas nunca s�
 2026-10-20 | Animação do modo navegador trocada: a onda de cor sai do botão de modo (clip-path e opacidade, sem filtro). Verificação visual no app pendente. Branch feat/navegador-modo.
 =======
 2026-10-20 | Modo /meta (comando e ícone ao lado do anexar) repete o pedido até o agente sinalizar META_CONCLUIDA, com teto de 20 rodadas e parada; campo e botão Criar do menu de branch seguem o tema. Branch feat/meta-e-ajustes-branch.
+=======
+2026-10-20 | Indicador deslizante no menu de Configurações: um span decorativo acompanha o item ativo (medido na troca de seção e no resize) e desliza com `--dur`/`--ease`; em janelas estreitas o menu vira linha e o indicador some. Branch feat/animacao-indicador-config, a partir da main.

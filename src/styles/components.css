@@ -3664,7 +3664,31 @@ textarea:focus-visible {
   top: 0;
 }
 
+/* Indicador que desliza até o item ativo (posição e altura vêm do componente). */
+.settings-nav__indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  border-radius: var(--button-radius);
+  background: var(--bg-sidebar);
+  box-shadow: inset 3px 0 0 var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dur) var(--ease),
+    height var(--dur) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.settings-nav[data-indicator="on"] .settings-nav__indicator {
+  opacity: 1;
+}
+
 .settings-nav__item {
+  position: relative;
+  z-index: 1;
   text-align: left;
   padding: 8px 12px;
   border: 0;
@@ -3683,7 +3707,7 @@ textarea:focus-visible {
 
 .settings-nav__item[aria-current="page"] {
   color: var(--fg);
-  background: var(--bg-sidebar);
+  background: transparent;
   font-weight: 600;
 }
 
@@ -3751,6 +3775,15 @@ textarea:focus-visible {
     flex-direction: row;
     flex-wrap: wrap;
     position: static;
+  }
+
+  /* No menu em linha o indicador vertical não se aplica: o item ativo volta a ter fundo próprio. */
+  .settings-nav__indicator {
+    display: none;
+  }
+
+  .settings-nav__item[aria-current="page"] {
+    background: var(--bg-sidebar);
   }
 }
 
