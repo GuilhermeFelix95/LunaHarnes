@@ -64,3 +64,49 @@ describe("Configurações > Orquestrador", () => {
     expect(listModels).not.toHaveBeenCalledWith("claude");
   });
 });
+
+describe("Configurações > Orquestrador > esforço do modelo", () => {
+  const withEfforts = [
+    { id: "gpt-5.5", label: "GPT-5.5", description: null, default: true, efforts: [
+      { id: "low", label: "Low", recommended: false },
+      { id: "high", label: "High", recommended: true },
+    ] },
+    { id: "plain", label: "Plain", description: null, default: false, efforts: [] },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(listModels).mockImplementation(async () => withEfforts);
+  });
+
+  it("o campo de esforço aparece só para modelo que tem níveis e grava a escolha", async () => {
+    vi.mocked(getOrchestrator).mockResolvedValue({});
+    render(<OrchestratorSection />);
+    const planProvider = (await screen.findAllByRole("combobox"))[0];
+    fireEvent.change(planProvider, { target: { value: "codex" } });
+    await waitFor(() => expect(listModels).toHaveBeenCalledWith("codex"));
+
+    fireEvent.change((await screen.findAllByRole("combobox", { name: "Modelo" }))[0], { target: { value: "gpt-5.5" } });
+    const effort = (await screen.findByRole("combobox", { name: "Esforço" })) as HTMLSelectElement;
+    expect(Array.from(effort.querySelectorAll("option")).map((o) => o.textContent)).toEqual(["Padrão do modelo", "Low", "High"]);
+
+    fireEvent.change(effort, { target: { value: "high" } });
+    await waitFor(() =>
+      expect(saveOrchestrator).toHaveBeenLastCalledWith({ plan: { provider: "codex", model: "gpt-5.5", effort: "high" } }),
+    );
+  });
+
+  it("trocar para um modelo sem níveis limpa o esforço escolhido", async () => {
+    vi.mocked(getOrchestrator).mockResolvedValue({ plan: { provider: "codex", model: "gpt-5.5", effort: "high" } });
+    render(<OrchestratorSection />);
+    await waitFor(() => expect(listModels).toHaveBeenCalledWith("codex"));
+
+    fireEvent.change(await screen.findByRole("combobox", { name: "Modelo" }), { target: { value: "plain" } });
+
+    expect(screen.queryByRole("combobox", { name: "Esforço" })).toBeNull();
+    await waitFor(() => expect(saveOrchestrator).toHaveBeenCalled());
+    const saved = vi.mocked(saveOrchestrator).mock.calls.at(-1)?.[0];
+    expect(saved?.plan?.model).toBe("plain");
+    expect(saved?.plan?.effort).toBeUndefined();
+  });
+});

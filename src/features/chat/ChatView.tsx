@@ -76,7 +76,7 @@ import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
 import { BrowserPanel } from "../side/BrowserPanel";
 import { RightPanel, type SideTab } from "../side/RightPanel";
-import { TerminalPanel } from "../terminal/TerminalPanel";
+import { TerminalTabs } from "../terminal/TerminalTabs";
 import { Composer, PROVIDER_LABELS } from "./Composer";
 import { MessageList } from "./MessageList";
 import { QuestionPicker } from "./QuestionPicker";
@@ -1364,7 +1364,7 @@ ${outgoing}`
         plan={plan}
         todos={displayTodos(toTodos(tasks), running)}
         running={running}
-        terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
+        terminal={terminalOpened && cwd ? <TerminalTabs key={cwd} cwd={cwd} /> : null}
         browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} openRequest={browserRequest} />}
       />
       </div>

@@ -1,40 +1,37 @@
-# Branch criada pelo chat, destaque da branch atual e miniatura de imagem no histórico
+# Abas de terminal e esforço do modelo no orquestrador
 
 ## Problem Statement
 
-Três problemas afetam o uso diário do chat com projetos git:
+O terminal embutido no chat abre um único shell por vez. Quem precisa rodar dois comandos em paralelo, ou manter um shell de apoio enquanto trabalha em outro, precisa fechar o terminal atual para usar o outro.
 
-- Quando o agente cria ou troca de branch pelo chat, o menu de branch não mostra a branch nova e a barra continua indicando a branch antiga. O usuário precisa trocar de pasta ou reabrir o app para ver o estado real do repositório.
-- No menu de branch, a branch atual não se destaca das outras, então é difícil saber em qual branch a conversa está.
-- Quando o usuário envia uma imagem, a miniatura aparece só durante o envio. Depois que a resposta chega, ela some do histórico, e some também ao recarregar a conversa.
-
-Há ainda um quarto ponto ligado ao plano: etapas que o agente deixa em andamento ao fim de um turno ficam marcadas no painel de progresso, mesmo com o trabalho feito.
+No orquestrador, cada papel (planejamento, execução, conversa e subagente das etapas) escolhe motor e modelo, mas não há como escolher o nível de esforço. O modelo já aceita esse valor, então o usuário fica preso ao padrão, sem controle sobre custo e profundidade de raciocínio.
 
 ## Solution
 
-O estado de branch passa a ser relido nos momentos em que ele pode ter mudado: ao fim do turno, quando um comando do agente termina e quando o usuário abre o menu de branch. A branch atual ganha destaque visual no menu. A mensagem do usuário guarda os caminhos das imagens enviadas, e o balão mostra a miniatura carregando a imagem da pasta de anexos do app. A instrução de aprovação do plano passa a pedir que o agente conclua todas as etapas antes de terminar.
+O painel de terminal ganha um botão para abrir outro terminal. Cada terminal vira uma aba dentro do painel. Trocar de aba não encerra os shells das outras abas, e fechar uma aba encerra apenas o shell dela. O número de terminais abertos ao mesmo tempo é limitado a quatro, e o pedido de um quinto é recusado com uma mensagem clara.
+
+Na tela do orquestrador, cada papel ganha um campo de esforço. O campo aparece somente quando o modelo escolhido tem níveis de esforço. Sem escolha, vale o padrão do modelo. Quando o esforço escolhido vale para o subagente das etapas, ele passa a ser levado ao subagente também.
 
 ## User Stories
 
-1. Como usuário, quero que uma branch criada pelo agente no chat apareça no menu de branch assim que o comando termina, para escolher ou conferir sem sair da conversa.
-2. Como usuário, quero que a barra de branch mostre a branch em que o agente está trabalhando, para não achar que a conversa ainda está na main quando não está.
-3. Como usuário, quero ver claramente qual branch está marcada como atual no menu, para distinguir a atual das demais.
-4. Como usuário, quero que a imagem que enviei continue aparecendo no histórico, na mensagem em que a enviei, mesmo depois de recarregar a conversa.
-5. Como usuário, quero que, quando a imagem não estiver mais disponível, o histórico mostre um aviso curto no lugar, sem quebrar a conversa.
-6. Como usuário, quero que o agente marque todas as etapas do plano como concluídas antes de terminar, para o painel de progresso refletir o trabalho feito.
+1. Como usuário, quero abrir mais de um terminal no painel do chat, para rodar comandos em paralelo.
+2. Como usuário, quero trocar entre os terminais abertos sem perder o histórico ou o estado de nenhum deles.
+3. Como usuário, quero fechar um terminal sem afetar os outros.
+4. Como usuário, quero ser avisado de forma clara quando já há quatro terminais abertos.
+5. Como usuário, quero escolher o nível de esforço de cada papel do orquestrador.
+6. Como usuário, quero que o campo de esforço só apareça quando o modelo escolhido realmente tem níveis.
+7. Como usuário, quero que o subagente das etapas use o esforço que escolhi para o papel dele.
 
 ## Implementation Decisions
 
 - O frontend é React com TypeScript. Os estilos são arquivos CSS do próprio projeto, sem framework de estilos.
-- O backend do app é Tauri 2 com Rust. Comandos novos seguem o mesmo padrão dos comandos já existentes: validação do lado Rust, retorno de erro com mensagem clara e registro no mesmo ponto de entrada.
-- Nenhum comando novo aceita caminho arbitrário: a leitura de imagem só alcança a pasta de anexos do próprio app.
-- Só imagens de tipo png, jpeg e webp são lidas. Há limite de tamanho por arquivo.
-- A lista de branches e a branch atual são relidas quando a pasta muda, ao fim de cada turno, ao abrir o menu de branch e quando um comando do agente termina.
-- Criar e listar worktrees continua igual. Muda só o momento em que o estado é relido.
-- A mensagem do usuário guarda somente os caminhos das imagens enviadas, não os bytes. Os bytes ficam na pasta de anexos e são lidos quando o balão é exibido.
-- Conversas salvas antes desta mudança não têm caminhos de imagem e não ganham miniatura.
-- O campo de imagens da mensagem é opcional, para que conversas antigas continuem sendo lidas sem migração.
-- A instrução de concluir etapas fica no texto de aprovação do plano. Nenhuma mudança automática no app marca etapas como concluídas.
+- O backend do app é Tauri 2 com Rust. A recusa do quinto terminal fica do lado Rust, com mensagem de erro clara, e vale mesmo que a interface falhe.
+- O limite de terminais simultâneos é quatro.
+- Cada aba é um shell real e independente. Trocar de aba mantém o shell vivo; fechar a aba encerra só o shell dela.
+- O campo de esforço é opcional por papel. A opção vazia significa usar o padrão do modelo escolhido.
+- O campo de esforço só é mostrado para modelos que informam níveis de esforço. Ao trocar para um modelo sem níveis, o esforço escolhido é descartado, como já acontece no seletor do chat.
+- O esforço do papel de subagente das etapas segue a mesma regra de exibição e de gravação dos outros papéis.
+- Os nomes dos níveis de esforço são os mesmos da CLI, com a tradução para o nome mostrado ao usuário vinda do catálogo de modelos.
 - Textos novos entram nos dicionários de português do Brasil e inglês.
 - Testes automatizados usam Vitest no frontend e cargo test no backend.
 
@@ -42,32 +39,28 @@ O estado de branch passa a ser relido nos momentos em que ele pode ter mudado: a
 
 Os testes verificam só o comportamento externo: o que o usuário vê e o que o backend devolve.
 
-- Depois de um turno em que o agente cria uma branch, o menu de branch lista a branch nova sem o usuário trocar de pasta.
-- Depois do mesmo turno, a barra de branch mostra a branch em que o agente está.
-- No menu de branch, a branch atual aparece destacada e marcada como atual para leitores de tela.
-- Ao abrir o menu de branch, a lista atual é carregada, mesmo que nada tenha mudado desde a última abertura.
-- Um caminho de imagem fora da pasta de anexos é recusado com uma mensagem clara.
-- Um arquivo de imagem válido na pasta de anexos volta como imagem para exibir.
-- Um arquivo que não é imagem, ou maior que o limite, é recusado.
-- Uma mensagem do usuário enviada com imagens mostra a miniatura no balão.
-- A mesma mensagem, carregada de novo da conversa salva, continua mostrando a miniatura.
-- Quando a imagem não existe mais, o balão mostra o aviso curto no lugar da miniatura, sem erro na tela.
-- A conversa salva antes da mudança abre normalmente, sem miniatura e sem erro.
-- O texto de aprovação do plano pede que todas as etapas sejam marcadas como concluídas antes do fim do turno.
-- Verificação manual: criar uma branch pelo chat e ver o menu atualizar com destaque; enviar uma imagem e ver a miniatura antes e depois de recarregar a conversa.
+- Abrir um segundo terminal mostra uma segunda aba com o seu próprio shell.
+- Com quatro terminais abertos, o controle para abrir outro aparece desabilitado e explica o motivo.
+- No backend, pedir um quinto terminal é recusado com mensagem clara, e os quatro existentes continuam funcionando.
+- No orquestrador, o campo de esforço aparece para um modelo com níveis e não aparece para um modelo sem níveis.
+- Trocar um papel de um modelo com níveis para um sem níveis faz o esforço escolhido desaparecer da tela.
+- Um esforço escolhido para o subagente das etapas chega ao backend; sem escolha, nada é enviado para o esforço.
+- Verificação manual: abrir dois terminais, trocar de aba sem perder o shell, fechar uma aba, tentar abrir o quinto; no orquestrador, escolher um modelo com níveis e outro sem níveis.
 
 ## Out of Scope
 
-- Miniaturas de imagens de conversas antigas: não há caminho guardado para recuperar.
-- Recuperar imagens cuja pasta de anexos foi apagada.
-- Fechar etapas automaticamente no app quando o agente não as fecha.
-- Mudanças em criação, remoção ou listagem de worktrees, além do momento de recarregar.
-- Cache de respostas, cache de prompt e plugin Cache de Tokens: são outra tarefa.
+- Dividir terminais lado a lado na mesma área.
+- Atalho de teclado para abrir terminal.
+- Salvar as abas de terminal entre sessões do app.
+- Alterar o catálogo de modelos e os níveis de esforço disponíveis.
+- Alterar o seletor de esforço do composer do chat.
+- Alterar o fluxo normal do turno do chat.
+- Subagentes em segundo plano, que são outro trabalho.
 - Publicação, push ou merge da branch.
 
 ## Further Notes
 
-- A branch de trabalho é fix/branch-imagem-progresso, criada a partir da main.
-- Os motores que não emitem o evento de comando concluído recebem a atualização ao fim do turno e ao abrir o menu.
-- Diferenças de comportamento entre motores (Claude, Codex e outros) são verificadas na execução com cada um, quando houver conta disponível.
-- A pasta de anexos é a mesma usada pelo envio de imagens; qualquer mudança nela afeta as miniaturas.
+- O trabalho fica numa branch criada a partir da main.
+- Cada terminal consome recursos do sistema como um shell comum. O limite de quatro existe para manter esse consumo previsível.
+- Fechar o app encerra todos os shells abertos, como acontece hoje.
+- A verificação manual depende do app rodando com o backend do Tauri.

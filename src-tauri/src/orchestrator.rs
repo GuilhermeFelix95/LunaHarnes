@@ -28,16 +28,18 @@ pub fn agents_path() -> Option<&'static Path> {
     AGENTS.get().map(PathBuf::as_path)
 }
 
-/// Texto do arquivo de `--agents`: um subagente só, com o modelo escolhido para o papel.
-pub fn agents_json(model: &str) -> String {
-    serde_json::json!({
-        SUBAGENT_NAME: {
-            "description": "Executa uma etapa do plano aprovado",
-            "prompt": "Você executa uma etapa delegada pela Luna. Faça só essa etapa, com as ferramentas disponíveis, e responda em uma ou duas frases com o resultado.",
-            "model": model
-        }
-    })
-    .to_string()
+/// Texto do arquivo de `--agents`: um subagente só, com o modelo e o esforço escolhidos para o papel.
+/// Sem esforço escolhido, o campo não vai ao arquivo e vale o padrão do modelo.
+pub fn agents_json(role: &RoleModel) -> String {
+    let mut definition = serde_json::json!({
+        "description": "Executa uma etapa do plano aprovado",
+        "prompt": "Você executa uma etapa delegada pela Luna. Faça só essa etapa, com as ferramentas disponíveis, e responda em uma ou duas frases com o resultado.",
+        "model": role.model
+    });
+    if let Some(effort) = &role.effort {
+        definition["effort"] = serde_json::Value::String(effort.clone());
+    }
+    serde_json::json!({ SUBAGENT_NAME: definition }).to_string()
 }
 
 /// Grava o subagente quando o papel está escolhido, e apaga o arquivo quando não está.
@@ -47,7 +49,7 @@ pub fn write_agents(dir: &Path, subagent: Option<&RoleModel>) -> Result<(), Stri
         Some(role) => {
             fs::create_dir_all(dir).map_err(|e| format!("não foi possível criar a pasta de dados: {e}"))?;
             let tmp = dir.join(format!("{AGENTS_FILE}.tmp"));
-            fs::write(&tmp, agents_json(&role.model)).map_err(|e| format!("não foi possível gravar {AGENTS_FILE}: {e}"))?;
+            fs::write(&tmp, agents_json(role)).map_err(|e| format!("não foi possível gravar {AGENTS_FILE}: {e}"))?;
             fs::rename(&tmp, &path).map_err(|e| format!("não foi possível salvar {AGENTS_FILE}: {e}"))
         }
         None => match fs::remove_file(&path) {
@@ -213,6 +215,20 @@ mod tests {
         assert_eq!(json[SUBAGENT_NAME]["model"], "claude-haiku-5-5");
         write_agents(&dir, None).unwrap();
         assert!(!dir.join(AGENTS_FILE).exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn subagent_file_carries_the_chosen_effort_only_when_there_is_one() {
+        let dir = temp_dir("subagente-esforco");
+        write_agents(&dir, Some(&choice(ProviderKind::Claude, "claude-haiku-5-5"))).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&fs::read_to_string(dir.join(AGENTS_FILE)).unwrap()).unwrap();
+        assert_eq!(json[SUBAGENT_NAME]["effort"], "high");
+
+        let no_effort = RoleModel { provider: ProviderKind::Claude, model: "claude-haiku-5-5".into(), effort: None, profile_id: None };
+        write_agents(&dir, Some(&no_effort)).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&fs::read_to_string(dir.join(AGENTS_FILE)).unwrap()).unwrap();
+        assert!(json[SUBAGENT_NAME].get("effort").is_none());
         let _ = fs::remove_dir_all(&dir);
     }
 
