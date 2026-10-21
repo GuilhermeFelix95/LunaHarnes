@@ -309,7 +309,11 @@ export function ChatView({
   const [agentOpen, setAgentOpen] = useState(false);
   const [agentResizing, setAgentResizing] = useState(false);
   useEffect(() => {
-    if (!browserMode) return;
+    if (!browserMode) {
+      // Voltar ao modo LunaCode fecha o painel direito, que era o navegador.
+      setSideOpen(false);
+      return;
+    }
     setSideOpen(true);
     setSideTab("browser");
     setAgentOpen(false);

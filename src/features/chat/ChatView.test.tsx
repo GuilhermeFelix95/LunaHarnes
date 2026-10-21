@@ -713,3 +713,15 @@ describe("ChatView: chat lateral no modo navegador", () => {
     expect(onExitBrowserMode).toHaveBeenCalledOnce();
   });
 });
+
+describe("ChatView: sair do modo navegador fecha o painel lateral", () => {
+  it("ao voltar ao modo normal, o painel direito fecha", async () => {
+    const { rerender } = render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).not.toContain("side--closed");
+
+    rerender(<ChatView onPersist={() => {}} browserMode={false} />);
+
+    expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).toContain("side--closed");
+  });
+});

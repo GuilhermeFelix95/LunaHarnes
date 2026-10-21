@@ -130,17 +130,24 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
   }, [active, current]);
 
   // Acompanha a área com a webview: muda com o tamanho do painel e da janela.
+  // Um ajuste por quadro: a animação do painel dispara o ResizeObserver a cada quadro, e cada pedido ao Rust move a webview.
   useEffect(() => {
     const el = area.current;
     if (current === null || !active || !el) return;
+    let frame = 0;
     function sync() {
-      if (el) browserSetBounds(measure(el)).catch((e) => setError(String(e)));
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (el) browserSetBounds(measure(el)).catch((e) => setError(String(e)));
+      });
     }
     sync();
     const observer = new ResizeObserver(sync);
     observer.observe(el);
     window.addEventListener("resize", sync);
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", sync);
     };

@@ -1204,7 +1204,7 @@ textarea:focus-visible {
 
 .chat--browser .side {
   order: 1;
-  animation: browser-mode-side calc(var(--dur) * 2) var(--ease) both;
+  animation: browser-mode-side calc(var(--dur) * 2.6) var(--ease-smooth) both;
 }
 
 /* Chat lateral: abre e fecha pela largura, no mesmo tempo da entrada do modo; a alça não anima para acompanhar o dedo */
@@ -1213,7 +1213,8 @@ textarea:focus-visible {
   position: relative;
   overflow: hidden;
   border-left: 1px solid var(--glass-border);
-  transition: width calc(var(--dur) * 2) var(--ease);
+  will-change: width;
+  transition: width calc(var(--dur) * 2.6) var(--ease-smooth);
 }
 
 .chat--browser .chat__column[data-resizing="true"] {

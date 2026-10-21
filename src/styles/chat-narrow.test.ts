@@ -36,8 +36,8 @@ describe("coluna do chat estreita (sidebar do agente)", () => {
   });
 
   it("a entrada do modo navegador dura o dobro do token e some com movimento reduzido", () => {
-    expect(blockAfter(".chat--browser .chat__column {")).toContain("calc(var(--dur) * 2)");
-    expect(blockAfter(".chat--browser .side {")).toContain("calc(var(--dur) * 2)");
+    expect(blockAfter(".chat--browser .chat__column {")).toContain("calc(var(--dur) * 2.6)");
+    expect(blockAfter(".chat--browser .side {")).toContain("calc(var(--dur) * 2.6)");
     // Movimento reduzido zera --dur em tokens.css, então a duração fica em 0.
     expect(read("./tokens.css")).toMatch(/--dur: 0ms;/);
   });

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../api";
 import { BrowserPanel } from "./BrowserPanel";
 
@@ -294,5 +294,33 @@ describe("Pesquisa pela barra de endereço", () => {
 
     fireEvent.click(within(dropdown).getByRole("button", { name: "exemplo.com" }));
     await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("https://exemplo.com/"));
+  });
+});
+
+describe("BrowserPanel: área acompanha o painel por quadro", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("vários ajustes no mesmo quadro viram um só pedido ao Rust", async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => frames.push(cb));
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [{ id: 1, url: "https://example.com/" }], active: 1 });
+
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(frames.length).toBeGreaterThan(0));
+    act(() => frames.splice(0).forEach((cb) => cb(0)));
+    vi.mocked(api.browserSetBounds).mockClear();
+
+    window.dispatchEvent(new Event("resize"));
+    window.dispatchEvent(new Event("resize"));
+    window.dispatchEvent(new Event("resize"));
+    expect(api.browserSetBounds).not.toHaveBeenCalled();
+
+    act(() => frames.splice(0).forEach((cb) => cb(0)));
+    expect(api.browserSetBounds).toHaveBeenCalledTimes(1);
+    expect(api.browserSetBounds).toHaveBeenCalledWith(BOUNDS);
   });
 });
