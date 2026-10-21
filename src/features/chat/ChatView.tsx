@@ -457,6 +457,8 @@ export function ChatView({
   const goalRef = useRef<{ condition: string; rounds: number } | null>(null);
   const goalDue = useRef<{ shown: string; prompt: string } | null>(null);
   const [goalOn, setGoalOn] = useState(false);
+  // Meta em andamento: o botão fica ligado durante as rodadas e desmarcá-lo encerra o laço.
+  const [goalActive, setGoalActive] = useState(false);
   // Parar no meio do turno: a verificação que ainda chegar não pede correção.
   const turnStopped = useRef(false);
   const body = useRef<HTMLDivElement>(null);
@@ -501,6 +503,18 @@ export function ChatView({
     toggleSide("terminal");
   }
 
+  /// Desmarcar o /meta: com a meta rodando, encerra as rodadas; antes do envio, só desliga o modo.
+  function toggleGoal() {
+    if (!goalActive) {
+      setGoalOn((on) => !on);
+      return;
+    }
+    goalRef.current = null;
+    goalDue.current = null;
+    setGoalActive(false);
+    setGoalOn(false);
+  }
+
   /// Parar não depende do CLI: se ele travou, nenhum `done` chega. A tela destrava já; o backend encerra o processo.
   function stopRun() {
     turnStopped.current = true;
@@ -508,6 +522,7 @@ export function ChatView({
     fixAttempts.current = AUTOFIX_MAX_ATTEMPTS;
     goalRef.current = null;
     goalDue.current = null;
+    setGoalActive(false);
     setRunning(false);
     // Parar não passa pelo `done`: a lista de alterações precisa ser lida de novo mesmo assim.
     setChangesVersion((v) => v + 1);
@@ -620,6 +635,7 @@ export function ChatView({
           return;
         }
         goalRef.current = null;
+        setGoalActive(false);
         // O marcador é só para a Luna: sai do texto que o usuário vê.
         const last = [...messagesRef.current].reverse().find((m) => m.role === "assistant");
         if (last) commit(messagesRef.current.map((m) => (m === last ? { ...m, text: stripGoalMarker(m.text) } : m)));
@@ -1181,7 +1197,10 @@ ${outgoing}`
     // /meta (comando ou ícone) vale só para este envio: a condição vira o pedido e o turno repete até o sinal.
     const goalCondition = luna?.id === "meta" ? luna.condition : goalOn ? prompt : null;
     setGoalOn(false);
-    if (goalCondition) goalRef.current = { condition: goalCondition, rounds: 0 };
+    if (goalCondition) {
+      goalRef.current = { condition: goalCondition, rounds: 0 };
+      setGoalActive(true);
+    }
     await run(prompt, goalCondition ? goalInstruction(goalCondition) : withFiles, planning, mode, imagePaths);
   }
 
@@ -1557,8 +1576,9 @@ ${outgoing}`
         onMode={setModeId}
         planning={planning}
         onTogglePlanning={() => setPlanning((on) => !on)}
-        goalOn={goalOn}
-        onToggleGoal={() => setGoalOn((on) => !on)}
+        goalOn={goalOn || goalActive}
+        goalActive={goalActive}
+        onToggleGoal={toggleGoal}
         slash={slashMatches}
         onPickSlash={pickSlash}
         accountsEnabled={accountsEnabled}

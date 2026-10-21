@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, Paperclip, Square, Target, X } from "lucide-react";
+import { ArrowUp, Paperclip, Square, X } from "lucide-react";
 import type { Account, ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
@@ -59,6 +59,8 @@ interface ComposerProps {
   onTogglePlanning: () => void;
   /** Modo /meta: vale só para a próxima mensagem. */
   goalOn?: boolean;
+  /** Meta em andamento: o botão segue habilitado durante a resposta, para desligar a meta. */
+  goalActive?: boolean;
   onToggleGoal?: () => void;
   /** Imagens anexadas (miniaturas) e os gestos para anexar e tirar. */
   attachments?: { id: number; url: string }[];
@@ -323,10 +325,10 @@ export function Composer(props: ComposerProps) {
             aria-label={t("composer.goalAria")}
             title={t("composer.goalAria")}
             aria-pressed={props.goalOn ?? false}
-            disabled={running}
+            disabled={running && !props.goalActive}
             onClick={props.onToggleGoal}
           >
-            <Target size={16} aria-hidden="true" />
+            {t("composer.goal")}
           </button>
           {running ? (
             <button type="submit" className="composer__action composer__action--stop" aria-label={t("composer.stop")}>

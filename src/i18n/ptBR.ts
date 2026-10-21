@@ -554,6 +554,7 @@ export const ptBR = {
   "composer.planningAria": "Modo de planejamento",
   "composer.plan": "Planejar",
   "composer.goalAria": "Modo /meta",
+  "composer.goal": "Meta",
   "goal.shown": "Meta: rodada {round} de {max}",
   "goal.gaveUp": "A meta não foi confirmada em {max} rodadas. Parei aqui.",
   "composer.stop": "Parar",

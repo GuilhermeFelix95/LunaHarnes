@@ -278,4 +278,24 @@ describe("Composer: modo /meta", () => {
     fireEvent.click(goal);
     expect(props.onToggleGoal).toHaveBeenCalledOnce();
   });
+
+  it("o botão mostra o nome Meta, como o Planejar, e não só um ícone", () => {
+    setup({ onToggleGoal: vi.fn() });
+    expect(screen.getByRole("button", { name: "Modo /meta" }).textContent).toBe("Meta");
+  });
+
+  it("durante uma resposta com a meta ativa, o botão segue habilitado para desligar a meta", () => {
+    const props = setup({ running: true, goalOn: true, goalActive: true, onToggleGoal: vi.fn() });
+    const goal = screen.getByRole("button", { name: "Modo /meta" });
+
+    expect((goal as HTMLButtonElement).disabled).toBe(false);
+    expect(goal.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(goal);
+    expect(props.onToggleGoal).toHaveBeenCalledOnce();
+  });
+
+  it("durante uma resposta sem meta ativa, o botão fica desabilitado", () => {
+    setup({ running: true, onToggleGoal: vi.fn() });
+    expect((screen.getByRole("button", { name: "Modo /meta" }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

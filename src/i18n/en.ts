@@ -551,6 +551,7 @@ export const en: Record<MessageKey, string> = {
   "composer.planningAria": "Planning mode",
   "composer.plan": "Plan",
   "composer.goalAria": "/meta mode",
+  "composer.goal": "Goal",
   "goal.shown": "Goal: round {round} of {max}",
   "goal.gaveUp": "The goal was not confirmed in {max} rounds. Stopped here.",
   "composer.stop": "Stop",

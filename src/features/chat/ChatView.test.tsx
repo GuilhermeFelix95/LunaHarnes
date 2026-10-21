@@ -887,3 +887,27 @@ describe("ChatView: Parar encerra o /meta sem nova rodada", () => {
     expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ChatView: desmarcar a meta durante a resposta encerra o /meta", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("com a meta ativa, o botão segue ligado e habilitado; desmarcar impede a próxima rodada", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("/meta organizar o módulo");
+    const goal = screen.getByRole("button", { name: "Modo /meta" }) as HTMLButtonElement;
+    expect(goal.disabled).toBe(false);
+    expect(goal.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(goal);
+    expect(screen.getByRole("button", { name: "Modo /meta" }).getAttribute("aria-pressed")).toBe("false");
+    emit({ kind: "textDelta", text: "ainda não" });
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+
+    expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(1);
+  });
+});

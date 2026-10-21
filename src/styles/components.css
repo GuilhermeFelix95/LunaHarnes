@@ -1092,6 +1092,7 @@
 
 /* Alternadores do composer (Planejar e modos de plugin): mesmo estilo, ligado = acento sólido */
 .composer__mode,
+.composer__goal,
 .composer__plan {
   padding: 4px 10px;
   border: 1px solid transparent;
@@ -1103,11 +1104,13 @@
 }
 
 .composer__mode:hover:not(:disabled),
+.composer__goal:hover:not(:disabled),
 .composer__plan:hover:not(:disabled) {
   color: var(--fg);
 }
 
 .composer__mode[aria-pressed="true"],
+.composer__goal[aria-pressed="true"],
 .composer__plan[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent);
