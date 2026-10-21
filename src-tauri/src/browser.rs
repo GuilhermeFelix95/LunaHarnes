@@ -426,6 +426,20 @@ pub fn browser_set_adblock(on: bool) {
     crate::adblock::set_enabled(on);
 }
 
+/// Traduz a página da aba ativa, ou volta ao original quando `on` é falso. Devolve o endereço que a aba passou a mostrar.
+#[tauri::command]
+pub fn browser_translate(on: bool) -> Result<String, String> {
+    let view = webview()?;
+    let current = view.url().map_err(|e| e.to_string())?;
+    let target = if on {
+        crate::translate::translate_url(&current)?
+    } else {
+        crate::translate::original_of(&current).ok_or("esta página não está traduzida")?
+    };
+    view.navigate(target.clone()).map_err(|e| e.to_string())?;
+    Ok(target.to_string())
+}
+
 /// Liga ou desliga a economia de memória de uma aba. Ligada, a aba é suspensa quando fica escondida.
 #[tauri::command]
 pub fn browser_set_economy(tab_id: u32, economize: bool) -> Result<(), String> {

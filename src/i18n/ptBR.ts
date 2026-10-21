@@ -670,6 +670,8 @@ export const ptBR = {
   "browser.economyOffHint": "Economia desligada: a aba segue ativa em segundo plano",
   "browser.adblockOn": "Bloqueador de anúncios ligado",
   "browser.adblockOff": "Bloqueador de anúncios pausado",
+  "browser.translate": "Traduzir página para português",
+  "browser.translateBack": "Mostrar página original",
   "browser.bookmarkAdd": "Salvar nos favoritos",
   "browser.bookmarkRemove": "Tirar dos favoritos",
   "browser.bookmarksAria": "Favoritos",

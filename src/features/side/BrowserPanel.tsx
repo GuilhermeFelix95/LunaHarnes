@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Globe, History, Leaf, Plus, RotateCw, ShieldCheck, ShieldOff, Star, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, History, Languages, Leaf, Plus, RotateCw, ShieldCheck, ShieldOff, Star, X } from "lucide-react";
 import {
   browserBookmarkAdd,
   browserBookmarkRemove,
@@ -14,6 +14,7 @@ import {
   browserSetAdblock,
   browserSetEconomy,
   browserShow,
+  browserTranslate,
   browserState,
   browserSwitchTab,
   browserVisits,
@@ -58,6 +59,16 @@ function tabLabel(tab: BrowserTab): string {
   }
 }
 
+/// Verdadeiro se a aba mostra a tradução do Google (a regra fica em `translate.rs`, no Rust).
+function isTranslated(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "translate.google.com" && parsed.pathname === "/translate";
+  } catch {
+    return false;
+  }
+}
+
 /// Nome curto de uma visita do histórico: o nome de domínio da página.
 function hostnameOf(url: string): string {
   try {
@@ -82,6 +93,7 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
 
   const currentTab = tabs.find((tab) => tab.id === current) ?? null;
   const currentBookmark = currentTab ? bookmarks.find((b) => b.url === currentTab.url) : undefined;
+  const translated = currentTab ? isTranslated(currentTab.url) : false;
 
   // Ao montar, lê as abas que já estão abertas (elas sobrevivem a fechar o painel) e os favoritos.
   useEffect(() => {
@@ -209,6 +221,19 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
       await browserSwitchTab(tab.id, box);
       setCurrent(tab.id);
       setAddress(tab.url);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  /// Traduz a página da aba atual, ou volta ao original quando já está traduzida.
+  async function toggleTranslate() {
+    if (!currentTab) return;
+    setError(undefined);
+    try {
+      const url = await browserTranslate(!isTranslated(currentTab.url));
+      setAddress(url);
+      setTabs((list) => list.map((tab) => (tab.id === current ? { ...tab, url } : tab)));
     } catch (err) {
       setError(String(err));
     }
@@ -400,6 +425,17 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
           onClick={() => void toggleVisits()}
         >
           <History size={14} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={`browser__btn${translated ? " browser__btn--on" : ""}`}
+          aria-pressed={translated}
+          aria-label={translated ? t("browser.translateBack") : t("browser.translate")}
+          title={translated ? t("browser.translateBack") : t("browser.translate")}
+          disabled={!currentTab?.url}
+          onClick={() => void toggleTranslate()}
+        >
+          <Languages size={14} aria-hidden="true" />
         </button>
         <button
           type="button"

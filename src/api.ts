@@ -306,6 +306,11 @@ export interface BrowserState {
   adblock: boolean;
 }
 
+/// Traduz a página da aba ativa, ou volta ao original quando `on` é falso. Devolve o endereço que a aba passou a mostrar.
+export function browserTranslate(on: boolean): Promise<string> {
+  return invoke("browser_translate", { on });
+}
+
 /// Liga ou pausa o bloqueador de anúncios, em todas as abas.
 export function browserSetAdblock(on: boolean): Promise<void> {
   return invoke("browser_set_adblock", { on });

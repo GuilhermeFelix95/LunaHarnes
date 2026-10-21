@@ -12,6 +12,7 @@ vi.mock("../../api", () => ({
   browserCloseTab: vi.fn(async () => null),
   browserSetEconomy: vi.fn(async () => {}),
   browserSetAdblock: vi.fn(async () => {}),
+  browserTranslate: vi.fn(async (on: boolean) => (on ? "https://translate.google.com/translate?sl=auto&tl=pt&u=https%3A%2F%2Fexample.com%2F" : "https://example.com/")),
   browserState: vi.fn(async () => ({ tabs: [], active: null })),
   browserNavigate: vi.fn(async (url: string) => `https://${url}/`),
   browserHistory: vi.fn(async () => {}),
@@ -38,13 +39,13 @@ function submit(text: string) {
 }
 
 function withTabs(tabs: { id: number; url: string }[], active: number | null) {
-  vi.mocked(api.browserState).mockResolvedValue({ tabs, active });
+  vi.mocked(api.browserState).mockResolvedValue({ tabs, active, adblock: true });
 }
 
 describe("BrowserPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null });
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null, adblock: true });
     vi.mocked(api.browserBookmarks).mockResolvedValue([]);
     vi.stubGlobal(
       "ResizeObserver",
@@ -237,7 +238,7 @@ describe("Pesquisa pela barra de endereço", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null });
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null, adblock: true });
     vi.mocked(api.browserBookmarks).mockResolvedValue([]);
     vi.stubGlobal(
       "ResizeObserver",
@@ -309,7 +310,7 @@ describe("BrowserPanel: área acompanha o painel por quadro", () => {
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => frames.push(cb));
     vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
-    vi.mocked(api.browserState).mockResolvedValue({ tabs: [{ id: 1, url: "https://example.com/" }], active: 1 });
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [{ id: 1, url: "https://example.com/" }], active: 1, adblock: true });
 
     render(<BrowserPanel active openRequest={null} />);
     await waitFor(() => expect(frames.length).toBeGreaterThan(0));
@@ -403,5 +404,32 @@ describe("BrowserPanel: bloqueador de anúncios", () => {
 
     await waitFor(() => expect(api.browserSetAdblock).toHaveBeenCalledWith(false));
     expect(screen.getByRole("button", { name: "Bloqueador de anúncios pausado" }).getAttribute("aria-pressed")).toBe("false");
+  });
+});
+
+describe("BrowserPanel: tradução da página", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("traduz a página atual e volta ao original quando pausada, com o estado anunciado", async () => {
+    withTabs([{ id: 1, url: "https://example.com/" }], 1);
+    render(<BrowserPanel active openRequest={null} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Traduzir página para português" }));
+    await waitFor(() => expect(api.browserTranslate).toHaveBeenCalledWith(true));
+    const back = await screen.findByRole("button", { name: "Mostrar página original" });
+    expect(back.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(back);
+    await waitFor(() => expect(api.browserTranslate).toHaveBeenLastCalledWith(false));
+    expect(await screen.findByRole("button", { name: "Traduzir página para português" })).toBeTruthy();
   });
 });
