@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // Node não tem tipos neste projeto: o módulo entra por nome em variável, sem resolver tipo no tsc.
