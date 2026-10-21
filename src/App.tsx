@@ -17,6 +17,7 @@ import type { CliStatus, Conversation, ConversationSummary } from "./types";
 import { t, useLocale } from "./i18n";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { Toaster } from "./ui/Toaster";
+import { ModeWarp, type ModeWarpRun } from "./ui/ModeWarp";
 import { loadLastWorkspace } from "./workspace";
 import { checkOnStartup } from "./updates";
 
@@ -59,6 +60,12 @@ export function App() {
   const [view, setView] = useState<"chat" | "settings">("chat");
   // Modo navegador: a tela vira um navegador e o chat fica numa sidebar lateral.
   const [browserMode, setBrowserMode] = useState(false);
+  // Efeito de entrada e saída do modo navegador; cada troca gera um id novo.
+  const [warp, setWarp] = useState<ModeWarpRun | null>(null);
+  function changeBrowserMode(on: boolean) {
+    setBrowserMode(on);
+    setWarp({ id: Date.now(), direction: on ? "in" : "out" });
+  }
 
   // CLIs que faltam no computador: abre a tela de instalação por cima do app (só na abertura).
   const [missingCli, setMissingCli] = useState<CliStatus[] | null>(null);
@@ -248,10 +255,11 @@ export function App() {
         browserMode={browserMode}
         onBrowserMode={(on) => {
           setView("chat");
-          setBrowserMode(on);
+          changeBrowserMode(on);
         }}
         error={listError}
       />
+      <ModeWarp run={warp} />
       <main className="app__main">
       {view === "settings" && <SettingsView onClose={() => setView("chat")} />}
       {chats.map((chat) => (
@@ -264,7 +272,7 @@ export function App() {
             onRunning={onRunning}
             visible={view === "chat" && chat.key === activeKey}
             browserMode={browserMode}
-            onExitBrowserMode={() => setBrowserMode(false)}
+            onExitBrowserMode={() => changeBrowserMode(false)}
           />
         </div>
       ))}

@@ -3982,3 +3982,58 @@ textarea:focus-visible {
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* Efeito de portal do modo navegador: anéis que se abrem a partir do centro ao entrar e se fecham ao sair */
+.mode-warp {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: repeating-radial-gradient(circle at 50% 50%, rgb(122 162 255 / 0.22) 0 2px, transparent 2px 34px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity, filter;
+}
+
+.mode-warp--in {
+  animation: mode-warp-in calc(var(--dur) * 3.5) var(--ease-smooth) both;
+}
+
+.mode-warp--out {
+  animation: mode-warp-out calc(var(--dur) * 3.5) var(--ease-smooth) both;
+}
+
+@keyframes mode-warp-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+    filter: hue-rotate(0deg) blur(6px);
+  }
+
+  45% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+    filter: hue-rotate(140deg) blur(0);
+  }
+}
+
+@keyframes mode-warp-out {
+  0% {
+    opacity: 0;
+    transform: scale(1.5);
+    filter: hue-rotate(140deg) blur(0);
+  }
+
+  45% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+    filter: hue-rotate(0deg) blur(6px);
+  }
+}
