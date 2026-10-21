@@ -57,6 +57,8 @@ export function App() {
   const nextKey = useRef(1);
   // O chat fica montado enquanto as configurações estão abertas, para não cortar uma resposta.
   const [view, setView] = useState<"chat" | "settings">("chat");
+  // Modo navegador: a tela vira um navegador e o chat fica numa sidebar lateral.
+  const [browserMode, setBrowserMode] = useState(false);
 
   // CLIs que faltam no computador: abre a tela de instalação por cima do app (só na abertura).
   const [missingCli, setMissingCli] = useState<CliStatus[] | null>(null);
@@ -243,6 +245,11 @@ export function App() {
         onRemoveProject={(cwd) => void removeProject(cwd)}
         onSettings={() => setView((v) => (v === "settings" ? "chat" : "settings"))}
         settingsOpen={view === "settings"}
+        browserMode={browserMode}
+        onBrowserMode={(on) => {
+          setView("chat");
+          setBrowserMode(on);
+        }}
         error={listError}
       />
       <main className="app__main">
@@ -256,6 +263,7 @@ export function App() {
             onPersist={(conversation) => onPersist(chat.key, conversation)}
             onRunning={onRunning}
             visible={view === "chat" && chat.key === activeKey}
+            browserMode={browserMode}
           />
         </div>
       ))}

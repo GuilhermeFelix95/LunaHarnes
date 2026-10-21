@@ -182,3 +182,30 @@ describe("Sidebar: largura pela alça", () => {
     expect(screen.getByRole("separator", { name: "Largura da barra lateral" }).getAttribute("aria-valuenow")).toBe("300");
   });
 });
+
+describe("Sidebar: modo navegador abaixo de Configurações", () => {
+  it("o botão fica logo abaixo de Configurações e liga o modo navegador", () => {
+    const onBrowserMode = vi.fn();
+    render(
+      <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} browserMode={false} onBrowserMode={onBrowserMode} />,
+    );
+
+    const settings = screen.getByRole("button", { name: /Configurações/ });
+    const browser = screen.getByRole("button", { name: "Modo navegador" });
+    expect(settings.compareDocumentPosition(browser) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(browser);
+    expect(onBrowserMode).toHaveBeenCalledWith(true);
+  });
+
+  it("com o modo ligado, o mesmo botão vira Modo LunaCode e volta ao normal", () => {
+    const onBrowserMode = vi.fn();
+    render(
+      <Sidebar conversations={items} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} browserMode onBrowserMode={onBrowserMode} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Modo LunaCode" }));
+    expect(onBrowserMode).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("button", { name: "Modo navegador" })).toBeNull();
+  });
+});

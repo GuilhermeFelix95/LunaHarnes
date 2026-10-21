@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TodoItem } from "../../types";
 import { clampWidth, RightPanel, WIDTH_KEY, type SideTab } from "./RightPanel";
 
-function setup(tab: SideTab = "changes", plan?: string, todos: TodoItem[] = [], extras?: { browserMode?: boolean; onBrowserMode?: (on: boolean) => void }) {
+function setup(tab: SideTab = "changes", plan?: string, todos: TodoItem[] = [], extras?: { browserMode?: boolean }) {
   const onTab = vi.fn();
   const onClose = vi.fn();
   render(
@@ -19,7 +19,6 @@ function setup(tab: SideTab = "changes", plan?: string, todos: TodoItem[] = [], 
       terminal={<p>shell</p>}
       browser={<p>página do navegador</p>}
       browserMode={extras?.browserMode ?? false}
-      onBrowserMode={extras?.onBrowserMode ?? (() => {})}
     />,
   );
   return { onTab, onClose };
@@ -164,33 +163,22 @@ describe("RightPanel", () => {
 });
 
 describe("Modo navegador", () => {
-  it("o botão liga o modo navegador e avisa quem mandou", () => {
-    const onBrowserMode = vi.fn();
-    setup("browser", undefined, [], { onBrowserMode });
-
-    fireEvent.click(screen.getByRole("button", { name: "Modo navegador" }));
-
-    expect(onBrowserMode).toHaveBeenCalledWith(true);
-  });
-
-  it("ligado, o botão fica pressionado e o painel ganha a classe expandida", () => {
+  it("o botão do modo saiu do painel: ele fica na sidebar", () => {
     setup("browser", undefined, [], { browserMode: true });
 
-    expect(screen.getByRole("button", { name: "Modo navegador" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).toContain("side--expanded");
+    expect(screen.queryByRole("button", { name: "Modo navegador" })).toBeNull();
   });
 
-  it("desligado, o botão fica solto e a classe não aparece", () => {
-    setup("changes");
+  it("ligado, o painel ganha a classe expandida", () => {
+    setup("browser", undefined, [], { browserMode: true });
 
-    expect(screen.getByRole("button", { name: "Modo navegador" }).getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).not.toContain("side--expanded");
+    expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).toContain("side--expanded");
   });
 });
 
 describe("RightPanel fechado", () => {  it("recolhe para largura zero e fica inerte, mas segue montado para a animação e o terminal", () => {
     render(
-      <RightPanel open={false} tab="changes" onTab={() => {}} onClose={() => {}} changes={<p>alterações</p>} todos={[]} running={false} terminal={<p>shell</p>} browser={<p>navegador</p>} browserMode={false} onBrowserMode={() => {}} />,
+      <RightPanel open={false} tab="changes" onTab={() => {}} onClose={() => {}} changes={<p>alterações</p>} todos={[]} running={false} terminal={<p>shell</p>} browser={<p>navegador</p>} browserMode={false} />,
     );
 
     const panel = screen.getByRole("complementary", { name: "Painel lateral" });

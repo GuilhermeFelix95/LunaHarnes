@@ -1190,29 +1190,36 @@ textarea:focus-visible {
   display: none;
 }
 
-/* Modo navegador: botão flutuante que devolve o chat; o painel alarga enquanto estiver ligado */
-.chat__restore {
-  position: fixed;
-  top: 10px;
-  right: 12px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-sidebar);
-  color: var(--fg-muted);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+/* Modo navegador: o navegador ocupa a tela e o chat vira a sidebar do agente, à direita, com alça na borda esquerda */
+.chat--browser .side {
+  order: 1;
 }
 
-.chat__restore:hover {
-  background: var(--hover);
-  color: var(--fg);
+.chat--browser .chat__column {
+  order: 2;
+  position: relative;
+  border-left: 1px solid var(--glass-border);
+}
+
+.chat--browser .side__tabs,
+.chat--browser .side__resize {
+  display: none;
+}
+
+.chat__agent-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  z-index: 2;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.chat__agent-resize:hover,
+.chat__agent-resize:focus-visible {
+  background: var(--accent);
+  opacity: 0.35;
 }
 
 .chat__foot {
@@ -2122,8 +2129,9 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 8px;
+  padding: 8px;
   border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
 }
 
 .browser__btn {
@@ -2152,12 +2160,20 @@ textarea:focus-visible {
 .browser__address {
   flex: 1;
   min-width: 0;
-  padding: 4px 8px;
+  margin: 0 4px;
+  padding: 6px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
+  border-radius: var(--input-radius);
+  background: var(--surface);
   color: var(--fg);
   font-size: var(--text-sm);
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+.browser__address:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .browser__btn--on {
@@ -2168,8 +2184,10 @@ textarea:focus-visible {
 .browser__tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   padding: 6px 8px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -2178,14 +2196,22 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  max-width: 160px;
+  max-width: 180px;
+  border: 1px solid transparent;
+  border-bottom: none;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  background: var(--bg-sidebar);
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.browser__tab:hover:not(.browser__tab--active) {
+  background: var(--hover);
 }
 
 .browser__tab--active {
   background: var(--bg);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  border-color: var(--border);
+  box-shadow: inset 0 2px 0 var(--accent);
 }
 
 .browser__tab-title {

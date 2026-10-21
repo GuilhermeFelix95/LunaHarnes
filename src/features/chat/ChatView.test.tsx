@@ -666,23 +666,19 @@ describe("ChatView: modo navegador", () => {
     vi.clearAllMocks();
   });
 
-  it("liga o modo navegador recolhendo o chat, e Voltar ao chat devolve", async () => {
-    render(<ChatView onPersist={() => {}} />);
+  it("com o modo ligado, o navegador ocupa a tela e o chat fica como coluna lateral montada", async () => {
+    render(<ChatView onPersist={() => {}} browserMode />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
-    // Abre o painel na aba Navegador pelo botão da barra superior do chat.
-    const panel = screen.getByRole("complementary", { name: "Painel lateral" });
-    const tool = screen.getAllByRole("button", { name: "Navegador" }).find((b) => !panel.contains(b));
-    fireEvent.click(tool!);
-
-    fireEvent.click(screen.getByRole("button", { name: "Modo navegador" }));
-
     expect(document.querySelector(".chat")!.className).toContain("chat--browser");
-    expect(panel.className).toContain("side--expanded");
+    expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).toContain("side--expanded");
     // O chat continua montado: a resposta em andamento não morre.
     expect(screen.getByLabelText("Mensagem")).toBeTruthy();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Voltar ao chat" }));
+  it("sem o modo, o painel não fica expandido e o chat não vira coluna lateral", async () => {
+    render(<ChatView onPersist={() => {}} browserMode={false} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
     expect(document.querySelector(".chat")!.className).not.toContain("chat--browser");
     expect(screen.getByRole("complementary", { name: "Painel lateral" }).className).not.toContain("side--expanded");

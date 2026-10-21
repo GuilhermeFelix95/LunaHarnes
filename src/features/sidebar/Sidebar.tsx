@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Pencil, Plus, Settings, Trash2 } from "lucide-react";
+import { Globe, Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import type { ConversationSummary } from "../../types";
 import { EmptyState } from "../../ui/EmptyState";
 import { t, type MessageKey } from "../../i18n";
@@ -72,6 +72,9 @@ interface SidebarProps {
   onSettings: () => void;
   /** Página de configurações aberta: marca o botão do rodapé. */
   settingsOpen?: boolean;
+  /** Modo navegador ligado: o botão abaixo de Configurações vira Modo LunaCode. */
+  browserMode?: boolean;
+  onBrowserMode?: (on: boolean) => void;
   error?: string;
 }
 
@@ -88,6 +91,8 @@ export function Sidebar({
   onRemoveProject,
   onSettings,
   settingsOpen = false,
+  browserMode = false,
+  onBrowserMode,
   error,
 }: SidebarProps) {
   // Largura ajustável pela alça na borda direita, como o painel da direita.
@@ -287,6 +292,16 @@ export function Sidebar({
         <button type="button" className="sidebar__settings" aria-pressed={settingsOpen} onClick={onSettings}>
           <Settings size={16} aria-hidden="true" /> {t("settings.title")}
         </button>
+        {onBrowserMode && (
+          <button
+            type="button"
+            className="sidebar__settings sidebar__browser"
+            aria-pressed={browserMode}
+            onClick={() => onBrowserMode(!browserMode)}
+          >
+            <Globe size={16} aria-hidden="true" /> {browserMode ? t("sidebar.lunaCodeMode") : t("sidebar.browserMode")}
+          </button>
+        )}
         <PlanTarget />
       </footer>
     </aside>

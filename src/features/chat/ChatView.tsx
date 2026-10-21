@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, GitCompare, Globe, Terminal, UnfoldVertical } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { ArrowDown, ArrowLeft, GitCompare, Globe, Terminal } from "lucide-react";
 import {
   cancelPrompt,
   checkAuth,
@@ -104,6 +104,38 @@ interface ChatViewProps {
   onRunning?: (conversationId: string, running: boolean) => void;
   /** Esta conversa é a que está na tela. Conversas ocultas não mostram a página do navegador. */
   visible?: boolean;
+  /** Modo navegador: o navegador ocupa a tela e este chat vira a sidebar lateral. */
+  browserMode?: boolean;
+}
+
+/// Largura da sidebar do agente no modo navegador: entre 300 px e 60% da janela.
+const AGENT_WIDTH_KEY = "luna.browserAgent.width";
+const DEFAULT_AGENT_WIDTH = 340;
+const MIN_AGENT_WIDTH = 300;
+const MAX_AGENT_FRACTION = 0.6;
+const AGENT_KEY_STEP = 16;
+
+function clampAgentWidth(width: number, windowWidth: number): number {
+  const max = Math.max(MIN_AGENT_WIDTH, Math.floor(windowWidth * MAX_AGENT_FRACTION));
+  return Math.min(Math.max(Math.round(width), MIN_AGENT_WIDTH), max);
+}
+
+function loadAgentWidth(): number {
+  try {
+    const saved = Number(localStorage.getItem(AGENT_WIDTH_KEY));
+    if (Number.isFinite(saved) && saved > 0) return clampAgentWidth(saved, window.innerWidth);
+  } catch {
+    // Armazenamento indisponível: usa o padrão.
+  }
+  return DEFAULT_AGENT_WIDTH;
+}
+
+function saveAgentWidth(width: number) {
+  try {
+    localStorage.setItem(AGENT_WIDTH_KEY, String(width));
+  } catch {
+    // Sem armazenamento, a largura vale só nesta sessão.
+  }
 }
 
 /// Escolha de modelo por papel, lida a cada envio: o que a pessoa salvou em Configurações vale na próxima execução.
@@ -116,7 +148,7 @@ async function loadOrchestrator(): Promise<Orchestrator> {
   }
 }
 
-export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning, visible = true }: ChatViewProps) {
+export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onRunning, visible = true, browserMode = false }: ChatViewProps) {
   useLocale();
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
   const createdAt = useRef(initial?.createdAt ?? Date.now());
@@ -262,8 +294,42 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Sempre começa fechado: o painel direito só abre quando o usuário pede.
   const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
-  // Modo navegador: o painel alarga e o chat recolhe; o envio em andamento continua.
-  const [browserMode, setBrowserMode] = useState(false);
+  // Modo navegador: a aba Navegador abre sozinha, e o chat vira a sidebar lateral à direita.
+  useEffect(() => {
+    if (!browserMode) return;
+    setSideOpen(true);
+    setSideTab("browser");
+  }, [browserMode]);
+  const [agentWidth, setAgentWidth] = useState(loadAgentWidth);
+  const agentDrag = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  // A alça fica na borda esquerda do chat: arrastar para a esquerda alarga a sidebar.
+  function onAgentResizeDown(e: ReactPointerEvent<HTMLDivElement>) {
+    agentDrag.current = { startX: e.clientX, startWidth: agentWidth };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+
+  function onAgentResizeMove(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!agentDrag.current) return;
+    setAgentWidth(clampAgentWidth(agentDrag.current.startWidth + (agentDrag.current.startX - e.clientX), window.innerWidth));
+  }
+
+  function onAgentResizeUp(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!agentDrag.current) return;
+    const final = clampAgentWidth(agentDrag.current.startWidth + (agentDrag.current.startX - e.clientX), window.innerWidth);
+    agentDrag.current = null;
+    setAgentWidth(final);
+    saveAgentWidth(final);
+  }
+
+  function onAgentResizeKey(e: ReactKeyboardEvent<HTMLDivElement>) {
+    const delta = e.key === "ArrowLeft" ? AGENT_KEY_STEP : e.key === "ArrowRight" ? -AGENT_KEY_STEP : 0;
+    if (!delta) return;
+    e.preventDefault();
+    const next = clampAgentWidth(agentWidth + delta, window.innerWidth);
+    setAgentWidth(next);
+    saveAgentWidth(next);
+  }
   // Arquivo aberto no editor, no lugar do chat. Fechar o editor volta ao chat.
   const [editingPath, setEditingPath] = useState<string | null>(null);
   // Outra pasta de projeto: o arquivo aberto era de outro lugar, então o editor fecha.
@@ -1085,11 +1151,6 @@ ${outgoing}`
   return (
     <div className={`chat${browserMode ? " chat--browser" : ""}`}>
       <div data-plugin-slot="chat" />
-      {browserMode && (
-        <button type="button" className="chat__restore" aria-label={t("chat.browserRestore")} title={t("chat.browserRestore")} onClick={() => setBrowserMode(false)}>
-          <UnfoldVertical size={13} aria-hidden="true" />
-        </button>
-      )}
       {pendingRewind && (
         <ConfirmDialog
           title={t("chat.rewindTitle")}
@@ -1165,9 +1226,23 @@ ${outgoing}`
       {editingPath && cwd && (
         <FileEditor key={`${cwd}:${editingPath}`} cwd={cwd} path={editingPath} onClose={() => setEditingPath(null)} />
       )}
-      {/* Escondida, não desmontada: a resposta em andamento continua enquanto o editor está aberto
-          e no modo navegador, em que o painel alarga e o chat recolhe até voltar. */}
-      <div className="chat__column" hidden={editingPath !== null || browserMode}>
+      {/* Escondida, não desmontada: a resposta em andamento continua enquanto o editor está aberto.
+          No modo navegador ela vira a sidebar do agente, com largura própria. */}
+      <div className="chat__column" hidden={editingPath !== null} style={browserMode ? { width: agentWidth, flex: "0 0 auto" } : undefined}>
+      {browserMode && (
+        <div
+          className="chat__agent-resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t("chat.agentResize")}
+          aria-valuenow={agentWidth}
+          tabIndex={0}
+          onPointerDown={onAgentResizeDown}
+          onPointerMove={onAgentResizeMove}
+          onPointerUp={onAgentResizeUp}
+          onKeyDown={onAgentResizeKey}
+        />
+      )}
       <div className="chat__body" ref={body}>
         {loggedIn === false && profileId && (
           <p role="alert" className="chat__notes">
@@ -1375,14 +1450,6 @@ ${outgoing}`
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
         browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} openRequest={browserRequest} />}
         browserMode={browserMode}
-        onBrowserMode={(on) => {
-          // Entrar no modo navegador garante a aba à vista; voltar só desfaz o recolhimento.
-          if (on) {
-            setSideOpen(true);
-            setSideTab("browser");
-          }
-          setBrowserMode(on);
-        }}
       />
       </div>
     </div>
