@@ -85,6 +85,7 @@ export function OrchestratorSection() {
         const profile = choice?.profileId ? profiles.find((p) => p.id === choice.profileId) : undefined;
         const modelOptions: ModelOption[] = choice ? (choice.profileId ? profileModelOptions(profile) : (models[choice.provider] ?? [])) : [];
         const noModels = !!choice && !choice.profileId && models[choice.provider]?.length === 0;
+        const efforts = modelOptions.find((model) => model.id === choice?.model)?.efforts ?? [];
         return (
           <div className="orchestrator__role" key={role}>
             <h3 className="orchestrator__role-name">{t(ROLE_KEYS[role])}</h3>
@@ -116,7 +117,12 @@ export function OrchestratorSection() {
                 <select
                   aria-label={t("orchestrator.model")}
                   value={choice.model}
-                  onChange={(event) => void change(role, { ...choice, model: event.target.value })}
+                  onChange={(event) => {
+                    const next: RoleModel = { ...choice, model: event.target.value };
+                    // Modelo sem níveis não aceita esforço: o escolhido antes sai junto.
+                    if (!modelOptions.find((model) => model.id === event.target.value)?.efforts.length) delete next.effort;
+                    void change(role, next);
+                  }}
                 >
                   <option value="">—</option>
                   {modelOptions.map((model) => (
@@ -126,6 +132,23 @@ export function OrchestratorSection() {
                   ))}
                 </select>
                 {noModels && <span className="orchestrator__note">{t("orchestrator.noModels")}</span>}
+              </label>
+            )}
+            {choice && efforts.length > 0 && (
+              <label className="orchestrator__field">
+                <span>{t("orchestrator.effort")}</span>
+                <select
+                  aria-label={t("orchestrator.effort")}
+                  value={choice.effort ?? ""}
+                  onChange={(event) => void change(role, { ...choice, effort: event.target.value || undefined })}
+                >
+                  <option value="">{t("orchestrator.effortDefault")}</option>
+                  {efforts.map((effort) => (
+                    <option key={effort.id} value={effort.id}>
+                      {effort.label}
+                    </option>
+                  ))}
+                </select>
               </label>
             )}
             </div>

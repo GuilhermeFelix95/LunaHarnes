@@ -2309,6 +2309,70 @@ textarea:focus-visible {
   height: 100%;
 }
 
+/* Abas de terminal: uma barra no topo e um shell por aba; as abas escondidas não saem da memória */
+.terminal-tabs {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.terminal-tabs__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 0;
+}
+
+.terminal-tabs__tab {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--button-radius);
+}
+
+.terminal-tabs__select,
+.terminal-tabs__close,
+.terminal-tabs__add {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.terminal-tabs__select {
+  padding: 2px 8px;
+}
+
+.terminal-tabs__select[aria-selected="true"] {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.terminal-tabs__close,
+.terminal-tabs__add {
+  padding: 2px 6px;
+}
+
+.terminal-tabs__add:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.terminal-tabs__pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.terminal-tabs__pane[hidden] {
+  display: none;
+}
+
 /* Navegador embutido: barra de endereço e área onde a webview da página fica */
 .browser {
   display: flex;

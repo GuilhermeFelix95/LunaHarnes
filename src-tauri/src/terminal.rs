@@ -16,6 +16,17 @@ pub const EXIT_EVENT: &str = "terminal-exit";
 
 const MAX_DIMENSION: u16 = 500;
 
+/// Quantos terminais podem estar abertos ao mesmo tempo. O painel do frontend usa o mesmo número.
+pub const MAX_TERMINALS: usize = 4;
+
+/// Recusa um terminal a mais que o limite, com a mensagem que o painel mostra.
+pub fn check_limit(open: usize) -> Result<(), String> {
+    if open >= MAX_TERMINALS {
+        return Err(format!("o limite é de {MAX_TERMINALS} terminais abertos ao mesmo tempo; feche um para abrir outro"));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalData {
@@ -185,6 +196,13 @@ mod tests {
         let mut pending = vec![0xFF, b'x'];
         assert_eq!(take_utf8(&mut pending), "\u{FFFD}x");
         assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn refuses_a_fifth_terminal_with_a_clear_message() {
+        assert!(check_limit(3).is_ok());
+        let err = check_limit(MAX_TERMINALS).expect_err("o quinto terminal deve ser recusado");
+        assert!(err.contains("4 terminais"), "mensagem sem o limite: {err}");
     }
 
     #[test]

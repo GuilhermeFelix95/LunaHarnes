@@ -783,6 +783,7 @@ pub fn terminal_open(
     cols: u16,
     rows: u16,
 ) -> Result<String, String> {
+    terminal::check_limit(terminals.0.lock().expect("lock dos terminais").len())?;
     let id = format!("term-{}", NEXT_TERMINAL.fetch_add(1, Ordering::Relaxed));
     let data_app = app.clone();
     let data_id = id.clone();
