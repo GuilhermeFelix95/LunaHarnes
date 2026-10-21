@@ -10,7 +10,8 @@ use crate::browser::parse_url;
 use crate::commands::app_data_dir;
 
 const FILE_NAME: &str = "browser-bookmarks.json";
-const MAX_BOOKMARKS: usize = 100;
+/// Teto de favoritos, compartilhado com a importação de favoritos.
+pub const MAX_BOOKMARKS: usize = 100;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,7 +29,8 @@ pub fn load_in(dir: &Path) -> Vec<Bookmark> {
         .unwrap_or_default()
 }
 
-fn save_in(dir: &Path, list: &[Bookmark]) -> Result<(), String> {
+/// Salva a lista inteira (a importação em lote usa).
+pub fn save_in(dir: &Path, list: &[Bookmark]) -> Result<(), String> {
     fs::create_dir_all(dir).map_err(|e| format!("não foi possível criar a pasta de dados: {e}"))?;
     let text = serde_json::to_string_pretty(list).map_err(|e| format!("não foi possível montar os favoritos: {e}"))?;
     let tmp = dir.join(format!("{FILE_NAME}.tmp"));

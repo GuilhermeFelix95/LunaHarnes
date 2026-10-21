@@ -1190,6 +1190,31 @@ textarea:focus-visible {
   display: none;
 }
 
+/* Modo navegador: botão flutuante que devolve o chat; o painel alarga enquanto estiver ligado */
+.chat__restore {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sidebar);
+  color: var(--fg-muted);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.chat__restore:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
 .chat__foot {
   display: flex;
   flex-wrap: wrap;
@@ -2245,6 +2270,33 @@ textarea:focus-visible {
   min-height: 0;
 }
 
+/* Histórico: chips das visitas recentes, ao clicar no botão Histórico da barra */
+.browser__visits {
+  display: grid;
+  gap: 2px;
+  max-height: 200px;
+  margin: 0;
+  padding: 4px 8px 6px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-bottom: 1px solid var(--border);
+  list-style: none;
+}
+
+.browser__visit {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: var(--chip-radius);
+  background: var(--bg-sidebar);
+}
+
+.browser__visit--empty {
+  padding: 3px 8px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
 /* Barra lateral: busca e cabeçalho dos projetos */
 .sidebar__search {
   width: 100%;
@@ -2295,6 +2347,35 @@ textarea:focus-visible {
   margin: 4px 0 12px;
   font-size: 13px;
   color: var(--muted);
+}
+
+/* Senhas salvas do cofre importado: endereço à esquerda, botão de copiar ao lado */
+.settings__passwords {
+  display: grid;
+  gap: 6px;
+  max-height: 260px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  list-style: none;
+}
+
+.settings__passwords li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.settings__passwords li > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .accounts {

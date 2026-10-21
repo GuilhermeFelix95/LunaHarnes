@@ -15,6 +15,7 @@ use serde_json::{json, Value};
 use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
 
+use crate::commands::app_data_dir;
 use crate::logfile;
 
 /// Rótulo fixo da webview do navegador.
@@ -153,8 +154,21 @@ fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
         // Sem foco: a página não rouba o teclado do chat quando nasce.
         WebviewBuilder::new(&tab_label(id), WebviewUrl::External(url))
             .focused(false)
-            .on_page_load(move |_view, payload| {
+            .on_page_load(move |view, payload| {
                 if payload.event() == PageLoadEvent::Finished {
+                    // Histórico: cada página terminada de carregar entra nas visitas recentes.
+                    if let Ok(url) = view.url() {
+                        if url.scheme() == "http" || url.scheme() == "https" {
+                            match app_data_dir(&page_app) {
+                                Ok(dir) => {
+                                    if let Err(e) = crate::browser_history::record_in(&dir, url.as_str()) {
+                                        logfile::error(&format!("não foi possível registrar a visita no histórico: {e}"));
+                                    }
+                                }
+                                Err(e) => logfile::error(&e),
+                            }
+                        }
+                    }
                     let _ = page_app.emit(NAVIGATED_EVENT, ());
                 }
             }),

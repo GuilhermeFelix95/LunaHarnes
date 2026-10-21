@@ -19,6 +19,7 @@ vi.mock("../../api", () => ({
   browserBookmarkRemove: vi.fn(async () => []),
   onBrowserOpened: vi.fn(async () => () => {}),
   onBrowserNavigated: vi.fn(async () => () => {}),
+  browserVisits: vi.fn(async () => [] as { url: string; visitedAt: number }[]),
 }));
 
 const AREA = { x: 12, y: 40, width: 300, height: 500, left: 12, top: 40, right: 312, bottom: 540, toJSON: () => ({}) };
@@ -227,5 +228,71 @@ describe("BrowserPanel", () => {
     render(<BrowserPanel active={false} />);
     await act(async () => fire("https://exemplo.com/"));
     await waitFor(() => expect((screen.getByLabelText("Endereço") as HTMLInputElement).value).toBe("https://exemplo.com/"));
+  });
+});
+
+describe("Pesquisa pela barra de endereço", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [], active: null });
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+  });
+
+  function start() {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+    render(<BrowserPanel active />);
+    return waitFor(() => expect(button("Voltar").disabled).toBe(false));
+  }
+
+  it("texto que não é endereço vira busca no motor padrão (Google)", async () => {
+    await start();
+
+    submit("gatos fofos");
+
+    await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("https://www.google.com/search?q=gatos%20fofos"));
+  });
+
+  it("endereço (domínio ou esquema) navega direto, sem virar busca", async () => {
+    await start();
+
+    submit("exemplo.com");
+
+    await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("exemplo.com"));
+    await waitFor(() => expect(api.browserNavigate).not.toHaveBeenCalledWith(expect.stringContaining("google.com")));
+  });
+
+  it("com o motor trocado nas configurações, a busca segue o motor escolhido", async () => {
+    localStorage.setItem("luna.searchEngine", "duckduckgo");
+    await start();
+
+    submit("gatos fofos");
+
+    await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("https://duckduckgo.com/?q=gatos%20fofos"));
+  });
+
+  it("o histórico guarda visitas recentes e uma delas navega ao clicar", async () => {
+    vi.mocked(api.browserVisits).mockResolvedValue([
+      { url: "https://mais-recente.com/", visitedAt: 10 },
+      { url: "https://exemplo.com/", visitedAt: 2 },
+    ]);
+    await start();
+
+    fireEvent.click(button("Histórico"));
+
+    const dropdown = await screen.findByRole("list", { name: "Visitas recentes" });
+    const entries = within(dropdown).getAllByRole("button").map((b) => b.textContent);
+    expect(entries).toEqual(["mais-recente.com", "exemplo.com"]);
+
+    fireEvent.click(within(dropdown).getByRole("button", { name: "exemplo.com" }));
+    await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("https://exemplo.com/"));
   });
 });

@@ -3,6 +3,8 @@ pub mod api_profiles;
 pub mod auth;
 pub mod browser;
 pub mod browser_bookmarks;
+pub mod browser_history;
+pub mod browser_import;
 pub mod changes;
 pub mod worktrees;
 pub mod checkpoints;
@@ -113,6 +115,10 @@ pub fn run() {
             browser_bookmarks::browser_bookmarks,
             browser_bookmarks::browser_bookmark_add,
             browser_bookmarks::browser_bookmark_remove,
+            browser_history::browser_visits,
+            browser_import::browser_import_html,
+            browser_import::browser_import_passwords,
+            browser_import::browser_passwords,
             browser::browser_set_bounds,
             browser::browser_show,
             browser::browser_navigate,

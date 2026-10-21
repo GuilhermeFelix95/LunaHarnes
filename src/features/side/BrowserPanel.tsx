@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Globe, Plus, RotateCw, Star, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, History, Plus, RotateCw, Star, X } from "lucide-react";
 import {
   browserBookmarkAdd,
   browserBookmarkRemove,
@@ -13,12 +13,15 @@ import {
   browserShow,
   browserState,
   browserSwitchTab,
+  browserVisits,
   onBrowserNavigated,
   onBrowserOpened,
   type BrowserBookmark,
   type BrowserBounds,
   type BrowserTab,
+  type BrowserVisit,
 } from "../../api";
+import { buildSearchUrl, getSearchEngine, isLikelyAddress } from "../../chat/searchEngine";
 import { EmptyState } from "../../ui/EmptyState";
 import { t } from "../../i18n";
 
@@ -38,13 +41,22 @@ function measure(area: HTMLElement): BrowserBounds {
   return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
 }
 
-/// Nome curto de uma aba: o endereço sem o esquema, ou "Nova aba" enquanto estiver em branco.
+/// Nome de uma aba: o endereço sem o esquema, ou "Nova aba" enquanto estiver em branco.
 function tabLabel(tab: BrowserTab): string {
   if (!tab.url || tab.url === "about:blank") return t("browser.blankTab");
   try {
     return new URL(tab.url).hostname || tab.url;
   } catch {
     return tab.url;
+  }
+}
+
+/// Nome curto de uma visita do histórico: o nome de domínio da página.
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname || url;
+  } catch {
+    return url;
   }
 }
 
@@ -56,6 +68,8 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
   const [address, setAddress] = useState("");
   const [bookmarks, setBookmarks] = useState<BrowserBookmark[]>([]);
   const [error, setError] = useState<string | undefined>(undefined);
+  // Histórico do app: as visitas só são pedidas quando o botão abre a lista.
+  const [visits, setVisits] = useState<BrowserVisit[] | null>(null);
 
   const currentTab = tabs.find((tab) => tab.id === current) ?? null;
   const currentBookmark = currentTab ? bookmarks.find((b) => b.url === currentTab.url) : undefined;
@@ -155,12 +169,14 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
     const target = address.trim();
     if (!target) return;
     setError(undefined);
+    // Texto que não parece endereço vira busca no motor escolhido nas configurações.
+    const targetUrl = isLikelyAddress(target) ? target : buildSearchUrl(getSearchEngine(), target);
     if (current === null) {
-      await openTab(target);
+      await openTab(targetUrl);
       return;
     }
     try {
-      const url = await browserNavigate(target);
+      const url = await browserNavigate(targetUrl);
       setAddress(url);
       setTabs((list) => list.map((tab) => (tab.id === current ? { ...tab, url } : tab)));
     } catch (err) {
@@ -211,12 +227,28 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
 
   /// Abre um favorito na aba atual, ou numa aba nova se não há nenhuma.
   async function openBookmark(bookmark: BrowserBookmark) {
-    if (current === null) return openTab(bookmark.url);
+    return followUrl(bookmark.url);
+  }
+
+  /// Segue um endereço: navega na aba atual, ou abre uma nova se não há nenhuma.
+  async function followUrl(url: string) {
+    if (current === null) return openTab(url);
     setError(undefined);
     try {
-      const url = await browserNavigate(bookmark.url);
-      setAddress(url);
-      setTabs((list) => list.map((tab) => (tab.id === current ? { ...tab, url } : tab)));
+      const navigated = await browserNavigate(url);
+      setAddress(navigated);
+      setTabs((list) => list.map((tab) => (tab.id === current ? { ...tab, url: navigated } : tab)));
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  /// Abre (ou fecha) a lista de visitas recentes; as visitas são lidas quando ela abre.
+  async function toggleVisits() {
+    setError(undefined);
+    if (visits !== null) return setVisits(null);
+    try {
+      setVisits(await browserVisits());
     } catch (err) {
       setError(String(err));
     }
@@ -305,7 +337,32 @@ export function BrowserPanel({ active, openRequest }: BrowserPanelProps) {
         >
           <Star size={14} aria-hidden="true" fill={currentBookmark ? "currentColor" : "none"} />
         </button>
+        <button
+          type="button"
+          className={`browser__btn${visits !== null ? " browser__btn--on" : ""}`}
+          aria-label={t("browser.history")}
+          title={t("browser.historyTitle")}
+          onClick={() => void toggleVisits()}
+        >
+          <History size={14} aria-hidden="true" />
+        </button>
       </form>
+
+      {visits && (
+        <ul className="browser__visits" aria-label={t("browser.visitsAria")} role="list">
+          {visits.length ? (
+            visits.map((visit) => (
+              <li key={`${visit.url}:${visit.visitedAt}`} className="browser__visit">
+                <button type="button" className="browser__bookmark-open" title={visit.url} onClick={() => void followUrl(visit.url)}>
+                  {hostnameOf(visit.url)}
+                </button>
+              </li>
+            ))
+          ) : (
+            <li className="browser__visit browser__visit--empty">{t("browser.visitsEmpty")}</li>
+          )}
+        </ul>
+      )}
 
       {bookmarks.length > 0 && (
         <ul className="browser__bookmarks" aria-label={t("browser.bookmarksAria")}>

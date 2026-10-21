@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, GitCompare, Globe, Terminal } from "lucide-react";
+import { ArrowDown, ArrowLeft, GitCompare, Globe, Terminal, UnfoldVertical } from "lucide-react";
 import {
   cancelPrompt,
   checkAuth,
@@ -262,6 +262,8 @@ export function ChatView({ initial, startCwd, recentFolders = [], onPersist, onR
   // Sempre começa fechado: o painel direito só abre quando o usuário pede.
   const [sideOpen, setSideOpen] = useState(false);
   const [sideTab, setSideTab] = useState<SideTab>("changes");
+  // Modo navegador: o painel alarga e o chat recolhe; o envio em andamento continua.
+  const [browserMode, setBrowserMode] = useState(false);
   // Arquivo aberto no editor, no lugar do chat. Fechar o editor volta ao chat.
   const [editingPath, setEditingPath] = useState<string | null>(null);
   // Outra pasta de projeto: o arquivo aberto era de outro lugar, então o editor fecha.
@@ -1081,8 +1083,13 @@ ${outgoing}`
   const modelWindow = models.find((m) => m.id === model)?.contextWindow;
 
   return (
-    <div className="chat">
+    <div className={`chat${browserMode ? " chat--browser" : ""}`}>
       <div data-plugin-slot="chat" />
+      {browserMode && (
+        <button type="button" className="chat__restore" aria-label={t("chat.browserRestore")} title={t("chat.browserRestore")} onClick={() => setBrowserMode(false)}>
+          <UnfoldVertical size={13} aria-hidden="true" />
+        </button>
+      )}
       {pendingRewind && (
         <ConfirmDialog
           title={t("chat.rewindTitle")}
@@ -1158,8 +1165,9 @@ ${outgoing}`
       {editingPath && cwd && (
         <FileEditor key={`${cwd}:${editingPath}`} cwd={cwd} path={editingPath} onClose={() => setEditingPath(null)} />
       )}
-      {/* Escondida, não desmontada: a resposta em andamento continua enquanto o editor está aberto. */}
-      <div className="chat__column" hidden={editingPath !== null}>
+      {/* Escondida, não desmontada: a resposta em andamento continua enquanto o editor está aberto
+          e no modo navegador, em que o painel alarga e o chat recolhe até voltar. */}
+      <div className="chat__column" hidden={editingPath !== null || browserMode}>
       <div className="chat__body" ref={body}>
         {loggedIn === false && profileId && (
           <p role="alert" className="chat__notes">
@@ -1366,6 +1374,15 @@ ${outgoing}`
         running={running}
         terminal={terminalOpened && cwd ? <TerminalPanel key={cwd} cwd={cwd} /> : null}
         browser={<BrowserPanel active={visible && sideOpen && sideTab === "browser"} openRequest={browserRequest} />}
+        browserMode={browserMode}
+        onBrowserMode={(on) => {
+          // Entrar no modo navegador garante a aba à vista; voltar só desfaz o recolhimento.
+          if (on) {
+            setSideOpen(true);
+            setSideTab("browser");
+          }
+          setBrowserMode(on);
+        }}
       />
       </div>
     </div>

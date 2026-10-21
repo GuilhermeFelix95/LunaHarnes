@@ -8,6 +8,9 @@ export type Permission = "readOnly" | "acceptEdits" | "fullAccess";
 /// Navegador do agente, escolhido em Configurações > Navegador. Só um vale por vez.
 export type AgentBrowser = "builtin" | "playwright";
 
+/// Motor de busca da barra de endereço do navegador embutido. Padrão: o Google.
+export type SearchEngine = "google" | "duckduckgo" | "bing" | "brave";
+
 export interface RunRequest {
   provider: ProviderKind;
   prompt: string;

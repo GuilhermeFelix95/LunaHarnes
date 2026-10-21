@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { ListChecks, PanelRightClose, ScrollText } from "lucide-react";
+import { ListChecks, PanelRightClose, ScrollText, UnfoldVertical } from "lucide-react";
 import { EmptyState } from "../../ui/EmptyState";
 import { Markdown } from "../chat/Markdown";
 import { LunaAtom } from "./LunaAtom";
@@ -57,6 +57,10 @@ interface RightPanelProps {
   running: boolean;
   terminal: ReactNode;
   browser: ReactNode;
+  /** Modo navegador: o painel alarga e o chat recolhe até a pessoa pedir para voltar. */
+  browserMode: boolean;
+  /** Pediu para ligar ou desligar o modo navegador. */
+  onBrowserMode: (on: boolean) => void;
 }
 
 const TABS: Array<[SideTab, MessageKey]> = [
@@ -81,6 +85,8 @@ export function RightPanel({
   running,
   terminal,
   browser,
+  browserMode,
+  onBrowserMode,
 }: RightPanelProps) {
   const [width, setWidth] = useState(loadWidth);
   const shown = width;
@@ -120,10 +126,10 @@ export function RightPanel({
   return (
     // Fechado, a largura vai a zero e o painel desliza para fora; continua montado para o terminal não morrer.
     <aside
-      className={open ? "side" : "side side--closed"}
+      className={`side${browserMode ? " side--expanded" : ""}${open ? "" : " side--closed"}`}
       aria-label={t("side.label")}
       inert={!open}
-      style={{ width: open ? `${shown}px` : "0px" }}
+      style={{ width: open ? (browserMode ? "100%" : `${shown}px`) : "0px" }}
     >
       <div
         className="side__resize"
@@ -150,6 +156,16 @@ export function RightPanel({
             {t(label)}
           </button>
         ))}
+        <button
+          type="button"
+          className="side__browser-mode"
+          aria-pressed={browserMode}
+          aria-label={t("side.browserMode")}
+          title={t("side.browserModeTitle")}
+          onClick={() => onBrowserMode(!browserMode)}
+        >
+          <UnfoldVertical size={15} aria-hidden="true" />
+        </button>
         <button type="button" className="side__close" aria-label={t("side.close")} title={t("side.closeTitle")} onClick={onClose}>
           <PanelRightClose size={15} aria-hidden="true" />
         </button>

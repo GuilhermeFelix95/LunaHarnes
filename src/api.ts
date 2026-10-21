@@ -372,6 +372,56 @@ export function browserReload(): Promise<void> {
   return invoke("browser_reload");
 }
 
+/// Visita registrada no histórico do app (browser-visits.json, da mais recente para a mais antiga).
+export interface BrowserVisit {
+  url: string;
+  visitedAt: number;
+}
+
+export function browserVisits(): Promise<BrowserVisit[]> {
+  return invoke("browser_visits");
+}
+
+/// Papel do arquivo HTML exportado: os favoritos entram na lista ou as páginas no histórico.
+export type ImportTarget = "bookmarks" | "history";
+
+/// Quantos links saíram do arquivo para cada destino.
+export interface ImportHtmlResult {
+  bookmarks: number;
+  visits: number;
+}
+
+export async function importBrowserHtml(path: string, target: ImportTarget): Promise<ImportHtmlResult> {
+  const count = await invoke<number>("browser_import_html", { path, target });
+  return target === "bookmarks" ? { bookmarks: count, visits: 0 } : { bookmarks: 0, visits: count };
+}
+
+/// Senha importada, aberta para consulta e para copiar. Nunca vai para a tela sem o clique.
+export interface ImportedPassword {
+  url: string;
+  login: string;
+  password: string;
+}
+
+export function importBrowserPasswords(path: string): Promise<number> {
+  return invoke("browser_import_passwords", { path });
+}
+
+export function browserPasswords(): Promise<ImportedPassword[]> {
+  return invoke("browser_passwords");
+}
+
+/// Escolhe um arquivo exportado pelo navegador: HTML de favoritos/histórico ou CSV de senhas.
+export async function pickImportFile(kind: "html" | "csv"): Promise<string | null> {
+  return open({
+    multiple: false,
+    filters:
+      kind === "html"
+        ? [{ name: "HTML exportado", extensions: ["html", "htm"] }]
+        : [{ name: "CSV exportado", extensions: ["csv"] }],
+  });
+}
+
 export interface TerminalDataEvent {
   id: string;
   data: string;
