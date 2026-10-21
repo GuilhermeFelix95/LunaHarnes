@@ -754,7 +754,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
 }
 
 .message--user {
@@ -764,7 +764,8 @@
 
 .message__bubble {
   max-width: 80%;
-  padding: 9px 13px;
+  padding: 10px 14px;
+  line-height: 1.5;
   border: none;
   border-radius: var(--bubble-radius);
   background: var(--user-bubble);
@@ -1068,12 +1069,15 @@
   outline: none;
 }
 
+/* Rodapé separado do texto por um fio sutil: seletores e ações ficam organizados abaixo da escrita */
 .composer__footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 6px 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
 .composer__selectors {
@@ -1095,7 +1099,8 @@
 
 /* Alternadores do composer (Planejar e modos de plugin): mesmo estilo, ligado = acento sólido */
 .composer__mode,
-.composer__plan {
+.composer__plan,
+.composer__goal {
   padding: 4px 10px;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -1106,12 +1111,14 @@
 }
 
 .composer__mode:hover:not(:disabled),
-.composer__plan:hover:not(:disabled) {
+.composer__plan:hover:not(:disabled),
+.composer__goal:hover:not(:disabled) {
   color: var(--fg);
 }
 
 .composer__mode[aria-pressed="true"],
-.composer__plan[aria-pressed="true"] {
+.composer__plan[aria-pressed="true"],
+.composer__goal[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-fg);
@@ -1119,6 +1126,14 @@
 
 .composer--planning {
   border-color: var(--accent);
+}
+
+/* Velocidade estimada da resposta, enquanto o agente escreve */
+.composer__speed {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Faixa que aparece no modo plano quando o agente responde */

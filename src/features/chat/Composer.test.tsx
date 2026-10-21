@@ -279,3 +279,15 @@ describe("Composer: modo /meta", () => {
     expect(props.onToggleGoal).toHaveBeenCalledOnce();
   });
 });
+
+describe("Composer: velocidade da resposta", () => {
+  it("mostra a estimativa de tokens por segundo só enquanto o agente responde", () => {
+    setup({ running: true, speed: 42 });
+    expect(screen.getByText("≈ 42 tokens/s")).toBeTruthy();
+  });
+
+  it("sem resposta em curso não mostra a velocidade", () => {
+    setup({ running: false, speed: 42 });
+    expect(screen.queryByText("≈ 42 tokens/s")).toBeNull();
+  });
+});

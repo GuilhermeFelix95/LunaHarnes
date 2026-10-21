@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowDown, ArrowLeft, GitCompare, Globe, PanelRightClose, PanelRightOpen, Terminal } from "lucide-react";
 import {
   cancelPrompt,
@@ -47,6 +47,7 @@ import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
 import { goalInstruction, goalShouldContinue, isGoalDone, MAX_GOAL_ROUNDS, stripGoalMarker } from "../../chat/goal";
+import { estimateTokensPerSecond } from "../../chat/speed";
 import { APPROVE_OPTION, approvalPrompt, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
@@ -454,6 +455,17 @@ export function ChatView({
   const goalRef = useRef<{ condition: string; rounds: number } | null>(null);
   const goalDue = useRef<{ shown: string; prompt: string } | null>(null);
   const [goalOn, setGoalOn] = useState(false);
+  const [speed, setSpeed] = useState<number | null>(null);
+  useEffect(() => {
+    if (!running || !turnStartedAt) {
+      setSpeed(null);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setSpeed(estimateTokensPerSecond(responseText.current.length, Date.now() - turnStartedAt));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [running, turnStartedAt]);
   // Parar no meio do turno: a verificação que ainda chegar não pede correção.
   const turnStopped = useRef(false);
   const body = useRef<HTMLDivElement>(null);
@@ -473,11 +485,12 @@ export function ChatView({
   }, []);
 
   /// Abre o painel na aba pedida; se ela já está à mostra, fecha o painel.
-  function openLinkInBrowser(url: string) {
+  // Função estável: o Markdown de cada mensagem só é refeito quando o link muda.
+  const openLinkInBrowser = useCallback((url: string) => {
     setBrowserRequest({ url });
     setSideOpen(true);
     setSideTab("browser");
-  }
+  }, []);
 
   function toggleSide(tab: SideTab) {
     if (tab === "terminal") setTerminalOpened(true);
@@ -1524,6 +1537,7 @@ ${outgoing}`
         onSend={() => void send()}
         onStop={stopRun}
         running={running}
+        speed={speed}
         blocked={blocked}
         agent={agentK}
         agents={options}

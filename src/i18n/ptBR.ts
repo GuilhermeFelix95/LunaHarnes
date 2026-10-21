@@ -554,6 +554,8 @@ export const ptBR = {
   "composer.planningAria": "Modo de planejamento",
   "composer.plan": "Planejar",
   "composer.goalAria": "Modo /meta",
+  "composer.speed": "≈ {speed} tokens/s",
+  "composer.speedTitle": "Velocidade estimada da resposta (≈ 4 caracteres por token)",
   "goal.shown": "Meta: rodada {round} de {max}",
   "goal.gaveUp": "A meta não foi confirmada em {max} rodadas. Parei aqui.",
   "composer.stop": "Parar",

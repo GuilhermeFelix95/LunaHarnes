@@ -49,7 +49,12 @@ export class PluginUi {
   /// Monta os blocos cujo ponto já está na tela. Chamado quando a tela muda.
   attach() {
     for (const mount of this.mounts) {
-      if (mount.el) continue;
+      if (mount.el?.isConnected) continue;
+      // O ponto sumiu da tela (a barra foi desenhada de novo): o bloco antigo sai e monta no ponto novo.
+      if (mount.el) {
+        mount.el.remove();
+        mount.el = undefined;
+      }
       const slot = document.querySelector<HTMLElement>(`[data-plugin-slot="${mount.slot}"]`);
       if (!slot) continue;
       // Um bloco por plugin em cada ponto: com várias conversas abertas, a primeira monta e as outras esperam.

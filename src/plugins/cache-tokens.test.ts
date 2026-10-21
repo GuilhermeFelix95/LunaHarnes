@@ -28,8 +28,12 @@ function resumo(over: Partial<CacheSummary> = {}): CacheSummary {
   };
 }
 
+// Hosts de cada teste: resetados no fim, para que um host antigo não siga com o bloco montado na barra lateral.
+const hosts: PluginHost[] = [];
+
 async function carregar() {
   const host = new PluginHost();
+  hosts.push(host);
   const ok = await host.load(manifest, async () => cacheTokens);
   expect(ok).toBe(true);
   return host;
@@ -46,6 +50,7 @@ describe("plugin Cache de Tokens v1.0", () => {
   });
 
   afterEach(() => {
+    for (const host of hosts.splice(0)) host.reset();
     document.body.innerHTML = "";
     localStorage.clear();
   });

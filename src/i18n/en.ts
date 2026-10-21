@@ -551,6 +551,8 @@ export const en: Record<MessageKey, string> = {
   "composer.planningAria": "Planning mode",
   "composer.plan": "Plan",
   "composer.goalAria": "/meta mode",
+  "composer.speed": "≈ {speed} tokens/s",
+  "composer.speedTitle": "Estimated response speed (≈ 4 characters per token)",
   "goal.shown": "Goal: round {round} of {max}",
   "goal.gaveUp": "The goal was not confirmed in {max} rounds. Stopped here.",
   "composer.stop": "Stop",

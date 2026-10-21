@@ -60,6 +60,8 @@ interface ComposerProps {
   /** Modo /meta: vale só para a próxima mensagem. */
   goalOn?: boolean;
   onToggleGoal?: () => void;
+  /** Tokens por segundo estimados da resposta em curso. Null = não mostra. */
+  speed?: number | null;
   /** Imagens anexadas (miniaturas) e os gestos para anexar e tirar. */
   attachments?: { id: number; url: string }[];
   onAttach?: (file: File) => void;
@@ -273,6 +275,11 @@ export function Composer(props: ComposerProps) {
             disabled={running}
           />
         </div>
+        {running && props.speed != null && (
+          <span className="composer__speed" title={t("composer.speedTitle")}>
+            {t("composer.speed", { speed: props.speed })}
+          </span>
+        )}
         <div className="composer__actions">
           <button
             type="button"
