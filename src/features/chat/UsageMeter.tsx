@@ -76,7 +76,7 @@ export function UsageMeter({ limits, context, windowHint }: UsageMeterProps) {
 function Bar({ percent }: { percent: number }) {
   return (
     <span className="usage__bar" aria-hidden="true">
-      <span className="usage__fill" style={{ width: `${percent}%` }} />
+      <span className="usage__fill" style={{ transform: `scaleX(${percent / 100})` }} />
     </span>
   );
 }

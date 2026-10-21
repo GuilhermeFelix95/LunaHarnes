@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Atom, Bot, Braces, Brain, Check, Copy, Cpu, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, X, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
 import type { ChatMessage, ProviderKind } from "../../types";
@@ -52,23 +52,25 @@ function toolIcon(name: string): LucideIcon {
 /** Pedaço de uma resposta: ferramentas seguidas viram um grupo; texto e erro ficam como estão. */
 type Part = { kind: "tools"; tools: Tool[] } | { kind: "text"; message: ChatMessage };
 
+/// `source` são as mensagens originais do item: o que muda nelas é o que faz o item ser refeito.
 type Item =
-  | { kind: "user"; message: ChatMessage }
-  | { kind: "reply"; provider: ProviderKind; label?: string; model?: string; cached?: boolean; parts: Part[] };
+  | { kind: "user"; message: ChatMessage; source: ChatMessage[] }
+  | { kind: "reply"; provider: ProviderKind; label?: string; model?: string; cached?: boolean; parts: Part[]; source: ChatMessage[] };
 
 /// Agrupa as mensagens do agente entre duas mensagens do usuário numa resposta só.
 function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
   const items: Item[] = [];
   for (const m of messages) {
     if (m.role === "user") {
-      items.push({ kind: "user", message: m });
+      items.push({ kind: "user", message: m, source: [m] });
       continue;
     }
     let reply = items.at(-1);
     if (reply?.kind !== "reply") {
-      reply = { kind: "reply", provider: m.provider ?? fallback, parts: [] };
+      reply = { kind: "reply", provider: m.provider ?? fallback, parts: [], source: [] };
       items.push(reply);
     }
+    reply.source.push(m);
     // Resposta de perfil de API: o nome do perfil aparece no lugar do nome do CLI.
     if (m.agent) reply.label = m.agent;
     // O modelo que respondeu: prova de qual papel do orquestrador rodou esta resposta.
@@ -83,6 +85,11 @@ function group(messages: ChatMessage[], fallback: ProviderKind): Item[] {
     }
   }
   return items;
+}
+
+/// Mesmas mensagens, na mesma ordem: o item não mudou e não precisa ser refeito.
+function sameSource(a: ChatMessage[], b: ChatMessage[]): boolean {
+  return a.length === b.length && a.every((m, i) => m === b[i]);
 }
 
 /// "3 ações · Bash, Write ×2", ou o comando direto quando é uma ação só.
@@ -165,98 +172,139 @@ function ReplyActions({ parts }: { parts: Part[] }) {
   return <MessageActions text={texts.map((m) => m.text).join("\n\n")} at={texts.at(-1)?.at} />;
 }
 
+interface MessageItemProps {
+  item: Item;
+  /** Último item da lista: é onde a resposta em andamento aparece. */
+  isLast: boolean;
+  running: boolean;
+  step?: string | null;
+  startedAt?: number | null;
+  onRewind?: (message: ChatMessage) => void;
+  onOpenLink?: (url: string) => void;
+}
+
+/// Uma mensagem ou uma resposta. Só é refeita quando as mensagens dela (ou o que muda nela) mudam.
+const MessageItem = memo(
+  function MessageItem({ item, isLast, running, step, startedAt, onRewind, onOpenLink }: MessageItemProps) {
+    if (item.kind === "user") {
+      return (
+        <li className="message message--user">
+          <div className="message__user">
+            <div className="message__bubble">
+              {item.message.text}
+              {item.message.images?.map((path) => (
+                <AttachmentThumb key={path} path={path} />
+              ))}
+            </div>
+            <MessageActions
+              text={item.message.text}
+              at={item.message.at}
+              disabled={running}
+              onRewind={onRewind && item.message.checkpoint ? () => onRewind(item.message) : undefined}
+            />
+          </div>
+        </li>
+      );
+    }
+    return (
+      <li className="message message--assistant">
+        <div className="message__reply">
+          <span className="message__author">
+            <span className="message__avatar" aria-hidden="true">
+              <ProviderIcon provider={item.provider} />
+            </span>
+            {item.label ?? PROVIDER_LABELS[item.provider]}
+            {item.model && <span className="message__model">{item.model}</span>}
+            {item.cached && <span className="message__cache">{t("message.cached")}</span>}
+          </span>
+          {item.parts.map((part, j) => {
+            if (part.kind === "tools") {
+              const working = running && isLast && j === item.parts.length - 1;
+              return (
+                <details key={j} className="tool-line">
+                  <summary>
+                    {working ? (
+                      <WorkingHeader step={step} startedAt={startedAt} />
+                    ) : (
+                      <span className="tool-line__preview">{toolSummary(part.tools)}</span>
+                    )}
+                  </summary>
+                  <ul className="tool-line__list">
+                    {part.tools.map((tool, k) => {
+                      const Icon = toolIcon(tool.name);
+                      return (
+                        <li key={k}>
+                          <span className="tool-line__name">
+                            <Icon size={13} aria-hidden="true" />
+                            {tool.name}
+                            {tool.ok === true && (
+                              <span className="tool-line__status tool-line__status--ok" role="img" aria-label={t("message.toolOk")}>
+                                <Check size={12} aria-hidden="true" />
+                              </span>
+                            )}
+                            {tool.ok === false && (
+                              <span className="tool-line__status tool-line__status--failed" role="img" aria-label={t("message.toolFailed")}>
+                                <X size={12} aria-hidden="true" />
+                              </span>
+                            )}
+                          </span>
+                          {tool.detail && <code>{tool.detail}</code>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              );
+            }
+            const m = part.message;
+            return (
+              <div key={j}>
+                {m.text && <Markdown text={m.text} onOpenLink={onOpenLink} />}
+                {m.error && (
+                  <p role="alert" className="notice">
+                    <AlertCircle size={15} aria-hidden="true" />
+                    <span>{m.error}</span>
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          <ReplyActions parts={item.parts} />
+        </div>
+      </li>
+    );
+  },
+  (prev, next) =>
+    prev.isLast === next.isLast &&
+    prev.running === next.running &&
+    prev.step === next.step &&
+    prev.startedAt === next.startedAt &&
+    prev.onRewind === next.onRewind &&
+    prev.onOpenLink === next.onOpenLink &&
+    sameSource(prev.item.source, next.item.source),
+);
+
 /// Mensagens da conversa: usuário em balão; cada resposta do agente com o nome uma vez,
 /// ferramentas recolhidas e o texto em destaque.
 export function MessageList({ messages, fallbackProvider, running, onRewind, pending, step, startedAt, onOpenLink }: MessageListProps) {
-  const items = group(messages, fallbackProvider);
+  const items = useMemo(() => group(messages, fallbackProvider), [messages, fallbackProvider]);
   // Pedido enviado e nenhuma resposta ainda: o agente aparece "pensando" até o primeiro pedaço chegar.
   const waiting = running && items.at(-1)?.kind === "user";
+  const last = items.length - 1;
 
   return (
     <ol className="messages" aria-live="polite">
       {items.map((item, i) => (
-        <li key={i} className={`message message--${item.kind === "user" ? "user" : "assistant"}`}>
-          {item.kind === "user" ? (
-            <div className="message__user">
-              <div className="message__bubble">
-                {item.message.text}
-                {item.message.images?.map((path) => (
-                  <AttachmentThumb key={path} path={path} />
-                ))}
-              </div>
-              <MessageActions
-                text={item.message.text}
-                at={item.message.at}
-                disabled={running}
-                onRewind={onRewind && item.message.checkpoint ? () => onRewind(item.message) : undefined}
-              />
-            </div>
-          ) : (
-            <div className="message__reply">
-              <span className="message__author">
-                <span className="message__avatar" aria-hidden="true">
-                  <ProviderIcon provider={item.provider} />
-                </span>
-                {item.label ?? PROVIDER_LABELS[item.provider]}
-                {item.model && <span className="message__model">{item.model}</span>}
-                {item.cached && <span className="message__cache">{t("message.cached")}</span>}
-              </span>
-              {item.parts.map((part, j) => {
-                if (part.kind === "tools") {
-                  const working = running && i === items.length - 1 && j === item.parts.length - 1;
-                  return (
-                    <details key={j} className="tool-line">
-                      <summary>
-                        {working ? (
-                          <WorkingHeader step={step} startedAt={startedAt} />
-                        ) : (
-                          <span className="tool-line__preview">{toolSummary(part.tools)}</span>
-                        )}
-                      </summary>
-                      <ul className="tool-line__list">
-                        {part.tools.map((tool, k) => {
-                          const Icon = toolIcon(tool.name);
-                          return (
-                            <li key={k}>
-                              <span className="tool-line__name">
-                                <Icon size={13} aria-hidden="true" />
-                                {tool.name}
-                                {tool.ok === true && (
-                                  <span className="tool-line__status tool-line__status--ok" role="img" aria-label={t("message.toolOk")}>
-                                    <Check size={12} aria-hidden="true" />
-                                  </span>
-                                )}
-                                {tool.ok === false && (
-                                  <span className="tool-line__status tool-line__status--failed" role="img" aria-label={t("message.toolFailed")}>
-                                    <X size={12} aria-hidden="true" />
-                                  </span>
-                                )}
-                              </span>
-                              {tool.detail && <code>{tool.detail}</code>}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </details>
-                  );
-                }
-                const m = part.message;
-                return (
-                  <div key={j}>
-                    {m.text && <Markdown text={m.text} onOpenLink={onOpenLink} />}
-                    {m.error && (
-                      <p role="alert" className="notice">
-                        <AlertCircle size={15} aria-hidden="true" />
-                        <span>{m.error}</span>
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-              <ReplyActions parts={item.parts} />
-            </div>
-          )}
-        </li>
+        <MessageItem
+          key={i}
+          item={item}
+          isLast={i === last}
+          running={running}
+          step={i === last ? step : undefined}
+          startedAt={i === last ? startedAt : undefined}
+          onRewind={onRewind}
+          onOpenLink={onOpenLink}
+        />
       ))}
 
       {waiting && (

@@ -11,9 +11,9 @@ const tokens = read("./tokens.css");
 const styles = (["base.css", "components.css", "theme-layers.css"] as const).map((name) => read(`./${name}`)).join("\n");
 
 describe("Movimento do app: durações e curva nos tokens", () => {
-  it("as durações base são 320ms no padrão e 180ms nas curtas", () => {
-    expect(tokens).toMatch(/--dur:\s*320ms;/);
-    expect(tokens).toMatch(/--dur-fast:\s*180ms;/);
+  it("as durações base são 200ms no padrão e 140ms nas curtas", () => {
+    expect(tokens).toMatch(/--dur:\s*200ms;/);
+    expect(tokens).toMatch(/--dur-fast:\s*140ms;/);
   });
 
   it("a curva de movimento é mais suave (saída desacelerada)", () => {

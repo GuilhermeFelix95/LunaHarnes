@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowDown, ArrowLeft, GitCompare, Globe, PanelRightClose, PanelRightOpen, Terminal } from "lucide-react";
 import {
   cancelPrompt,
@@ -53,6 +53,7 @@ import { applyEvent } from "../../chat/reducer";
 import { summarize, type CacheUsage, type TurnRecord } from "../../chat/promptCache";
 import { longCacheEnabled } from "../../chat/cacheSettings";
 import { useStickToBottom } from "../../chat/useStickToBottom";
+import { createFrameBatch } from "../../chat/frameBatch";
 import { AUTOFIX_MAX_ATTEMPTS, PluginHost, type PluginMode } from "../../plugins/host";
 import { notifyIfUnfocused } from "../../notifications";
 import { FilesPanel } from "../side/FilesPanel";
@@ -207,6 +208,8 @@ export function ChatView({
   const [models, setModels] = useState<ModelOption[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const messagesRef = useRef(messages);
+  // A resposta chega em pedaços: a tela troca de mensagens no máximo uma vez por quadro (ver chat/frameBatch.ts).
+  const [frame] = useState(() => createFrameBatch(() => setMessages(messagesRef.current)));
   const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, running: false, sideTab: "changes" as SideTab });
   const [draft, setDraft] = useState("");
   /// Pede à conversa um resumo. Quando ele chega, a próxima mensagem começa uma sessão nova com ele.
@@ -472,12 +475,21 @@ export function ChatView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Função estável: o Markdown de cada mensagem só é refeito quando o link muda.
+  // Função estável para a lista: a mensagem antiga não é refeita só porque a conversa mudou.
+  const rewindRef = useRef(rewind);
+  rewindRef.current = rewind;
+  const onRewind = useCallback((m: ChatMessage) => {
+    const index = messagesRef.current.indexOf(m);
+    if (index >= 0 && m.checkpoint) void rewindRef.current(index, m.checkpoint);
+  }, []);
+
   /// Abre o painel na aba pedida; se ela já está à mostra, fecha o painel.
-  function openLinkInBrowser(url: string) {
+  const openLinkInBrowser = useCallback((url: string) => {
     setBrowserRequest({ url });
     setSideOpen(true);
     setSideTab("browser");
-  }
+  }, []);
 
   function toggleSide(tab: SideTab) {
     if (tab === "terminal") setTerminalOpened(true);
@@ -687,8 +699,10 @@ export function ChatView({
         setSideOpen(true);
         setSideTab("plan");
       } else {
-        commit(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
+        commitFrame(applyEvent(messagesRef.current, event, turnProvider.current, turnLabel.current));
       }
+      // Fim da resposta e erro mostram o texto na hora, sem esperar o quadro seguinte.
+      if (event.kind === "done" || event.kind === "error") frame.flush();
       if (event.kind === "cacheUsage") {
         turnUsage.current = { fresh: event.fresh, read: event.read, write: event.write };
       }
@@ -794,6 +808,12 @@ export function ChatView({
   function commit(next: ChatMessage[]) {
     messagesRef.current = next;
     setMessages(next);
+  }
+
+  /// Como commit, mas a tela só troca no próximo quadro: usado pelos pedaços da resposta.
+  function commitFrame(next: ChatMessage[]) {
+    messagesRef.current = next;
+    frame.schedule();
   }
 
   function persist(current: ChatMessage[]) {
@@ -1443,10 +1463,7 @@ ${outgoing}`
             step={displayTodos(toTodos(tasks), running).find((todo) => todo.status === "in_progress")?.content ?? null}
             startedAt={turnStartedAt}
             onOpenLink={openLinkInBrowser}
-            onRewind={(m) => {
-              const index = messagesRef.current.indexOf(m);
-              if (index >= 0 && m.checkpoint) void rewind(index, m.checkpoint);
-            }}
+            onRewind={onRewind}
           />
         )}
 
