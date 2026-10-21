@@ -34,6 +34,32 @@ pub mod slash;
 pub mod spec;
 pub mod terminal;
 
+/// Bytes do PNG do ícone, embutidos em tempo de compilação a partir do arquivo do repositório.
+/// O executável em modo de dev não recebe o ícone embutido pelo instalador, então ele é
+/// aplicado às janelas na inicialização.
+fn window_icon_bytes() -> &'static [u8] {
+    include_bytes!("../icons/icon.png")
+}
+
+/// Monta o ícone a partir de bytes PNG. Erro voltado em texto para o log, sem derrubar o app.
+fn icon_from_bytes(bytes: &[u8]) -> Result<tauri::image::Image<'_>, String> {
+    tauri::image::Image::from_bytes(bytes).map_err(|e| e.to_string())
+}
+
+/// Aplica o ícone do repositório em todas as janelas existentes. Falha vira erro no log.
+fn apply_window_icon(app: &tauri::App) -> Result<(), String> {
+    use tauri::Manager;
+    let windows = app.webview_windows();
+    if windows.is_empty() {
+        return Err("nenhuma janela aberta para receber o ícone".into());
+    }
+    let icon = icon_from_bytes(window_icon_bytes())?;
+    for (label, window) in windows {
+        window.set_icon(icon.clone()).map_err(|e| format!("janela {label}: {e}"))?;
+    }
+    Ok(())
+}
+
 /// Ponto de entrada do app Tauri.
 pub fn run() {
     tauri::Builder::default()
@@ -86,6 +112,11 @@ pub fn run() {
                     }
                 }
                 Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para os plugins padrão: {e}")),
+            }
+            // Ícone da janela: no modo de dev o executável não recebe o ícone embutido,
+            // então ele é definido na inicialização com o arquivo do repositório.
+            if let Err(e) = apply_window_icon(app) {
+                logfile::error(&format!("não foi possível definir o ícone da janela: {e}"));
             }
             Ok(())
         })
@@ -217,4 +248,22 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o LunaCode");
+}
+
+#[cfg(test)]
+mod window_icon_tests {
+    use super::*;
+
+    #[test]
+    fn the_repo_icon_parses_as_a_window_icon() {
+        let icon = icon_from_bytes(window_icon_bytes()).expect("o ícone do repositório é um PNG válido");
+        assert!(icon.width() > 0);
+        assert!(icon.height() > 0);
+    }
+
+    /// Bytes que não são PNG não derrubam a inicialização: viram erro tratado.
+    #[test]
+    fn invalid_icon_bytes_fail_without_panicking() {
+        assert!(icon_from_bytes(b"nao-e-png").is_err());
+    }
 }
