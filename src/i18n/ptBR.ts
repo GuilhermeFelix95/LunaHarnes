@@ -556,6 +556,7 @@ export const ptBR = {
   "composer.goalAria": "Modo /meta",
   "composer.speed": "≈ {speed} tokens/s",
   "composer.speedTitle": "Velocidade estimada da resposta (≈ 4 caracteres por token)",
+  "composer.speedAria": "Mostrar velocidade da resposta",
   "goal.shown": "Meta: rodada {round} de {max}",
   "goal.gaveUp": "A meta não foi confirmada em {max} rodadas. Parei aqui.",
   "composer.stop": "Parar",

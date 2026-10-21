@@ -281,13 +281,27 @@ describe("Composer: modo /meta", () => {
 });
 
 describe("Composer: velocidade da resposta", () => {
-  it("mostra a estimativa de tokens por segundo só enquanto o agente responde", () => {
-    setup({ running: true, speed: 42 });
+  it("mostra a estimativa de tokens por segundo quando a opção está ligada e a resposta roda", () => {
+    setup({ running: true, speed: 42, showSpeed: true });
     expect(screen.getByText("≈ 42 tokens/s")).toBeTruthy();
   });
 
-  it("sem resposta em curso não mostra a velocidade", () => {
-    setup({ running: false, speed: 42 });
+  it("com a opção desligada, não mostra a velocidade mesmo durante a resposta", () => {
+    setup({ running: true, speed: 42, showSpeed: false });
     expect(screen.queryByText("≈ 42 tokens/s")).toBeNull();
+  });
+
+  it("sem resposta em curso não mostra a velocidade", () => {
+    setup({ running: false, speed: 42, showSpeed: true });
+    expect(screen.queryByText("≈ 42 tokens/s")).toBeNull();
+  });
+
+  it("o botão de velocidade reflete a opção e alterna ao clicar", () => {
+    const props = setup({ showSpeed: true, onToggleSpeed: vi.fn() });
+    const toggle = screen.getByLabelText("Mostrar velocidade da resposta");
+
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(toggle);
+    expect(props.onToggleSpeed).toHaveBeenCalledOnce();
   });
 });

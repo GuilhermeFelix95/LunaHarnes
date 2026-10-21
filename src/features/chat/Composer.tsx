@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowUp, Paperclip, Square, Target, X } from "lucide-react";
+import { ArrowUp, Gauge, Paperclip, Square, Target, X } from "lucide-react";
 import type { Account, ModelOption, Permission } from "../../types";
 import type { AgentOption } from "../../chat/agents";
 import type { PluginMode } from "../../plugins/host";
@@ -62,6 +62,9 @@ interface ComposerProps {
   onToggleGoal?: () => void;
   /** Tokens por segundo estimados da resposta em curso. Null = não mostra. */
   speed?: number | null;
+  /** Opção de ver a velocidade durante a resposta. */
+  showSpeed?: boolean;
+  onToggleSpeed?: () => void;
   /** Imagens anexadas (miniaturas) e os gestos para anexar e tirar. */
   attachments?: { id: number; url: string }[];
   onAttach?: (file: File) => void;
@@ -275,7 +278,7 @@ export function Composer(props: ComposerProps) {
             disabled={running}
           />
         </div>
-        {running && props.speed != null && (
+        {props.showSpeed && running && props.speed != null && (
           <span className="composer__speed" title={t("composer.speedTitle")}>
             {t("composer.speed", { speed: props.speed })}
           </span>
@@ -334,6 +337,16 @@ export function Composer(props: ComposerProps) {
             onClick={props.onToggleGoal}
           >
             <Target size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="composer__speed-toggle"
+            aria-label={t("composer.speedAria")}
+            title={t("composer.speedAria")}
+            aria-pressed={props.showSpeed ?? false}
+            onClick={props.onToggleSpeed}
+          >
+            <Gauge size={16} aria-hidden="true" />
           </button>
           {running ? (
             <button type="submit" className="composer__action composer__action--stop" aria-label={t("composer.stop")}>

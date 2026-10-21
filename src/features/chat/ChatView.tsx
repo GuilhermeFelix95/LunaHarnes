@@ -47,7 +47,7 @@ import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
 import { goalInstruction, goalShouldContinue, isGoalDone, MAX_GOAL_ROUNDS, stripGoalMarker } from "../../chat/goal";
-import { estimateTokensPerSecond } from "../../chat/speed";
+import { estimateTokensPerSecond, readShowSpeed, saveShowSpeed } from "../../chat/speed";
 import { APPROVE_OPTION, approvalPrompt, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
@@ -456,6 +456,8 @@ export function ChatView({
   const goalDue = useRef<{ shown: string; prompt: string } | null>(null);
   const [goalOn, setGoalOn] = useState(false);
   const [speed, setSpeed] = useState<number | null>(null);
+  const [showSpeed, setShowSpeed] = useState(readShowSpeed);
+  useEffect(() => saveShowSpeed(showSpeed), [showSpeed]);
   useEffect(() => {
     if (!running || !turnStartedAt) {
       setSpeed(null);
@@ -1538,6 +1540,8 @@ ${outgoing}`
         onStop={stopRun}
         running={running}
         speed={speed}
+        showSpeed={showSpeed}
+        onToggleSpeed={() => setShowSpeed((on) => !on)}
         blocked={blocked}
         agent={agentK}
         agents={options}

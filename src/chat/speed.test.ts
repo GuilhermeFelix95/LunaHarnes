@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateTokensPerSecond } from "./speed";
+import { estimateTokensPerSecond, readShowSpeed, saveShowSpeed } from "./speed";
 
 describe("velocidade da resposta", () => {
   it("estima tokens por segundo a partir dos caracteres recebidos (≈4 por token)", () => {
@@ -13,5 +13,18 @@ describe("velocidade da resposta", () => {
 
   it("sem caracteres recebidos a taxa é zero", () => {
     expect(estimateTokensPerSecond(0, 1500)).toBe(0);
+  });
+});
+
+describe("opção de ver a velocidade", () => {
+  it("vem desligada e lembra a escolha entre sessões", () => {
+    localStorage.clear();
+    expect(readShowSpeed()).toBe(false);
+
+    saveShowSpeed(true);
+    expect(readShowSpeed()).toBe(true);
+
+    saveShowSpeed(false);
+    expect(readShowSpeed()).toBe(false);
   });
 });
