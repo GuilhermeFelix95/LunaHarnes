@@ -1,73 +1,74 @@
-# Branch criada pelo chat, destaque da branch atual e miniatura de imagem no histórico
+# App de desenvolvedor: ícone no dev, animações globais e navegador
 
 ## Problem Statement
 
-Três problemas afetam o uso diário do chat com projetos git:
+Quando o app roda em modo de desenvolvimento (`npm run dev:app`), a barra de tarefas e a janela mostram um ícone padrão de janela com fundo roxo, que não é o ícone do app. O ícone correto já existe no repositório.
 
-- Quando o agente cria ou troca de branch pelo chat, o menu de branch não mostra a branch nova e a barra continua indicando a branch antiga. O usuário precisa trocar de pasta ou reabrir o app para ver o estado real do repositório.
-- No menu de branch, a branch atual não se destaca das outras, então é difícil saber em qual branch a conversa está.
-- Quando o usuário envia uma imagem, a miniatura aparece só durante o envio. Depois que a resposta chega, ela some do histórico, e some também ao recarregar a conversa.
+Nas animações do app todo — abrir Configurações, navegar entre seções e painéis — os movimentos ficam rápidos demais, e parte das mudanças usa durações fixas fora dos tokens do tema. Ajustar o tema não muda tudo.
 
-Há ainda um quarto ponto ligado ao plano: etapas que o agente deixa em andamento ao fim de um turno ficam marcadas no painel de progresso, mesmo com o trabalho feito.
+O navegador embutido na barra direita navega, tem abas, favoritos e senhas salvas pelo WebView2, mas não pesquisa texto digitado que não é URL, não tem escolha de motor de busca, não tem histórico próprio e não importa favoritos, histórico e senhas de outro navegador.
 
 ## Solution
 
-O estado de branch passa a ser relido nos momentos em que ele pode ter mudado: ao fim do turno, quando um comando do agente termina e quando o usuário abre o menu de branch. A branch atual ganha destaque visual no menu. A mensagem do usuário guarda os caminhos das imagens enviadas, e o balão mostra a miniatura carregando a imagem da pasta de anexos do app. A instrução de aprovação do plano passa a pedir que o agente conclua todas as etapas antes de terminar.
+Na inicialização, o backend define o ícone da janela com o arquivo do repositório, tanto no dev quanto no instalado.
+
+Durações de transição e curvas de movimento viram tokens do tema, com valores maiores e curva mais suave. Os lugares que usavam valores fixos passam a usar os tokens. Nenhuma animação nova aparece, e o zeramento para movimento reduzido continua valendo.
+
+No navegador, a barra de endereço distingue URL de texto: URL navega direto, texto vira busca no motor escolhido em Configurações, com Google como padrão. O painel direito ganha o modo navegador: ele expande para tela grande, o chat recolhe para uma faixa lateral, e voltar restaura o estado anterior. O navegador ganha histórico com teto de itens, e Configurações ganha importação dos arquivos exportados pelo Chrome ou pelo Edge (CSV de senhas e HTML de favoritos e histórico). Senhas importadas ficam criptografadas, sem aparecer em texto puro, e podem ser consultadas e copiadas.
+
+Extensões do Chrome continuam fora, porque o WebView2 não instala extensões.
 
 ## User Stories
 
-1. Como usuário, quero que uma branch criada pelo agente no chat apareça no menu de branch assim que o comando termina, para escolher ou conferir sem sair da conversa.
-2. Como usuário, quero que a barra de branch mostre a branch em que o agente está trabalhando, para não achar que a conversa ainda está na main quando não está.
-3. Como usuário, quero ver claramente qual branch está marcada como atual no menu, para distinguir a atual das demais.
-4. Como usuário, quero que a imagem que enviei continue aparecendo no histórico, na mensagem em que a enviei, mesmo depois de recarregar a conversa.
-5. Como usuário, quero que, quando a imagem não estiver mais disponível, o histórico mostre um aviso curto no lugar, sem quebrar a conversa.
-6. Como usuário, quero que o agente marque todas as etapas do plano como concluídas antes de terminar, para o painel de progresso refletir o trabalho feito.
+1. Como usuário, quero que o app em modo de desenvolvimento mostre o ícone do projeto na barra de tarefas e na janela.
+2. Como usuário, quero que os cliques de toda a UI tenham movimentos mais longos e suaves.
+3. Como usuário, quero digitar qualquer coisa na barra de endereço e buscar no motor escolhido.
+4. Como usuário, quero escolher o motor de busca em Configurações.
+5. Como usuário, quero expandir o navegador para tela grande e continuar com o chat à mão.
+6. Como usuário, quero consultar as páginas recentes que visitei.
+7. Como usuário, quero importar favoritos, histórico e senhas que exportei do meu navegador, com senhas seguras.
 
 ## Implementation Decisions
 
-- O frontend é React com TypeScript. Os estilos são arquivos CSS do próprio projeto, sem framework de estilos.
-- O backend do app é Tauri 2 com Rust. Comandos novos seguem o mesmo padrão dos comandos já existentes: validação do lado Rust, retorno de erro com mensagem clara e registro no mesmo ponto de entrada.
-- Nenhum comando novo aceita caminho arbitrário: a leitura de imagem só alcança a pasta de anexos do próprio app.
-- Só imagens de tipo png, jpeg e webp são lidas. Há limite de tamanho por arquivo.
-- A lista de branches e a branch atual são relidas quando a pasta muda, ao fim de cada turno, ao abrir o menu de branch e quando um comando do agente termina.
-- Criar e listar worktrees continua igual. Muda só o momento em que o estado é relido.
-- A mensagem do usuário guarda somente os caminhos das imagens enviadas, não os bytes. Os bytes ficam na pasta de anexos e são lidos quando o balão é exibido.
-- Conversas salvas antes desta mudança não têm caminhos de imagem e não ganham miniatura.
-- O campo de imagens da mensagem é opcional, para que conversas antigas continuem sendo lidas sem migração.
-- A instrução de concluir etapas fica no texto de aprovação do plano. Nenhuma mudança automática no app marca etapas como concluídas.
-- Textos novos entram nos dicionários de português do Brasil e inglês.
-- Testes automatizados usam Vitest no frontend e cargo test no backend.
+- Frontend em React com TypeScript e estilos em CSS do próprio projeto.
+- App é Tauri 2 com Rust; a navegação usa WebView2 e a escolha de motor de busca é do lado do frontend.
+- Ícone da janela: definido na inicialização da sessão, com o arquivo `icon.png` que já está em `src-tauri/icons/`; nenhum arquivo de ícone novo.
+- Durações base sobem para 320 ms (padrão) e 180 ms (curtas), com uma curva mais suave; a regra de movimento reduzido continua zerando as durações; valores fixos de duração nos componentes são trocados pelos tokens.
+- Histórico do navegador fica em arquivo JSON do app, no mesmo padrão dos favoritos atuais, com teto de 500 itens.
+- Importação aceita arquivos exportados pelo próprio navegador: CSV de senhas e HTML de favoritos e histórico (formato Netscape). Os dados vão para um armazenamento próprio do app; senhas são criptografadas com a DPAPI do usuário do Windows.
+- Senhas importadas servem para consulta e cópia, não para preenchimento automático de formulários.
+- Extensões do Chrome não são suportadas; o app oferece favoritos, histórico e senhas nativos.
+- Texto do endereço: se parece URL (com domínio e ponto, ou esquema), navega; contrário, pesquisa.
+- O navegador atual mantém suas abas e o motor WebView2, sem troca de motor.
 
 ## Testing Decisions
 
 Os testes verificam só o comportamento externo: o que o usuário vê e o que o backend devolve.
 
-- Depois de um turno em que o agente cria uma branch, o menu de branch lista a branch nova sem o usuário trocar de pasta.
-- Depois do mesmo turno, a barra de branch mostra a branch em que o agente está.
-- No menu de branch, a branch atual aparece destacada e marcada como atual para leitores de tela.
-- Ao abrir o menu de branch, a lista atual é carregada, mesmo que nada tenha mudado desde a última abertura.
-- Um caminho de imagem fora da pasta de anexos é recusado com uma mensagem clara.
-- Um arquivo de imagem válido na pasta de anexos volta como imagem para exibir.
-- Um arquivo que não é imagem, ou maior que o limite, é recusado.
-- Uma mensagem do usuário enviada com imagens mostra a miniatura no balão.
-- A mesma mensagem, carregada de novo da conversa salva, continua mostrando a miniatura.
-- Quando a imagem não existe mais, o balão mostra o aviso curto no lugar da miniatura, sem erro na tela.
-- A conversa salva antes da mudança abre normalmente, sem miniatura e sem erro.
-- O texto de aprovação do plano pede que todas as etapas sejam marcadas como concluídas antes do fim do turno.
-- Verificação manual: criar uma branch pelo chat e ver o menu atualizar com destaque; enviar uma imagem e ver a miniatura antes e depois de recarregar a conversa.
+- Sobre o ícone, o teste verifica que a inicialização carrega o ícone do arquivo do repositório e não falha.
+- Com o tema atualizado, as durações adotam 320 ms e 180 ms; componentes que usavam durações fixas passam a usar os tokens, e o teste de CSS confirma que não sobra duração fixa nos lugares trocados.
+- Texto que não é URL vira busca no motor escolhido; URL continua navegando direto.
+- Sem motor escolhido, a busca usa o Google.
+- O modo navegador expande o painel direito e recolhe o chat para uma faixa; voltar restaura as larguras anteriores; o turno do chat não é interrompido.
+- No backend, visitar uma página grava no histórico, o teto de itens é respeitado e a lista sai do mais recente para o mais antigo.
+- Importar um CSV de senhas válido guarda as senhas criptografadas, e o arquivo não contém a senha em texto puro; importar HTML de favoritos e histórico popula as listas.
+- Verificação manual com `npm run dev:app`: ícone na barra de tarefas, velocidade das animações, busca sem URL, modo navegador, histórico e importação.
 
 ## Out of Scope
 
-- Miniaturas de imagens de conversas antigas: não há caminho guardado para recuperar.
-- Recuperar imagens cuja pasta de anexos foi apagada.
-- Fechar etapas automaticamente no app quando o agente não as fecha.
-- Mudanças em criação, remoção ou listagem de worktrees, além do momento de recarregar.
-- Cache de respostas, cache de prompt e plugin Cache de Tokens: são outra tarefa.
-- Publicação, push ou merge da branch.
+- Preenchimento automático de senhas nos formulários das páginas.
+- Extensões do Chrome e da Chrome Web Store.
+- Trocar o motor do navegador (WebView2).
+- Criar animações novas de entrada ou de saída de componentes.
+- Terminais e o esforço no orquestrador, já entregues na branch `feat/terminal-abas-esforco`.
+- Subagentes em segundo plano, que são outro trabalho.
+- Publicação, push ou merge das branches.
+- Trocar os arquivos de ícone de instalador em `src-tauri/icons/`.
 
 ## Further Notes
 
-- A branch de trabalho é fix/branch-imagem-progresso, criada a partir da main.
-- Os motores que não emitem o evento de comando concluído recebem a atualização ao fim do turno e ao abrir o menu.
-- Diferenças de comportamento entre motores (Claude, Codex e outros) são verificadas na execução com cada um, quando houver conta disponível.
-- A pasta de anexos é a mesma usada pelo envio de imagens; qualquer mudança nela afeta as miniaturas.
+- O trabalho fica em três branches criadas a partir da main: `feat/icone-dev`, `feat/animacoes-globais` e `feat/navegador-modo`.
+- A proteção de senhas ligada ao usuário do Windows usa a DPAPI; se a crate correspondente não estiver no projeto, uma dependência nova é adicionada e explicada antes de instalar.
+- As ferramentas do agente no navegador (browser_read, browser_navigate e o servidor MCP) continuam pelo mesmo caminho de hoje.
+- Fechar o app continua encerrando o que hoje é encerrado; nada disso muda.
+- A verificação manual depende do app rodando com o backend do Tauri.
