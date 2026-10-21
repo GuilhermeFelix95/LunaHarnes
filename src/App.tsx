@@ -19,7 +19,7 @@ import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { Toaster } from "./ui/Toaster";
 import { ModeWarp, type ModeWarpRun } from "./ui/ModeWarp";
 import { loadLastWorkspace } from "./workspace";
-import { checkOnStartup } from "./updates";
+import { startUpdateChecks } from "./updates";
 
 /// Ação pendente de confirmação: o diálogo mostra o texto e roda `run` se o usuário confirmar.
 interface Confirm {
@@ -41,11 +41,8 @@ interface Chat {
 
 export function App() {
   const locale = useLocale();
-  // Uma checagem de atualização, 5 s depois de abrir, para não competir com o carregamento inicial.
-  useEffect(() => {
-    const timer = window.setTimeout(() => void checkOnStartup(), 5000);
-    return () => window.clearTimeout(timer);
-  }, []);
+  // Checagem de atualização ao abrir e a cada hora (ver `startUpdateChecks`).
+  useEffect(() => startUpdateChecks(), []);
   const [summaries, setSummaries] = useState<ConversationSummary[]>([]);
   const [listError, setListError] = useState<string | undefined>(undefined);
   // A primeira aba já abre na última pasta de projeto usada, se houver.
