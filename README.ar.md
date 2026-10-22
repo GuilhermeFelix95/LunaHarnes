@@ -67,7 +67,7 @@ flowchart LR
 
 ## التنزيل
 
-- عند نشر إصدار، سيكون مثبّت Windows في [صفحة الإصدارات](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- عند نشر إصدار، سيكون مثبّت Windows في [صفحة الإصدارات](https://github.com/GuilhermeFelix95/lunaCode/releases).
 - المتطلبات: Windows 10 (الإصدار 1809 أو أحدث) أو Windows 11، وواجهة CLI واحدة على الأقل مثبتة ومسجّل فيها الدخول (`claude` أو `codex`). لا حاجة إلى Node.js أو Rust.
 - المثبّت غير موقّع برمجياً بعد، لذلك قد يعرض Windows تحذير SmartScreen. اختر "المزيد من المعلومات" ثم "تشغيل على أي حال".
 
@@ -81,7 +81,7 @@ flowchart LR
 ## التثبيت والتشغيل
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

@@ -65,7 +65,7 @@ flowchart LR
 
 ## 다운로드
 
-- 버전이 공개되면 Windows 설치 프로그램은 [릴리스 페이지](https://github.com/GuilhermeFelix95/LunaHarnes/releases)에 있습니다.
+- 버전이 공개되면 Windows 설치 프로그램은 [릴리스 페이지](https://github.com/GuilhermeFelix95/lunaCode/releases)에 있습니다.
 - 요구 사항: Windows 10(1809 버전 이상) 또는 Windows 11, 그리고 설치되고 로그인된 CLI(`claude` 또는 `codex`)가 하나 이상 필요합니다. Node.js와 Rust는 필요하지 않습니다.
 - 설치 프로그램에 아직 코드 서명이 없어서 Windows가 SmartScreen 경고를 표시할 수 있습니다. "추가 정보"를 선택한 뒤 "실행"을 선택하세요.
 
@@ -79,7 +79,7 @@ flowchart LR
 ## 설치와 실행
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

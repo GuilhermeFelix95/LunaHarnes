@@ -65,7 +65,7 @@ flowchart LR
 
 ## Descargar
 
-- Cuando haya una versión publicada, el instalador para Windows está en la [página de releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- Cuando haya una versión publicada, el instalador para Windows está en la [página de releases](https://github.com/GuilhermeFelix95/lunaCode/releases).
 - Requisitos: Windows 10 (versión 1809 o posterior) o Windows 11, y al menos un CLI instalado y con sesión iniciada (`claude` o `codex`). No hace falta Node.js ni Rust.
 - El instalador todavía no tiene firma de código, así que Windows puede mostrar un aviso de SmartScreen. Elige "Más información" y luego "Ejecutar de todas formas".
 
@@ -79,7 +79,7 @@ flowchart LR
 ## Instalación y ejecución
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

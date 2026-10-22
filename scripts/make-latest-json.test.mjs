@@ -8,7 +8,7 @@ describe("buildLatest", () => {
       notes: "Correções",
       pubDate: "2026-10-18T12:00:00.000Z",
       signature: "assinatura-minisign",
-      url: "https://github.com/GuilhermeFelix95/LunaHarnes/releases/download/v0.1.1/LunaHarness_0.1.1_x64-setup.exe",
+      url: "https://github.com/GuilhermeFelix95/lunaCode/releases/download/v0.1.1/LunaHarness_0.1.1_x64-setup.exe",
     });
 
     expect(latest).toEqual({
@@ -18,7 +18,7 @@ describe("buildLatest", () => {
       platforms: {
         "windows-x86_64": {
           signature: "assinatura-minisign",
-          url: "https://github.com/GuilhermeFelix95/LunaHarnes/releases/download/v0.1.1/LunaHarness_0.1.1_x64-setup.exe",
+          url: "https://github.com/GuilhermeFelix95/lunaCode/releases/download/v0.1.1/LunaHarness_0.1.1_x64-setup.exe",
         },
       },
     });

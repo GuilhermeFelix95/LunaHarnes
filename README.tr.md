@@ -65,7 +65,7 @@ flowchart LR
 
 ## İndirme
 
-- Bir sürüm yayımlandığında Windows kurulum dosyası [sürümler sayfasında](https://github.com/GuilhermeFelix95/LunaHarnes/releases) olacak.
+- Bir sürüm yayımlandığında Windows kurulum dosyası [sürümler sayfasında](https://github.com/GuilhermeFelix95/lunaCode/releases) olacak.
 - Gereksinimler: Windows 10 (1809 sürümü veya üzeri) ya da Windows 11 ve en az bir kurulu ve oturum açmış CLI (`claude` veya `codex`). Node.js ve Rust gerekmez.
 - Kurulum dosyasının kod imzası henüz yok, bu yüzden Windows SmartScreen uyarısı gösterebilir. "Ek bilgi" ve ardından "Yine de çalıştır" seçeneğini seçin.
 
@@ -79,7 +79,7 @@ flowchart LR
 ## Kurulum ve çalıştırma
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

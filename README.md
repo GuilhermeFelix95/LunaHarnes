@@ -83,7 +83,7 @@ flowchart LR
 
 | Sistema | Situação | Como obter |
 |---|---|---|
-| **Windows 10 (1809+) e Windows 11** | Disponível | Instalador na [página de releases](https://github.com/GuilhermeFelix95/LunaHarnes/releases) (`.exe`). |
+| **Windows 10 (1809+) e Windows 11** | Disponível | Instalador na [página de releases](https://github.com/GuilhermeFelix95/lunaCode/releases) (`.exe`). |
 | **macOS** | Não disponível | Não há instalador. Porte para a comunidade. |
 | **Linux** | Não disponível | Não há pacote. Porte para a comunidade. |
 
@@ -106,7 +106,7 @@ macOS e Linux não são suportados por enquanto.
 Os comandos abaixo rodam no Windows (PowerShell ou Git Bash com Node e Rust instalados).
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

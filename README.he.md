@@ -67,7 +67,7 @@ flowchart LR
 
 ## הורדה
 
-- כשתפורסם גרסה, מתקין Windows יהיה ב[דף הגרסאות](https://github.com/GuilhermeFelix95/LunaHarnes/releases).
+- כשתפורסם גרסה, מתקין Windows יהיה ב[דף הגרסאות](https://github.com/GuilhermeFelix95/lunaCode/releases).
 - דרישות: Windows 10 (גרסה 1809 ומעלה) או Windows 11, ולפחות CLI אחד מותקן ומחובר (`claude` או `codex`). אין צורך ב-Node.js או ב-Rust.
 - למתקין עדיין אין חתימת קוד, ולכן Windows עשוי להציג אזהרת SmartScreen. בחרו "מידע נוסף" ואז "הפעל בכל זאת".
 
@@ -81,7 +81,7 @@ flowchart LR
 ## התקנה והרצה
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

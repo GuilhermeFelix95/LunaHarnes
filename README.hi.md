@@ -65,7 +65,7 @@ flowchart LR
 
 ## डाउनलोड
 
-- जब कोई संस्करण प्रकाशित होगा, तब Windows इंस्टॉलर [रिलीज़ पेज](https://github.com/GuilhermeFelix95/LunaHarnes/releases) पर होगा।
+- जब कोई संस्करण प्रकाशित होगा, तब Windows इंस्टॉलर [रिलीज़ पेज](https://github.com/GuilhermeFelix95/lunaCode/releases) पर होगा।
 - आवश्यकताएँ: Windows 10 (संस्करण 1809 या नया) या Windows 11, और कम से कम एक CLI इंस्टॉल और लॉग-इन किया हुआ (`claude` या `codex`)। Node.js और Rust की ज़रूरत नहीं है।
 - इंस्टॉलर पर अभी कोड साइनिंग नहीं है, इसलिए Windows SmartScreen चेतावनी दिखा सकता है। "More info" चुनें और फिर "Run anyway"।
 
@@ -79,7 +79,7 @@ flowchart LR
 ## इंस्टॉल और चलाना
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```

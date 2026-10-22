@@ -84,7 +84,7 @@ flowchart LR
 
 | System | Status | How to get it |
 |---|---|---|
-| **Windows 10 (1809+) and Windows 11** | Available | Installer (`.exe`) on the [releases page](https://github.com/GuilhermeFelix95/LunaHarnes/releases). |
+| **Windows 10 (1809+) and Windows 11** | Available | Installer (`.exe`) on the [releases page](https://github.com/GuilhermeFelix95/lunaCode/releases). |
 | **macOS** | Not available | No installer. Community port welcome. |
 | **Linux** | Not available | No package. Community port welcome. |
 
@@ -105,7 +105,7 @@ macOS and Linux are not supported for now.
 ## Install and run
 
 ```bash
-git clone https://github.com/GuilhermeFelix95/LunaHarnes.git
+git clone https://github.com/GuilhermeFelix95/lunaCode.git
 cd LunaHarnes
 npm install
 ```
