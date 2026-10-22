@@ -197,3 +197,27 @@ describe("Modo navegador: painel sem barra de abas", () => {
     expect(screen.getByText("página do navegador")).toBeTruthy();
   });
 });
+
+describe("RightPanel: tarefas em segundo plano no progresso", () => {
+  it("mostra as tarefas em segundo plano na aba de progresso, mesmo sem etapas", () => {
+    render(
+      <RightPanel
+        open
+        tab="progress"
+        onTab={vi.fn()}
+        onClose={vi.fn()}
+        changes={<p>lista de alterações</p>}
+        todos={[]}
+        running={false}
+        background={<p>pesquisar o módulo de login</p>}
+        terminal={<p>shell</p>}
+        browser={<p>página do navegador</p>}
+        browserMode={false}
+      />,
+    );
+
+    const text = screen.getByText("pesquisar o módulo de login");
+    expect(text.closest(".side__progress")).not.toBeNull();
+    expect(text.closest("[hidden]")).toBeNull();
+  });
+});

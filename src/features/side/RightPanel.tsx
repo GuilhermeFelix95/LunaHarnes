@@ -53,6 +53,8 @@ interface RightPanelProps {
   plan?: string;
   /** Checklist do agente na última resposta. Vazio = nenhuma tarefa em andamento. */
   todos: TodoItem[];
+  /** Tarefas em segundo plano da conversa (lista própria). Ausente = nenhuma. */
+  background?: ReactNode;
   /** A Luna está respondendo: o gatinho digita; parado, ele dorme. */
   running: boolean;
   terminal: ReactNode;
@@ -80,6 +82,7 @@ export function RightPanel({
   files,
   plan,
   todos,
+  background,
   running,
   terminal,
   browser,
@@ -179,9 +182,10 @@ export function RightPanel({
           ) : (
             <div className="side__progress-empty">
               <LunaAtom working={running} compact />
-              <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>
+              {!background && <EmptyState icon={<ListChecks size={18} />}>{t("side.progressEmpty")}</EmptyState>}
             </div>
           )}
+          {background}
         </div>
       </div>
       <div className="side__body side__body--terminal" role="tabpanel" hidden={tab !== "terminal"}>

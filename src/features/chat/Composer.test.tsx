@@ -252,6 +252,19 @@ describe("Composer: @arquivo e imagens", () => {
     expect(props.onSend).not.toHaveBeenCalled();
   });
 
+  it("comando digitado por completo, sem espaço, é enviado com Enter (não vira só a escolha do menu)", () => {
+    const slash = [
+      { name: "plano", description: "Liga o planejamento", origin: "luna" as const },
+      { name: "planejar-depois", description: "Outro", origin: "skill" as const },
+    ];
+    const props = setup({ draft: "/plano", slash, onPickSlash: vi.fn() });
+
+    fireEvent.keyDown(screen.getByLabelText("Mensagem"), { key: "Enter" });
+
+    expect(props.onSend).toHaveBeenCalledTimes(1);
+    expect(props.onPickSlash).not.toHaveBeenCalled();
+  });
+
   it("sem contas no motor, o seletor de conta não aparece", () => {
     setup();
     expect(screen.queryByRole("button", { name: "Conta" })).toBeNull();

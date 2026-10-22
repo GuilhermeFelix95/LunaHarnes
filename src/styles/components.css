@@ -1531,6 +1531,12 @@ textarea:focus-visible {
   background: var(--hover);
 }
 
+/* Lista de branches: cerca de oito itens à mostra; o resto aparece com a rolagem */
+.workspace-chip__branches {
+  max-height: 256px;
+  overflow-y: auto;
+}
+
 /* Branch atual do menu: barra de acento à esquerda e texto em peso maior */
 .workspace-chip__item--current {
   box-shadow: inset 3px 0 0 var(--accent);
