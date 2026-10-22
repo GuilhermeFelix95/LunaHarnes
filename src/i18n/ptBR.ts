@@ -498,8 +498,6 @@ export const ptBR = {
   "chat.planApproved": "Plano aprovado.",
   "chat.rewindTitle": "Voltar até aqui?",
   "chat.rewindConfirm": "Voltar",
-  "chat.commands": "Comandos: {list}",
-  "chat.costThisConversation": "{cost} nesta conversa",
   "chat.tool.changes": "Alterações",
   "chat.tool.plan": "Plano",
   "chat.tool.terminal": "Terminal",

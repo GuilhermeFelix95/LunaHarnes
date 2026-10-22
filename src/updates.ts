@@ -12,6 +12,9 @@ export interface AvailableUpdate {
   install: () => Promise<void>;
 }
 
+/** Intervalo entre checagens enquanto o app está aberto (a checagem ao abrir é à parte). */
+export const UPDATE_CHECK_EVERY_MS = 60 * 60 * 1000;
+
 export function currentVersion(): Promise<string> {
   return getVersion();
 }
@@ -30,6 +33,16 @@ export async function checkOnStartup(): Promise<void> {
   } catch (error) {
     console.warn("Checagem de atualização ao abrir falhou.", error);
   }
+}
+
+/// Checa ao abrir (depois de um atraso curto, para não competir com o carregamento) e a cada hora. Devolve a função que para as checagens.
+export function startUpdateChecks(firstDelayMs = 5000): () => void {
+  const first = window.setTimeout(() => void checkOnStartup(), firstDelayMs);
+  const every = window.setInterval(() => void checkOnStartup(), UPDATE_CHECK_EVERY_MS);
+  return () => {
+    window.clearTimeout(first);
+    window.clearInterval(every);
+  };
 }
 
 function toAvailable(update: Update): AvailableUpdate {

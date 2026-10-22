@@ -433,3 +433,50 @@ describe("BrowserPanel: tradução da página", () => {
     expect(await screen.findByRole("button", { name: "Traduzir página para português" })).toBeTruthy();
   });
 });
+
+describe("BrowserPanel: painel inativo não esconde a página do painel ativo", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.browserState).mockResolvedValue({ tabs: [{ id: 1, url: "https://a.com/" }], active: 1, adblock: true });
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+  });
+
+  it("uma conversa inativa montada depois da ativa deixa a página à vista", async () => {
+    render(
+      <>
+        <BrowserPanel active />
+        <BrowserPanel active={false} />
+      </>,
+    );
+
+    await waitFor(() => expect(api.browserShow).toHaveBeenCalled());
+    expect(vi.mocked(api.browserShow).mock.calls.at(-1)).toEqual([true]);
+  });
+
+  it("trocar de conversa esconde a página de quem saiu e mostra a de quem entrou", async () => {
+    const { rerender } = render(
+      <>
+        <BrowserPanel active />
+        <BrowserPanel active={false} />
+      </>,
+    );
+    await waitFor(() => expect(api.browserShow).toHaveBeenCalled());
+
+    rerender(
+      <>
+        <BrowserPanel active={false} />
+        <BrowserPanel active />
+      </>,
+    );
+
+    await waitFor(() => expect(vi.mocked(api.browserShow).mock.calls.at(-1)).toEqual([true]));
+  });
+});

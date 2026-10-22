@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stopAllForUpdate } from "./api";
 import { showToast } from "./ui/toast";
-import { checkOnStartup, findUpdate } from "./updates";
+import { checkOnStartup, findUpdate, startUpdateChecks, UPDATE_CHECK_EVERY_MS } from "./updates";
 
 const downloadAndInstall = vi.fn();
 const relaunch = vi.fn();
@@ -81,5 +81,38 @@ describe("checkOnStartup", () => {
     await expect(checkOnStartup()).resolves.toBeUndefined();
     expect(showToast).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalled();
+  });
+});
+
+describe("startUpdateChecks", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    check.mockResolvedValue(null);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("confere ao abrir e de novo depois de uma hora", async () => {
+    const stop = startUpdateChecks();
+
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(check).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(UPDATE_CHECK_EVERY_MS - 5000);
+    expect(check).toHaveBeenCalledTimes(2);
+
+    stop();
+  });
+
+  it("ao parar, não confere mais", async () => {
+    const stop = startUpdateChecks();
+    stop();
+
+    await vi.advanceTimersByTimeAsync(UPDATE_CHECK_EVERY_MS * 2);
+
+    expect(check).not.toHaveBeenCalled();
   });
 });
