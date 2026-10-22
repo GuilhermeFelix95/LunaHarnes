@@ -113,22 +113,25 @@ export function WorkspaceChip({ cwd, recent, freeFolder, disabled, onPick, onBro
           {branchPopover.open && (
             <div className="workspace-chip__menu" role="menu" aria-label={t("workspace.branchLabel")}>
               <p className="workspace-chip__label">{t("workspace.branchLabel")}</p>
-              {branches.map((branch) => (
-                <button
-                  key={branch}
-                  type="button"
-                  role="menuitem"
-                  className={`workspace-chip__item${branch === currentBranch ? " workspace-chip__item--current" : ""}`}
-                  aria-current={branch === currentBranch ? "true" : undefined}
-                  onClick={() => {
-                    branchPopover.setOpen(false);
-                    // A branch atual já é a pasta aberta: não cria outra worktree.
-                    if (branch !== currentBranch) onPickBranch(branch, false);
-                  }}
-                >
-                  {branch === currentBranch ? t("workspace.branchCurrent", { branch }) : branch}
-                </button>
-              ))}
+              {/* Lista com altura limitada: as branches além das primeiras aparecem com a rolagem. */}
+              <div className="workspace-chip__branches" role="group" aria-label={t("workspace.branchLabel")}>
+                {branches.map((branch) => (
+                  <button
+                    key={branch}
+                    type="button"
+                    role="menuitem"
+                    className={`workspace-chip__item${branch === currentBranch ? " workspace-chip__item--current" : ""}`}
+                    aria-current={branch === currentBranch ? "true" : undefined}
+                    onClick={() => {
+                      branchPopover.setOpen(false);
+                      // A branch atual já é a pasta aberta: não cria outra worktree.
+                      if (branch !== currentBranch) onPickBranch(branch, false);
+                    }}
+                  >
+                    {branch === currentBranch ? t("workspace.branchCurrent", { branch }) : branch}
+                  </button>
+                ))}
+              </div>
               <form
                 className="workspace-chip__new"
                 onSubmit={(e) => {

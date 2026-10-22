@@ -1620,6 +1620,7 @@ ${outgoing}`
         files={cwd ? <FilesPanel cwd={cwd} activePath={editingPath} onOpen={setEditingPath} /> : null}
         plan={plan}
         todos={displayTodos(toTodos(tasks), running)}
+        background={backgroundTasks.length > 0 ? <BackgroundTasks tasks={backgroundTasks} onStop={(id) => void stopBackground(id)} /> : null}
         running={running}
         terminal={terminalOpened && cwd ? <TerminalTabs key={cwd} cwd={cwd} /> : null}
         browser={

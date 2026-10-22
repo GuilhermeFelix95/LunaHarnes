@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { WorkspaceChip } from "./WorkspaceChip";
 
@@ -181,5 +181,27 @@ describe("WorkspaceChip", () => {
     fireEvent.click(screen.getByRole("button", { name: /Sem pasta/ }));
 
     expect(screen.queryByRole("menuitem", { name: "Trabalhar sem pasta" })).toBeNull();
+  });
+});
+
+describe("WorkspaceChip: muitas branches", () => {
+  it("as branches ficam numa lista rolável: todas estão no menu, e o formulário de nova branch fica fora da lista", () => {
+    const branches = Array.from({ length: 30 }, (_, i) => `feature/${i}`);
+    render(
+      <WorkspaceChip
+        cwd="C:\Users\guilh\LunaHarnes"
+        recent={[]}
+        onPick={vi.fn()}
+        onBrowse={vi.fn()}
+        branches={branches}
+        currentBranch="feature/29"
+        onPickBranch={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "feature/29" }));
+
+    const list = screen.getByRole("group", { name: "Trabalhar numa branch" });
+    expect(within(list).getAllByRole("menuitem")).toHaveLength(30);
+    expect(list.contains(screen.getByRole("textbox", { name: "Nova branch" }))).toBe(false);
   });
 });

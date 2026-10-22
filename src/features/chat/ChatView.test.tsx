@@ -729,7 +729,7 @@ describe("ChatView: subagente em segundo plano", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Parar tarefa" }));
 
     await waitFor(() => expect(vi.mocked(api.stopBackgroundTask)).toHaveBeenCalledWith("t3"));
-    expect(await screen.findByText("Parada")).toBeTruthy();
+    expect((await screen.findAllByText("Parada")).length).toBeGreaterThan(0);
   });
 
   it("resultado de tarefa de outra conversa não entra nesta", async () => {

@@ -121,7 +121,9 @@ export function Composer(props: ComposerProps) {
         setSlashIndex((active + step + slash.length) % slash.length);
         return;
       }
-      if (e.key === "Enter" && !e.shiftKey) {
+      // Comando já digitado por completo: Enter envia, em vez de só repetir a escolha do menu.
+      const typedExactly = slash[active]?.name.toLowerCase() === draft.slice(1).toLowerCase();
+      if (e.key === "Enter" && !e.shiftKey && !typedExactly) {
         e.preventDefault();
         props.onPickSlash?.(slash[active]);
         return;
