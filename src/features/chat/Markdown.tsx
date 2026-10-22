@@ -1,4 +1,4 @@
-import { Children, isValidElement, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Children, isValidElement, memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -83,7 +83,8 @@ function buildComponents(onOpenLink?: (url: string) => void): Components {
 }
 
 /// Renderiza a resposta do modelo como markdown (GFM). HTML bruto aparece como texto.
-export function Markdown({ text, onOpenLink }: { text: string; onOpenLink?: (url: string) => void }) {
+// memo: digitar no composer re-renderiza o chat inteiro; o texto de cada mensagem não muda, então não é refeito.
+export const Markdown = memo(function Markdown({ text, onOpenLink }: { text: string; onOpenLink?: (url: string) => void }) {
   useEffect(() => watchControlKey(), []);
   const components = useMemo(() => buildComponents(onOpenLink), [onOpenLink]);
   return (
@@ -93,4 +94,4 @@ export function Markdown({ text, onOpenLink }: { text: string; onOpenLink?: (url
       </ReactMarkdown>
     </div>
   );
-}
+});

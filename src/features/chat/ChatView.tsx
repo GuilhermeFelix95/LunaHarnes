@@ -47,6 +47,7 @@ import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
 import { goalInstruction, goalShouldContinue, isGoalDone, MAX_GOAL_ROUNDS, stripGoalMarker } from "../../chat/goal";
+import { estimateTokensPerSecond, readShowSpeed, saveShowSpeed } from "../../chat/speed";
 import { APPROVE_OPTION, approvalPrompt, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
@@ -84,7 +85,7 @@ import { LoginPrompt } from "../auth/LoginPrompt";
 import { BrowserPanel } from "../side/BrowserPanel";
 import { RightPanel, type SideTab } from "../side/RightPanel";
 import { TerminalTabs } from "../terminal/TerminalTabs";
-import { Composer, PROVIDER_LABELS } from "./Composer";
+import { Composer, PROVIDER_LABELS, type ComposerHandle } from "./Composer";
 import { MessageList } from "./MessageList";
 import { QuestionPicker } from "./QuestionPicker";
 import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
@@ -211,7 +212,17 @@ export function ChatView({
   // A resposta chega em pedaços: a tela troca de mensagens no máximo uma vez por quadro (ver chat/frameBatch.ts).
   const [frame] = useState(() => createFrameBatch(() => setMessages(messagesRef.current)));
   const live = useRef({ provider, profileId, cwd, permission, model, effort, planning, running: false, sideTab: "changes" as SideTab });
-  const [draft, setDraft] = useState("");
+  // O texto do campo mora no Composer, para cada tecla não re-renderizar a conversa inteira.
+  // A conversa guarda uma cópia (para enviar) e o trecho do "/" (para o menu de comandos).
+  const draftRef = useRef("");
+  const composerRef = useRef<ComposerHandle>(null);
+  const [slashText, setSlashText] = useState<string | null>(null);
+  /// Põe um texto no campo: sugestões, comandos e arquivos escolhidos, e a volta no tempo.
+  function setDraft(value: string) {
+    draftRef.current = value;
+    setSlashText(slashQuery(value));
+    composerRef.current?.setValue(value);
+  }
   /// Pede à conversa um resumo. Quando ele chega, a próxima mensagem começa uma sessão nova com ele.
   function compact() {
     if (running || messagesRef.current.length === 0) return;
@@ -459,6 +470,19 @@ export function ChatView({
   const [goalOn, setGoalOn] = useState(false);
   // Meta em andamento: o botão fica ligado durante as rodadas e desmarcá-lo encerra o laço.
   const [goalActive, setGoalActive] = useState(false);
+  const [speed, setSpeed] = useState<number | null>(null);
+  const [showSpeed, setShowSpeed] = useState(readShowSpeed);
+  useEffect(() => saveShowSpeed(showSpeed), [showSpeed]);
+  useEffect(() => {
+    if (!running || !turnStartedAt) {
+      setSpeed(null);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setSpeed(estimateTokensPerSecond(responseText.current.length, Date.now() - turnStartedAt));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [running, turnStartedAt]);
   // Parar no meio do turno: a verificação que ainda chegar não pede correção.
   const turnStopped = useRef(false);
   const body = useRef<HTMLDivElement>(null);
@@ -1061,7 +1085,6 @@ ${cliPrompt}`;
 
   // Menu de `/`: comandos da Luna, de plugin e as skills/comandos da CLI. As da CLI são lidas quando o menu abre.
   const [cliSlash, setCliSlash] = useState<SlashItem[]>([]);
-  const slashText = slashQuery(draft);
   const slashOpen = slashText !== null;
   useEffect(() => {
     if (!slashOpen) return;
@@ -1091,11 +1114,13 @@ ${cliPrompt}`;
 
   /// Digitar "@" abre a lista de arquivos do projeto; o trecho depois do "@" filtra.
   function changeDraft(value: string) {
-    setDraft(value);
+    draftRef.current = value;
+    setSlashText(slashQuery(value));
     const match = /@([^s@]*)$/.exec(value);
     const request = ++fileRequest.current;
     if (!match) {
-      setFiles([]);
+      // Sem "@", a lista já vazia fica como está: não re-renderiza a cada tecla.
+      setFiles((current) => (current.length > 0 ? [] : current));
       return;
     }
     listFiles(cwd, match[1])
@@ -1109,13 +1134,13 @@ ${cliPrompt}`;
 
   /// Escolhe um arquivo da lista: o "@" digitado vira o caminho completo.
   function pickFile(path: string) {
-    setDraft((current) => current.replace(/@([^s@]*)$/, () => `@${path} `));
+    setDraft(draftRef.current.replace(/@([^s@]*)$/, () => `@${path} `));
     picked.current.add(path);
     setFiles([]);
   }
 
   async function send() {
-    const typed = draft.trim();
+    const typed = draftRef.current.trim();
     const hasAnyAttachment = attachments.length > 0 || fileAttachments.length > 0;
     if ((!typed && !hasAnyAttachment) || running || loggedIn !== true) return;
     // Só com anexo, o pedido vai com uma frase padrão; os arquivos entram na lista abaixo.
@@ -1536,7 +1561,7 @@ ${outgoing}`
       {backgroundTasks.length > 0 && <BackgroundTasks tasks={backgroundTasks} onStop={(id) => void stopBackground(id)} />}
 
       <Composer
-        draft={draft}
+        composerRef={composerRef}
         onDraft={changeDraft}
         attachments={attachments}
         onAttach={(file) => void attachFile(file)}
@@ -1548,6 +1573,9 @@ ${outgoing}`
         onSend={() => void send()}
         onStop={stopRun}
         running={running}
+        speed={speed}
+        showSpeed={showSpeed}
+        onToggleSpeed={() => setShowSpeed((on) => !on)}
         blocked={blocked}
         agent={agentK}
         agents={options}
