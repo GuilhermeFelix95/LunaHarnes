@@ -142,6 +142,77 @@ export function readPluginEntry(id: string): Promise<string> {
   return invoke("read_plugin_entry", { id });
 }
 
+/** Plugin do Claude Code instalado, como a CLI lista (`claude plugin list --json`). */
+export interface ClaudeInstalledPlugin {
+  id: string;
+  version: string;
+  scope: string;
+  enabled: boolean;
+  installPath?: string | null;
+}
+
+/** Plugin que um marketplace oferece e que ainda não está instalado. */
+export interface ClaudeAvailablePlugin {
+  pluginId: string;
+  name: string;
+  description: string;
+}
+
+export interface ClaudeCatalog {
+  installed: ClaudeInstalledPlugin[];
+  available: ClaudeAvailablePlugin[];
+}
+
+export interface ClaudeMarketplace {
+  name: string;
+  origin: string;
+}
+
+/** A CLI do Claude instalada aceita os comandos de plugin que a Luna usa? */
+export function claudeCliVersionOk(): Promise<boolean> {
+  return invoke("claude_cli_version_ok");
+}
+
+export function claudePluginsCatalog(): Promise<ClaudeCatalog> {
+  return invoke("claude_plugins_catalog");
+}
+
+/** Texto da CLI sobre o plugin: o que ele adiciona e o custo estimado. Mostrado antes de instalar. */
+export function claudePluginDetails(pluginId: string): Promise<string> {
+  return invoke("claude_plugin_details", { pluginId });
+}
+
+/** Instala no escopo do usuário. A Luna só chama com `confirmed` depois da confirmação da pessoa. */
+export function claudePluginInstall(pluginId: string, confirmed: boolean): Promise<void> {
+  return invoke("claude_plugin_install", { pluginId, confirmed });
+}
+
+export function claudePluginUninstall(pluginId: string, confirmed: boolean): Promise<void> {
+  return invoke("claude_plugin_uninstall", { pluginId, confirmed });
+}
+
+export function claudePluginSetEnabled(pluginId: string, enabled: boolean): Promise<void> {
+  return invoke("claude_plugin_set_enabled", { pluginId, enabled });
+}
+
+export function claudePluginUpdate(pluginId: string): Promise<void> {
+  return invoke("claude_plugin_update", { pluginId });
+}
+
+export function claudeMarketplacesList(): Promise<ClaudeMarketplace[]> {
+  return invoke("claude_marketplaces_list");
+}
+
+/** Origem: `dono/repo` do GitHub ou endereço `https://`. */
+export function claudeMarketplaceAdd(source: string): Promise<void> {
+  return invoke("claude_marketplace_add", { source });
+}
+
+/** Remover um marketplace desinstala os plugins dele, por isso exige confirmação. */
+export function claudeMarketplaceRemove(name: string, confirmed: boolean): Promise<void> {
+  return invoke("claude_marketplace_remove", { name, confirmed });
+}
+
 /// Modelos e níveis de esforço que a CLI do provedor aceita.
 export function listModels(provider: ProviderKind): Promise<ModelOption[]> {
   return invoke("list_models", { provider });
@@ -265,11 +336,12 @@ export function importRules(): Promise<string> {
 }
 
 export async function listSlashItems(cwd: string, provider: ProviderKind): Promise<SlashItem[]> {
-  const items = await invoke<{ name: string; description: string; kind: "skill" | "command" }[]>("list_slash_items", {
-    cwd,
-    provider,
-  });
-  return items.map((item) => ({ name: item.name, description: item.description, origin: item.kind }));
+  const items = await invoke<{ name: string; description: string; kind: "skill" | "command" | "plugin-skill" | "plugin-command" }[]>(
+    "list_slash_items",
+    { cwd, provider },
+  );
+  const origin = { skill: "skill", command: "command", "plugin-skill": "claude-skill", "plugin-command": "claude-command" } as const;
+  return items.map((item) => ({ name: item.name, description: item.description, origin: origin[item.kind] }));
 }
 
 /// Grava o estado dos arquivos antes de um turno. `null` fora de repositório git.

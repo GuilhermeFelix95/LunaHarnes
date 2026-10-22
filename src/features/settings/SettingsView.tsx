@@ -29,6 +29,7 @@ import { ConversationSection } from "./ConversationSection";
 import { GeneralSection } from "./GeneralSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { PluginsSection } from "./PluginsSection";
+import { ClaudePluginsSection } from "./ClaudePluginsSection";
 import { RulesSection } from "./RulesSection";
 import { McpSection } from "./McpSection";
 import { SkillsSection } from "./SkillsSection";
@@ -55,6 +56,7 @@ type SettingsSection =
   | "accounts"
   | "providers"
   | "plugins"
+  | "claudePlugins"
   | "skills"
   | "mcp"
   | "about";
@@ -70,6 +72,7 @@ const SECTIONS: Array<[SettingsSection, MessageKey]> = [
   ["accounts", "settings.nav.accounts"],
   ["providers", "settings.nav.providers"],
   ["plugins", "settings.nav.plugins"],
+  ["claudePlugins", "settings.nav.claudePlugins"],
   ["skills", "settings.nav.skills"],
   ["mcp", "settings.nav.mcp"],
   ["about", "settings.nav.about"],
@@ -773,6 +776,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           {section === "accounts" && <AccountsSection />}
           {section === "providers" && <ProvidersSection />}
           {section === "plugins" && <PluginsSection />}
+          {section === "claudePlugins" && <ClaudePluginsSection />}
       {section === "skills" && <SkillsSection />}
       {section === "mcp" && <McpSection />}
       {section === "about" && <AboutSection />}

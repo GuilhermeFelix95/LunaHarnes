@@ -1,5 +1,5 @@
 /// Menu de `/` do composer: comandos da Luna, comandos de plugin e skills/comandos da CLI.
-export type SlashOrigin = "luna" | "plugin" | "skill" | "command";
+export type SlashOrigin = "luna" | "plugin" | "skill" | "command" | "claude-skill" | "claude-command";
 
 export interface SlashItem {
   name: string;
@@ -22,6 +22,8 @@ export const ORIGIN_LABELS: Record<SlashOrigin, string> = {
   plugin: "Plugin",
   skill: "Skill",
   command: "Comando",
+  "claude-skill": "Skill do Claude",
+  "claude-command": "Comando do Claude",
 };
 
 /// Trecho digitado depois da barra, enquanto o menu deve estar aberto (sem espaço ainda). Fora disso, null.
@@ -71,6 +73,6 @@ export function cliPrompt(input: string, items: SlashItem[]): string | null {
   const item = items.find((i) => text === `/${i.name}` || text.startsWith(`/${i.name} `));
   if (!item) return null;
   const args = text.slice(item.name.length + 1).trim();
-  if (item.origin === "skill") return `Use a skill ${item.name}${args ? `: ${args}` : ""}`;
+  if (item.origin === "skill" || item.origin === "claude-skill") return `Use a skill ${item.name}${args ? `: ${args}` : ""}`;
   return `/${item.name}${args ? ` ${args}` : ""}`;
 }

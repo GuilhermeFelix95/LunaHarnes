@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cliPrompt, filterSlash, LUNA_COMMANDS, parseLunaCommand, slashQuery, type SlashItem } from "./slash";
+import { cliPrompt, filterSlash, LUNA_COMMANDS, ORIGIN_LABELS, parseLunaCommand, slashQuery, type SlashItem } from "./slash";
 
 const CLI: SlashItem[] = [
   { name: "pdf", description: "Lê PDFs", origin: "skill" },
@@ -67,5 +67,24 @@ describe("skills e comandos da CLI", () => {
   it("texto que não é skill nem comando segue como está", () => {
     expect(cliPrompt("/pdfx", CLI)).toBeNull();
     expect(cliPrompt("oi", CLI)).toBeNull();
+  });
+});
+
+describe("plugins do Claude no menu", () => {
+  const PLUGIN: SlashItem[] = [
+    { name: "feature-dev:pdf", description: "Lê PDFs", origin: "claude-skill" },
+    { name: "feature-dev:resumo", description: "Resume", origin: "claude-command" },
+  ];
+
+  it("têm rótulo próprio, diferente dos plugins da Luna e das skills locais", () => {
+    expect(ORIGIN_LABELS["claude-skill"]).toBe("Skill do Claude");
+    expect(ORIGIN_LABELS["claude-command"]).toBe("Comando do Claude");
+    expect(ORIGIN_LABELS["claude-skill"]).not.toBe(ORIGIN_LABELS.plugin);
+    expect(ORIGIN_LABELS["claude-skill"]).not.toBe(ORIGIN_LABELS.skill);
+  });
+
+  it("skill do plugin vai como pedido em linguagem natural, comando com a barra", () => {
+    expect(cliPrompt("/feature-dev:pdf relatorio", PLUGIN)).toBe("Use a skill feature-dev:pdf: relatorio");
+    expect(cliPrompt("/feature-dev:resumo semana", PLUGIN)).toBe("/feature-dev:resumo semana");
   });
 });

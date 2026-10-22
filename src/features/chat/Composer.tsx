@@ -30,6 +30,8 @@ const ORIGIN_KEYS: Record<SlashOrigin, MessageKey> = {
   plugin: "slash.origin.plugin",
   skill: "slash.origin.skill",
   command: "slash.origin.command",
+  "claude-skill": "slash.origin.claudeSkill",
+  "claude-command": "slash.origin.claudeCommand",
 };
 
 const MAX_HEIGHT_PX = 200;

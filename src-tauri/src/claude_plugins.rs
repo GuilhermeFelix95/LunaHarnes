@@ -3,6 +3,7 @@
 //! com `--json` quando ela oferece. Instalar e remover só rodam depois de confirmação explícita da pessoa.
 
 use std::io::Read;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -267,6 +268,17 @@ fn checked(args: &[String], action: &str) -> Result<CliOutput, String> {
 pub fn claude_cli_version_ok() -> Result<bool, String> {
     let output = run_claude(&["--version".to_string()])?;
     Ok(cli_version_ok(&output.stdout))
+}
+
+/// Pastas dos plugins ligados, para o menu de `/` listar as skills e os comandos deles.
+pub fn enabled_install_dirs() -> Result<Vec<(String, PathBuf)>, String> {
+    let output = checked(&["plugin".to_string(), "list".to_string(), "--json".to_string()], "não foi possível listar os plugins")?;
+    let installed = parse_installed(&output.stdout)?;
+    Ok(installed
+        .into_iter()
+        .filter(|plugin| plugin.enabled)
+        .filter_map(|plugin| plugin.install_path.map(|path| (plugin.id, PathBuf::from(path))))
+        .collect())
 }
 
 /// Instalados e disponíveis nos marketplaces registrados.

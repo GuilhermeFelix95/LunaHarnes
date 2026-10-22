@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::claude_plugins;
+use crate::logfile;
 use crate::providers::ProviderKind;
 
 /// Arquivo maior que isso não é lido: um SKILL.md de verdade cabe folgado.
@@ -17,7 +19,7 @@ const MAX_ITEMS: usize = 200;
 pub struct SlashItem {
     pub name: String,
     pub description: String,
-    /// `skill` (pasta com SKILL.md) ou `command` (arquivo .md).
+    /// `skill` (pasta com SKILL.md) ou `command` (arquivo .md). Plugins do Claude: `plugin-skill` ou `plugin-command`.
     pub kind: String,
 }
 
@@ -104,11 +106,44 @@ pub fn collect(home: &Path, cwd: &Path, provider: ProviderKind) -> Vec<SlashItem
         // Ainda sem as pastas de comandos do OpenCode verificadas: nenhum item por enquanto.
         ProviderKind::OpenCode | ProviderKind::Cline | ProviderKind::Copilot | ProviderKind::Antigravity | ProviderKind::Hermes => {}
     }
+    finish(&mut out);
+    out
+}
+
+/// Ordena por nome, tira repetidos e limita a lista. Vale para as pastas da CLI e para os plugins do Claude.
+fn finish(out: &mut Vec<SlashItem>) {
     out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     // Mesmo nome em duas pastas (ex.: skill do usuário e do projeto): fica um item só.
     out.dedup_by(|a, b| a.name == b.name);
     out.truncate(MAX_ITEMS);
-    out
+}
+
+/// Skills e comandos de um plugin do Claude, com o nome do plugin na frente (`plugin:nome`), como a CLI os chama.
+pub fn plugin_items(plugin: &str, install_dir: &Path) -> Vec<SlashItem> {
+    let mut out = Vec::new();
+    scan_skills(&install_dir.join("skills"), &mut out);
+    scan_commands(&install_dir.join("commands"), &mut out);
+    out.into_iter()
+        .map(|item| SlashItem {
+            name: format!("{plugin}:{}", item.name),
+            description: item.description,
+            kind: format!("plugin-{}", item.kind),
+        })
+        .collect()
+}
+
+/// Itens dos plugins do Claude ligados. Se a CLI falhar, o menu segue só com as pastas locais e o erro vai para o log.
+fn claude_plugin_items() -> Vec<SlashItem> {
+    match claude_plugins::enabled_install_dirs() {
+        Ok(dirs) => dirs
+            .iter()
+            .flat_map(|(id, dir)| plugin_items(id.split('@').next().unwrap_or(id.as_str()), dir))
+            .collect(),
+        Err(e) => {
+            logfile::error(&format!("não foi possível listar os plugins do Claude para o menu de /: {e}"));
+            Vec::new()
+        }
+    }
 }
 
 pub fn home_dir() -> Option<PathBuf> {
@@ -118,7 +153,15 @@ pub fn home_dir() -> Option<PathBuf> {
 #[tauri::command]
 pub async fn list_slash_items(cwd: String, provider: ProviderKind) -> Result<Vec<SlashItem>, String> {
     tauri::async_runtime::spawn_blocking(move || match home_dir() {
-        Some(home) => collect(&home, Path::new(&cwd), provider),
+        Some(home) => {
+            let claude = matches!(provider, ProviderKind::Claude);
+            let mut items = collect(&home, Path::new(&cwd), provider);
+            if claude {
+                items.extend(claude_plugin_items());
+                finish(&mut items);
+            }
+            items
+        }
         None => Vec::new(),
     })
     .await
@@ -187,6 +230,19 @@ mod tests {
         assert_eq!(names, vec!["explica", "testes"]);
         let _ = fs::remove_dir_all(&home);
         let _ = fs::remove_dir_all(&cwd);
+    }
+
+    #[test]
+    fn plugin_skills_and_commands_carry_the_plugin_name() {
+        let install = temp("plugin-install");
+        write(&install.join("skills/pdf/SKILL.md"), "---\ndescription: Lê PDFs\n---\n");
+        write(&install.join("commands/resumo.md"), "---\ndescription: Resume\n---\n");
+
+        let items = plugin_items("feature-dev", &install);
+
+        let names: Vec<_> = items.iter().map(|i| (i.name.as_str(), i.kind.as_str())).collect();
+        assert_eq!(names, vec![("feature-dev:pdf", "plugin-skill"), ("feature-dev:resumo", "plugin-command")]);
+        let _ = fs::remove_dir_all(&install);
     }
 
     #[test]
