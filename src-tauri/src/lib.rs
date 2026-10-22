@@ -9,6 +9,7 @@ pub mod browser_bookmarks;
 pub mod browser_history;
 pub mod browser_import;
 pub mod changes;
+pub mod claude_plugins;
 pub mod worktrees;
 pub mod checkpoints;
 pub mod logfile;
@@ -126,6 +127,16 @@ pub fn run() {
             background_tasks::start_background_task,
             background_tasks::stop_background_task,
             background_tasks::list_background_tasks,
+            claude_plugins::claude_cli_version_ok,
+            claude_plugins::claude_plugins_catalog,
+            claude_plugins::claude_plugin_details,
+            claude_plugins::claude_plugin_install,
+            claude_plugins::claude_plugin_uninstall,
+            claude_plugins::claude_plugin_set_enabled,
+            claude_plugins::claude_plugin_update,
+            claude_plugins::claude_marketplaces_list,
+            claude_plugins::claude_marketplace_add,
+            claude_plugins::claude_marketplace_remove,
             commands::list_plugins,
             commands::read_plugin_entry,
             commands::read_plugin_asset,
