@@ -7,7 +7,7 @@ use std::path::Path;
 use super::marketplace::{self, Catalog};
 
 /// Ids do catálogo oficial que entram por padrão.
-pub const DEFAULT_PLUGINS: &[&str] = &["cache-tokens", "lunafix"];
+pub const DEFAULT_PLUGINS: &[&str] = &["lunafix"];
 
 /// Instala os plugins padrão que ainda não foram semeados. Falha de um não impede os outros.
 pub fn install_defaults(app_data: &Path) -> Result<(), String> {
@@ -81,19 +81,27 @@ mod tests {
         dir
     }
 
+    /// O plugin de cache de tokens saiu dos padrões e do catálogo: nada o instala de novo.
+    #[test]
+    fn cache_tokens_is_no_longer_a_default_plugin() {
+        assert!(!DEFAULT_PLUGINS.contains(&"cache-tokens"));
+        let catalog = marketplace::official().unwrap();
+        assert!(catalog.plugins.iter().all(|p| p.id != "cache-tokens"));
+    }
+
     #[test]
     fn installs_the_default_plugin_once_and_respects_its_removal() {
         let app = temp_app("once");
         let catalog = marketplace::official().unwrap();
 
-        install_from(&app, &catalog, &["cache-tokens"]).unwrap();
-        assert!(app.join("plugins/cache-tokens/index.js").is_file());
-        assert!(app.join("plugins-seeded/cache-tokens").is_file());
+        install_from(&app, &catalog, &["lunafix"]).unwrap();
+        assert!(app.join("plugins/lunafix/index.js").is_file());
+        assert!(app.join("plugins-seeded/lunafix").is_file());
 
         // A pessoa desinstala: a próxima abertura do app não pode trazer o plugin de volta.
-        marketplace::uninstall(&app.join("plugins"), "cache-tokens").unwrap();
-        install_from(&app, &catalog, &["cache-tokens"]).unwrap();
-        assert!(!app.join("plugins/cache-tokens").exists());
+        marketplace::uninstall(&app.join("plugins"), "lunafix").unwrap();
+        install_from(&app, &catalog, &["lunafix"]).unwrap();
+        assert!(!app.join("plugins/lunafix").exists());
 
         let _ = fs::remove_dir_all(&app);
     }
@@ -112,16 +120,17 @@ mod tests {
     fn an_older_install_of_the_default_plugin_is_replaced_by_the_catalog_version() {
         let app = temp_app("older");
         let catalog = marketplace::official().unwrap();
-        let folder = app.join("plugins/cache-tokens");
+        let catalog_version = catalog.plugins.iter().find(|p| p.id == "lunafix").unwrap().version.clone();
+        let folder = app.join("plugins/lunafix");
         fs::create_dir_all(&folder).unwrap();
-        fs::write(folder.join("manifest.json"), r#"{"id":"cache-tokens","version":"0.2.0","entry":"index.js"}"#).unwrap();
+        fs::write(folder.join("manifest.json"), r#"{"id":"lunafix","version":"0.0.1","entry":"index.js"}"#).unwrap();
         fs::write(folder.join("index.js"), "// versão antiga").unwrap();
 
-        install_from(&app, &catalog, &["cache-tokens"]).unwrap();
+        install_from(&app, &catalog, &["lunafix"]).unwrap();
 
         let installed = fs::read_to_string(folder.join("index.js")).unwrap();
-        assert!(installed.contains("Cache de Tokens v1.0"));
-        assert_eq!(marketplace::installed_version(&app.join("plugins"), "cache-tokens").as_deref(), Some("1.0.0"));
+        assert_ne!(installed, "// versão antiga");
+        assert_eq!(marketplace::installed_version(&app.join("plugins"), "lunafix").as_deref(), Some(catalog_version.as_str()));
 
         let _ = fs::remove_dir_all(&app);
     }

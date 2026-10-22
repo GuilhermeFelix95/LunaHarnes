@@ -327,3 +327,5 @@ un_result e rror). ProviderKind::Cline ligado em session, setup (install manual
 - Atualização, checagem (2026-10-21): `startUpdateChecks` (`src/updates.ts`) confere ao abrir o app (5 s depois) e depois a cada hora (`UPDATE_CHECK_EVERY_MS`). Para ao desmontar o app. Testes: `src/updates.test.ts`.
 
 - Cabeçalho do chat (2026-10-21): sem lista de comandos e sem custo da conversa. O bloco de `.chat__tools` empurra os botões para a direita (margin-left auto). Custo continua salvo em `costUsd` na conversa; só deixou de aparecer no cabeçalho.
+
+- Plugin Cache de Tokens removido (2026-10-21): não é mais padrão nem está no catálogo oficial. A barra lateral não mostra mais o card de cache. As linhas acima que o descrevem como instalado por padrão ficam como histórico. Os dados de cache do provedor (`promptCache.ts`, `cacheSettings.ts`) continuam no núcleo do app.
