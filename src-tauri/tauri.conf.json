@@ -39,7 +39,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMyN0IzQjhDMDVCRkVFOTkKUldTWjdyOEZqRHQ3TWs4cDR0ZVpHaWk3QzA1RXJzTjFHZlhaSzFUQklNZUR3MVBOZ2dnUzYydmEK",
       "endpoints": [
-        "https://github.com/GuilhermeFelix95/LunaHarnes/releases/latest/download/latest.json"
+        "https://github.com/GuilhermeFelix95/lunaCode/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
