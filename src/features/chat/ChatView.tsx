@@ -92,7 +92,7 @@ import { WorkspaceChip } from "./WorkspaceChip";
 import { BackgroundTasks } from "./BackgroundTasks";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { saveLastWorkspace } from "../../workspace";
-import { resolveLocale, t, useLocale, type MessageKey } from "../../i18n";
+import { t, useLocale, type MessageKey } from "../../i18n";
 
 const TITLE_MAX_CHARS = 60;
 
@@ -1344,18 +1344,6 @@ ${outgoing}`
       )}
       <header className="chat__header">
         <h2 className="chat__title">{messages.length > 0 ? titleOf(messages) : t("sidebar.newConversation")}</h2>
-        {host.commandNames().length > 0 && (
-          <span className="chat__commands">
-            {t("chat.commands", { list: host.commandNames().map((c) => `/${c}`).join(", ") })}
-          </span>
-        )}
-        {costUsd > 0 && (
-          <span className="chat__cost">
-            {t("chat.costThisConversation", {
-              cost: costUsd.toLocaleString(resolveLocale(), { style: "currency", currency: "USD" }),
-            })}
-          </span>
-        )}
         <div className="chat__tools">
           {editingPath && (
             <button type="button" className="chat__tool" onClick={() => setEditingPath(null)}>

@@ -911,3 +911,29 @@ describe("ChatView: desmarcar a meta durante a resposta encerra o /meta", () => 
     expect(vi.mocked(api.sendPrompt)).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ChatView: cabeçalho sem custo e sem lista de comandos", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("o cabeçalho não mostra o custo da conversa nem a lista de comandos", async () => {
+    const conversation: Conversation = {
+      id: "conv-custo",
+      title: "Custo",
+      provider: "claude",
+      cwd: "C:\projeto",
+      permission: "acceptEdits",
+      planning: false,
+      createdAt: 1,
+      updatedAt: 2,
+      messages: [],
+      costUsd: 209.12,
+    };
+    render(<ChatView initial={conversation} onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    expect(screen.queryByText(/nesta conversa/)).toBeNull();
+    expect(screen.queryByText(/Comandos:/)).toBeNull();
+  });
+});

@@ -325,3 +325,5 @@ un_result e rror). ProviderKind::Cline ligado em session, setup (install manual
 - Navegador, dono da webview (2026-10-21): só o `BrowserPanel` que mostra a página (`browserOwner`) pode escondê-la. Antes, cada painel inativo montado chamava `browser_show(false)` e apagava a página do painel ativo. Testes: `BrowserPanel.test.tsx` ("painel inativo não esconde..." e "trocar de conversa..."). O branco no app real segue não confirmado.
 
 - Atualização, checagem (2026-10-21): `startUpdateChecks` (`src/updates.ts`) confere ao abrir o app (5 s depois) e depois a cada hora (`UPDATE_CHECK_EVERY_MS`). Para ao desmontar o app. Testes: `src/updates.test.ts`.
+
+- Cabeçalho do chat (2026-10-21): sem lista de comandos e sem custo da conversa. O bloco de `.chat__tools` empurra os botões para a direita (margin-left auto). Custo continua salvo em `costUsd` na conversa; só deixou de aparecer no cabeçalho.

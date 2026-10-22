@@ -467,8 +467,6 @@ export const en: Record<MessageKey, string> = {
   "chat.planApproved": "Plan approved.",
   "chat.rewindTitle": "Go back to here?",
   "chat.rewindConfirm": "Go back",
-  "chat.commands": "Commands: {list}",
-  "chat.costThisConversation": "{cost} in this conversation",
   "chat.tool.changes": "Changes",
   "chat.tool.plan": "Plan",
   "chat.tool.terminal": "Terminal",
