@@ -1,40 +1,34 @@
-import { useEffect, useState } from "react";
-import { RefreshCw, X } from "lucide-react";
-import { readProjectFile } from "../../api";
+import { useState } from "react";
+import { X } from "lucide-react";
+import { browserPreviewUrl } from "../../api";
 import { t } from "../../i18n";
 
 interface SiteClonePreviewProps {
   cwd: string;
   /** Subpasta do clone, dentro do projeto. */
   folder: string;
+  /** Recebe o endereço da prévia e abre numa aba do navegador embutido. */
+  onOpen: (url: string) => void;
   onClose: () => void;
 }
 
-/// Prévia do site gerado: mostra o `index.html` da subpasta num iframe sem acesso ao app.
-/// O `sandbox` sem `allow-same-origin` deixa o clone sem cookies, storage ou chamadas com a sessão do app.
-export function SiteClonePreview({ cwd, folder, onClose }: SiteClonePreviewProps) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
-  const [version, setVersion] = useState(0);
+/// Prévia do clone: a página não aparece no chat. O botão serve a pasta do clone num endereço local do app
+/// e abre esse endereço no navegador embutido, como uma navegação comum.
+export function SiteClonePreview({ cwd, folder, onOpen, onClose }: SiteClonePreviewProps) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    let alive = true;
-    readProjectFile(cwd, `${folder}/index.html`).then(
-      (content) => {
-        if (!alive) return;
-        setHtml(content);
-        setMissing(false);
-      },
-      () => {
-        if (!alive) return;
-        setHtml(null);
-        setMissing(true);
-      },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [cwd, folder, version]);
+  async function open() {
+    setBusy(true);
+    setError("");
+    try {
+      onOpen(await browserPreviewUrl(cwd, folder));
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <section className="qpick clone-preview" aria-label={t("clone.preview")}>
@@ -42,19 +36,20 @@ export function SiteClonePreview({ cwd, folder, onClose }: SiteClonePreviewProps
         <span className="qpick__title">
           {t("clone.preview")} <span className="qpick__count">{folder}/</span>
         </span>
-        <div className="clone-preview__actions">
-          <button type="button" className="qpick__close" aria-label={t("clone.previewRefresh")} onClick={() => setVersion((v) => v + 1)}>
-            <RefreshCw size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="qpick__close" aria-label={t("clone.previewClose")} onClick={onClose}>
-            <X size={14} aria-hidden="true" />
-          </button>
-        </div>
+        <button type="button" className="qpick__close" aria-label={t("clone.previewClose")} onClick={onClose}>
+          <X size={14} aria-hidden="true" />
+        </button>
       </header>
-      {html !== null && (
-        <iframe className="clone-preview__frame" title={t("clone.preview")} sandbox="allow-scripts" srcDoc={html} />
+      <div className="clone-preview__actions">
+        <button type="button" className="btn btn--primary btn--sm" disabled={busy} onClick={() => void open()}>
+          {t("clone.previewOpen")}
+        </button>
+      </div>
+      {error && (
+        <p className="clone-preview__empty" role="alert">
+          {error}
+        </p>
       )}
-      {missing && <p className="clone-preview__empty">{t("clone.previewMissing")}</p>}
     </section>
   );
 }

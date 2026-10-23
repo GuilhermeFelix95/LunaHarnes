@@ -1601,7 +1601,7 @@ ${outgoing}`
       )}
 
       {clonePreview && cwd && !running && (
-        <SiteClonePreview cwd={cwd} folder={clonePreview} onClose={() => setClonePreview(null)} />
+        <SiteClonePreview cwd={cwd} folder={clonePreview} onOpen={openLinkInBrowser} onClose={() => setClonePreview(null)} />
       )}
 
       {configChanged && (

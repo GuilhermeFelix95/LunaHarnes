@@ -32,6 +32,7 @@ pub mod providers;
 pub mod rules;
 pub mod reload;
 pub mod site_clone;
+pub mod site_preview;
 pub mod session;
 pub mod setup;
 pub mod skills;
@@ -196,6 +197,7 @@ pub fn run() {
             browser::browser_translate,
             browser::browser_read,
             browser::browser_set_search_engine,
+            site_preview::browser_preview_url,
             site_clone::site_clone_capture,
             favicon::browser_favicon,
             browser::browser_login_suggestions,

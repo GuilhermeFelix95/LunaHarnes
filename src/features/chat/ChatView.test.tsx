@@ -1012,7 +1012,7 @@ describe("ChatView: clonador no chat", () => {
     render(<ChatView onPersist={() => {}} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
 
-    fireEvent.click(screen.getByRole("button", { name: "Clonar um site para o projeto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clonar um site para o projeto (beta)" }));
     fireEvent.click(await screen.findByRole("button", { name: "Criar uma subpasta com o nome escolhido" }));
     fireEvent.click(await screen.findByRole("button", { name: "Cores" }));
     fireEvent.click(screen.getByRole("button", { name: "Enviar respostas" }));

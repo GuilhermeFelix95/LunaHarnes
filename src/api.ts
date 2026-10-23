@@ -539,6 +539,11 @@ export function browserReload(): Promise<void> {
   return invoke("browser_reload");
 }
 
+/// Endereço local da prévia de uma subpasta do clone (o app serve a pasta, só para leitura).
+export function browserPreviewUrl(cwd: string, folder: string): Promise<string> {
+  return invoke("browser_preview_url", { cwd, folder });
+}
+
 /// Motor de busca do agente do navegador. O localStorage não chega ao Rust, então o front avisa a escolha.
 export function browserSetSearchEngine(engine: SearchEngine): Promise<void> {
   return invoke("browser_set_search_engine", { engine });

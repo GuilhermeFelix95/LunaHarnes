@@ -369,20 +369,20 @@ describe("botão Clonar site", () => {
     setup({ onClone: vi.fn() });
 
     const meta = screen.getByRole("button", { name: "Modo /meta" });
-    const clone = screen.getByRole("button", { name: "Clonar um site para o projeto" });
+    const clone = screen.getByRole("button", { name: "Clonar um site para o projeto (beta)" });
     expect(meta.nextElementSibling).toBe(clone);
   });
 
   it("sem o callback, o botão não aparece", () => {
     setup();
 
-    expect(screen.queryByRole("button", { name: "Clonar um site para o projeto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Clonar um site para o projeto (beta)" })).toBeNull();
   });
 
   it("chama o callback do fluxo ao clicar", () => {
     const onClone = vi.fn();
     setup({ onClone });
-    fireEvent.click(screen.getByRole("button", { name: "Clonar um site para o projeto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clonar um site para o projeto (beta)" }));
 
     expect(onClone).toHaveBeenCalledOnce();
   });
@@ -390,7 +390,7 @@ describe("botão Clonar site", () => {
   it("não aparece no modo navegador, como Meta", () => {
     setup({ browserMode: true, onClone: vi.fn() });
 
-    expect(screen.queryByRole("button", { name: "Clonar um site para o projeto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Clonar um site para o projeto (beta)" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Meta" })).toBeNull();
   });
 
@@ -407,7 +407,7 @@ describe("botão Clonar site", () => {
   it("fica indisponível com o motivo quando não há pasta de projeto", () => {
     const onClone = vi.fn();
     setup({ onClone, cloneDisabledReason: "Abra uma pasta de projeto para clonar um site." });
-    const button = screen.getByRole("button", { name: "Clonar um site para o projeto" }) as HTMLButtonElement;
+    const button = screen.getByRole("button", { name: "Clonar um site para o projeto (beta)" }) as HTMLButtonElement;
 
     expect(button.disabled).toBe(true);
     expect(button.title).toBe("Abra uma pasta de projeto para clonar um site.");

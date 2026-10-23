@@ -87,6 +87,7 @@ export function SiteCloneFlow({ permission, onPermission, onSend, onClose }: Sit
           <span>{t("clone.url")}</span>
           <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" required />
         </label>
+        <p className="clone__warning">{t("clone.betaNotice")}</p>
         <p className="clone__warning">{t("clone.warning")}</p>
         {readOnly && (
           <p className="clone-flow__notice" role="status">
