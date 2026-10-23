@@ -37,6 +37,10 @@ A ideia é ter um lugar só para trabalhar com o agente, sem perder o que as CLI
 
 **Conversa**
 - Respostas em tempo real, com anexos de imagem e de arquivo.
+- **Permissões** no seletor do composer: **Só leitura** não escreve arquivos; **Pedir permissão** deixa o agente executar tarefas e, no Claude, abre um pedido no chat antes de ações sensíveis, com Permitir, Negar ou Sempre nesta conversa (nos motores sem esse canal, funciona como Só leitura); **Acesso total** é o padrão em conversas novas. Conversas salvas mantêm a permissão que tinham.
+- **Velocidade real** do turno, medida pelos tokens de saída informados pela CLI: ao vivo no Claude e como valor final nos demais motores. Sem a contagem, aparece "sem dados".
+- **Diff inline** das edições do Claude, recolhível, com o total de linhas adicionadas (+) e removidas (−) no cabeçalho.
+- **Clonador de sites (beta)**: botão no composer que recria o layout de um site dentro do projeto, com aviso de direitos autorais e prévia no navegador embutido. Revise o resultado antes de usar.
 - Menu `/` com os comandos da Luna (`/plano`, `/projeto`, `/compactar`, `/meta`, `/subagente`, `/plugin`), além de skills, comandos e plugins de cada CLI.
 - Modo **Planejar**: o plano completo vai para o painel **Plano**, e o chat mostra o resumo. Modo **Conversar** para perguntas simples.
 - Perguntas do agente viram um seletor de opções em vez de texto.
@@ -68,7 +72,8 @@ A ideia é ter um lugar só para trabalhar com o agente, sem perder o que as CLI
 - **Economia de memória** por aba: a aba suspensa volta quando você a abre.
 - **Importação** de favoritos, histórico e senhas exportados do Chrome ou do Edge. As senhas ficam criptografadas com a proteção do Windows (DPAPI), e o app só mostra e copia, sem preencher formulários.
 - **Modo navegador**: ocupa a tela inteira, com o chat recolhido numa faixa lateral. Voltar ao modo LunaCode restaura o layout.
-- O agente usa o navegador embutido (no Claude) ou o **Playwright** com Chromium, que o app instala depois de confirmação (Claude, Codex e OpenCode).
+- O agente usa o navegador embutido (no Claude e no Codex): lê a página, age nela por referências (clicar, digitar, teclas, rolar e esperar) e pesquisa na web pelo motor escolhido em Configurações > Navegador. Ações sensíveis, como comprar, enviar, publicar ou apagar, pedem confirmação no chat, e login ou CAPTCHA param para você resolver na página.
+- O **Playwright** com Chromium também está disponível, e o app instala depois de confirmação (Claude, Codex e OpenCode).
 - Extensões do Chrome não funcionam, porque o WebView2 não as instala.
 
 **Extensões**
@@ -196,17 +201,20 @@ Funcionando e coberto por testes automatizados:
 - `/meta`, `/subagente`, perguntas do agente em seletor e medição do cache de prompt por turno.
 - Skills, servidores MCP e plugins pelo app ou pelo comando `luna`, incluindo os plugins do Claude Code pela CLI oficial.
 - Terminal com abas, worktrees por branch e editor de arquivos no lugar do chat.
-- Navegador: abas, favoritos, histórico, busca pelo endereço, bloqueador de anúncios, tradução, importação do Chrome e Edge e modo navegador.
+- Navegador: abas, favoritos, histórico, busca pelo endereço, bloqueador de anúncios, tradução, importação do Chrome e Edge, modo navegador e o agente que age na página e pesquisa na web.
+- Permissões (Só leitura, Pedir permissão e Acesso total), velocidade real do turno e diff inline das edições do Claude, cobertos por testes automatizados.
 
 Ainda sem verificação visual no app (o código e os testes estão prontos):
 
 - Ícone da janela no modo de desenvolvimento, animações novas e modo navegador em tela cheia.
 - Instalação real de um plugin criado pela Luna pelo cartão **Instalar**.
 - Instalação real de plugins do Claude Code, que mexe em `~/.claude`.
+- Pedido de permissão no chat, velocidade ao vivo e diff inline em uso real, e o agente do navegador numa página real.
+- Clonador de sites: beta, coberto por testes automatizados e ainda não verificado num site real.
 
 Limitações conhecidas:
 
-- O Codex ainda não recebe as ferramentas do navegador embutido (usa o Playwright, se escolhido).
+- O Codex recebe as ferramentas do navegador embutido pela configuração MCP, mas esse fluxo ainda não foi testado numa página real.
 - O cache de respostas foi removido: o app não guarda nem devolve respostas antigas. O que existe é a medição do cache de prompt do provedor.
 - O histórico, os favoritos e as senhas ficam só neste computador. Não há sincronização nem preenchimento automático de senhas.
 - A webview do navegador fica por cima da interface, então um diálogo do app que cruze a área dela aparece coberto.

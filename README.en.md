@@ -41,6 +41,10 @@ The goal is one place to work with the agent, without losing what the CLIs offer
 - Planning mode: the full plan goes to the **Plan** panel, and the chat shows a summary.
 - Context compaction, manual or automatic near the limit.
 - Switch agent, model, effort and permission without losing the conversation.
+- **Permissions** in the composer picker: **Read only** never writes files; **Ask for permission** lets the agent run tasks and, in Claude, opens a prompt in the chat before sensitive actions, with Allow, Deny or Always in this conversation (engines without that channel behave as Read only); **Full access** is the default for new conversations. Saved conversations keep the permission they had.
+- **Real speed** of each turn, measured from the output tokens reported by the CLI: live in Claude and as the final value in other engines. Without the count, it shows "no data".
+- **Inline diff** of Claude's edits, collapsible, with the total of added (+) and removed (−) lines in the header.
+- **Website cloner (beta):** a composer button that recreates a site's layout inside the project, with a copyright notice and a preview in the embedded browser. Review the result before using it.
 - Global rules: text you write goes into `CLAUDE.md` and `AGENTS.md`.
 
 **Projects and git**
@@ -172,7 +176,9 @@ Working and tested:
 
 In development, not yet verified end to end in the app:
 
-- **Integrated browser:** the page appears in a webview inside the window, and Claude receives the navigate, read, click and type tools. It uses an `unstable` Tauri feature. Codex does not receive these tools yet.
+- **Integrated browser:** the page appears in a webview inside the window. Claude and Codex receive the browser tools: the agent reads the page, acts on it by reference (click, type, keys, scroll, wait) and searches the web with the engine chosen in Settings > Browser. Sensitive actions ask for confirmation in the chat, and login or CAPTCHA pages stop for you to solve. It uses an `unstable` Tauri feature.
+- **Permissions, real speed and inline diff** for Claude, covered by automated tests but not yet checked end to end in the app.
+- **Website cloner:** beta, covered by automated tests and not yet checked on a real site.
 
 ## Contributing
 
