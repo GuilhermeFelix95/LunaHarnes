@@ -7,7 +7,7 @@ import { BrowserAgentCard } from "./BrowserAgentCard";
 vi.mock("../../api", () => ({
   listApiProfiles: vi.fn(async () => []),
   apiPresets: vi.fn(async () => []),
-  listModels: vi.fn(async () => [{ id: "gpt-5.5", label: "GPT-5.5" }]),
+  listModels: vi.fn(async () => [{ id: "gpt-5.5", label: "GPT-5.5", description: null, efforts: [], default: false }]),
 }));
 
 describe("Configurações > Navegador > IA do navegador", () => {
@@ -44,5 +44,31 @@ describe("Configurações > Navegador > IA do navegador", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Motor ou perfil do navegador" }), { target: { value: "" } });
 
     expect(getBrowserAgent()).toBeUndefined();
+  });
+
+  it("mostra o esforço quando o modelo escolhido tem níveis, e guarda a escolha", async () => {
+    vi.mocked(listModels).mockResolvedValueOnce([
+      { id: "gpt-5.5", label: "GPT-5.5", description: null, default: false, efforts: [{ id: "high", label: "Alto", recommended: false }] },
+    ]);
+    render(<BrowserAgentCard />);
+    await waitFor(() => expect(listApiProfiles).toHaveBeenCalled());
+    fireEvent.change(screen.getByRole("combobox", { name: "Motor ou perfil do navegador" }), { target: { value: "codex" } });
+    await screen.findByRole("option", { name: "GPT-5.5" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Modelo do navegador" }), { target: { value: "gpt-5.5" } });
+
+    fireEvent.change(await screen.findByRole("combobox", { name: "Esforço do navegador" }), { target: { value: "high" } });
+
+    expect(getBrowserAgent()).toEqual({ provider: "codex", model: "gpt-5.5", effort: "high" });
+  });
+
+  it("não mostra o esforço quando o modelo escolhido não tem níveis", async () => {
+    render(<BrowserAgentCard />);
+    await waitFor(() => expect(listApiProfiles).toHaveBeenCalled());
+    fireEvent.change(screen.getByRole("combobox", { name: "Motor ou perfil do navegador" }), { target: { value: "codex" } });
+    await screen.findByRole("option", { name: "GPT-5.5" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Modelo do navegador" }), { target: { value: "gpt-5.5" } });
+
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Modelo do navegador" })).toBeTruthy());
+    expect(screen.queryByRole("combobox", { name: "Esforço do navegador" })).toBeNull();
   });
 });

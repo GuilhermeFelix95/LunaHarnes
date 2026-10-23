@@ -143,8 +143,8 @@ export function Sidebar({
   }
 
   const [query, setQuery] = useState("");
-  // Conversas do modo navegador não entram na lista do LunaCode; o modo navegador lista todas.
-  const listed = browserMode ? conversations : conversations.filter((item) => !item.browser);
+  // Cada modo lista só as próprias conversas: as do navegador não entram no LunaCode, e o inverso vale também.
+  const listed = conversations.filter((item) => !!item.browser === browserMode);
   const matching = filterByTitle(listed, query);
   const projects = groupByProject(matching, new Date());
 
@@ -156,7 +156,7 @@ export function Sidebar({
           <Plus size={16} aria-hidden="true" />
         </button>
         <ul className="sidebar__rail-list">
-          {conversations.map((item) => (
+          {listed.map((item) => (
             <li key={item.id}>
               <button
                 type="button"

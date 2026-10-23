@@ -31,6 +31,7 @@ fn run(
         model: None,
         effort: None,
         browser: Default::default(),
+        browser_mode: false,
         subagents: false,
         profile: None,
         images: Vec::new(),

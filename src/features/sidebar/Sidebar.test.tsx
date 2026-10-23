@@ -216,8 +216,13 @@ describe("Sidebar: trilha de ícones no modo navegador", () => {
     const onOpen = vi.fn();
     const onSettings = vi.fn();
     const onBrowserMode = vi.fn();
+    // A trilha do modo navegador mostra só as conversas do navegador.
+    const browserItems: ConversationSummary[] = [
+      { ...conv("a", "Revisar o login"), browser: true },
+      { ...conv("b", "Criar página de preços"), browser: true },
+    ];
     render(
-      <Sidebar conversations={items} activeId="a" onNew={onNew} onAddProject={vi.fn()} onOpen={onOpen} onDelete={vi.fn()} onSettings={onSettings} browserMode onBrowserMode={onBrowserMode} />,
+      <Sidebar conversations={browserItems} activeId="a" onNew={onNew} onAddProject={vi.fn()} onOpen={onOpen} onDelete={vi.fn()} onSettings={onSettings} browserMode onBrowserMode={onBrowserMode} />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Nova conversa" }));
@@ -247,10 +252,11 @@ describe("Sidebar: histórico do modo navegador fica fora do LunaCode", () => {
     expect(screen.queryByText("Página do navegador")).toBeNull();
   });
 
-  it("no modo navegador a lista de ícones mostra também as conversas do navegador", () => {
+  it("no modo navegador a lista mostra só as conversas do navegador", () => {
     render(<Sidebar conversations={all} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} browserMode onBrowserMode={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: "Página do navegador" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Revisar o login" })).toBeNull();
   });
 });
 

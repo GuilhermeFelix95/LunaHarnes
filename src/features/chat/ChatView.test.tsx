@@ -1047,3 +1047,38 @@ describe("Modo navegador: o motor do chat vem de Configurações do navegador", 
     expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "claude" });
   });
 });
+
+describe("Modo navegador: instruções próprias e esforço do envio", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("no modo navegador, o envio pede as instruções do navegador", async () => {
+    render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("o que você faz?");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ browserMode: true });
+  });
+
+  it("no LunaCode, o envio não pede as instruções do navegador", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("oi");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ browserMode: false });
+  });
+
+  it("no modo navegador, o envio usa o esforço escolhido nas configurações", async () => {
+    localStorage.setItem("luna.browserAgent", JSON.stringify({ provider: "codex", model: "gpt-5.5", effort: "high" }));
+    render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("resuma esta página");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "codex", model: "gpt-5.5", effort: "high" });
+  });
+});

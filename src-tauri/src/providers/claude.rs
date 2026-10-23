@@ -100,6 +100,7 @@ pub fn background_request(
         cwd,
         permission,
         browser: Default::default(),
+        browser_mode: false,
         subagents: false,
         model,
         effort: None,
@@ -491,6 +492,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             long_cache: false,
             images: Vec::new(),
@@ -514,6 +516,7 @@ mod tests {
             profile: Some("p1".into()),
             context_window: None,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             long_cache: false,
             images: Vec::new(),
@@ -523,6 +526,31 @@ mod tests {
 
         assert!(args.windows(2).any(|w| w[0] == "--append-system-prompt" && w[1].starts_with(LUNA_IDENTITY) && w[1].contains("TaskCreate")));
         assert!(!args.iter().any(|a| a == "--system-prompt"));
+    }
+
+    #[test]
+    fn browser_mode_appends_the_browser_identity_to_the_claude_prompt() {
+        let request = RunRequest {
+            provider: crate::providers::ProviderKind::Claude,
+            prompt: "x".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::ReadOnly,
+            model: None,
+            effort: None,
+            profile: None,
+            context_window: None,
+            browser: Default::default(),
+            browser_mode: true,
+            subagents: false,
+            long_cache: false,
+            images: Vec::new(),
+        };
+
+        let args = args(&request);
+
+        assert!(args.windows(2).any(|w| w[0] == "--append-system-prompt" && w[1].starts_with(crate::providers::BROWSER_IDENTITY)));
+        assert!(!args.iter().any(|a| a.contains("api.registerCommand")));
     }
 
     const PARTIAL: &str = include_str!("../../tests/fixtures/claude_partial.jsonl");
@@ -630,6 +658,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             long_cache: false,
             images: vec![],
@@ -743,6 +772,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             long_cache: false,
             images: vec![path.clone()],
@@ -775,6 +805,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             long_cache: false,
             images: Vec::new(),

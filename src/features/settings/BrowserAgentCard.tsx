@@ -37,6 +37,7 @@ export function BrowserAgentCard() {
   const options: AgentOption[] = agentOptions(profiles, presets);
   const profile = choice?.profileId ? profiles.find((p) => p.id === choice.profileId) : undefined;
   const modelOptions: ModelOption[] = choice ? (choice.profileId ? profileModelOptions(profile) : models) : [];
+  const efforts = modelOptions.find((model) => model.id === choice?.model)?.efforts ?? [];
 
   function change(next: RoleModel | undefined) {
     setChoice(next);
@@ -77,12 +78,34 @@ export function BrowserAgentCard() {
             <select
               aria-label={t("settings.browserAgent.modelLabel")}
               value={choice.model}
-              onChange={(event) => change({ ...choice, model: event.target.value })}
+              onChange={(event) => {
+                const next: RoleModel = { ...choice, model: event.target.value };
+                // Modelo sem níveis não aceita esforço: o escolhido antes sai junto.
+                if (!modelOptions.find((model) => model.id === event.target.value)?.efforts.length) delete next.effort;
+                change(next);
+              }}
             >
               <option value="">{t("settings.browserAgent.modelDefault")}</option>
               {modelOptions.map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {choice && efforts.length > 0 && (
+          <label className="orchestrator__field">
+            <span>{t("settings.browserAgent.effort")}</span>
+            <select
+              aria-label={t("settings.browserAgent.effortLabel")}
+              value={choice.effort ?? ""}
+              onChange={(event) => change({ ...choice, effort: event.target.value || undefined })}
+            >
+              <option value="">{t("settings.browserAgent.effortDefault")}</option>
+              {efforts.map((effort) => (
+                <option key={effort.id} value={effort.id}>
+                  {effort.label}
                 </option>
               ))}
             </select>

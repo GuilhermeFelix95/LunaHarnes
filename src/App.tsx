@@ -110,10 +110,11 @@ export function App() {
     addChat({ startCwd: cwd ?? loadLastWorkspace(), browser });
   }
 
-  /// Liga ou desliga o modo navegador. Ao sair com uma conversa do navegador aberta, ela some do LunaCode:
-  /// abre uma conversa nova do LunaCode em vez de mostrá-la.
+  /// Liga ou desliga o modo navegador. Conversas de um modo não aparecem no outro: com uma conversa do modo
+  /// de origem aberta, abre uma conversa nova do modo escolhido em vez de mostrá-la.
   function setBrowser(on: boolean) {
-    if (!on && chats.find((c) => c.key === activeKey)?.browser) newConversation(undefined, false);
+    const active = chats.find((c) => c.key === activeKey);
+    if (active && !!active.browser !== on) newConversation(undefined, on);
     setView("chat");
     changeBrowserMode(on);
   }

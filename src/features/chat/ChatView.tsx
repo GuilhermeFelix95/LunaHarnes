@@ -1012,7 +1012,7 @@ export function ChatView({
     // No modo navegador, o motor vem de Configurações > Navegador (sem escolha, vale a conversa atual).
     const browserAgent = browserMode ? getBrowserAgent() : undefined;
     const current = browserAgent
-      ? { provider: browserAgent.provider, profileId: browserAgent.profileId ?? null, model: browserAgent.model, effort: "" }
+      ? { provider: browserAgent.provider, profileId: browserAgent.profileId ?? null, model: browserAgent.model, effort: browserAgent.effort ?? "" }
       : { provider, profileId, model: model ?? "", effort: effort ?? "" };
     const route = routeFor(role ?? (plan ? "plan" : mode?.id === "ask" ? "chat" : null), current, orchestrator);
     if (rewindNote.current) {
@@ -1080,6 +1080,7 @@ ${cliPrompt}`;
         permission: plan || mode ? "readOnly" : permission,
         // Lido a cada envio: a escolha em Configurações vale para toda execução.
         browser: getAgentBrowser(),
+        browserMode,
         model: route.model || undefined,
         effort: route.effort || undefined,
         contextWindow: route.provider === provider ? models.find((m) => m.id === route.model)?.contextWindow : undefined,

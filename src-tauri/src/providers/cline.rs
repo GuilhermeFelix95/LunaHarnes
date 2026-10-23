@@ -178,6 +178,7 @@ mod tests {
             cwd: ".".into(),
             permission: Permission::ReadOnly,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             model: None,
             effort: None,

@@ -33,3 +33,9 @@
 - O que o seletor do clonador deve oferecer para copiar?: Layout e estrutura, Cores, Componentes, Tipografia, Animações, Textos e imagens
 - Nas cores, o que usar?: Manter as cores do site
 - Como a prévia deve aparecer?: Só a prévia
+
+## Rodada 7
+- 1. O que não deve ser compartilhado entre o chat do navegador e a Luna do LunaCode?: Os dois: histórico e instruções
+- 2. Como o chat do navegador deve falar sobre o que pode fazer?: Só o que o modo faz hoje
+- 3. Quais capacidades a Luna do navegador deve saber explicar? (pode marcar mais de uma): Resumir a página, Explicar o conteúdo da página, Preencher formulários, O agente agir na página conforme o pedido, Buscar na web, Gerenciar favoritos e histórico
+- 4. Como o seletor de esforço deve aparecer no cartão de IA do navegador?: Só quando o modelo escolhido tiver níveis de esforço, como no Orquestrador

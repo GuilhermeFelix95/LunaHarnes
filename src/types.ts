@@ -20,6 +20,8 @@ export interface RunRequest {
   permission: Permission;
   /** Navegador do agente nesta execução. Ausente = o embutido. */
   browser?: AgentBrowser;
+  /** Modo navegador: a Luna recebe as instruções do navegador. Ausente = modo LunaCode. */
+  browserMode?: boolean;
   /** Etapas delegadas ao subagente do orquestrador (só o Claude). Ausente = sem subagente. */
   subagents?: boolean;
   /** Modelo da lista da CLI. Ausente = padrão da CLI. */

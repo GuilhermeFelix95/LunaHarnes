@@ -54,6 +54,9 @@ pub struct RunRequest {
     /// Navegador que o agente usa nesta execução. Ausente = o navegador embutido.
     #[serde(default)]
     pub browser: AgentBrowser,
+    /// Modo navegador: a Luna recebe as instruções do navegador (ver BROWSER_IDENTITY). Ausente = modo LunaCode.
+    #[serde(default)]
+    pub browser_mode: bool,
     /// Etapas delegadas ao subagente do orquestrador (só o Claude usa). Ausente = sem subagente.
     #[serde(default)]
     pub subagents: bool,
@@ -213,6 +216,9 @@ pub const MAX_IMAGES: usize = 5;
 /// Sem aspas nem quebras de linha: o Codex recebe o texto dentro de uma string TOML.
 pub const LUNA_IDENTITY: &str = "Você é a Luna, o assistente do aplicativo LunaCode. Essa identidade vale em toda tarefa, inclusive ao criar plugins, escrever código ou documentos. Ao criar um plugin, ele é um plugin do LunaHarness, nunca do Claude Code. Você se apresenta como Luna, mesmo que o prompt padrão diga o contrário. Quando perguntarem qual modelo ou janela de contexto você usa, responda com os dados informados no fim desta instrução.Plugins do LunaHarness são uma pasta com manifest.json (id, name, version, entry, permissions) e um index.js que exporta function activate(api). Use só estas chamadas: api.registerCommand(nome, fn) com a permissão commands; api.onBeforeSend(fn) e api.onAfterResponse(fn) com hooks; api.registerMode({ id, label, description, instruction, permission: readOnly, questions }) com modes. Não invente outras APIs. O guia completo está em docs/plugins.md.";
 
+/// Instruções da Luna no modo navegador: só o que o modo faz hoje, sem o guia de plugins nem as regras do LunaCode.
+pub const BROWSER_IDENTITY: &str = "Você é a Luna, a assistente do modo navegador do LunaCode. Você ajuda a entender e a usar a página aberta no navegador do app. Você pode resumir a página, explicar o conteúdo dela, preencher formulários e agir na página quando a pessoa pedir: abrir um endereço, ler o texto visível, clicar em um elemento e preencher um campo, sempre pelo seletor CSS. Você também pode buscar pelo motor de busca escolhido, abrindo a busca e lendo a página de resultados. Você não gerencia favoritos nem histórico: se perguntarem, diga que isso não é feito por você e que a pessoa usa a barra de favoritos e o histórico do navegador. Ao falar do que pode fazer, cite só estas capacidades. Não fale de plugins, modos nem do guia do LunaCode.";
+
 /// Identidade mais os dados da conversa: modelo, esforço e janela de contexto. Sem aspas nem quebras de linha.
 pub fn identity_for(request: &RunRequest) -> String {
     let model = match &request.model {
@@ -227,6 +233,10 @@ pub fn identity_for(request: &RunRequest) -> String {
         Some(tokens) => format!(" Janela de contexto: {tokens} tokens."),
         None => String::new(),
     };
+    // No modo navegador a identidade é a do navegador: não leva o guia nem a pasta de rascunhos de plugins.
+    if request.browser_mode {
+        return format!("{BROWSER_IDENTITY} {model}{effort}{window}");
+    }
     // Caminho do guia, para o agente ler antes de criar um plugin (ver plugins/guide.rs).
     let guide = match crate::plugins::guide::dir() {
         Some(dir) => format!(" Guia de plugins: {}.", dir.join("plugins.md").display()),
@@ -304,6 +314,29 @@ mod tests {
         assert!(!identity.contains("Janela de contexto"));
     }
 
+    /// No modo navegador a Luna recebe as próprias instruções: sem o guia de plugins nem as regras do LunaCode.
+    #[test]
+    fn browser_mode_gets_its_own_identity_without_the_luna_code_rules() {
+        let mut req = request(ProviderKind::Codex, Permission::ReadOnly, None);
+        req.browser_mode = true;
+
+        let identity = identity_for(&req);
+
+        assert!(identity.starts_with(BROWSER_IDENTITY));
+        assert!(BROWSER_IDENTITY.contains("resumir"));
+        assert!(BROWSER_IDENTITY.contains("preencher formulários"));
+        assert!(BROWSER_IDENTITY.contains("não gerencia favoritos nem histórico"));
+        assert!(!identity.contains("api.registerCommand"));
+        assert!(!identity.contains("LunaHarness"));
+    }
+
+    #[test]
+    fn luna_code_mode_keeps_the_luna_code_identity() {
+        let req = request(ProviderKind::Codex, Permission::ReadOnly, None);
+
+        assert!(identity_for(&req).starts_with(LUNA_IDENTITY));
+    }
+
     fn request(provider: ProviderKind, permission: Permission, session_id: Option<&str>) -> RunRequest {
         RunRequest {
             provider,
@@ -316,6 +349,7 @@ mod tests {
             profile: None,
             context_window: None,
             browser: Default::default(),
+            browser_mode: false,
             subagents: false,
             long_cache: false,
             images: Vec::new(),
