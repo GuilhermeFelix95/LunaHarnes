@@ -1020,3 +1020,30 @@ describe("ChatView: clonador no chat", () => {
     expect(await screen.findByLabelText("Nome da pasta do clone")).toBeTruthy();
   });
 });
+
+describe("Modo navegador: o motor do chat vem de Configurações do navegador", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("no modo navegador, o envio usa o motor e o modelo escolhidos nas configurações do navegador", async () => {
+    localStorage.setItem("luna.browserAgent", JSON.stringify({ provider: "codex", model: "gpt-5.5" }));
+    render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("resuma esta página");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "codex", model: "gpt-5.5" });
+  });
+
+  it("no modo LunaCode, o envio ignora a escolha do navegador e segue a conversa", async () => {
+    localStorage.setItem("luna.browserAgent", JSON.stringify({ provider: "codex", model: "gpt-5.5" }));
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    await send("oi");
+
+    expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "claude" });
+  });
+});

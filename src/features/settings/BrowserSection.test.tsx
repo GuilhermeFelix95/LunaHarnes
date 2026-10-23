@@ -17,6 +17,9 @@ vi.mock("../../api", () => ({
   importBrowserHtml: vi.fn(async (_p: string, _t: string) => ({ bookmarks: 0, visits: 0 })),
   importBrowserPasswords: vi.fn(async (_p: string) => 0),
   browserPasswords: vi.fn(async () => []),
+  listApiProfiles: vi.fn(async () => []),
+  apiPresets: vi.fn(async () => []),
+  listModels: vi.fn(async () => []),
 }));
 
 describe("Configurações > Navegador", () => {
@@ -137,8 +140,8 @@ describe("Configurações > Navegador > busca e importação", () => {
   it("a seção organiza o conteúdo em cartões e as escolhas viram fichas", () => {
     const { container } = render(<BrowserSection />);
 
-    // Três cartões sempre visíveis: navegador do agente, busca e importação (o cofre só aparece aberto).
-    expect(container.querySelectorAll(".settings__card").length).toBe(3);
+    // Quatro cartões sempre visíveis: navegador do agente, IA do modo navegador, busca e importação (o cofre só aparece aberto).
+    expect(container.querySelectorAll(".settings__card").length).toBe(4);
     // Seis fichas de escolha: navegador do agente (2) e motor de busca (4), todas com o círculo fora do olhar.
     expect(container.querySelectorAll(".settings__chip").length).toBe(6);
     expect(container.querySelectorAll(".settings__chip input[type=radio]").length).toBe(6);

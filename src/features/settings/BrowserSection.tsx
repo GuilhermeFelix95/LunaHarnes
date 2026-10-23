@@ -11,6 +11,7 @@ import {
   type ImportedPassword,
 } from "../../api";
 import { getAgentBrowser, setAgentBrowser } from "../../chat/agentBrowser";
+import { BrowserAgentCard } from "./BrowserAgentCard";
 import { getSearchEngine, setSearchEngine } from "../../chat/searchEngine";
 import type { AgentBrowser, SearchEngine } from "../../types";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
@@ -158,6 +159,8 @@ export function BrowserSection() {
             </div>
           )}
         </article>
+
+        <BrowserAgentCard />
 
         <article className="settings__card">
           <header className="settings__card-head">

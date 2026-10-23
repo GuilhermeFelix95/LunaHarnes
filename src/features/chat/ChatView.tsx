@@ -46,6 +46,7 @@ import {
 import { agentKey, agentOptions } from "../../chat/agents";
 import { routeFor, type Orchestrator, type OrchestratorRole } from "../../chat/orchestrator";
 import { getAgentBrowser } from "../../chat/agentBrowser";
+import { getBrowserAgent } from "../../chat/browserAgent";
 import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
@@ -1008,7 +1009,12 @@ export function ChatView({
     snapshotConfig();
     // O papel do orquestrador decide o motor e o modelo deste envio; sem escolha, vale a conversa atual.
     const orchestrator = await loadOrchestrator();
-    const route = routeFor(role ?? (plan ? "plan" : mode?.id === "ask" ? "chat" : null), { provider, profileId, model: model ?? "", effort: effort ?? "" }, orchestrator);
+    // No modo navegador, o motor vem de Configurações > Navegador (sem escolha, vale a conversa atual).
+    const browserAgent = browserMode ? getBrowserAgent() : undefined;
+    const current = browserAgent
+      ? { provider: browserAgent.provider, profileId: browserAgent.profileId ?? null, model: browserAgent.model, effort: "" }
+      : { provider, profileId, model: model ?? "", effort: effort ?? "" };
+    const route = routeFor(role ?? (plan ? "plan" : mode?.id === "ask" ? "chat" : null), current, orchestrator);
     if (rewindNote.current) {
       cliPrompt = `${rewindNote.current}
 
