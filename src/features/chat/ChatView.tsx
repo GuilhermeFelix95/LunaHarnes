@@ -77,12 +77,15 @@ import type {
   Account,
   BackgroundTask,
   ChatMessage,
+  CliUpdateInfo,
   Compaction,
   Conversation,
   ModelOption,
   Permission,
   ProviderKind,
 } from "../../types";
+import { updatesToShow } from "../../chat/cliUpdates";
+import { CliUpdateNotice } from "./CliUpdateNotice";
 import { applyTaskEvent, displayTodos, toTodos, type TaskEntry } from "../../chat/tasks";
 import { ChangesPanel } from "../changes/ChangesPanel";
 import { LoginPrompt } from "../auth/LoginPrompt";
@@ -126,6 +129,10 @@ interface ChatViewProps {
   onExitBrowserMode?: () => void;
   /** Abre outra sessão do navegador, sem apagar a atual (o histórico fica acessível no modo navegador). */
   onNewSession?: () => void;
+  /** Situação das CLIs (ver `cli_update_check`). O aviso só aparece com o agente parado. */
+  cliUpdates?: CliUpdateInfo[];
+  /** Uma CLI foi atualizada: quem guarda a lista troca a linha dela. */
+  onCliUpdated?: (info: CliUpdateInfo) => void;
 }
 
 /// Largura da sidebar do agente no modo navegador: entre 300 px e 60% da janela.
@@ -178,6 +185,8 @@ export function ChatView({
   browserMode = false,
   onExitBrowserMode,
   onNewSession,
+  cliUpdates = [],
+  onCliUpdated = () => {},
 }: ChatViewProps) {
   useLocale();
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
@@ -1632,6 +1641,8 @@ ${outgoing}`
           onDeny={(request) => decidePermission(request, false)}
         />
       )}
+
+      <CliUpdateNotice infos={updatesToShow(cliUpdates, running)} onUpdated={onCliUpdated} />
 
       <Composer
         composerRef={composerRef}

@@ -123,6 +123,17 @@ export interface CliStatus {
   path: string | null;
 }
 
+/** Versão instalada e a mais nova de uma CLI. `updateAvailable` só sai com fonte de versão confirmada. */
+export interface CliUpdateInfo {
+  provider: ProviderKind;
+  installed: string | null;
+  latest: string | null;
+  updateAvailable: boolean;
+  /** Tem comando de atualização confirmado: o app oferece o botão. */
+  canUpdate: boolean;
+  error: string | null;
+}
+
 /// Tarefa salva na conversa: `key` liga o TaskCreate ao resultado, `id` é o id que o TaskUpdate usa.
 export interface SavedTask {
   key: string;

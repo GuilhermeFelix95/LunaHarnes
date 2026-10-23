@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BackgroundTask, Conversation, ProviderEvent } from "../../types";
+import type { BackgroundTask, CliUpdateInfo, Conversation, ProviderEvent } from "../../types";
 import { PluginHost } from "../../plugins/host";
 import { ChatView } from "./ChatView";
 
@@ -1080,5 +1080,33 @@ describe("Modo navegador: instruções próprias e esforço do envio", () => {
     await send("resuma esta página");
 
     expect(vi.mocked(api.sendPrompt).mock.calls.at(-1)?.[0]).toMatchObject({ provider: "codex", model: "gpt-5.5", effort: "high" });
+  });
+});
+
+describe("ChatView: aviso de versão nova da CLI", () => {
+  const update: CliUpdateInfo = {
+    provider: "claude",
+    installed: "1.0.0",
+    latest: "9.9.9",
+    updateAvailable: true,
+    canUpdate: true,
+    error: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("mostra o aviso com o agente parado e esconde enquanto ele responde", async () => {
+    render(<ChatView onPersist={() => {}} cliUpdates={[update]} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+    expect(screen.getByText(/9\.9\.9 disponível/)).toBeTruthy();
+
+    await send("oi");
+    expect(screen.queryByText(/9\.9\.9 disponível/)).toBeNull();
+
+    emit({ kind: "done", ok: true });
+    await waitFor(() => expect(screen.getByLabelText("Enviar")).toBeTruthy());
+    expect(screen.getByText(/9\.9\.9 disponível/)).toBeTruthy();
   });
 });

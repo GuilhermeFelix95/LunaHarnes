@@ -12,6 +12,7 @@ import type {
   ChangedFile,
   Changes,
   CliStatus,
+  CliUpdateInfo,
   ProjectEntry,
   ProjectFile,
   Conversation,
@@ -304,6 +305,16 @@ export function cliStatus(): Promise<CliStatus[]> {
 /// Roda o instalador oficial da CLI. Só instala se ela ainda não estiver no computador.
 export function installCli(kind: ProviderKind): Promise<CliStatus> {
   return invoke("install_cli", { kind });
+}
+
+/** Versão instalada e a mais nova de cada CLI. Só consulta; não atualiza nada. */
+export function cliUpdateCheck(): Promise<CliUpdateInfo[]> {
+  return invoke("cli_update_check");
+}
+
+/** Atualiza uma CLI. O Rust recusa sem `confirmed` e com uma resposta do agente em andamento. */
+export function cliUpdateRun(kind: ProviderKind, confirmed: boolean): Promise<CliUpdateInfo> {
+  return invoke("cli_update_run", { kind, confirmed });
 }
 
 /// Pasta de onde o `luna` foi rodado; é o ponto de partida do workspace.

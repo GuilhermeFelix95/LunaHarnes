@@ -13,13 +13,14 @@ import { SettingsView } from "./features/settings/SettingsView";
 import { SetupScreen } from "./features/setup/SetupScreen";
 import { Onboarding, onboardingDone } from "./features/onboarding/Onboarding";
 import { Sidebar } from "./features/sidebar/Sidebar";
-import type { CliStatus, Conversation, ConversationSummary } from "./types";
+import type { CliStatus, CliUpdateInfo, Conversation, ConversationSummary } from "./types";
 import { t, useLocale } from "./i18n";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { Toaster } from "./ui/Toaster";
 import { ModeWarp, type ModeWarpRun } from "./ui/ModeWarp";
 import { loadLastWorkspace } from "./workspace";
 import { startUpdateChecks } from "./updates";
+import { startCliUpdateChecks } from "./chat/cliUpdates";
 
 /// Ação pendente de confirmação: o diálogo mostra o texto e roda `run` se o usuário confirmar.
 interface Confirm {
@@ -45,6 +46,12 @@ export function App() {
   const locale = useLocale();
   // Checagem de atualização ao abrir e a cada hora (ver `startUpdateChecks`).
   useEffect(() => startUpdateChecks(), []);
+  // Versão nova das CLIs, checada no mesmo ritmo (ver `startCliUpdateChecks`).
+  const [cliUpdates, setCliUpdates] = useState<CliUpdateInfo[]>([]);
+  useEffect(() => startCliUpdateChecks(setCliUpdates), []);
+  function onCliUpdated(info: CliUpdateInfo) {
+    setCliUpdates((list) => list.map((item) => (item.provider === info.provider ? info : item)));
+  }
   const [summaries, setSummaries] = useState<ConversationSummary[]>([]);
   const [listError, setListError] = useState<string | undefined>(undefined);
   // A primeira aba já abre na última pasta de projeto usada, se houver.
@@ -282,6 +289,8 @@ export function App() {
             browserMode={browserMode}
             onExitBrowserMode={() => setBrowser(false)}
             onNewSession={() => newConversation()}
+            cliUpdates={cliUpdates}
+            onCliUpdated={onCliUpdated}
           />
         </div>
       ))}

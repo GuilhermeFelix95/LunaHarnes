@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { accountLogin, accountStatus, ACCOUNTS_CHANGED, checkAuth, cliStatus, createAccount, installCli, listAccounts, openLogin } from "../../api";
-import type { Account, CliStatus, ProviderKind } from "../../types";
+import { accountLogin, accountStatus, ACCOUNTS_CHANGED, checkAuth, cliStatus, cliUpdateCheck, createAccount, installCli, listAccounts, openLogin } from "../../api";
+import type { Account, CliStatus, CliUpdateInfo, ProviderKind } from "../../types";
 import { PROVIDER_LABELS } from "../../chat/providers";
+import { updatesToShow } from "../../chat/cliUpdates";
 import { t } from "../../i18n";
+import { CliUpdateNotice } from "../chat/CliUpdateNotice";
 
 const ALL_PROVIDERS: ProviderKind[] = ["claude", "codex", "opencode", "cline", "copilot", "antigravity", "hermes"];
 /// O que já foi visto: CLI instalada e login conectado, lembrados no computador.
@@ -66,6 +68,8 @@ export function AccountsSection() {
   const [cli, setCli] = useState<Partial<Record<ProviderKind, CliStatus>>>(cache.cli);
   const [busy, setBusy] = useState<ProviderKind | null>(null);
   const [errors, setErrors] = useState<Partial<Record<ProviderKind, string>>>({});
+  // Versão nova de cada CLI, checada uma vez ao abrir as Contas (ver `CliUpdateNotice` no cartão).
+  const [updates, setUpdates] = useState<Partial<Record<ProviderKind, CliUpdateInfo>>>({});
   const loginRef = useRef(login);
   loginRef.current = login;
   // Contas extras (todas as CLIs, menos o Antigravity). `adding` é a CLI cujo formulário de nova conta está aberto.
@@ -95,6 +99,14 @@ export function AccountsSection() {
       })
       .catch((e) => setAccountError(String(e)));
   }, [refreshExtra]);
+
+  useEffect(() => {
+    cliUpdateCheck()
+      .then((list) => setUpdates(Object.fromEntries(list.map((info) => [info.provider, info]))))
+      .catch(() => {
+        // Sem a checagem, o cartão só não mostra versão nova. Não é erro da tela.
+      });
+  }, []);
 
   // Voltar do navegador do login: confere de novo as contas extras.
   useEffect(() => {
@@ -211,6 +223,12 @@ export function AccountsSection() {
                 )}
               </div>
               {installed && cli[p]?.path && <p className="account-card__path">{t("accounts.cliAt", { path: cli[p]?.path ?? "" })}</p>}
+              {updates[p] && (
+                <CliUpdateNotice
+                  infos={updatesToShow([updates[p]], false)}
+                  onUpdated={(info) => setUpdates((current) => ({ ...current, [info.provider]: info }))}
+                />
+              )}
               {installed === false && !canDownload && (
                 <p className="account-card__hint">{t(p === "cline" ? "accounts.clineInstall" : p === "copilot" ? "accounts.copilotInstall" : p === "antigravity" ? "accounts.antigravityInstall" : p === "hermes" ? "accounts.hermesInstall" : "accounts.opencodeInstall")}</p>
               )}

@@ -10,6 +10,7 @@ pub mod browser_history;
 pub mod browser_import;
 pub mod changes;
 pub mod claude_plugins;
+pub mod cli_update;
 pub mod worktrees;
 pub mod checkpoints;
 pub mod logfile;
@@ -242,6 +243,8 @@ pub fn run() {
             commands::delete_conversation,
             commands::rename_conversation,
             commands::cli_status,
+            cli_update::cli_update_check,
+            cli_update::cli_update_run,
             commands::install_cli,
             commands::api_presets,
             commands::list_api_profiles,

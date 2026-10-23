@@ -8,6 +8,10 @@ vi.mock("../../api", () => ({
     { provider: "claude", installed: true, path: "C:\claude.exe" },
     { provider: "codex", installed: false, path: null },
   ]),
+  cliUpdateCheck: vi.fn(async () => []),
+  cliUpdateRun: vi.fn(async () => {
+    throw new Error("não deveria atualizar nesse teste");
+  }),
   installCli: vi.fn(async () => ({ provider: "codex", installed: true, path: "C:\codex.exe" })),
   openLogin: vi.fn(async () => {}),
   listAccounts: vi.fn(async () => []),
