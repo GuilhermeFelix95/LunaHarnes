@@ -95,8 +95,6 @@ let browserOwner: object | null = null;
 export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: BrowserPanelProps) {
   const area = useRef<HTMLDivElement>(null);
   const addressInput = useRef<HTMLInputElement>(null);
-  // Foco pelo clique: o mouseup seguinte não pode desfazer a seleção de tudo que o foco fez.
-  const keepAddressSelection = useRef(false);
   // Guarda a função de atalhos mais recente, para os ouvintes (criados uma vez) não usarem abas antigas.
   const shortcut = useRef<(key: string) => void>(() => {});
   const [spotlight, setSpotlight] = useState(false);
@@ -522,18 +520,15 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
           value={address}
           spellCheck={false}
           onChange={(e) => setAddress(e.target.value)}
-          onMouseDown={() => {
-            keepAddressSelection.current = false;
-          }}
-          onFocus={(e) => {
-            keepAddressSelection.current = true;
-            e.target.select();
-          }}
-          onMouseUp={(e) => {
-            if (!keepAddressSelection.current) return;
-            keepAddressSelection.current = false;
+          onMouseDown={(e) => {
+            // Clique com a barra sem foco: o navegador põe o cursor depois do foco e desfaz a seleção.
+            // Cancelamos o mousedown, focamos e selecionamos aqui, uma vez só.
+            if (document.activeElement === e.currentTarget) return;
             e.preventDefault();
+            e.currentTarget.focus();
+            e.currentTarget.select();
           }}
+          onFocus={(e) => e.target.select()}
         />
         <button
           type="button"

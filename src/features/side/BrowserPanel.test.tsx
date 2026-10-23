@@ -559,17 +559,19 @@ describe("BrowserPanel: atalhos do teclado", () => {
     expect(document.activeElement).toBe(screen.getByLabelText("Endereço"));
   });
 
-  it("clicar na barra de endereço seleciona o endereço inteiro, e o clique não desfaz a seleção", async () => {
+  it("clicar na barra de endereço sem foco seleciona o endereço inteiro, e a seleção fica depois do clique", async () => {
     render(<BrowserPanel active openRequest={null} />);
     await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
     const input = screen.getByLabelText("Endereço") as HTMLInputElement;
     await waitFor(() => expect(input.value).toBe("https://a.com/"));
 
-    fireEvent.focus(input);
+    // Ordem de um clique real: o mousedown vem antes do foco. Se ele não for cancelado, o navegador põe
+    // o cursor depois do foco e desfaz a seleção que o foco fez.
+    expect(fireEvent.mouseDown(input)).toBe(false);
     expect(input.selectionStart).toBe(0);
     expect(input.selectionEnd).toBe(input.value.length);
-    // mouseup com preventDefault: o navegador não coloca o cursor por cima da seleção.
-    expect(fireEvent.mouseUp(input)).toBe(false);
+    expect(fireEvent.mouseUp(input)).toBe(true);
+    expect(input.selectionEnd).toBe(input.value.length);
   });
 
   it("depois do foco pelo teclado, um clique comum no endereço não é cancelado (o cursor pode ser posto)", async () => {
