@@ -210,6 +210,50 @@ describe("Sidebar: modo navegador abaixo de Configurações", () => {
   });
 });
 
+describe("Sidebar: trilha de ícones no modo navegador", () => {
+  it("mostra nova conversa, uma inicial por conversa e os botões do rodapé, sem a lista de textos", () => {
+    const onNew = vi.fn();
+    const onOpen = vi.fn();
+    const onSettings = vi.fn();
+    const onBrowserMode = vi.fn();
+    render(
+      <Sidebar conversations={items} activeId="a" onNew={onNew} onAddProject={vi.fn()} onOpen={onOpen} onDelete={vi.fn()} onSettings={onSettings} browserMode onBrowserMode={onBrowserMode} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Nova conversa" }));
+    expect(onNew).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Criar página de preços" }));
+    expect(onOpen).toHaveBeenCalledWith("b");
+    expect(screen.getByRole("button", { name: "Revisar o login" }).getAttribute("aria-current")).toBe("true");
+    // O título fica no nome acessível, não como texto visível: a trilha é só ícones.
+    expect(screen.queryByText("Criar página de preços")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Configurações" }));
+    expect(onSettings).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Modo LunaCode" }));
+    expect(onBrowserMode).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("Sidebar: histórico do modo navegador fica fora do LunaCode", () => {
+  const browserItem: ConversationSummary = { ...conv("n", "Página do navegador"), browser: true };
+  const all = [...items, browserItem];
+
+  it("no LunaCode a conversa do navegador não aparece na lista", () => {
+    render(<Sidebar conversations={all} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} onBrowserMode={vi.fn()} />);
+
+    expect(screen.getByText("Revisar o login")).toBeTruthy();
+    expect(screen.queryByText("Página do navegador")).toBeNull();
+  });
+
+  it("no modo navegador a lista de ícones mostra também as conversas do navegador", () => {
+    render(<Sidebar conversations={all} activeId={null} onNew={vi.fn()} onAddProject={vi.fn()} onOpen={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} browserMode onBrowserMode={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Página do navegador" })).toBeTruthy();
+  });
+});
+
 describe("Sidebar: recolhida no modo navegador", () => {
   it("no modo navegador a sidebar recebe a classe de recolhida", () => {
     const { container } = render(

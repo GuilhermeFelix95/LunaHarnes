@@ -41,6 +41,10 @@ describe("coluna do chat estreita (sidebar do agente)", () => {
     expect(read("./tokens.css")).toMatch(/--dur: 0ms;/);
   });
 
+  it("no modo navegador, o conteúdo da coluna do chat encolhe junto com ela, sem cortar as bordas", () => {
+    expect(blockAfter(".chat--browser .chat__column > *")).toContain("min-width: 0");
+  });
+
   it("o cabeçalho do chat some no modo navegador, para a página ganhar a altura toda", () => {
     expect(blockAfter(".chat--browser .chat__header {")).toContain("display: none;");
   });

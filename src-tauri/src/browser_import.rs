@@ -355,6 +355,33 @@ pub fn passwords_in(dir: &Path) -> Result<Vec<PasswordOut>, String> {
         .collect()
 }
 
+/// Origem web (esquema, host e porta) de um endereço. Endereço que não é http ou https não tem origem.
+fn web_origin(url: &str) -> Option<String> {
+    parse_url(url).ok().map(|parsed| parsed.origin().ascii_serialization())
+}
+
+/// Logins guardados para a origem da página, sem a senha. Só a mesma origem casa.
+pub fn login_suggestions_in(dir: &Path, page_url: &str) -> Result<Vec<String>, String> {
+    let Some(origin) = web_origin(page_url) else {
+        return Ok(vec![]);
+    };
+    Ok(load_passwords_in(dir)
+        .into_iter()
+        .filter(|entry| web_origin(&entry.url).as_deref() == Some(origin.as_str()))
+        .map(|entry| entry.login)
+        .collect())
+}
+
+/// Senha de um login, liberada só quando a página está na origem em que ela foi guardada.
+pub fn password_for_login_in(dir: &Path, page_url: &str, login: &str) -> Result<String, String> {
+    let origin = web_origin(page_url).ok_or("este endereço não recebe senhas")?;
+    let entry = load_passwords_in(dir)
+        .into_iter()
+        .find(|entry| entry.login == login && web_origin(&entry.url).as_deref() == Some(origin.as_str()))
+        .ok_or("nenhuma senha salva para este endereço")?;
+    dpapi::unprotect(&base64_decode(&entry.blob)?)
+}
+
 fn base64_encode(bytes: &[u8]) -> String {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.encode(bytes)
@@ -369,7 +396,11 @@ fn base64_decode(text: &str) -> Result<Vec<u8>, String> {
 pub fn browser_import_html(app: AppHandle, path: String, target: ImportTarget) -> Result<usize, String> {
     let dir = app_data_dir(&app)?;
     let html = fs::read_to_string(&path).map_err(|e| format!("nÃƒÂ£o foi possÃƒÂ­vel ler {}: {e}", path))?;
-    import_html_in(&dir, &html, target)
+    let count = import_html_in(&dir, &html, target)?;
+    if matches!(target, ImportTarget::Bookmarks) {
+        browser_bookmarks::notify_changed(&app);
+    }
+    Ok(count)
 }
 
 #[tauri::command(async)]
@@ -461,6 +492,29 @@ GitHub,https://github.com/login,ana,minha-senha-secreta
         assert_eq!(rows[1][3], "minha-senha-secreta");
         assert_eq!(rows[2][3], "senha com vÃƒÂ­rgula\" e aspas");
         assert_eq!(rows[2][0], "Loja, do ZÃƒÂ©");
+    }
+
+    #[test]
+    fn a_saved_login_is_suggested_only_on_its_exact_origin() {
+        let dir = temp_dir("password-origin");
+        import_passwords_in(&dir, PASSWORD_CSV).unwrap();
+
+        // Caminho diferente no mesmo site conta; subdomínio, outro domínio e outro esquema não.
+        assert_eq!(login_suggestions_in(&dir, "https://github.com/session").unwrap(), vec!["ana".to_string()]);
+        assert!(login_suggestions_in(&dir, "https://gist.github.com/login").unwrap().is_empty());
+        assert!(login_suggestions_in(&dir, "https://github.com.evil.example/login").unwrap().is_empty());
+        assert!(login_suggestions_in(&dir, "http://github.com/login").unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_password_is_released_only_for_its_exact_origin() {
+        let dir = temp_dir("password-release");
+        import_passwords_in(&dir, PASSWORD_CSV).unwrap();
+
+        assert_eq!(password_for_login_in(&dir, "https://github.com/login", "ana").unwrap(), "minha-senha-secreta");
+        assert!(password_for_login_in(&dir, "https://gist.github.com/login", "ana").is_err());
+        assert!(password_for_login_in(&dir, "https://github.com.evil.example/login", "ana").is_err());
+        assert!(password_for_login_in(&dir, "https://github.com/login", "outra-pessoa").is_err());
     }
 
     #[test]

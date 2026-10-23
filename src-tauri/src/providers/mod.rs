@@ -157,6 +157,10 @@ pub enum ProviderEvent {
     /// Tokens de entrada do turno, separados em novos, lidos do cache e gravados no cache.
     /// `None` quando o provedor não informa o campo: é diferente de zero.
     CacheUsage { fresh: Option<u64>, read: Option<u64>, write: Option<u64> },
+    /// Diff de uma edição de arquivo. `id` liga à ferramenta que fez a edição (o `ToolUse` anterior).
+    ToolDiff { id: String, diff: FileDiff },
+    /// Tokens de saída de uma chamada ao modelo que terminou. A soma das chamadas do turno é a velocidade medida.
+    OutputTokens { tokens: u64 },
     /// Custo do turno em dólares, quando a CLI informa (uso com API). Com assinatura, a CLI não informa.
     Cost { usd: f64 },
     Error { message: String },
@@ -164,6 +168,29 @@ pub enum ProviderEvent {
 }
 
 /// Uma etapa do checklist. `status` vem como o agente escreveu: pending, in_progress ou completed.
+/// Linhas de uma edição. `added` e `removed` contam todas as linhas; `lines` pode vir cortada.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileDiff {
+    pub added: usize,
+    pub removed: usize,
+    pub lines: Vec<DiffLine>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffLine {
+    pub kind: DiffKind,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DiffKind {
+    Add,
+    Remove,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TodoItem {
@@ -371,7 +398,7 @@ mod tests {
         };
 
         assert_eq!(mode(Permission::ReadOnly), "plan");
-        assert_eq!(mode(Permission::AcceptEdits), "acceptEdits");
+        assert_eq!(mode(Permission::AcceptEdits), "default");
         assert_eq!(mode(Permission::FullAccess), "bypassPermissions");
     }
 
@@ -389,7 +416,7 @@ mod tests {
 
         assert_eq!(
             args,
-            ["exec", "--json", "--skip-git-repo-check", "-s", "workspace-write", "-"]
+            ["exec", "--json", "--skip-git-repo-check", "-s", "read-only", "-"]
         );
     }
 
@@ -442,7 +469,7 @@ mod tests {
                 "--json",
                 "--skip-git-repo-check",
                 "-s",
-                "workspace-write",
+                "read-only",
                 "-m",
                 "gpt-5.5",
                 "-c",

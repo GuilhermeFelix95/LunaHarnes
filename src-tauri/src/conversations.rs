@@ -43,6 +43,9 @@ pub struct Conversation {
     /// Modo plano ligado: o agente pergunta e planeja antes de editar.
     #[serde(default)]
     pub planning: bool,
+    /// Conversa iniciada no modo navegador. Só aparece nele, nunca na barra lateral do LunaCode. Ausente = LunaCode.
+    #[serde(default)]
+    pub browser: bool,
     /// Perfil de API usado na conversa (id em api-profiles.json). Ausente = login da CLI.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub profile: Option<String>,
@@ -77,6 +80,7 @@ pub struct Summary {
     pub provider: ProviderKind,
     pub cwd: String,
     pub updated_at: u64,
+    pub browser: bool,
 }
 
 /// Id vem do frontend (UUID minúsculo). Validar impede travessia de caminho (`../`).
@@ -146,6 +150,8 @@ struct Head {
     provider: ProviderKind,
     cwd: String,
     updated_at: u64,
+    #[serde(default)]
+    browser: bool,
 }
 
 fn head(dir: &Path, id: &str) -> Result<Head, String> {
@@ -176,6 +182,7 @@ pub fn list(dir: &Path) -> Vec<Summary> {
             provider: c.provider,
             cwd: c.cwd,
             updated_at: c.updated_at,
+            browser: c.browser,
         })
         .collect();
     summaries.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
@@ -214,6 +221,7 @@ mod tests {
             model: None,
             effort: None,
             planning: false,
+            browser: false,
             profile: None,
             cost_usd: None,
             plan: None,
@@ -261,6 +269,28 @@ mod tests {
         assert_eq!(loaded.effort, None);
         assert!(!loaded.planning);
         assert_eq!(loaded.sessions, None);
+    }
+
+    #[test]
+    fn list_tells_browser_sessions_apart_and_old_files_count_as_luna_code() {
+        let dir = temp_dir("browser-flag");
+        let mut browser = conversation("nav-1", 5);
+        browser.browser = true;
+        save(&dir, &browser).unwrap();
+        save(&dir, &conversation("luna-1", 6)).unwrap();
+        fs::write(
+            dir.join("old-2.json"),
+            r#"{"id":"old-2","title":"Antiga","provider":"claude","sessionId":null,
+            "cwd":"C:\\p","permission":"acceptEdits","createdAt":1,"updatedAt":7,"messages":[]}"#,
+        )
+        .unwrap();
+
+        let listed = list(&dir);
+        let flag = |id: &str| listed.iter().find(|s| s.id == id).unwrap().browser;
+
+        assert!(flag("nav-1"));
+        assert!(!flag("luna-1"));
+        assert!(!flag("old-2"));
     }
 
     #[test]

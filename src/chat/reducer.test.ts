@@ -78,6 +78,33 @@ describe("applyEvent: resultado de ferramenta", () => {
   });
 });
 
+describe("applyEvent: diff de edição", () => {
+  it("liga o diff à ação de mesmo id", () => {
+    let messages: ChatMessage[] = [];
+    messages = applyEvent(messages, { kind: "toolUse", id: "e1", name: "Edit", detail: "a.ts" });
+    messages = applyEvent(messages, { kind: "toolDiff", id: "e1", diff: { added: 1, removed: 0, lines: [{ kind: "add", text: "x" }] } });
+
+    expect(messages[0].tool).toMatchObject({ id: "e1", diff: { added: 1, removed: 0 } });
+  });
+
+  it("diff sem ação correspondente não muda a conversa", () => {
+    const before: ChatMessage[] = [{ role: "user", text: "oi" }];
+
+    expect(applyEvent(before, { kind: "toolDiff", id: "x", diff: { added: 0, removed: 0, lines: [] } })).toBe(before);
+  });
+});
+
+describe("applyEvent: tokens de saída", () => {
+  it("não muda a conversa ao receber a contagem de saída", () => {
+    const before: ChatMessage[] = [
+      { role: "user", text: "oi" },
+      { role: "assistant", text: "Olá" },
+    ];
+
+    expect(applyEvent(before, { kind: "outputTokens", tokens: 42 })).toBe(before);
+  });
+});
+
 describe("applyEvent: modelo que respondeu", () => {
   it("grava o modelo na última resposta do assistente", () => {
     const messages: ChatMessage[] = [

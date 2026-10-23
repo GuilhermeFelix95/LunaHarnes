@@ -1,18 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { estimateTokensPerSecond, readShowSpeed, saveShowSpeed } from "./speed";
+import { readShowSpeed, saveShowSpeed, tokensPerSecond } from "./speed";
 
 describe("velocidade da resposta", () => {
-  it("estima tokens por segundo a partir dos caracteres recebidos (≈4 por token)", () => {
-    // 400 caracteres = 100 tokens estimados em 2 s = 50 tokens/s
-    expect(estimateTokensPerSecond(400, 2000)).toBe(50);
+  it("divide os tokens de saída medidos pelo tempo desde o primeiro texto", () => {
+    // 100 tokens em 2 s = 50 tokens/s
+    expect(tokensPerSecond(100, 1000, 3000)).toBe(50);
+  });
+
+  it("sem primeiro texto ainda não há taxa", () => {
+    expect(tokensPerSecond(100, null, 3000)).toBeNull();
   });
 
   it("sem tempo decorrido ainda não há taxa", () => {
-    expect(estimateTokensPerSecond(400, 0)).toBeNull();
+    expect(tokensPerSecond(100, 3000, 3000)).toBeNull();
   });
 
-  it("sem caracteres recebidos a taxa é zero", () => {
-    expect(estimateTokensPerSecond(0, 1500)).toBe(0);
+  it("sem tokens medidos a taxa é zero", () => {
+    expect(tokensPerSecond(0, 1000, 2500)).toBe(0);
   });
 });
 

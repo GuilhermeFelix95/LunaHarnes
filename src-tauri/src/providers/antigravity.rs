@@ -7,8 +7,8 @@ use super::{Permission, ProviderEvent, RunRequest};
 pub fn args(request: &RunRequest) -> Vec<String> {
     let mut args = vec![format!("-p={}", request.prompt), "--output-format".into(), "stream-json".into()];
     match request.permission {
-        Permission::ReadOnly => args.extend(["--mode".to_string(), "plan".to_string()]),
-        Permission::AcceptEdits => args.extend(["--mode".to_string(), "accept-edits".to_string()]),
+        // `agy` não tem canal de aprovação em modo `-p`: `Pedir permissão` cai para só leitura, como decidido no plano.
+        Permission::ReadOnly | Permission::AcceptEdits => args.extend(["--mode".to_string(), "plan".to_string()]),
         // Acesso total: o agy aprova tudo sem perguntar. Sem essa flag, ele nega comandos num processo sem terminal.
         Permission::FullAccess => args.push("--dangerously-skip-permissions".into()),
     }
@@ -151,8 +151,9 @@ mod tests {
         let plan = args(&request(Permission::ReadOnly));
         assert_eq!(plan, ["-p=oi, tudo bem?", "--output-format", "stream-json", "--mode", "plan"]);
 
+        // `Pedir permissão` sem canal de aprovação vira só leitura.
         let edits = args(&request(Permission::AcceptEdits));
-        assert_eq!(&edits[3..], ["--mode", "accept-edits"]);
+        assert_eq!(&edits[3..], ["--mode", "plan"]);
     }
 
     #[test]

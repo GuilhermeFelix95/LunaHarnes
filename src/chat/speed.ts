@@ -1,10 +1,8 @@
-/// Caracteres por token usados na estimativa: o provedor não informa tokens por evento de texto.
-const CHARS_PER_TOKEN = 4;
-
-/// Tokens por segundo estimados a partir dos caracteres recebidos. Null enquanto não há tempo decorrido.
-export function estimateTokensPerSecond(chars: number, elapsedMs: number): number | null {
-  if (elapsedMs <= 0) return null;
-  return Math.round(chars / CHARS_PER_TOKEN / (elapsedMs / 1000));
+/// Velocidade medida: tokens de saída do turno ÷ tempo desde o primeiro texto da resposta.
+/// Null enquanto não há início medido ou tempo decorrido.
+export function tokensPerSecond(tokens: number, startedAt: number | null, now: number): number | null {
+  if (startedAt === null || now <= startedAt) return null;
+  return Math.round(tokens / ((now - startedAt) / 1000));
 }
 
 const SHOW_SPEED_KEY = "luna.chat.showSpeed";

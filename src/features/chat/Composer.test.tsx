@@ -334,19 +334,24 @@ describe("Composer: modo /meta", () => {
 });
 
 describe("Composer: velocidade da resposta", () => {
-  it("mostra a estimativa de tokens por segundo quando a opção está ligada e a resposta roda", () => {
+  it("mostra a velocidade medida quando a opção está ligada e a resposta roda", () => {
     setup({ running: true, speed: 42, showSpeed: true });
-    expect(screen.getByText("≈ 42 tokens/s")).toBeTruthy();
+    expect(screen.getByText("42 tokens/s")).toBeTruthy();
   });
 
   it("com a opção desligada, não mostra a velocidade mesmo durante a resposta", () => {
     setup({ running: true, speed: 42, showSpeed: false });
-    expect(screen.queryByText("≈ 42 tokens/s")).toBeNull();
+    expect(screen.queryByText("42 tokens/s")).toBeNull();
   });
 
-  it("sem resposta em curso não mostra a velocidade", () => {
+  it("depois do turno, continua mostrando o valor final medido", () => {
     setup({ running: false, speed: 42, showSpeed: true });
-    expect(screen.queryByText("≈ 42 tokens/s")).toBeNull();
+    expect(screen.getByText("42 tokens/s")).toBeTruthy();
+  });
+
+  it("sem medição ainda, não mostra número nenhum", () => {
+    setup({ running: true, speed: null, showSpeed: true });
+    expect(screen.queryByText(/tokens\/s/)).toBeNull();
   });
 
   it("o botão de velocidade reflete a opção e alterna ao clicar", () => {
@@ -356,5 +361,57 @@ describe("Composer: velocidade da resposta", () => {
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(toggle);
     expect(props.onToggleSpeed).toHaveBeenCalledOnce();
+  });
+});
+
+describe("botão Clonar site", () => {
+  it("fica ao lado de Meta", () => {
+    setup({ onClone: vi.fn() });
+
+    const meta = screen.getByRole("button", { name: "Modo /meta" });
+    const clone = screen.getByRole("button", { name: "Clonar um site para o projeto" });
+    expect(meta.nextElementSibling).toBe(clone);
+  });
+
+  it("sem o callback, o botão não aparece", () => {
+    setup();
+
+    expect(screen.queryByRole("button", { name: "Clonar um site para o projeto" })).toBeNull();
+  });
+
+  it("chama o callback do fluxo ao clicar", () => {
+    const onClone = vi.fn();
+    setup({ onClone });
+    fireEvent.click(screen.getByRole("button", { name: "Clonar um site para o projeto" }));
+
+    expect(onClone).toHaveBeenCalledOnce();
+  });
+
+  it("não aparece no modo navegador, como Meta", () => {
+    setup({ browserMode: true, onClone: vi.fn() });
+
+    expect(screen.queryByRole("button", { name: "Clonar um site para o projeto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Meta" })).toBeNull();
+  });
+
+  it("no modo navegador some IA, modelo, esforço e conta, mas o envio continua", () => {
+    setup({ browserMode: true, accountsEnabled: true });
+
+    expect(screen.queryByRole("button", { name: "Provedor" })).toBeNull();
+    expect(screen.queryByLabelText("Modelo")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Conta" })).toBeNull();
+    expect(screen.queryByLabelText("Esforço")).toBeNull();
+    expect(screen.getByRole("button", { name: "Anexar arquivo" })).toBeTruthy();
+  });
+
+  it("fica indisponível com o motivo quando não há pasta de projeto", () => {
+    const onClone = vi.fn();
+    setup({ onClone, cloneDisabledReason: "Abra uma pasta de projeto para clonar um site." });
+    const button = screen.getByRole("button", { name: "Clonar um site para o projeto" }) as HTMLButtonElement;
+
+    expect(button.disabled).toBe(true);
+    expect(button.title).toBe("Abra uma pasta de projeto para clonar um site.");
+    fireEvent.click(button);
+    expect(onClone).not.toHaveBeenCalled();
   });
 });

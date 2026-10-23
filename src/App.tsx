@@ -37,6 +37,8 @@ interface Chat {
   initial?: Conversation;
   /** Pasta de uma conversa nova. Ausente = pasta de onde o luna foi rodado. */
   startCwd?: string;
+  /** Aberta no modo navegador: a conversa é salva como do navegador e some da lista do LunaCode. */
+  browser?: boolean;
 }
 
 export function App() {
@@ -103,8 +105,17 @@ export function App() {
     setView("chat");
   }
 
-  function newConversation(cwd?: string) {
-    addChat({ startCwd: cwd ?? loadLastWorkspace() });
+  /// Conversa nova no modo em que o app está, a menos que `browser` diga outra coisa.
+  function newConversation(cwd?: string, browser = browserMode) {
+    addChat({ startCwd: cwd ?? loadLastWorkspace(), browser });
+  }
+
+  /// Liga ou desliga o modo navegador. Ao sair com uma conversa do navegador aberta, ela some do LunaCode:
+  /// abre uma conversa nova do LunaCode em vez de mostrá-la.
+  function setBrowser(on: boolean) {
+    if (!on && chats.find((c) => c.key === activeKey)?.browser) newConversation(undefined, false);
+    setView("chat");
+    changeBrowserMode(on);
   }
 
   /// Escolhe uma pasta e começa uma conversa nela. Cancelar o seletor não faz nada.
@@ -128,7 +139,7 @@ export function App() {
     try {
       const conversation = await loadConversation(id);
       chatIds.current[nextKey.current] = id;
-      addChat({ initial: conversation });
+      addChat({ initial: conversation, browser: conversation.browser ?? false });
       setActiveId(id);
     } catch (e) {
       setListError(String(e));
@@ -200,7 +211,9 @@ export function App() {
   function onPersist(key: number, conversation: Conversation) {
     chatIds.current[key] = conversation.id;
     if (key === activeKey) setActiveId(conversation.id);
-    saveConversation(conversation)
+    // A origem vem da aba, não do que o chat envia: o chat não sabe em que modo a conversa nasceu.
+    const browser = chats.find((c) => c.key === key)?.browser ?? false;
+    saveConversation({ ...conversation, browser })
       .then(refreshList)
       .catch((e) => setListError(String(e)));
   }
@@ -250,10 +263,7 @@ export function App() {
         onSettings={() => setView((v) => (v === "settings" ? "chat" : "settings"))}
         settingsOpen={view === "settings"}
         browserMode={browserMode}
-        onBrowserMode={(on) => {
-          setView("chat");
-          changeBrowserMode(on);
-        }}
+        onBrowserMode={setBrowser}
         error={listError}
       />
       <ModeWarp run={warp} />
@@ -269,7 +279,8 @@ export function App() {
             onRunning={onRunning}
             visible={view === "chat" && chat.key === activeKey}
             browserMode={browserMode}
-            onExitBrowserMode={() => changeBrowserMode(false)}
+            onExitBrowserMode={() => setBrowser(false)}
+            onNewSession={() => newConversation()}
           />
         </div>
       ))}

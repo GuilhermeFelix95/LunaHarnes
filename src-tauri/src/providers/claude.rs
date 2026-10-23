@@ -1,9 +1,10 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde_json::{json, Value};
 
-use super::{ProviderEvent, TodoItem};
+use super::{DiffKind, DiffLine, FileDiff, ProviderEvent, TodoItem};
 
 use super::{identity_for, image_media_type, AgentBrowser, LimitWindow, Permission, ProviderKind, RunRequest};
+use crate::permission_prompt::{self, PROMPT_TOOL};
 
 /// Sem isso, o Claude Code oferece as ferramentas de tarefa só para alguns modelos; com esta variável elas ficam ligadas.
 /// Confirmado numa execução real: com ela, o agente cria e atualiza tarefas (TaskCreate / TaskUpdate).
@@ -29,6 +30,13 @@ pub fn args(request: &RunRequest) -> Vec<String> {
     .iter()
     .map(|s| s.to_string())
     .collect();
+    // Pedir permissão: o CLI pergunta ao app antes de ações sensíveis, pelo servidor de permissões.
+    // Sem esse servidor no ar, o turno segue sem pop-up e o CLI nega o que precisaria de confirmação.
+    let prompt_config = (request.permission == Permission::AcceptEdits).then(permission_prompt::mcp_config).flatten();
+    let mut mcp_configs: Vec<String> = prompt_config.map(|config| config.display().to_string()).into_iter().collect();
+    if prompt_config.is_some() {
+        args.extend(["--permission-prompt-tool".to_string(), PROMPT_TOOL.to_string()]);
+    }
     if !request.images.is_empty() {
         args.extend(["--input-format".to_string(), "stream-json".to_string()]);
     }
@@ -51,9 +59,14 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         AgentBrowser::Builtin => crate::browser::mcp_config().map(|config| (config, "mcp__luna-browser")),
         AgentBrowser::Playwright => crate::playwright::mcp_config().map(|config| (config, crate::playwright::CLAUDE_ALLOWED)),
     };
+    // Um só `--mcp-config` com todas as configurações: um segundo flag poderia substituir o primeiro.
     if let Some((config, allowed)) = browser_config {
-        args.extend(["--mcp-config".to_string(), config.display().to_string()]);
+        mcp_configs.push(config.display().to_string());
         args.extend(["--allowedTools".to_string(), allowed.to_string()]);
+    }
+    if !mcp_configs.is_empty() {
+        args.push("--mcp-config".to_string());
+        args.extend(mcp_configs);
     }
     // Onde a Luna cria rascunhos de plugin para a pessoa instalar pelo cartão no chat.
     if let Some(dir) = crate::plugins::guide::drafts_dir() {
@@ -138,7 +151,8 @@ pub fn input(request: &RunRequest) -> Result<String, String> {
 fn permission_mode(permission: Permission) -> &'static str {
     match permission {
         Permission::ReadOnly => "plan",
-        Permission::AcceptEdits => "acceptEdits",
+        // Pedir permissão: o modo padrão do CLI pergunta antes de ações sensíveis; o pedido passa pelo servidor do app.
+        Permission::AcceptEdits => "default",
         Permission::FullAccess => "bypassPermissions",
     }
 }
@@ -165,6 +179,10 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
         // Texto chega em deltas (`--include-partial-messages`). O texto da mensagem `assistant`
         // completa é ignorado para não duplicar a resposta.
         Some("stream_event") => {
+            // Ao fim de cada chamada ao modelo, `message_delta` traz quantos tokens de saída ela gerou.
+            if value["event"]["type"].as_str() == Some("message_delta") {
+                return value["event"]["usage"]["output_tokens"].as_u64().map(|tokens| ProviderEvent::OutputTokens { tokens }).into_iter().collect();
+            }
             let delta = &value["event"]["delta"];
             if delta.get("type").and_then(Value::as_str) != Some("text_delta") {
                 return vec![];
@@ -282,7 +300,10 @@ fn tool_use_events(block: &Value) -> Vec<ProviderEvent> {
     let name = block["name"].as_str().unwrap_or("ferramenta").to_string();
     let input = &block["input"];
     let id = block["id"].as_str().unwrap_or_default().to_string();
-    let mut events = vec![ProviderEvent::ToolUse { id, name: name.clone(), detail: tool_detail(input) }];
+    let mut events = vec![ProviderEvent::ToolUse { id: id.clone(), name: name.clone(), detail: tool_detail(input) }];
+    if let Some(diff) = file_diff(&name, input) {
+        events.push(ProviderEvent::ToolDiff { id, diff });
+    }
     match name.as_str() {
         "TodoWrite" => events.extend(todos_event(input)),
         "TaskCreate" => events.push(ProviderEvent::TaskCreated {
@@ -360,9 +381,73 @@ fn tool_detail(input: &Value) -> String {
         .to_string()
 }
 
+/// Limite de linhas guardadas no diff. As contagens continuam exatas além dele.
+const MAX_DIFF_LINES: usize = 400;
+
+/// Diff de Edit (old_string → new_string), MultiEdit (cada item de `edits`) e Write (todo o conteúdo como linhas novas).
+fn file_diff(name: &str, input: &Value) -> Option<FileDiff> {
+    let text = |value: &Value, key: &str| value[key].as_str().unwrap_or_default().to_string();
+    let edits: Vec<(String, String)> = match name {
+        "Edit" => vec![(text(input, "old_string"), text(input, "new_string"))],
+        "MultiEdit" => input["edits"].as_array()?.iter().map(|edit| (text(edit, "old_string"), text(edit, "new_string"))).collect(),
+        "Write" => vec![(String::new(), text(input, "content"))],
+        _ => return None,
+    };
+    let mut diff = FileDiff { added: 0, removed: 0, lines: Vec::new() };
+    for (old, new) in edits {
+        for (kind, body) in [(DiffKind::Remove, old), (DiffKind::Add, new)] {
+            for line in body.lines() {
+                match kind {
+                    DiffKind::Add => diff.added += 1,
+                    DiffKind::Remove => diff.removed += 1,
+                }
+                if diff.lines.len() < MAX_DIFF_LINES {
+                    diff.lines.push(DiffLine { kind, text: line.to_string() });
+                }
+            }
+        }
+    }
+    Some(diff)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Edit, MultiEdit e Write mandam o diff do arquivo com as linhas removidas e adicionadas contadas.
+    #[test]
+    fn file_edits_report_their_diff() {
+        let diff_of = |events: &[ProviderEvent]| {
+            events.iter().find_map(|event| match event {
+                ProviderEvent::ToolDiff { diff, .. } => Some((diff.added, diff.removed)),
+                _ => None,
+            })
+        };
+        let edit = tool_use_events(&json!({ "id": "e1", "name": "Edit", "input": { "file_path": "a.ts", "old_string": "x\ny", "new_string": "x\nz\nw" } }));
+        assert_eq!(diff_of(&edit), Some((3, 2)));
+        let write = tool_use_events(&json!({ "id": "w1", "name": "Write", "input": { "file_path": "b.ts", "content": "a\nb" } }));
+        assert_eq!(diff_of(&write), Some((2, 0)));
+        let multi = tool_use_events(&json!({ "id": "m1", "name": "MultiEdit", "input": { "file_path": "c.ts", "edits": [
+            { "old_string": "p", "new_string": "q" },
+            { "old_string": "", "new_string": "r" }
+        ] } }));
+        assert_eq!(diff_of(&multi), Some((2, 1)));
+        let bash = tool_use_events(&json!({ "id": "b1", "name": "Bash", "input": { "command": "dir" } }));
+        assert_eq!(diff_of(&bash), None);
+    }
+
+    /// Diff grande: as contagens são exatas, mas só as primeiras linhas vão para o chat.
+    #[test]
+    fn long_writes_keep_the_count_but_cut_the_lines() {
+        let content = (0..500).map(|i| format!("linha {i}")).collect::<Vec<_>>().join("\n");
+        let events = tool_use_events(&json!({ "id": "w2", "name": "Write", "input": { "file_path": "d.ts", "content": content } }));
+        let diff = events.iter().find_map(|event| match event {
+            ProviderEvent::ToolDiff { diff, .. } => Some(diff),
+            _ => None,
+        });
+        let diff = diff.expect("Write gera diff");
+        assert_eq!((diff.added, diff.lines.len()), (500, MAX_DIFF_LINES));
+    }
 
     /// A entrada do turno é separada em novos, lidos e gravados no cache.
     #[test]
@@ -384,6 +469,36 @@ mod tests {
         );
     }
     use crate::providers::{ProviderKind, LUNA_IDENTITY};
+
+    /// Cada `message_delta` do stream vira a contagem de saída daquela chamada ao modelo.
+    #[test]
+    fn message_delta_reports_the_output_tokens_of_that_call() {
+        let line = r#"{"type":"stream_event","event":{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"input_tokens":2,"output_tokens":180}}}"#;
+        assert_eq!(parse_line(line), vec![ProviderEvent::OutputTokens { tokens: 180 }]);
+    }
+
+    /// Sem o servidor de permissões no ar, `Pedir permissão` não liga o pop-up: o modo padrão segue, sem a ferramenta.
+    #[test]
+    fn asking_for_permission_without_the_server_sends_no_prompt_tool() {
+        let request = RunRequest {
+            provider: ProviderKind::Claude,
+            prompt: "x".into(),
+            session_id: None,
+            cwd: std::path::PathBuf::from("C:\\projeto"),
+            permission: Permission::AcceptEdits,
+            model: None,
+            effort: None,
+            profile: None,
+            context_window: None,
+            browser: Default::default(),
+            subagents: false,
+            long_cache: false,
+            images: Vec::new(),
+        };
+        let flags = args(&request);
+        assert!(flags.windows(2).any(|window| window == ["--permission-mode", "default"]), "{flags:?}");
+        assert!(!flags.iter().any(|arg| arg == "--permission-prompt-tool"), "sem servidor, sem ferramenta: {flags:?}");
+    }
 
     /// A identidade vai junto de cada pedido, acrescentada ao prompt padrão (nunca substitui).
     #[test]
@@ -687,7 +802,7 @@ mod tests {
         let flags = background_args(&request);
         assert!(!flags.iter().any(|arg| arg == "--resume"), "não retoma a conversa: {flags:?}");
         assert!(!flags.iter().any(|arg| arg == "--agents"), "sem o papel luna-etapa: {flags:?}");
-        assert!(flags.windows(2).any(|window| window == ["--permission-mode", "acceptEdits"]));
+        assert!(flags.windows(2).any(|window| window == ["--permission-mode", "default"]));
         assert!(!flags.iter().any(|arg| arg.contains("revisar os testes")), "o pedido vai pelo stdin: {flags:?}");
         assert_eq!(input(&request).unwrap(), "revisar os testes");
     }

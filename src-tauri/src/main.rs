@@ -15,6 +15,10 @@ fn main() {
     if args.get(1).map(String::as_str) == Some("tasks-mcp") {
         std::process::exit(lunacode::tasks_mcp::mcp_stdio());
     }
+    // `lunacode permission-mcp` é o servidor de pedidos de permissão do Claude (`--permission-prompt-tool`).
+    if args.get(1).map(String::as_str) == Some("permission-mcp") {
+        std::process::exit(lunacode::permission_prompt::mcp_stdio());
+    }
     lunacode::migrate::run();
     lunacode::run();
 }

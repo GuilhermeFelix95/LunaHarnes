@@ -22,6 +22,11 @@ vi.mock("../../api", () => ({
   browserBookmarkRemove: vi.fn(async () => []),
   onBrowserOpened: vi.fn(async () => () => {}),
   onBrowserNavigated: vi.fn(async () => () => {}),
+  onBrowserBookmarksChanged: vi.fn(async () => () => {}),
+  onBrowserShortcut: vi.fn(async () => () => {}),
+  browserLoginSuggestions: vi.fn(async () => [] as string[]),
+  browserFillLogin: vi.fn(async () => {}),
+  browserFavicon: vi.fn(async () => null),
   browserVisits: vi.fn(async () => [] as { url: string; visitedAt: number }[]),
 }));
 
@@ -177,6 +182,31 @@ describe("BrowserPanel", () => {
     await waitFor(() => expect(api.browserBookmarkAdd).toHaveBeenCalledWith("https://vps.exemplo.com/", "vps.exemplo.com"));
     expect(await screen.findByRole("list", { name: "Favoritos" })).toBeTruthy();
     expect(button("Tirar dos favoritos")).toBeTruthy();
+  });
+
+  it("favoritos importados aparecem na barra sem reabrir o painel", async () => {
+    let refresh: () => void = () => {};
+    vi.mocked(api.onBrowserBookmarksChanged).mockImplementation(async (handler) => {
+      refresh = handler;
+      return () => {};
+    });
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+    render(<BrowserPanel active />);
+    await waitFor(() => expect(api.browserBookmarks).toHaveBeenCalled());
+    expect((await screen.findByRole("list", { name: "Favoritos" })).textContent).toContain("Nenhum favorito salvo ainda");
+
+    // A importação terminou em outra tela: a lista guardada mudou e o painel precisa ler de novo.
+    vi.mocked(api.browserBookmarks).mockResolvedValue([{ id: "f1", title: "Importado", url: "https://importado.com/" }]);
+    act(() => refresh());
+
+    expect(await screen.findByRole("button", { name: "Importado" })).toBeTruthy();
+  });
+
+  it("a barra de favoritos fica à vista mesmo sem favoritos, com um aviso", async () => {
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+    render(<BrowserPanel active />);
+
+    expect((await screen.findByRole("list", { name: "Favoritos" })).textContent).toContain("Nenhum favorito salvo ainda");
   });
 
   it("abrir um favorito navega a aba atual até a página dele", async () => {
@@ -431,6 +461,199 @@ describe("BrowserPanel: tradução da página", () => {
     fireEvent.click(back);
     await waitFor(() => expect(api.browserTranslate).toHaveBeenLastCalledWith(false));
     expect(await screen.findByRole("button", { name: "Traduzir página para português" })).toBeTruthy();
+  });
+});
+
+describe("BrowserPanel: busca no histórico", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+    withTabs([{ id: 1, url: "https://a.com/" }], 1);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("mostra só as visitas cujo endereço contém o texto digitado", async () => {
+    vi.mocked(api.browserVisits).mockResolvedValue([
+      { url: "https://mais-recente.com/", visitedAt: 10 },
+      { url: "https://exemplo.com/artigo", visitedAt: 2 },
+    ]);
+    render(<BrowserPanel active openRequest={null} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Histórico" }));
+
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Buscar no histórico" }), { target: { value: "ARTIGO" } });
+
+    const dropdown = screen.getByRole("list", { name: "Visitas recentes" });
+    expect(within(dropdown).getAllByRole("button").map((b) => b.textContent)).toEqual(["exemplo.com"]);
+  });
+
+  it("a busca mostra no máximo 50 visitas, mesmo que mais batam", async () => {
+    vi.mocked(api.browserVisits).mockResolvedValue(Array.from({ length: 60 }, (_, i) => ({ url: `https://site${i}.com/`, visitedAt: i })));
+    render(<BrowserPanel active openRequest={null} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Histórico" }));
+
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Buscar no histórico" }), { target: { value: "site" } });
+
+    const dropdown = screen.getByRole("list", { name: "Visitas recentes" });
+    expect(within(dropdown).getAllByRole("button")).toHaveLength(50);
+  });
+
+  it("sem visita que bata com o texto, diz isso", async () => {
+    vi.mocked(api.browserVisits).mockResolvedValue([{ url: "https://exemplo.com/", visitedAt: 1 }]);
+    render(<BrowserPanel active openRequest={null} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Histórico" }));
+
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Buscar no histórico" }), { target: { value: "nada-disso" } });
+
+    expect(await screen.findByText("Nenhuma visita com esse texto.")).toBeTruthy();
+  });
+});
+
+describe("BrowserPanel: atalhos do teclado", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+    withTabs(
+      [
+        { id: 1, url: "https://a.com/" },
+        { id: 2, url: "https://b.com/" },
+      ],
+      1,
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("Ctrl+T abre uma aba nova em branco", async () => {
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+
+    fireEvent.keyDown(window, { key: "t", ctrlKey: true });
+
+    await waitFor(() => expect(api.browserNewTab).toHaveBeenCalledWith(null, BOUNDS));
+  });
+
+  it("Ctrl+W fecha a aba atual", async () => {
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+
+    fireEvent.keyDown(window, { key: "w", ctrlKey: true });
+
+    await waitFor(() => expect(api.browserCloseTab).toHaveBeenCalledWith(1));
+  });
+
+  it("Ctrl+L leva o foco para a barra de endereço", async () => {
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true });
+
+    expect(document.activeElement).toBe(screen.getByLabelText("Endereço"));
+  });
+
+  it("clicar na barra de endereço seleciona o endereço inteiro, e o clique não desfaz a seleção", async () => {
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+    const input = screen.getByLabelText("Endereço") as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe("https://a.com/"));
+
+    fireEvent.focus(input);
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(input.value.length);
+    // mouseup com preventDefault: o navegador não coloca o cursor por cima da seleção.
+    expect(fireEvent.mouseUp(input)).toBe(false);
+  });
+
+  it("depois do foco pelo teclado, um clique comum no endereço não é cancelado (o cursor pode ser posto)", async () => {
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+    const input = screen.getByLabelText("Endereço") as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe("https://a.com/"));
+
+    fireEvent.focus(input);
+    fireEvent.mouseDown(input);
+    expect(fireEvent.mouseUp(input)).toBe(true);
+  });
+
+  it("Ctrl+F abre a barra flutuante no lugar da busca da página e leva o endereço digitado para a aba", async () => {
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+
+    // Quem chama vê que o atalho foi cancelado: a busca nativa da página não abre.
+    expect(fireEvent.keyDown(window, { key: "f", ctrlKey: true })).toBe(false);
+    const spotlight = screen.getByRole("dialog", { name: "Ir para endereço ou pesquisar" });
+    fireEvent.change(within(spotlight).getByRole("textbox"), { target: { value: "exemplo.com" } });
+    fireEvent.submit(within(spotlight).getByRole("textbox").closest("form")!);
+
+    await waitFor(() => expect(api.browserNavigate).toHaveBeenCalledWith("exemplo.com"));
+    expect(screen.queryByRole("dialog", { name: "Ir para endereço ou pesquisar" })).toBeNull();
+  });
+
+  it("o atalho que a página repassa pelo Rust faz o mesmo que o teclado", async () => {
+    let shortcut: (key: string) => void = () => {};
+    vi.mocked(api.onBrowserShortcut).mockImplementation(async (handler) => {
+      shortcut = handler;
+      return () => {};
+    });
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(screen.getAllByRole("tab")).toHaveLength(2));
+
+    act(() => shortcut("t"));
+
+    await waitFor(() => expect(api.browserNewTab).toHaveBeenCalledWith(null, BOUNDS));
+  });
+
+  it("atalhos não agem quando o painel do navegador está inativo", async () => {
+    render(<BrowserPanel active={false} openRequest={null} />);
+    await waitFor(() => expect(api.browserState).toHaveBeenCalled());
+
+    fireEvent.keyDown(window, { key: "t", ctrlKey: true });
+
+    expect(api.browserNewTab).not.toHaveBeenCalled();
+  });
+});
+
+describe("BrowserPanel: login salvo", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(AREA as DOMRect);
+    vi.mocked(api.browserBookmarks).mockResolvedValue([]);
+    withTabs([{ id: 1, url: "https://github.com/login" }], 1);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("nada é preenchido sem clique: a pessoa escolhe o login na lista", async () => {
+    vi.mocked(api.browserLoginSuggestions).mockResolvedValue(["ana"]);
+    render(<BrowserPanel active openRequest={null} />);
+    await waitFor(() => expect(api.browserState).toHaveBeenCalled());
+    expect(api.browserFillLogin).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Preencher login salvo" }));
+    fireEvent.click(await screen.findByRole("button", { name: "ana" }));
+
+    await waitFor(() => expect(api.browserFillLogin).toHaveBeenCalledWith("ana"));
+  });
+
+  it("sem login salvo para a página, diz isso e não preenche nada", async () => {
+    vi.mocked(api.browserLoginSuggestions).mockResolvedValue([]);
+    render(<BrowserPanel active openRequest={null} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Preencher login salvo" }));
+
+    expect(await screen.findByText("Nenhum login salvo para esta página.")).toBeTruthy();
+    expect(api.browserFillLogin).not.toHaveBeenCalled();
   });
 });
 

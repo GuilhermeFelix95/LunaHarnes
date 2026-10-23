@@ -64,12 +64,18 @@ interface ComposerProps {
   effort: string;
   onEffort: (effort: string) => void;
   planning: boolean;
+  /** Modo navegador: só conversa, então não mostra permissão nem as ações que começam edições (Planejar e /meta). */
+  browserMode?: boolean;
   onTogglePlanning: () => void;
   /** Modo /meta: vale só para a próxima mensagem. */
   goalOn?: boolean;
   /** Meta em andamento: o botão segue habilitado durante a resposta, para desligar a meta. */
   goalActive?: boolean;
   onToggleGoal?: () => void;
+  /** Abre o fluxo de clonagem de site no chat. Ausente = sem botão. */
+  onClone?: () => void;
+  /** Sem pasta de projeto não há onde salvar o clone: o botão fica indisponível, com o motivo no título. */
+  cloneDisabledReason?: string;
   /** Tokens por segundo estimados da resposta em curso. Null = não mostra. */
   speed?: number | null;
   /** Opção de ver a velocidade durante a resposta. */
@@ -254,28 +260,33 @@ export function Composer(props: ComposerProps) {
       />
       <div className="composer__footer">
         <div className="composer__selectors">
-          <Select
-            label={t("composer.provider")}
-            value={props.agent}
-            options={props.agents.map((a) => ({ value: a.key, label: a.label }))}
-            onChange={props.onAgent}
-            disabled={running}
-          />
-          <ModelMenu models={props.models} value={props.model} onChange={props.onModel} disabled={running} />
-          <Select
-            label={t("composer.effort")}
-            value={props.effort}
-            options={[
-              { value: "", label: t("composer.effortDefault") },
-              ...efforts.map((level) => ({
-                value: level.id,
-                label: level.recommended ? t("composer.recommended", { label: level.label }) : level.label,
-              })),
-            ]}
-            onChange={props.onEffort}
-            disabled={running || efforts.length === 0}
-          />
-          {props.accountsEnabled && (
+          {/* No modo navegador, IA, modelo, esforço e conta ficam fora da barra: o agente usa a escolha da conversa. */}
+          {!props.browserMode && (
+            <>
+              <Select
+                label={t("composer.provider")}
+                value={props.agent}
+                options={props.agents.map((a) => ({ value: a.key, label: a.label }))}
+                onChange={props.onAgent}
+                disabled={running}
+              />
+              <ModelMenu models={props.models} value={props.model} onChange={props.onModel} disabled={running} />
+              <Select
+                label={t("composer.effort")}
+                value={props.effort}
+                options={[
+                  { value: "", label: t("composer.effortDefault") },
+                  ...efforts.map((level) => ({
+                    value: level.id,
+                    label: level.recommended ? t("composer.recommended", { label: level.label }) : level.label,
+                  })),
+                ]}
+                onChange={props.onEffort}
+                disabled={running || efforts.length === 0}
+              />
+            </>
+          )}
+          {props.accountsEnabled && !props.browserMode && (
             <Select
               label={t("composer.account")}
               value={props.account ?? ""}
@@ -287,15 +298,17 @@ export function Composer(props: ComposerProps) {
               disabled={running}
             />
           )}
-          <Select
-            label={t("composer.permission")}
-            value={props.permission}
-            options={permissionOptions(props.agents.find((a) => a.key === props.agent)?.engine)}
-            onChange={(value) => props.onPermission(value as Permission)}
-            disabled={running}
-          />
+          {!props.browserMode && (
+            <Select
+              label={t("composer.permission")}
+              value={props.permission}
+              options={permissionOptions(props.agents.find((a) => a.key === props.agent)?.engine)}
+              onChange={(value) => props.onPermission(value as Permission)}
+              disabled={running}
+            />
+          )}
         </div>
-        {props.showSpeed && running && props.speed != null && (
+        {props.showSpeed && props.speed != null && (
           <span className="composer__speed" title={t("composer.speedTitle")}>
             {t("composer.speed", { speed: props.speed })}
           </span>
@@ -334,27 +347,43 @@ export function Composer(props: ComposerProps) {
               {m.label}
             </button>
           ))}
-          <button
-            type="button"
-            className="composer__plan"
-            aria-label={t("composer.planningAria")}
-            aria-pressed={props.planning}
-            disabled={running}
-            onClick={props.onTogglePlanning}
-          >
-            {t("composer.plan")}
-          </button>
-          <button
-            type="button"
-            className="composer__goal"
-            aria-label={t("composer.goalAria")}
-            title={t("composer.goalAria")}
-            aria-pressed={props.goalOn ?? false}
-            disabled={running && !props.goalActive}
-            onClick={props.onToggleGoal}
-          >
-            {t("composer.goal")}
-          </button>
+          {!props.browserMode && (
+            <>
+              <button
+                type="button"
+                className="composer__plan"
+                aria-label={t("composer.planningAria")}
+                aria-pressed={props.planning}
+                disabled={running}
+                onClick={props.onTogglePlanning}
+              >
+                {t("composer.plan")}
+              </button>
+              <button
+                type="button"
+                className="composer__goal"
+                aria-label={t("composer.goalAria")}
+                title={t("composer.goalAria")}
+                aria-pressed={props.goalOn ?? false}
+                disabled={running && !props.goalActive}
+                onClick={props.onToggleGoal}
+              >
+                {t("composer.goal")}
+              </button>
+              {props.onClone && (
+                <button
+                  type="button"
+                  className="composer__clone"
+                  aria-label={t("composer.cloneAria")}
+                  title={props.cloneDisabledReason ?? t("composer.cloneAria")}
+                  disabled={running || Boolean(props.cloneDisabledReason)}
+                  onClick={props.onClone}
+                >
+                  {t("composer.clone")}
+                </button>
+              )}
+            </>
+          )}
           <button
             type="button"
             className="composer__speed-toggle"

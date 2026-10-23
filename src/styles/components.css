@@ -960,6 +960,87 @@
   word-break: break-all;
 }
 
+/* Diff de uma edição: recolhido, com +N −M no resumo e as linhas com rolagem */
+.tool-diff {
+  margin-top: 4px;
+}
+
+.tool-diff summary {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--chip-radius);
+  background: var(--code-bg);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tool-diff__count {
+  font-weight: 600;
+}
+
+.tool-diff__body {
+  max-height: 320px;
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tool-diff__line {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-diff__line--add {
+  color: var(--success);
+}
+
+.tool-diff__line--remove {
+  color: var(--error);
+}
+
+/* Pedido de permissão no chat: antes de uma ação sensível, com as três escolhas */
+.permission-prompt {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.permission-prompt__title {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.permission-prompt__detail {
+  display: block;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.permission-prompt__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.permission-prompt__allow {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* Enquanto a resposta não chega: três pontos pulsando. Com movimento reduzido, tokens.css já para a animação. */
 .typing {
   display: flex;
@@ -1168,6 +1249,7 @@
 .composer__mode,
 .composer__plan,
 .composer__goal,
+.composer__clone,
 .composer__speed-toggle {
   padding: 4px 10px;
   border: 1px solid transparent;
@@ -1181,6 +1263,7 @@
 .composer__mode:hover:not(:disabled),
 .composer__plan:hover:not(:disabled),
 .composer__goal:hover:not(:disabled),
+.composer__clone:hover:not(:disabled),
 .composer__speed-toggle:hover:not(:disabled) {
   color: var(--fg);
 }
@@ -1335,11 +1418,51 @@ textarea:focus-visible {
 /* Modo navegador: o navegador ocupa a tela e o chat vira a sidebar do agente, à direita, com alça na borda esquerda */
 /* Sidebar esquerda recolhida: a tela inteira vai para o navegador */
 .app--browser {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
+/* Modo navegador: a barra vira uma trilha de ícones à esquerda; a página ganha a largura */
 .sidebar--collapsed {
-  display: none;
+  flex: 0 0 56px;
+  width: 56px;
+  padding: 8px 0;
+  align-items: center;
+  overflow-y: auto;
+}
+
+.sidebar__rail-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar__rail-foot {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.sidebar__rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sidebar__rail-btn:hover,
+.sidebar__rail-btn[aria-current="true"],
+.sidebar__rail-btn[aria-pressed="true"] {
+  background: var(--hover);
+  color: var(--fg);
 }
 
 .chat--browser .side {
@@ -1357,6 +1480,12 @@ textarea:focus-visible {
 
 .chat--browser .chat__column[data-resizing="true"] {
   transition: none;
+}
+
+/* Conteúdo da coluna encolhe com ela: sem largura mínima herdada, nada passa da borda e é cortado */
+.chat--browser .chat__column > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Entrada do modo navegador: o navegador ganha a tela aos poucos, sem pular de tamanho */
@@ -1476,6 +1605,26 @@ textarea:focus-visible {
   padding: 0 4px;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* Modo navegador: rodapé do chat e do composer enxutos, para não competir com a conversa na sidebar */
+.chat--browser .chat__foot {
+  margin: 0 auto 4px;
+  gap: 4px 8px;
+  font-size: 11px;
+}
+
+.chat--browser .composer__footer {
+  padding-top: 4px;
+  gap: 4px 6px;
+}
+
+.chat--browser .composer__selectors:empty {
+  display: none;
+}
+
+.chat--browser .chat__new-session {
+  padding: 2px 6px;
 }
 
 /* Pasta de trabalho (rodapé) */
@@ -2483,6 +2632,7 @@ textarea:focus-visible {
 
 .browser__btn {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 28px;
@@ -2631,25 +2781,117 @@ textarea:focus-visible {
 }
 
 /* Favoritos: chips logo abaixo da barra de endereço */
-.browser__bookmarks {
+/* Uma linha, sem rolagem: o que não cabe fica atrás do botão » (menu), como nos navegadores */
+.browser__bookmarks-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
-  margin: 0;
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
+}
+
+.browser__bookmarks {
+  display: flex;
+  flex: 1 1 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
   list-style: none;
+}
+
+.browser__bookmark--hidden {
+  display: none;
+}
+
+.browser__bookmarks-more-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.browser__bookmarks-more {
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--chip-radius);
+  background: var(--bg-sidebar);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.browser__bookmarks-more:hover,
+.browser__bookmarks-more[aria-expanded="true"] {
+  background: var(--hover);
+}
+
+.browser__bookmarks-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--shadow-md, 0 4px 12px rgb(0 0 0 / 0.2));
+  list-style: none;
+}
+
+.browser__bookmarks-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: var(--text-xs);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.browser__bookmarks-menu-item:hover {
+  background: var(--hover);
 }
 
 .browser__bookmark {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   max-width: 100%;
   border-radius: var(--chip-radius);
   background: var(--bg-sidebar);
 }
 
+/* Ícone do site nas abas e nos favoritos: tamanho fixo, para a linha não pular quando a imagem chega */
+.browser__site-icon {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  margin-right: 5px;
+  border-radius: 2px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.browser__site-icon--fallback {
+  color: var(--fg-muted);
+}
+
 .browser__bookmark-open {
+  display: inline-flex;
+  align-items: center;
   min-width: 0;
   padding: 3px 8px;
   border: none;
@@ -2672,6 +2914,46 @@ textarea:focus-visible {
   position: relative;
   flex: 1;
   min-height: 0;
+}
+
+/* Ctrl+F no navegador: barra de endereço flutuante no meio da tela, com o fundo escurecido */
+.browser-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, #000 35%, transparent);
+}
+
+.browser-spotlight__form {
+  width: min(520px, 90vw);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.browser-spotlight__input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--input-radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: var(--text-md);
+}
+
+/* Histórico: campo de busca acima das visitas, que filtra pelo endereço */
+.browser__visit-search {
+  width: calc(100% - 16px);
+  margin: 6px 8px 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--input-radius);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: var(--text-xs);
 }
 
 /* Histórico: chips das visitas recentes, ao clicar no botão Histórico da barra */
@@ -3563,6 +3845,47 @@ textarea:focus-visible {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Formulário do clonador no chat: rótulo acima do campo, campo com o mesmo visual de .qpick__other */
+.clone-flow__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clone__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.clone__field input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 13px;
+}
+
+.clone__warning,
+.clone-flow__notice,
+.clone__error {
+  margin: 0;
+  font-size: 12px;
+}
+
+.clone__warning,
+.clone-flow__notice {
+  color: var(--fg-muted);
+}
+
+.clone__error {
+  color: var(--error);
 }
 
 .qpick__send:disabled {

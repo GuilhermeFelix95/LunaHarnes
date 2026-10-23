@@ -69,6 +69,13 @@ vi.mock("../../api", () => ({
     bridge.emit = handler;
     return () => {};
   }),
+  onPermissionRequest: vi.fn(async () => () => {}),
+  onBrowserBookmarksChanged: vi.fn(async () => () => {}),
+  onBrowserShortcut: vi.fn(async () => () => {}),
+  browserLoginSuggestions: vi.fn(async () => [] as string[]),
+  browserFillLogin: vi.fn(async () => {}),
+  browserFavicon: vi.fn(async () => null),
+  answerPermission: vi.fn(async () => {}),
   startBackgroundTask: vi.fn(async (prompt: string) => ({ id: "t1", prompt, status: "running", output: "", conversationId: "conv-teste" })),
   stopBackgroundTask: vi.fn(async (id: string) => ({ id, prompt: "", status: "stopped", output: "" })),
   listBackgroundTasks: vi.fn(async () => []),
@@ -299,7 +306,31 @@ describe("ChatView: continuidade e envio", () => {
     expect(first.sessionId).toBeUndefined();
     expect(second.sessionId).toBe("sess-1");
     expect(second.cwd).toBe("C:\\projeto");
-    expect(second.permission).toBe("acceptEdits");
+    expect(second.permission).toBe("fullAccess");
+  });
+
+  it("mostra a velocidade medida pelos tokens de saída e a mantém depois do fim do turno", async () => {
+    localStorage.setItem("luna.chat.showSpeed", "1");
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    try {
+      render(<ChatView onPersist={() => {}} />);
+      await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+      await send("velocidade");
+      now.mockReturnValue(2_000);
+      emit({ kind: "textDelta", text: "resposta" });
+      now.mockReturnValue(3_000);
+      emit({ kind: "outputTokens", tokens: 50 });
+      expect(screen.getByText("50 tokens/s")).toBeTruthy();
+
+      now.mockReturnValue(4_000);
+      emit({ kind: "done", ok: true });
+      // 50 tokens desde o primeiro texto (2 s até 4 s) = 25 tokens/s, com o turno já encerrado.
+      await waitFor(() => expect(screen.getByText("25 tokens/s")).toBeTruthy());
+    } finally {
+      now.mockRestore();
+      localStorage.removeItem("luna.chat.showSpeed");
+    }
   });
 
   it("cada envio leva o navegador escolhido em Configurações", async () => {
@@ -764,6 +795,24 @@ describe("ChatView: modo navegador", () => {
     expect(screen.getByLabelText("Mensagem")).toBeTruthy();
   });
 
+  it("no modo navegador, o composer esconde permissão e as ações que começam edições (Planejar e /meta)", async () => {
+    render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    expect(screen.queryByRole("button", { name: "Permissão" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Modo de planejamento" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Modo /meta" })).toBeNull();
+  });
+
+  it("fora do modo navegador, o composer mantém permissão, Planejar e /meta", async () => {
+    render(<ChatView onPersist={() => {}} browserMode={false} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    expect(screen.getByRole("button", { name: "Permissão" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Modo de planejamento" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Modo /meta" })).toBeTruthy();
+  });
+
   it("sem o modo, o painel não fica expandido e o chat não vira coluna lateral", async () => {
     render(<ChatView onPersist={() => {}} browserMode={false} />);
     await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
@@ -799,6 +848,26 @@ describe("ChatView: chat lateral no modo navegador", () => {
     fireEvent.click(screen.getByRole("button", { name: "Modo LunaCode" }));
 
     expect(onExitBrowserMode).toHaveBeenCalledOnce();
+  });
+
+  it("no modo navegador, Nova sessão abre outra sessão; sem o modo, o botão não aparece", async () => {
+    const onNewSession = vi.fn();
+    const { rerender } = render(<ChatView onPersist={() => {}} browserMode onNewSession={onNewSession} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByRole("button", { name: "Nova sessão" }));
+    expect(onNewSession).toHaveBeenCalledOnce();
+
+    rerender(<ChatView onPersist={() => {}} browserMode={false} onNewSession={onNewSession} />);
+    expect(screen.queryByRole("button", { name: "Nova sessão" })).toBeNull();
+  });
+
+  it("no modo navegador a pasta e a branch saem do rodapé", async () => {
+    render(<ChatView onPersist={() => {}} browserMode />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    expect(document.querySelector(".chat__foot .workspace-chip, .chat__foot .workspace")).toBeNull();
+    expect(screen.getByRole("button", { name: "Compactar" })).toBeTruthy();
   });
 });
 
@@ -935,5 +1004,19 @@ describe("ChatView: cabeçalho sem custo e sem lista de comandos", () => {
 
     expect(screen.queryByText(/nesta conversa/)).toBeNull();
     expect(screen.queryByText(/Comandos:/)).toBeNull();
+  });
+});
+
+describe("ChatView: clonador no chat", () => {
+  it("o botão Clonar site abre o seletor de destino e partes, e o fluxo segue para o formulário", async () => {
+    render(<ChatView onPersist={() => {}} />);
+    await waitFor(() => expect((screen.getByLabelText("Mensagem") as HTMLTextAreaElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByRole("button", { name: "Clonar um site para o projeto" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Criar uma subpasta com o nome escolhido" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cores" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enviar respostas" }));
+
+    expect(await screen.findByLabelText("Nome da pasta do clone")).toBeTruthy();
   });
 });

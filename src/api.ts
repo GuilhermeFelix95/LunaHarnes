@@ -90,6 +90,34 @@ export function onProviderEvent(
   });
 }
 
+/// Pedido de permissão do Claude (espelha permission_prompt::PermissionRequest no Rust).
+/// `runId` é o id da conversa que roda o turno.
+export interface PermissionRequest {
+  id: string;
+  runId: string;
+  toolName: string;
+  input: Record<string, unknown>;
+  toolUseId: string;
+}
+
+/// Nome do evento de pedido de permissão (espelha permission_prompt::REQUEST_EVENT no Rust).
+export const PERMISSION_REQUEST_EVENT = "permission-request";
+
+/// Entrega só os pedidos de permissão da execução `runId`.
+export function onPermissionRequest(
+  runId: string,
+  handler: (request: PermissionRequest) => void,
+): Promise<UnlistenFn> {
+  return listen<PermissionRequest>(PERMISSION_REQUEST_EVENT, (e) => {
+    if (e.payload.runId === runId) handler(e.payload);
+  });
+}
+
+/// Permite ou nega um pedido de permissão. `message` volta ao agente quando nega.
+export function answerPermission(id: string, allow: boolean, message?: string): Promise<void> {
+  return invoke("answer_permission", { id, allow, message: message ?? null });
+}
+
 /// Nome do evento de tarefa em segundo plano (espelha background_tasks::TASK_EVENT no Rust).
 export const BACKGROUND_TASK_EVENT = "background-task";
 
@@ -461,6 +489,11 @@ export function playwrightInstall(): Promise<void> {
   return invoke("playwright_install");
 }
 
+/// Ícone do site como `data:` (ou null, quando o site não tem). O Rust busca, por causa da CSP da janela.
+export function browserFavicon(pageUrl: string): Promise<string | null> {
+  return invoke("browser_favicon", { pageUrl });
+}
+
 export function browserBookmarks(): Promise<BrowserBookmark[]> {
   return invoke("browser_bookmarks");
 }
@@ -533,6 +566,34 @@ export function browserPasswords(): Promise<ImportedPassword[]> {
   return invoke("browser_passwords");
 }
 
+/// Logins salvos para a página aberta, sem senha. A origem é conferida pelo Rust.
+export function browserLoginSuggestions(): Promise<string[]> {
+  return invoke("browser_login_suggestions");
+}
+
+/// Preenche login e senha salvos na página aberta. A senha fica no Rust: o front só manda o login escolhido.
+export function browserFillLogin(login: string): Promise<void> {
+  return invoke("browser_fill_login", { login });
+}
+
+/// Resumo do site (título, cores, animações, componentes). O Rust recusa sem a confirmação de direitos.
+export interface SiteCapture {
+  url: string;
+  title: string;
+  colors: string[];
+  keyframes: number;
+  components: string[];
+  stylesheets: number;
+  /** Variáveis CSS com cor, como `--cor-primaria: #1a73e8`. */
+  cssVariables: string[];
+  /** CSS embutido da página, resumido em uma linha. */
+  embeddedCss: string;
+}
+
+export function siteCloneCapture(url: string, rightsConfirmed: boolean): Promise<SiteCapture> {
+  return invoke("site_clone_capture", { url, rightsConfirmed });
+}
+
 /// Escolhe um arquivo exportado pelo navegador: HTML de favoritos/histórico ou CSV de senhas.
 export async function pickImportFile(kind: "html" | "csv"): Promise<string | null> {
   return open({
@@ -557,6 +618,16 @@ export function onTerminalData(handler: (event: TerminalDataEvent) => void): Pro
 /** Página aberta pelo agente (ferramenta do navegador); o endereço chega como texto. */
 export function onBrowserOpened(handler: (url: string) => void): Promise<UnlistenFn> {
   return listen<string>("browser://opened", (e) => handler(e.payload));
+}
+
+/// Atalho (Ctrl+T, Ctrl+W, Ctrl+L ou Ctrl+F) pressionado com o foco numa página do navegador. A tecla vem em minúscula.
+export function onBrowserShortcut(handler: (key: string) => void): Promise<UnlistenFn> {
+  return listen<string>("browser://shortcut", (e) => handler(e.payload));
+}
+
+/// A lista de favoritos mudou (salvou, removeu ou importou): as telas relêem a lista.
+export function onBrowserBookmarksChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("browser://bookmarks-changed", () => handler());
 }
 
 /// Uma página terminou de carregar numa aba, inclusive depois de um clique num link.

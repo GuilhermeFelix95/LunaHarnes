@@ -135,6 +135,8 @@ pub fn send_prompt(
         let (key, value) = claude::task_env();
         env.push((key, value));
     }
+    // O servidor de permissões manda o id desta execução junto de cada pedido, para o chat saber de qual conversa é.
+    env.push(("LUNA_RUN_ID".into(), run_id.clone()));
     // Imagens só podem vir da pasta de anexos do app: o pedido não lê arquivo arbitrário do disco.
     if !request.images.is_empty() {
         let folder = app_data_dir(&app)?.join("attachments");

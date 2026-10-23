@@ -143,8 +143,53 @@ export function Sidebar({
   }
 
   const [query, setQuery] = useState("");
-  const matching = filterByTitle(conversations, query);
+  // Conversas do modo navegador não entram na lista do LunaCode; o modo navegador lista todas.
+  const listed = browserMode ? conversations : conversations.filter((item) => !item.browser);
+  const matching = filterByTitle(listed, query);
   const projects = groupByProject(matching, new Date());
+
+  // Modo navegador: a lista vira uma trilha de ícones, para a página ganhar a largura.
+  if (browserMode) {
+    return (
+      <aside className="sidebar sidebar--collapsed sidebar--rail" aria-label={t("sidebar.label")}>
+        <button type="button" className="sidebar__rail-btn" aria-label={t("sidebar.newConversation")} title={t("sidebar.newConversation")} onClick={() => onNew()}>
+          <Plus size={16} aria-hidden="true" />
+        </button>
+        <ul className="sidebar__rail-list">
+          {conversations.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className="sidebar__rail-btn"
+                aria-label={item.title}
+                aria-current={item.id === activeId ? "true" : undefined}
+                title={item.title}
+                onClick={() => onOpen(item.id)}
+              >
+                {item.title.trim().charAt(0).toUpperCase() || "•"}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="sidebar__rail-foot">
+          <button type="button" className="sidebar__rail-btn" aria-label={t("settings.title")} aria-pressed={settingsOpen} title={t("settings.title")} onClick={onSettings}>
+            <Settings size={16} aria-hidden="true" />
+          </button>
+          {onBrowserMode && (
+            <button
+              type="button"
+              className="sidebar__rail-btn"
+              aria-label={t("sidebar.lunaCodeMode")}
+              title={t("sidebar.lunaCodeMode")}
+              onClick={() => onBrowserMode(false)}
+            >
+              <Globe size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className={`sidebar${browserMode ? " sidebar--collapsed" : ""}`} aria-label={t("sidebar.label")} style={{ width: `${width}px` }}>
@@ -175,7 +220,7 @@ export function Sidebar({
         </button>
       </div>
 
-      {conversations.length > 0 && (
+      {listed.length > 0 && (
         <input
           type="search"
           className="sidebar__search"
@@ -192,7 +237,7 @@ export function Sidebar({
 
         {projects.length === 0 && (
           <EmptyState>
-            {conversations.length === 0 ? t("sidebar.emptyNone") : t("sidebar.emptyNoMatch")}
+            {listed.length === 0 ? t("sidebar.emptyNone") : t("sidebar.emptyNoMatch")}
           </EmptyState>
         )}
 

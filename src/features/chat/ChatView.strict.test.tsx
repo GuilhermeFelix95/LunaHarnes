@@ -82,6 +82,13 @@ vi.mock("../../api", () => ({
     bridge.emit = handler;
     return () => {};
   }),
+  onPermissionRequest: vi.fn(async () => () => {}),
+  onBrowserBookmarksChanged: vi.fn(async () => () => {}),
+  onBrowserShortcut: vi.fn(async () => () => {}),
+  browserLoginSuggestions: vi.fn(async () => [] as string[]),
+  browserFillLogin: vi.fn(async () => {}),
+  browserFavicon: vi.fn(async () => null),
+  answerPermission: vi.fn(async () => {}),
   startBackgroundTask: vi.fn(async (prompt: string) => ({ id: "t1", prompt, status: "running", output: "" })),
   stopBackgroundTask: vi.fn(async (id: string) => ({ id, prompt: "", status: "stopped", output: "" })),
   listBackgroundTasks: vi.fn(async () => []),

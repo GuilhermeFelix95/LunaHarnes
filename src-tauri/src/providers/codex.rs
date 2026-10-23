@@ -65,9 +65,21 @@ pub fn args(request: &RunRequest) -> Vec<String> {
 
 fn sandbox_mode(permission: Permission) -> &'static str {
     match permission {
-        Permission::ReadOnly => "read-only",
-        Permission::AcceptEdits => "workspace-write",
+        // `codex exec` não tem canal de aprovação: `Pedir permissão` cai para só leitura, como decidido no plano.
+        Permission::ReadOnly | Permission::AcceptEdits => "read-only",
         Permission::FullAccess => "danger-full-access",
+    }
+}
+
+#[cfg(test)]
+mod sandbox_tests {
+    use super::*;
+
+    #[test]
+    fn asking_for_permission_falls_back_to_read_only_in_codex() {
+        assert_eq!(sandbox_mode(Permission::AcceptEdits), "read-only");
+        assert_eq!(sandbox_mode(Permission::ReadOnly), "read-only");
+        assert_eq!(sandbox_mode(Permission::FullAccess), "danger-full-access");
     }
 }
 
@@ -185,6 +197,10 @@ pub fn parse_line(line: &str) -> Vec<ProviderEvent> {
                 let fresh = input.saturating_sub(read.unwrap_or(0));
                 events.push(ProviderEvent::CacheUsage { fresh: Some(fresh), read, write: None });
             }
+            // O Codex informa a saída só no fim do turno: é uma chamada só, então a velocidade sai do valor final.
+            if let Some(tokens) = usage["output_tokens"].as_u64() {
+                events.push(ProviderEvent::OutputTokens { tokens });
+            }
             events.push(ProviderEvent::Done { ok: true });
             events
         }
@@ -297,6 +313,7 @@ mod tests {
             parse_line(r#"{"type":"turn.completed","usage":{"input_tokens":1000,"cached_input_tokens":800,"output_tokens":30}}"#),
             vec![
                 ProviderEvent::CacheUsage { fresh: Some(200), read: Some(800), write: None },
+                ProviderEvent::OutputTokens { tokens: 30 },
                 ProviderEvent::Done { ok: true },
             ]
         );

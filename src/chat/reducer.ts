@@ -41,6 +41,16 @@ export function applyEvent(
       }
       return messages;
     }
+    case "toolDiff": {
+      // Liga o diff à ação que editou o arquivo, procurando de trás para frente como o resultado.
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const message = messages[i];
+        if (message.tool?.id === event.id) {
+          return [...messages.slice(0, i), { ...message, tool: { ...message.tool, diff: event.diff } }, ...messages.slice(i + 1)];
+        }
+      }
+      return messages;
+    }
     case "error": {
       const reply = lastTextReply(messages);
       if (reply) {
@@ -65,6 +75,7 @@ export function applyEvent(
     case "rateLimit":
     case "context":
     case "cacheUsage":
+    case "outputTokens":
     case "cost":
     case "commandResult":
     case "todos":

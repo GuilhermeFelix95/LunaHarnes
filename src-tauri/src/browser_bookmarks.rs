@@ -4,12 +4,15 @@ use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use crate::browser::parse_url;
 use crate::commands::app_data_dir;
+use crate::logfile;
 
 const FILE_NAME: &str = "browser-bookmarks.json";
+/// Evento que avisa as telas abertas de que a lista de favoritos mudou.
+pub const CHANGED_EVENT: &str = "browser://bookmarks-changed";
 /// Teto de favoritos, compartilhado com a importação de favoritos.
 pub const MAX_BOOKMARKS: usize = 100;
 
@@ -70,14 +73,25 @@ pub fn browser_bookmarks(app: AppHandle) -> Result<Vec<Bookmark>, String> {
     Ok(load_in(&app_data_dir(&app)?))
 }
 
+/// Avisa as telas abertas de que a lista mudou. Falha de aviso não impede a operação, mas fica no log.
+pub fn notify_changed(app: &AppHandle) {
+    if let Err(e) = app.emit(CHANGED_EVENT, ()) {
+        logfile::error(&format!("não foi possível avisar a mudança nos favoritos: {e}"));
+    }
+}
+
 #[tauri::command(async)]
 pub fn browser_bookmark_add(app: AppHandle, url: String, title: String) -> Result<Vec<Bookmark>, String> {
-    add_in(&app_data_dir(&app)?, &url, &title)
+    let list = add_in(&app_data_dir(&app)?, &url, &title)?;
+    notify_changed(&app);
+    Ok(list)
 }
 
 #[tauri::command(async)]
 pub fn browser_bookmark_remove(app: AppHandle, id: String) -> Result<Vec<Bookmark>, String> {
-    remove_in(&app_data_dir(&app)?, &id)
+    let list = remove_in(&app_data_dir(&app)?, &id)?;
+    notify_changed(&app);
+    Ok(list)
 }
 
 #[cfg(test)]

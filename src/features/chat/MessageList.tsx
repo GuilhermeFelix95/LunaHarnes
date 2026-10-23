@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Atom, Bot, Braces, Brain, Check, Copy, Cpu, FilePen, FileText, Search, Sparkles, SquareTerminal, Undo2, Wrench, X, type LucideIcon } from "lucide-react";
 import { PROVIDER_LABELS } from "../../chat/providers";
-import type { ChatMessage, ProviderKind } from "../../types";
+import type { ChatMessage, FileDiff, ProviderKind } from "../../types";
 import { AttachmentThumb } from "./AttachmentThumb";
 import { Markdown } from "./Markdown";
 import { resolveLocale, t } from "../../i18n";
@@ -47,6 +47,24 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
 
 function toolIcon(name: string): LucideIcon {
   return TOOL_ICONS[name] ?? Wrench;
+}
+
+/// Diff de uma edição, recolhido: o resumo mostra +linhas −linhas e o corpo mostra as linhas.
+function FileDiffView({ diff }: { diff: FileDiff }) {
+  return (
+    <details className="tool-diff">
+      <summary>
+        <span className="tool-diff__count">{`+${diff.added} −${diff.removed}`}</span>
+      </summary>
+      <pre className="tool-diff__body">
+        {diff.lines.map((line, i) => (
+          <span key={i} className={`tool-diff__line tool-diff__line--${line.kind}`}>
+            {`${line.kind === "add" ? "+" : "−"} ${line.text}`}
+          </span>
+        ))}
+      </pre>
+    </details>
+  );
 }
 
 /** Pedaço de uma resposta: ferramentas seguidas viram um grupo; texto e erro ficam como estão. */
@@ -249,6 +267,7 @@ const MessageItem = memo(
                             )}
                           </span>
                           {tool.detail && <code>{tool.detail}</code>}
+                          {tool.diff && <FileDiffView diff={tool.diff} />}
                         </li>
                       );
                     })}

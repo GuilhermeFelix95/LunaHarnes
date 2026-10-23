@@ -215,6 +215,39 @@ describe("MessageList: ferramentas enquanto a execução roda", () => {
   });
 });
 
+describe("MessageList: diff de edição", () => {
+  const edit: ChatMessage[] = [
+    {
+      role: "assistant",
+      text: "",
+      tool: {
+        id: "e1",
+        name: "Edit",
+        detail: "a.ts",
+        ok: true,
+        diff: {
+          added: 2,
+          removed: 1,
+          lines: [
+            { kind: "remove", text: "velho" },
+            { kind: "add", text: "novo" },
+            { kind: "add", text: "extra" },
+          ],
+        },
+      },
+      provider: "claude",
+    },
+  ];
+
+  it("mostra +N −M no resumo recolhível e as linhas com a cor de cada tipo", () => {
+    render(<MessageList messages={edit} fallbackProvider="claude" running={false} />);
+
+    expect(screen.getByText("+2 −1").closest("details")?.classList.contains("tool-diff")).toBe(true);
+    expect(screen.getByText("− velho").classList.contains("tool-diff__line--remove")).toBe(true);
+    expect(screen.getByText("+ novo").classList.contains("tool-diff__line--add")).toBe(true);
+  });
+});
+
 describe("MessageList: só o que mudou é refeito", () => {
   it("mensagens antigas não são refeitas quando só a última muda", () => {
     const pergunta: ChatMessage = { role: "user", text: "oi", at: 1 };

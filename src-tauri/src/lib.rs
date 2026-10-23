@@ -15,18 +15,21 @@ pub mod checkpoints;
 pub mod logfile;
 pub mod commands;
 pub mod conversations;
+pub mod favicon;
 pub mod files;
 pub mod marketplace;
 pub mod migrate;
 pub mod orchestrator;
 pub mod mcp;
 pub mod models;
+pub mod permission_prompt;
 pub mod playwright;
 pub mod plugins;
 pub mod project;
 pub mod providers;
 pub mod rules;
 pub mod reload;
+pub mod site_clone;
 pub mod session;
 pub mod setup;
 pub mod skills;
@@ -95,6 +98,15 @@ pub fn run() {
                 }
                 Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para o navegador: {e}")),
             }
+            // Pedidos de permissão do Claude: servidor local e configuração MCP, como o do navegador.
+            match app.path().app_data_dir() {
+                Ok(dir) => {
+                    if let Err(e) = permission_prompt::start(app.handle().clone(), &dir) {
+                        logfile::error(&e);
+                    }
+                }
+                Err(e) => logfile::error(&format!("não foi possível localizar a pasta de dados para as permissões: {e}")),
+            }
             // Navegador do Playwright (alternativa escolhida em Configurações): só grava a configuração MCP.
             match app.path().app_data_dir() {
                 Ok(dir) => {
@@ -124,6 +136,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
             commands::cancel_prompt,
+            permission_prompt::answer_permission,
             background_tasks::start_background_task,
             background_tasks::stop_background_task,
             background_tasks::list_background_tasks,
@@ -180,6 +193,10 @@ pub fn run() {
             browser::browser_set_adblock,
             browser::browser_translate,
             browser::browser_read,
+            site_clone::site_clone_capture,
+            favicon::browser_favicon,
+            browser::browser_login_suggestions,
+            browser::browser_fill_login,
             commands::get_file_diff,
             commands::discard_change,
             commands::checkpoint_take,

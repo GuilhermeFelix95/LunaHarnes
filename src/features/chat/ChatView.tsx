@@ -18,6 +18,9 @@ import {
   saveAttachment,
   saveFileAttachment,
   onProviderEvent,
+  onPermissionRequest,
+  answerPermission,
+  type PermissionRequest,
   PLUGINS_CHANGED,
   PROFILES_CHANGED,
   openLogin,
@@ -47,7 +50,7 @@ import { profileModelOptions } from "../../chat/models";
 import { contextFor, withContext } from "../../chat/handoff";
 import { autoCompactEnabled, compactPreamble, COMPACT_PROMPT, needsCompaction, sessionsFrom } from "../../chat/compact";
 import { goalInstruction, goalShouldContinue, isGoalDone, MAX_GOAL_ROUNDS, stripGoalMarker } from "../../chat/goal";
-import { estimateTokensPerSecond, readShowSpeed, saveShowSpeed } from "../../chat/speed";
+import { readShowSpeed, saveShowSpeed, tokensPerSecond } from "../../chat/speed";
 import { APPROVE_OPTION, approvalPrompt, contextUnderstood, extractPlan, loadPlanTarget, planFromReply, QUESTION_PROTOCOL, streamingPlan, withPlanInstruction } from "../../chat/planning";
 import { extractQuestions, type Question, type ReplyParts } from "../../chat/questions";
 import { applyEvent } from "../../chat/reducer";
@@ -86,8 +89,11 @@ import { BrowserPanel } from "../side/BrowserPanel";
 import { RightPanel, type SideTab } from "../side/RightPanel";
 import { TerminalTabs } from "../terminal/TerminalTabs";
 import { Composer, PROVIDER_LABELS, type ComposerHandle } from "./Composer";
+import { PermissionPrompt } from "./PermissionPrompt";
 import { MessageList } from "./MessageList";
 import { QuestionPicker } from "./QuestionPicker";
+import { SiteCloneFlow } from "./SiteCloneFlow";
+import { SiteClonePreview } from "./SiteClonePreview";
 import { UsageMeter, type LimitState, type ContextState } from "./UsageMeter";
 import { WorkspaceChip } from "./WorkspaceChip";
 import { BackgroundTasks } from "./BackgroundTasks";
@@ -117,6 +123,8 @@ interface ChatViewProps {
   browserMode?: boolean;
   /** Volta ao modo LunaCode normal, pelo botão da topbar do navegador. */
   onExitBrowserMode?: () => void;
+  /** Abre outra sessão do navegador, sem apagar a atual (o histórico fica acessível no modo navegador). */
+  onNewSession?: () => void;
 }
 
 /// Largura da sidebar do agente no modo navegador: entre 300 px e 60% da janela.
@@ -168,6 +176,7 @@ export function ChatView({
   visible = true,
   browserMode = false,
   onExitBrowserMode,
+  onNewSession,
 }: ChatViewProps) {
   useLocale();
   const [conversationId] = useState(() => initial?.id ?? crypto.randomUUID());
@@ -184,7 +193,10 @@ export function ChatView({
   const [presets, setPresets] = useState<ApiPreset[]>([]);
   const [costUsd, setCostUsd] = useState(initial?.costUsd ?? 0);
   const costRef = useRef(costUsd);
-  const [permission, setPermission] = useState<Permission>(initial?.permission ?? "acceptEdits");
+  const [permission, setPermission] = useState<Permission>(initial?.permission ?? "fullAccess");
+  // Fluxo do clonador de sites aberto acima da caixa de mensagem, e a pasta do último clone para a prévia.
+  const [cloning, setCloning] = useState(false);
+  const [clonePreview, setClonePreview] = useState<string | null>(null);
   const [cwd, setCwd] = useState(initial?.cwd ?? startCwd ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
   const [effort, setEffort] = useState(initial?.effort ?? "");
@@ -204,6 +216,9 @@ export function ChatView({
   // Chave do cache para o turno que está para começar, e a do turno em andamento (null = não guarda).
   // Cache de prompt: o uso do turno chega antes do done; o livro guarda os turnos da conversa.
   const turnUsage = useRef<CacheUsage | null>(null);
+  // Pedidos de permissão do Claude esperando a pessoa, e as ferramentas liberadas com "Sempre nesta conversa".
+  const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>([]);
+  const alwaysAllowed = useRef(new Set<string>());
   const turnMeta = useRef({ provider: "claude" as ProviderKind, model: "", systemKey: "" });
   const cacheTurns = useRef<TurnRecord[]>([]);
   const [models, setModels] = useState<ModelOption[]>([]);
@@ -471,18 +486,21 @@ export function ChatView({
   // Meta em andamento: o botão fica ligado durante as rodadas e desmarcá-lo encerra o laço.
   const [goalActive, setGoalActive] = useState(false);
   const [speed, setSpeed] = useState<number | null>(null);
+  const outputTokens = useRef(0);
+  const firstTextAt = useRef<number | null>(null);
   const [showSpeed, setShowSpeed] = useState(readShowSpeed);
   useEffect(() => saveShowSpeed(showSpeed), [showSpeed]);
+  // Velocidade medida: tokens de saída de cada chamada ao modelo, somados. O valor final fica no composer até o próximo turno.
   useEffect(() => {
-    if (!running || !turnStartedAt) {
-      setSpeed(null);
-      return;
-    }
+    if (!running) return;
+    outputTokens.current = 0;
+    firstTextAt.current = null;
+    setSpeed(null);
     const timer = window.setInterval(() => {
-      setSpeed(estimateTokensPerSecond(responseText.current.length, Date.now() - turnStartedAt));
+      setSpeed(tokensPerSecond(outputTokens.current, firstTextAt.current, Date.now()));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [running, turnStartedAt]);
+  }, [running]);
   // Parar no meio do turno: a verificação que ainda chegar não pede correção.
   const turnStopped = useRef(false);
   const body = useRef<HTMLDivElement>(null);
@@ -698,6 +716,12 @@ export function ChatView({
     };
     const unlisten = onProviderEvent(conversationId, (event) => {
       const turn = turnAgent.current;
+      if (event.kind === "textDelta" && firstTextAt.current === null) firstTextAt.current = Date.now();
+      if (event.kind === "outputTokens") {
+        outputTokens.current += event.tokens;
+        setSpeed(tokensPerSecond(outputTokens.current, firstTextAt.current, Date.now()));
+      }
+      if (event.kind === "done") setSpeed(tokensPerSecond(outputTokens.current, firstTextAt.current, Date.now()));
       if (event.kind === "sessionStarted") {
         sessions.current = {
           ...sessions.current,
@@ -840,10 +864,27 @@ export function ChatView({
         );
       }
     });
+    const stopPermissions = onPermissionRequest(conversationId, (request) => {
+      // Ferramenta liberada nesta conversa: responde sem mostrar o pedido de novo.
+      if (alwaysAllowed.current.has(request.toolName)) {
+        void answerPermission(request.id, true);
+        return;
+      }
+      setPermissionRequests((current) => [...current, request]);
+    });
     return () => {
       unlisten.then((stop) => stop());
+      stopPermissions.then((stop) => stop());
     };
   }, [host, conversationId]);
+
+  function decidePermission(request: PermissionRequest, allow: boolean, always = false) {
+    if (allow && always) alwaysAllowed.current.add(request.toolName);
+    setPermissionRequests((current) => current.filter((item) => item.id !== request.id));
+    answerPermission(request.id, allow, allow ? undefined : t("permission.denied")).catch(() => {
+      // Pedido já expirou ou foi respondido: nada a fazer além de tirá-lo da tela.
+    });
+  }
 
   function commit(next: ChatMessage[]) {
     messagesRef.current = next;
@@ -1531,6 +1572,22 @@ ${outgoing}`
         />
       )}
 
+      {cloning && !running && (
+        <SiteCloneFlow
+          permission={permission}
+          onPermission={setPermission}
+          onSend={(shown, prompt, folder) => {
+            setClonePreview(folder);
+            void run(shown, prompt, false);
+          }}
+          onClose={() => setCloning(false)}
+        />
+      )}
+
+      {clonePreview && cwd && !running && (
+        <SiteClonePreview cwd={cwd} folder={clonePreview} onClose={() => setClonePreview(null)} />
+      )}
+
       {configChanged && (
         <section className="plugin-offer" role="status" aria-label={t("chat.configChangedAria")}>
           <p>
@@ -1560,8 +1617,18 @@ ${outgoing}`
 
       {backgroundTasks.length > 0 && <BackgroundTasks tasks={backgroundTasks} onStop={(id) => void stopBackground(id)} />}
 
+      {permissionRequests[0] && (
+        <PermissionPrompt
+          request={permissionRequests[0]}
+          onAllow={(request) => decidePermission(request, true)}
+          onAlways={(request) => decidePermission(request, true, true)}
+          onDeny={(request) => decidePermission(request, false)}
+        />
+      )}
+
       <Composer
         composerRef={composerRef}
+        browserMode={browserMode}
         onDraft={changeDraft}
         attachments={attachments}
         onAttach={(file) => void attachFile(file)}
@@ -1595,6 +1662,8 @@ ${outgoing}`
         goalOn={goalOn || goalActive}
         goalActive={goalActive}
         onToggleGoal={toggleGoal}
+        onClone={() => setCloning(true)}
+        cloneDisabledReason={cwd ? undefined : t("clone.noProject")}
         slash={slashMatches}
         onPickSlash={pickSlash}
         accountsEnabled={accountsEnabled}
@@ -1603,18 +1672,21 @@ ${outgoing}`
         onAccount={setAccount}
       />
       <div className="chat__foot">
-        <WorkspaceChip
-          cwd={cwd}
-          recent={recentFolders}
-          freeFolder={freeFolder}
-          disabled={running}
-          onPick={switchWorkspace}
-          onBrowse={() => void browseWorkspace()}
-          branches={branches}
-          currentBranch={currentBranch}
-          onOpenBranches={() => setBranchesVersion((v) => v + 1)}
-          onPickBranch={(branch, isNew) => void pickBranch(branch, isNew)}
-        />
+        {/* No modo navegador a pasta e a branch ficam fora do rodapé: a sidebar é só para conversar. */}
+        {!browserMode && (
+          <WorkspaceChip
+            cwd={cwd}
+            recent={recentFolders}
+            freeFolder={freeFolder}
+            disabled={running}
+            onPick={switchWorkspace}
+            onBrowse={() => void browseWorkspace()}
+            branches={branches}
+            currentBranch={currentBranch}
+            onOpenBranches={() => setBranchesVersion((v) => v + 1)}
+            onPickBranch={(branch, isNew) => void pickBranch(branch, isNew)}
+          />
+        )}
         {provider === "claude" && (
           <UsageMeter
             // Limites de conta são da assinatura da CLI; um perfil de API não tem.
@@ -1623,6 +1695,11 @@ ${outgoing}`
             context={context && { tokens: context.tokens, windowSize: profileId ? modelWindow : context.windowSize }}
             windowHint={profileId && !modelWindow ? t("chat.windowHint") : undefined}
           />
+        )}
+        {browserMode && onNewSession && (
+          <button type="button" className="btn btn--ghost btn--sm chat__new-session" onClick={onNewSession}>
+            {t("chat.newSession")}
+          </button>
         )}
         <button
           type="button"

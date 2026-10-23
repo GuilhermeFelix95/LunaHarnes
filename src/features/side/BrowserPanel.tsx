@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Globe, History, Languages, Leaf, Plus, RotateCw, ShieldCheck, ShieldOff, Star, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, History, KeyRound, Languages, Leaf, Plus, RotateCw, ShieldCheck, ShieldOff, Star, X } from "lucide-react";
 import {
   browserBookmarkAdd,
   browserBookmarkRemove,
@@ -17,8 +17,12 @@ import {
   browserTranslate,
   browserState,
   browserSwitchTab,
+  browserFillLogin,
+  browserLoginSuggestions,
   browserVisits,
+  onBrowserBookmarksChanged,
   onBrowserNavigated,
+  onBrowserShortcut,
   onBrowserOpened,
   type BrowserBookmark,
   type BrowserBounds,
@@ -28,6 +32,8 @@ import {
 import { buildSearchUrl, getSearchEngine, isLikelyAddress } from "../../chat/searchEngine";
 import { EmptyState } from "../../ui/EmptyState";
 import { t } from "../../i18n";
+import { SiteIcon } from "./SiteIcon";
+import { BookmarkBar } from "./BookmarkBar";
 
 interface BrowserPanelProps {
   /** Aba do navegador à mostra. Fora dela, a página sai de cena para não cobrir o chat. */
@@ -42,6 +48,10 @@ interface BrowserPanelProps {
 
 /// Limite de abas, igual ao do Rust (que é quem recusa de fato). Aqui só desabilita o botão de nova aba.
 const MAX_TABS = 8;
+/// Visitas mostradas numa busca do histórico: o resto fica de fora para a lista continuar leve.
+const HISTORY_RESULTS = 50;
+/// Teclas dos atalhos do navegador, com Ctrl: nova aba, fechar aba, barra de endereço e barra flutuante.
+const SHORTCUT_KEYS = ["t", "w", "l", "f"];
 
 /// Área onde a página aparece: a webview da aba ativa fica exatamente sobre este elemento.
 function measure(area: HTMLElement): BrowserBounds {
@@ -84,6 +94,13 @@ let browserOwner: object | null = null;
 /// Navegador embutido, com várias abas. Cada aba é uma webview filha da janela, então não usa iframe e funciona com sites que bloqueiam iframes.
 export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: BrowserPanelProps) {
   const area = useRef<HTMLDivElement>(null);
+  const addressInput = useRef<HTMLInputElement>(null);
+  // Foco pelo clique: o mouseup seguinte não pode desfazer a seleção de tudo que o foco fez.
+  const keepAddressSelection = useRef(false);
+  // Guarda a função de atalhos mais recente, para os ouvintes (criados uma vez) não usarem abas antigas.
+  const shortcut = useRef<(key: string) => void>(() => {});
+  const [spotlight, setSpotlight] = useState(false);
+  const [spotlightText, setSpotlightText] = useState("");
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
   const [address, setAddress] = useState("");
@@ -91,12 +108,18 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
   const [error, setError] = useState<string | undefined>(undefined);
   // Histórico do app: as visitas só são pedidas quando o botão abre a lista.
   const [visits, setVisits] = useState<BrowserVisit[] | null>(null);
+  const [visitQuery, setVisitQuery] = useState("");
+  // Logins salvos para a página aberta (sem senha). Nada é preenchido até a pessoa escolher um.
+  const [logins, setLogins] = useState<string[] | null>(null);
   // Bloqueador de anúncios: começa ligado; a pausa vale para todas as abas.
   const [adblock, setAdblock] = useState(true);
 
   const currentTab = tabs.find((tab) => tab.id === current) ?? null;
   const currentBookmark = currentTab ? bookmarks.find((b) => b.url === currentTab.url) : undefined;
   const translated = currentTab ? isTranslated(currentTab.url) : false;
+  // Busca do histórico: o texto vale para o endereço, sem diferença de maiúsculas.
+  const needle = visitQuery.trim().toLowerCase();
+  const shownVisits = (visits ?? []).filter((visit) => visit.url.toLowerCase().includes(needle)).slice(0, HISTORY_RESULTS);
 
   // Ao montar, lê as abas que já estão abertas (elas sobrevivem a fechar o painel) e os favoritos.
   useEffect(() => {
@@ -110,6 +133,16 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
       () => {},
     );
     browserBookmarks().then(setBookmarks, () => {});
+  }, []);
+
+  // Favoritos mudaram fora deste painel (importação, outra tela): relê a lista para a barra acompanhar.
+  useEffect(() => {
+    const unlisten = onBrowserBookmarksChanged(() => {
+      browserBookmarks().then(setBookmarks, () => {});
+    });
+    return () => {
+      unlisten.then((stop) => stop()).catch(() => {});
+    };
   }, []);
 
   // O agente abriu uma página: o painel acompanha as abas e mostra o endereço, mesmo com a aba fechada.
@@ -207,7 +240,12 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
 
   async function go(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const target = address.trim();
+    await openAddress(address);
+  }
+
+  /// Vai para um endereço ou pesquisa o texto, na aba atual; sem aba, abre uma nova com ele.
+  async function openAddress(text: string) {
+    const target = text.trim();
     if (!target) return;
     setError(undefined);
     // Texto que não parece endereço vira busca no motor escolhido nas configurações.
@@ -224,6 +262,46 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
       setError(String(err));
     }
   }
+
+  /// Atalho do navegador, vindo do teclado da janela ou repassado pela página. Ctrl+F não chega à busca da página.
+  function runShortcut(key: string) {
+    if (key === "t") {
+      if (tabs.length < MAX_TABS) void openTab(null);
+    } else if (key === "w") {
+      if (current !== null) void closeTab(current);
+    } else if (key === "l") {
+      addressInput.current?.focus();
+      addressInput.current?.select();
+    } else if (key === "f") {
+      setSpotlightText("");
+      setSpotlight(true);
+    }
+  }
+  // Os ouvintes guardam esta função pela ref, para sempre chamar a versão com as abas atuais.
+  shortcut.current = runShortcut;
+
+  // Ctrl+T/W/L/F com o foco na janela. Só o painel ativo responde.
+  useEffect(() => {
+    if (!active) return;
+    function onKey(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+      const key = event.key.toLowerCase();
+      if (!SHORTCUT_KEYS.includes(key)) return;
+      event.preventDefault();
+      shortcut.current(key);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, shortcut]);
+
+  // Ctrl+T/W/L/F pressionado com o foco numa página: a página repassa a tecla pelo Rust.
+  useEffect(() => {
+    if (!active) return;
+    const unlisten = onBrowserShortcut((key) => shortcut.current(key));
+    return () => {
+      unlisten.then((stop) => stop()).catch(() => {});
+    };
+  }, [active, shortcut]);
 
   async function switchTo(tab: BrowserTab) {
     const box = bounds();
@@ -321,10 +399,35 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
     }
   }
 
+  /// Abre (ou fecha) a lista de logins salvos para a página aberta. Nada é preenchido aqui.
+  async function toggleLogins() {
+    setError(undefined);
+    if (logins !== null) return setLogins(null);
+    try {
+      setLogins(await browserLoginSuggestions());
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  /// Preenche o login que a pessoa escolheu. A senha sai do Rust direto para a página.
+  async function fillLogin(login: string) {
+    setError(undefined);
+    try {
+      await browserFillLogin(login);
+      setLogins(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   /// Abre (ou fecha) a lista de visitas recentes; as visitas são lidas quando ela abre.
   async function toggleVisits() {
     setError(undefined);
-    if (visits !== null) return setVisits(null);
+    if (visits !== null) {
+      setVisitQuery("");
+      return setVisits(null);
+    }
     try {
       setVisits(await browserVisits());
     } catch (err) {
@@ -364,6 +467,7 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
                 title={tab.url || t("browser.blankTab")}
                 onClick={() => void switchTo(tab)}
               >
+                <SiteIcon url={tab.url} />
                 {tabLabel(tab)}
               </button>
               <button
@@ -411,12 +515,25 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
           <RotateCw size={14} aria-hidden="true" />
         </button>
         <input
+          ref={addressInput}
           className="browser__address"
           aria-label={t("browser.addressAria")}
           placeholder={t("browser.addressPlaceholder")}
           value={address}
           spellCheck={false}
           onChange={(e) => setAddress(e.target.value)}
+          onMouseDown={() => {
+            keepAddressSelection.current = false;
+          }}
+          onFocus={(e) => {
+            keepAddressSelection.current = true;
+            e.target.select();
+          }}
+          onMouseUp={(e) => {
+            if (!keepAddressSelection.current) return;
+            keepAddressSelection.current = false;
+            e.preventDefault();
+          }}
         />
         <button
           type="button"
@@ -428,6 +545,16 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
           onClick={() => void toggleBookmark()}
         >
           <Star size={14} aria-hidden="true" fill={currentBookmark ? "currentColor" : "none"} />
+        </button>
+        <button
+          type="button"
+          className={`browser__btn${logins !== null ? " browser__btn--on" : ""}`}
+          aria-label={t("browser.fillLogin")}
+          title={t("browser.fillLogin")}
+          disabled={!currentTab?.url}
+          onClick={() => void toggleLogins()}
+        >
+          <KeyRound size={14} aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -462,9 +589,19 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
       </form>
 
       {visits && (
+        <input
+          type="search"
+          className="browser__visit-search"
+          aria-label={t("browser.historySearchAria")}
+          placeholder={t("browser.historySearch")}
+          value={visitQuery}
+          onChange={(e) => setVisitQuery(e.target.value)}
+        />
+      )}
+      {visits && (
         <ul className="browser__visits" aria-label={t("browser.visitsAria")} role="list">
-          {visits.length ? (
-            visits.map((visit) => (
+          {shownVisits.length ? (
+            shownVisits.map((visit) => (
               <li key={`${visit.url}:${visit.visitedAt}`} className="browser__visit">
                 <button type="button" className="browser__bookmark-open" title={visit.url} onClick={() => void followUrl(visit.url)}>
                   {hostnameOf(visit.url)}
@@ -472,29 +609,57 @@ export function BrowserPanel({ active, openRequest, toolbarStart, toolbarEnd }: 
               </li>
             ))
           ) : (
-            <li className="browser__visit browser__visit--empty">{t("browser.visitsEmpty")}</li>
+            <li className="browser__visit browser__visit--empty">{visitQuery.trim() ? t("browser.visitsNoMatch") : t("browser.visitsEmpty")}</li>
           )}
         </ul>
       )}
 
-      {bookmarks.length > 0 && (
-        <ul className="browser__bookmarks" aria-label={t("browser.bookmarksAria")}>
-          {bookmarks.map((bookmark) => (
-            <li key={bookmark.id} className="browser__bookmark">
-              <button type="button" className="browser__bookmark-open" title={bookmark.url} onClick={() => void openBookmark(bookmark)}>
-                {bookmark.title}
-              </button>
-              <button
-                type="button"
-                className="browser__tab-close"
-                aria-label={t("browser.bookmarkDelete", { title: bookmark.title })}
-                onClick={() => void removeBookmark(bookmark.id)}
-              >
-                <X size={12} aria-hidden="true" />
-              </button>
-            </li>
-          ))}
+      {logins !== null && (
+        <ul className="browser__visits" aria-label={t("browser.loginsAria")}>
+          {logins.length ? (
+            logins.map((login) => (
+              <li key={login} className="browser__visit">
+                <button type="button" className="browser__bookmark-open" onClick={() => void fillLogin(login)}>
+                  {login}
+                </button>
+              </li>
+            ))
+          ) : (
+            <li className="browser__visit browser__visit--empty">{t("browser.noSavedLogin")}</li>
+          )}
         </ul>
+      )}
+
+      <BookmarkBar
+        bookmarks={bookmarks}
+        onOpen={(bookmark) => void openBookmark(bookmark)}
+        onRemove={(id) => void removeBookmark(id)}
+      />
+
+      {spotlight && (
+        <div className="browser-spotlight" onMouseDown={(e) => e.target === e.currentTarget && setSpotlight(false)}>
+          <form
+            className="browser-spotlight__form"
+            role="dialog"
+            aria-label={t("browser.spotlightAria")}
+            onKeyDown={(e) => e.key === "Escape" && setSpotlight(false)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setSpotlight(false);
+              void openAddress(spotlightText);
+            }}
+          >
+            <input
+              autoFocus
+              className="browser-spotlight__input"
+              aria-label={t("browser.spotlightAria")}
+              placeholder={t("browser.spotlightPlaceholder")}
+              value={spotlightText}
+              spellCheck={false}
+              onChange={(e) => setSpotlightText(e.target.value)}
+            />
+          </form>
+        </div>
       )}
 
       {error && (

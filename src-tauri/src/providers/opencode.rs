@@ -56,8 +56,8 @@ pub fn prompt(request: &RunRequest) -> String {
 /// (`playwright_*`), como o navegador embutido. Com o embutido, a config não tem `mcp`.
 pub fn config_content(permission: Permission, browser: AgentBrowser) -> String {
     let mut rules = match permission {
-        Permission::ReadOnly => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "execute": "allow" }),
-        Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "edit": "allow", "write": "allow", "patch": "allow", "execute": "allow" }),
+        // `opencode run` não tem canal de aprovação: `Pedir permissão` cai para só leitura, como decidido no plano.
+        Permission::ReadOnly | Permission::AcceptEdits => json!({ "*": "deny", "read": "allow", "glob": "allow", "grep": "allow", "list": "allow", "execute": "allow" }),
         Permission::FullAccess => json!({ "*": "allow" }),
     };
     // O servidor de etapas vale em todos os modos: é o que alimenta o Progresso.
@@ -321,13 +321,13 @@ mod tests {
         assert!(config["permission"].get("edit").is_none());
     }
 
+    /// `Pedir permissão` não tem pop-up no OpenCode, então não libera edição de arquivo.
     #[test]
-    fn accept_edits_allows_file_edits_but_not_bash() {
+    fn asking_for_permission_does_not_allow_file_edits() {
         let config: Value = serde_json::from_str(&config_content(Permission::AcceptEdits, AgentBrowser::Builtin)).unwrap();
 
-        assert_eq!(config["permission"]["edit"], "allow");
-        assert_eq!(config["permission"]["write"], "allow");
-        assert!(config["permission"].get("bash").is_none());
+        assert!(config["permission"].get("edit").is_none());
+        assert!(config["permission"].get("write").is_none());
         assert_eq!(config["permission"]["*"], "deny");
     }
 

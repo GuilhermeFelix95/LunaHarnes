@@ -13,8 +13,10 @@ use std::time::{Duration, Instant};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::webview::PageLoadEvent;
+use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
 
+use crate::browser_import;
 use crate::commands::app_data_dir;
 use crate::logfile;
 
@@ -42,6 +44,8 @@ static TOKEN: OnceLock<String> = OnceLock::new();
 static CONFIG: OnceLock<PathBuf> = OnceLock::new();
 /// Abas abertas. Cada aba é uma webview com rótulo `LABEL-<id>`; a ativa é a que o painel mostra e o agente usa.
 static TABS: Mutex<TabSet> = Mutex::new(TabSet::new());
+/// Área onde o painel mostra as abas pela última vez: a aba que um link abre nasce nela, sem salto.
+static LAST_BOUNDS: Mutex<Option<Bounds>> = Mutex::new(None);
 
 /// Limite de abas: cada uma é um processo do WebView2, então é preciso pôr um teto.
 pub const MAX_TABS: usize = 8;
@@ -163,16 +167,70 @@ fn webview() -> Result<Webview, String> {
         .ok_or_else(|| "a aba ativa do navegador não existe mais".to_string())
 }
 
+/// Endereço falso usado pelo script da página para repassar um atalho. A navegação para ele é cancelada.
+const SHORTCUT_SCHEME: &str = "luna-shortcut";
+/// Teclas dos atalhos do navegador (com Ctrl): nova aba, fechar aba, barra de endereço e barra flutuante.
+const SHORTCUT_KEYS: [&str; 4] = ["t", "w", "l", "f"];
+/// Evento com a tecla de um atalho pressionado numa página do navegador.
+pub const SHORTCUT_EVENT: &str = "browser://shortcut";
+
+/// Tecla de um atalho repassado pela página, se o endereço for um dos quatro atalhos.
+pub fn shortcut_key(url: &Url) -> Option<String> {
+    if url.scheme() != SHORTCUT_SCHEME {
+        return None;
+    }
+    let key = url.host_str().unwrap_or_default();
+    SHORTCUT_KEYS.contains(&key).then(|| key.to_string())
+}
+
+/// Script da página: as teclas de atalho não chegam ao navegador, então a página as repassa como navegação cancelada.
+fn shortcut_script() -> String {
+    let keys = serde_json::to_string(&SHORTCUT_KEYS).unwrap_or_else(|_| "[]".into());
+    format!(
+        r#"(() => {{
+  window.addEventListener('keydown', (event) => {{
+    if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+    const key = event.key.toLowerCase();
+    if (!{keys}.includes(key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    location.href = "{SHORTCUT_SCHEME}://" + key;
+  }}, true);
+}})();"#
+    )
+}
+
 /// Cria uma aba com a página e a torna a ativa. Só a ativa fica visível.
 fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
     let app = app()?;
     let window = app.get_window(MAIN_WINDOW).ok_or("janela principal não encontrada")?;
     let id = TABS.lock().map_err(|_| "estado do navegador travado".to_string())?.reserve()?;
     let page_app = app.clone();
+    let shortcut_app = app.clone();
+    let link_app = app.clone();
     let created = window.add_child(
         // Sem foco: a página não rouba o teclado do chat quando nasce.
         WebviewBuilder::new(&tab_label(id), WebviewUrl::External(url))
             .focused(false)
+            .initialization_script(shortcut_script())
+            .on_navigation(move |url| match shortcut_key(url) {
+                Some(key) => {
+                    let _ = shortcut_app.emit(SHORTCUT_EVENT, key);
+                    false
+                }
+                None => true,
+            })
+            .on_new_window(move |url, _features| {
+                // Link com target=_blank (ou window.open) vira aba do navegador. Criar a aba numa thread própria:
+                // criar webview dentro do evento da página trava no Windows.
+                let link_app = link_app.clone();
+                std::thread::spawn(move || {
+                    if let Err(e) = open_link_in_new_tab(&link_app, url) {
+                        logfile::error(&format!("não foi possível abrir o link em nova aba: {e}"));
+                    }
+                });
+                NewWindowResponse::Deny
+            })
             .on_page_load(move |view, payload| {
                 if payload.event() == PageLoadEvent::Finished {
                     // Histórico: cada página terminada de carregar entra nas visitas recentes.
@@ -213,6 +271,27 @@ fn create_tab(url: Url, bounds: Bounds, visible: bool) -> Result<u32, String> {
         }
     }
     Ok(id)
+}
+
+fn remember_bounds(bounds: Bounds) {
+    if let Ok(mut last) = LAST_BOUNDS.lock() {
+        *last = Some(bounds);
+    }
+}
+
+/// Abre um link de nova janela numa aba visível, na área da última aba mostrada. Só http e https.
+fn is_web_link(url: &Url) -> bool {
+    matches!(url.scheme(), "http" | "https")
+}
+
+fn open_link_in_new_tab(app: &AppHandle, url: Url) -> Result<(), String> {
+    if !is_web_link(&url) {
+        return Err(format!("esquema de link não suportado: {}", url.scheme()));
+    }
+    let bounds = LAST_BOUNDS.lock().map_err(|_| "estado do navegador travado".to_string())?.unwrap_or(DEFAULT_BOUNDS);
+    create_tab(url.clone(), bounds, true)?;
+    // O painel relê as abas e mostra o endereço, como faz quando o agente abre uma página.
+    app.emit(OPENED_EVENT, url.to_string()).map_err(|e| e.to_string())
 }
 
 /// Liga o salvamento de senha do WebView2 no perfil do app: o navegador pergunta se quer salvar e preenche depois.
@@ -369,6 +448,7 @@ pub async fn browser_new_tab(url: Option<String>, bounds: Bounds) -> Result<u32,
             Some(url) => parse_url(&url)?,
             None => Url::parse("about:blank").map_err(|e| e.to_string())?,
         };
+        remember_bounds(bounds);
         let id = create_tab(url, bounds, true)?;
         let view = app()?.get_webview(&tab_label(id)).ok_or("a aba não existe mais")?;
         view.set_bounds(rect(bounds)?).map_err(|e| e.to_string())?;
@@ -459,6 +539,7 @@ pub fn browser_switch_tab(tab_id: u32, bounds: Bounds) -> Result<(), String> {
 
 #[tauri::command]
 pub fn browser_set_bounds(bounds: Bounds) -> Result<(), String> {
+    remember_bounds(bounds);
     webview()?.set_bounds(rect(bounds)?).map_err(|e| e.to_string())
 }
 
@@ -497,6 +578,61 @@ pub fn browser_history(direction: String) -> Result<(), String> {
 #[tauri::command]
 pub fn browser_reload() -> Result<(), String> {
     webview()?.reload().map_err(|e| e.to_string())
+}
+
+/// Logins guardados para a página aberta, sem senha. A origem vem da própria webview, não do front.
+#[tauri::command]
+pub async fn browser_login_suggestions() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let view = webview()?;
+        let page = view.url().map_err(|e| e.to_string())?;
+        browser_import::login_suggestions_in(&app_data_dir(app()?)?, page.as_str())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Preenche o login e a senha salvos na página aberta. Só roda quando a pessoa escolhe um login; a origem decide.
+#[tauri::command]
+pub async fn browser_fill_login(login: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let view = webview()?;
+        let page = view.url().map_err(|e| e.to_string())?;
+        let password = browser_import::password_for_login_in(&app_data_dir(app()?)?, page.as_str(), &login).map_err(|e| {
+            logfile::error(&format!("preenchimento de login recusado: {e}"));
+            e
+        })?;
+        match eval_and_wait(&view, fill_script(&login, &password)?)?.as_str() {
+            "ok" => Ok(()),
+            _ => Err("esta página não tem campo de senha visível".to_string()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Script que escreve o login e a senha nos campos do formulário de login. Os valores entram como literais JSON.
+fn fill_script(login: &str, password: &str) -> Result<String, String> {
+    let login = serde_json::to_string(login).map_err(|e| e.to_string())?;
+    let password = serde_json::to_string(password).map_err(|e| e.to_string())?;
+    Ok(format!(
+        r#"(() => {{
+  const field = document.querySelector('input[type="password"]:not([disabled])');
+  if (!field) return "sem-campo";
+  const scope = field.form || document;
+  const setValue = (el, value) => {{
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, value);
+    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+  }};
+  const user = Array.from(scope.querySelectorAll('input:not([disabled])'))
+    .filter((el) => ['text', 'email', ''].includes(el.type) && (field.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING))
+    .pop();
+  if (user) setValue(user, {login});
+  setValue(field, {password});
+  return "ok";
+}})()"#
+    ))
 }
 
 #[tauri::command]
@@ -589,7 +725,7 @@ fn dispatch_tool(name: &str, args: &Value) -> Result<String, String> {
 
 // ---- Servidor local (o processo MCP fala com o app por aqui) ----
 
-fn new_token() -> String {
+pub(crate) fn new_token() -> String {
     // Chave aleatória do processo (o std a sorteia por execução), dada por duas amostras.
     let mut out = String::new();
     for _ in 0..2 {
@@ -848,6 +984,31 @@ mod tests {
     }
 
     #[test]
+    fn only_the_four_shortcut_addresses_become_keys() {
+        assert_eq!(shortcut_key(&Url::parse("luna-shortcut://t").unwrap()).as_deref(), Some("t"));
+        assert_eq!(shortcut_key(&Url::parse("luna-shortcut://f").unwrap()).as_deref(), Some("f"));
+        // Outra tecla e outro endereço continuam sendo navegação normal.
+        assert_eq!(shortcut_key(&Url::parse("luna-shortcut://x").unwrap()), None);
+        assert_eq!(shortcut_key(&Url::parse("https://t.com/").unwrap()), None);
+    }
+
+    #[test]
+    fn page_script_forwards_only_the_four_shortcuts() {
+        let script = shortcut_script();
+        assert!(script.contains("[\"t\",\"w\",\"l\",\"f\"]"));
+        assert!(script.contains("location.href = \"luna-shortcut://\" + key"));
+        assert!(script.contains("preventDefault()"));
+    }
+
+    #[test]
+    fn fill_script_embeds_login_and_password_as_literals() {
+        let script = fill_script("ana \"x\"", "senha</script>'\"").unwrap();
+        // Login e senha saem como literais JSON: aspas e fechamento de script não escapam do literal.
+        assert!(script.contains("setValue(user, \"ana \\\"x\\\"\")"));
+        assert!(script.contains("setValue(field, \"senha</script>'\\\"\")"));
+    }
+
+    #[test]
     fn tools_are_listed_and_unknown_tools_are_refused() {
         let list = handle_rpc(&json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }), &mut |_, _| Ok(String::new())).unwrap();
         let names: Vec<&str> = list["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
@@ -947,5 +1108,19 @@ mod tab_tests {
     fn tab_labels_are_unique_per_tab() {
         assert_ne!(tab_label(1), tab_label(2));
         assert!(tab_label(3).starts_with(LABEL));
+    }
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::*;
+
+    /// Regressão: um link com target=_blank precisa abrir numa aba nova. Só http e https entram.
+    #[test]
+    fn only_web_links_open_in_a_new_tab() {
+        assert!(is_web_link(&Url::parse("https://x.com/home").unwrap()));
+        assert!(is_web_link(&Url::parse("http://exemplo.com").unwrap()));
+        assert!(!is_web_link(&Url::parse("file:///C:/segredo.txt").unwrap()));
+        assert!(!is_web_link(&Url::parse("mailto:alguem@exemplo.com").unwrap()));
     }
 }

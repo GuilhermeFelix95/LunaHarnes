@@ -148,6 +148,13 @@ export interface BackgroundTask {
   conversationId: string;
 }
 
+/** Edição de arquivo: contagens exatas de linhas, e só as primeiras linhas vêm para o chat. */
+export interface FileDiff {
+  added: number;
+  removed: number;
+  lines: { kind: "add" | "remove"; text: string }[];
+}
+
 export type ProviderEvent =
   | { kind: "sessionStarted"; sessionId: string }
   | { kind: "textDelta"; text: string }
@@ -164,6 +171,10 @@ export type ProviderEvent =
   | { kind: "context"; tokens: number; windowSize: number | null }
   /** Tokens de entrada do turno: novos, lidos do cache e gravados. null = o provedor não informou. */
   | { kind: "cacheUsage"; fresh: number | null; read: number | null; write: number | null }
+  /** Tokens de saída de uma chamada ao modelo que terminou. Somados no turno, dão a velocidade medida. */
+  | { kind: "outputTokens"; tokens: number }
+  /** Diff de uma edição de arquivo; `id` liga à ferramenta que a fez. */
+  | { kind: "toolDiff"; id: string; diff: FileDiff }
   | { kind: "cost"; usd: number }
   /** Resultado de um comando do agente (Bash): ok e a saída do fim. */
   | { kind: "commandResult"; ok: boolean; output: string }
@@ -175,7 +186,7 @@ export interface ChatMessage {
   text: string;
   /** Linha de ferramenta (ex.: Bash com o comando executado). */
   /** `id` liga à ferramenta que terminou; `ok` fica vazio enquanto ela roda. */
-  tool?: { id?: string; name: string; detail: string; ok?: boolean };
+  tool?: { id?: string; name: string; detail: string; ok?: boolean; diff?: FileDiff };
   error?: string;
   /** Agente que respondeu. Ausente em conversas antigas = provedor da conversa. */
   provider?: ProviderKind;
@@ -239,6 +250,8 @@ export interface Conversation {
   tasks?: SavedTask[];
   /** Compactações: `at` é o tamanho do histórico quando o resumo foi feito (ver chat/compact.ts). */
   compactions?: Compaction[];
+  /** Iniciada no modo navegador: some da barra lateral do LunaCode. Ausente = LunaCode. */
+  browser?: boolean;
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];
@@ -251,6 +264,8 @@ export interface ConversationSummary {
   provider: ProviderKind;
   cwd: string;
   updatedAt: number;
+  /** Iniciada no modo navegador (ver Conversation.browser). */
+  browser?: boolean;
 }
 
 /// Arquivo alterado na pasta de trabalho (ver src-tauri/src/changes.rs).
