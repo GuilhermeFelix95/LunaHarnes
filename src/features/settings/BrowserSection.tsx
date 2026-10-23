@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Download, Eye, Globe2, Search } from "lucide-react";
 import {
   browserPasswords,
+  browserSetSearchEngine,
   importBrowserHtml,
   importBrowserPasswords,
   pickImportFile,
@@ -72,6 +73,8 @@ export function BrowserSection() {
   function changeEngine(next: SearchEngine) {
     setEngine(next);
     setSearchEngine(next);
+    // Se o aviso falhar, a escolha continua salva; o agente só segue o padrão até a próxima troca.
+    void browserSetSearchEngine(next).catch(() => {});
   }
 
   /// Importa um HTML exportado: favoritos entram na lista, histórico nas visitas.

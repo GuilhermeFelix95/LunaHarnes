@@ -275,31 +275,44 @@ fn answer(path: &str, token: Option<&str>, body: &str) -> (u16, Value) {
         Ok(value) => value,
         Err(error) => return (400, json!({ "ok": false, "error": format!("pedido inválido: {error}") })),
     };
-    let Some(app) = APP.get() else {
+    if APP.get().is_none() {
         return (503, json!({ "ok": false, "error": "app ainda não está pronto" }));
-    };
+    }
+    let run_id = request["runId"].as_str().unwrap_or_default();
+    let tool_name = request["toolName"].as_str().unwrap_or_default();
+    let tool_use_id = request["toolUseId"].as_str().unwrap_or_default();
+    let input = &request["input"];
+    match ask_app(run_id, tool_name, input, tool_use_id) {
+        Ok(decision) => (200, json!({ "ok": true, "decision": decision_json(&decision, input) })),
+        Err(error) => (500, json!({ "ok": false, "error": error })),
+    }
+}
+
+/// Mostra o pedido no chat da conversa `run_id` e espera a decisão da pessoa (no máximo dez minutos).
+/// Usado pelo servidor de permissão do Claude e direto pelo navegador, que roda dentro do app.
+pub fn ask_app(run_id: &str, tool_name: &str, input: &Value, tool_use_id: &str) -> Result<Decision, String> {
+    let app = APP.get().ok_or("app ainda não está pronto")?;
     let id = next_id();
     let (sender, receiver) = mpsc::channel();
     pending().lock().unwrap_or_else(|p| p.into_inner()).insert(id.clone(), sender);
     let payload = PermissionRequest {
         id: id.clone(),
-        run_id: request["runId"].as_str().unwrap_or_default().to_string(),
-        tool_name: request["toolName"].as_str().unwrap_or_default().to_string(),
-        input: request["input"].clone(),
-        tool_use_id: request["toolUseId"].as_str().unwrap_or_default().to_string(),
+        run_id: run_id.to_string(),
+        tool_name: tool_name.to_string(),
+        input: input.clone(),
+        tool_use_id: tool_use_id.to_string(),
     };
     if let Err(error) = app.emit(REQUEST_EVENT, &payload) {
         pending().lock().unwrap_or_else(|p| p.into_inner()).remove(&id);
-        return (500, json!({ "ok": false, "error": format!("não foi possível mostrar o pedido: {error}") }));
+        return Err(format!("não foi possível mostrar o pedido: {error}"));
     }
-    let decision = match receiver.recv_timeout(WAIT) {
-        Ok(decision) => decision,
+    match receiver.recv_timeout(WAIT) {
+        Ok(decision) => Ok(decision),
         Err(_) => {
             pending().lock().unwrap_or_else(|p| p.into_inner()).remove(&id);
-            Decision { allow: false, message: Some("tempo esgotado sem resposta da pessoa".into()) }
+            Ok(Decision { allow: false, message: Some("tempo esgotado sem resposta da pessoa".into()) })
         }
-    };
-    (200, json!({ "ok": true, "decision": decision_json(&decision, &payload.input) }))
+    }
 }
 
 fn next_id() -> String {

@@ -16,9 +16,11 @@ use tauri::webview::PageLoadEvent;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview, WebviewBuilder, WebviewUrl};
 
+use crate::browser_actions::{self, page_call};
 use crate::browser_import;
 use crate::commands::app_data_dir;
 use crate::logfile;
+use crate::permission_prompt;
 
 /// Rótulo fixo da webview do navegador.
 pub const LABEL: &str = "luna-browser";
@@ -37,7 +39,19 @@ const CALLBACK_TIMEOUT: Duration = Duration::from_secs(10);
 const LOAD_TIMEOUT: Duration = Duration::from_secs(15);
 /// Posição e tamanho padrão quando o agente abre o navegador antes da aba: a aba ajusta depois.
 const DEFAULT_BOUNDS: Bounds = Bounds { x: 0.0, y: 0.0, width: 900.0, height: 600.0 };
-const TOOL_NAMES: [&str; 4] = ["browser_navigate", "browser_read", "browser_click", "browser_type"];
+const TOOL_NAMES: [&str; 9] = [
+    "browser_navigate",
+    "browser_read",
+    "browser_snapshot",
+    "browser_click",
+    "browser_type",
+    "browser_press_key",
+    "browser_scroll",
+    "browser_wait",
+    "browser_search",
+];
+/// Tempo máximo que `browser_wait` espera um texto aparecer.
+const MAX_WAIT: Duration = Duration::from_secs(15);
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static TOKEN: OnceLock<String> = OnceLock::new();
@@ -421,22 +435,6 @@ fn read_script() -> String {
     )
 }
 
-/// Clique ou digitação num elemento. Seletor e texto entram como literais JSON, então não há injeção.
-fn act_script(action: &str, selector: &str, text: &str) -> Result<String, String> {
-    let selector = serde_json::to_string(selector).map_err(|e| e.to_string())?;
-    let text = serde_json::to_string(text).map_err(|e| e.to_string())?;
-    let operation = match action {
-        "click" => "el.click();".to_string(),
-        "type" => format!(
-            "el.focus(); el.value = {text}; el.dispatchEvent(new Event('input', {{ bubbles: true }})); el.dispatchEvent(new Event('change', {{ bubbles: true }}));"
-        ),
-        other => return Err(format!("ação desconhecida: {other}")),
-    };
-    Ok(format!(
-        "(() => {{ try {{ const el = document.querySelector({selector}); if (!el) return JSON.stringify({{ ok: false, error: 'elemento não encontrado' }}); {operation} return JSON.stringify({{ ok: true }}); }} catch (e) {{ return JSON.stringify({{ ok: false, error: String(e) }}); }} }})()"
-    ))
-}
-
 // ---- Comandos do painel (a aba do navegador) ----
 
 /// Assíncrono de propósito: criar a webview num comando síncrono trava no Windows (ver `add_child`).
@@ -696,29 +694,142 @@ fn wait_until_loaded() {
     }
 }
 
-fn tool_act(action: &str, selector: &str, text: &str) -> Result<String, String> {
-    if selector.trim().is_empty() {
-        return Err("informe um seletor CSS para o elemento".into());
-    }
+/// Chama um método do script da página na aba ativa e devolve a resposta já lida.
+fn page_reply(method: &str, args: &[Value]) -> Result<Value, String> {
     let view = webview()?;
-    let script = act_script(action, selector, text)?;
-    let raw = eval_and_wait(&view, script)?;
-    let result: Value = serde_json::from_str(&raw).map_err(|e| format!("resposta inesperada da página: {e}"))?;
-    if result["ok"].as_bool() == Some(true) {
-        Ok(format!("ok: {action} em \"{selector}\""))
+    browser_actions::parse_page_reply(&eval_and_wait(&view, page_call(method, args))?)
+}
+
+/// Lista numerada dos elementos da página, com a referência de cada um.
+fn tool_snapshot() -> Result<String, String> {
+    Ok(browser_actions::render_snapshot(&page_reply("snapshot", &[])?))
+}
+
+/// Referência do argumento `ref`: o número que o browser_snapshot mostra entre colchetes.
+fn reference(args: &Value) -> Result<u64, String> {
+    args["ref"].as_u64().filter(|r| *r >= 1).ok_or_else(|| "informe a referência (o número entre colchetes do browser_snapshot)".to_string())
+}
+
+/// Clique ou digitação numa referência. Antes de clicar, confere o nome do elemento: ação sensível pede a
+/// permissão da pessoa no chat, e sem permissão o clique não acontece.
+fn tool_act(run_id: &str, action: &str, args: &Value) -> Result<String, String> {
+    let reference = reference(args)?;
+    let info = page_reply("inspect", &[json!(reference)])?;
+    if info["ok"].as_bool() != Some(true) {
+        return Err(browser_actions::page_error(&info));
+    }
+    let name = info["name"].as_str().unwrap_or_default();
+    if action == "click" && browser_actions::is_sensitive(name) {
+        confirm(run_id, action, name)?;
+    }
+    let value = args["text"].as_str().unwrap_or_default();
+    let reply = page_reply("act", &[json!(reference), json!(action), json!(value)])?;
+    if reply["ok"].as_bool() == Some(true) {
+        Ok(format!("ok: {action} em [{reference}] \"{name}\""))
     } else {
-        Err(result["error"].as_str().unwrap_or("falhou sem detalhe").to_string())
+        Err(browser_actions::page_error(&reply))
     }
 }
 
-/// Executa uma ferramenta pelo nome e devolve o texto para o agente.
-fn dispatch_tool(name: &str, args: &Value) -> Result<String, String> {
+/// Pede a permissão da pessoa para uma ação sensível, no chat da conversa que roda o turno.
+fn confirm(run_id: &str, action: &str, name: &str) -> Result<(), String> {
+    if run_id.is_empty() {
+        return Err("ação sensível recusada: não há conversa para pedir a permissão".into());
+    }
+    let input = browser_actions::confirmation_input(action, name);
+    let decision = permission_prompt::ask_app(run_id, "browser_click", &input, "")?;
+    if decision.allow {
+        Ok(())
+    } else {
+        Err(decision.message.unwrap_or_else(|| "negado pela pessoa no app".into()))
+    }
+}
+
+fn tool_press_key(args: &Value) -> Result<String, String> {
+    let key = browser_actions::checked_key(args["key"].as_str().unwrap_or_default())?;
+    let scope = args.get("ref").and_then(Value::as_u64).map_or(Value::Null, |r| json!(r));
+    let reply = page_reply("key", &[json!(key), scope])?;
+    if reply["ok"].as_bool() == Some(true) {
+        Ok(format!("tecla enviada: {key}"))
+    } else {
+        Err(browser_actions::page_error(&reply))
+    }
+}
+
+/// Rola a página, ou a área de rolagem de um elemento. Quantidade em pixels, limitada a 5000.
+fn tool_scroll(args: &Value) -> Result<String, String> {
+    let amount = args["amount"].as_i64().unwrap_or(600).clamp(0, 5000);
+    let signed = match args["direction"].as_str().unwrap_or("down") {
+        "down" => amount,
+        "up" => -amount,
+        other => return Err(format!("direção desconhecida: {other} (use up ou down)")),
+    };
+    let scope = args.get("ref").and_then(Value::as_u64).map_or(Value::Null, |r| json!(r));
+    let reply = page_reply("scroll", &[json!(signed), scope])?;
+    if reply["ok"].as_bool() == Some(true) {
+        Ok(format!("rolou {signed}px em {}", reply["where"].as_str().unwrap_or("página")))
+    } else {
+        Err(browser_actions::page_error(&reply))
+    }
+}
+
+/// Espera um texto aparecer na página, até `seconds` (no máximo `MAX_WAIT`).
+fn tool_wait(args: &Value) -> Result<String, String> {
+    let text = args["text"].as_str().unwrap_or_default().trim().to_string();
+    if text.is_empty() {
+        return Err("informe o texto que a página deve mostrar".into());
+    }
+    let seconds = args["seconds"].as_u64().unwrap_or(5).min(MAX_WAIT.as_secs());
+    let deadline = Instant::now() + Duration::from_secs(seconds);
+    loop {
+        if page_reply("hasText", &[json!(text)])?.as_bool() == Some(true) {
+            return Ok(format!("apareceu: \"{text}\""));
+        }
+        if Instant::now() >= deadline {
+            return Err(format!("\"{text}\" não apareceu em {seconds} s"));
+        }
+        std::thread::sleep(Duration::from_millis(300));
+    }
+}
+
+/// Pesquisa na web. Tenta primeiro o motor escolhido em Configurações > Navegador e troca só quando ele não
+/// traz resultados. Se a página pedir login ou CAPTCHA, devolve o bloqueio em vez de resultados.
+fn tool_search(args: &Value) -> Result<String, String> {
+    let query = browser_actions::clean_query(args["query"].as_str().unwrap_or_default())?;
+    let mut tried = Vec::new();
+    for engine in browser_actions::engine_order(&browser_actions::search_engine()) {
+        tool_navigate(&browser_actions::search_url(engine, &query)?)?;
+        if let Some(kind) = page_reply("blocker", &[])?.as_str() {
+            return Ok(browser_actions::blocker_message(kind));
+        }
+        let links = page_reply("links", &[])?;
+        if browser_actions::has_results(&links) {
+            return Ok(format!("Resultados de {engine} para \"{query}\":\n{}", browser_actions::render_links(&links)));
+        }
+        tried.push(engine);
+    }
+    Err(format!("nenhum motor de busca trouxe resultados para \"{query}\" (tentados: {})", tried.join(", ")))
+}
+
+/// Motor de busca escolhido em Configurações > Navegador. O front chama ao mudar e ao abrir o app.
+#[tauri::command]
+pub fn browser_set_search_engine(engine: String) -> Result<(), String> {
+    browser_actions::set_search_engine(&engine)
+}
+
+/// Executa uma ferramenta pelo nome e devolve o texto para o agente. `run_id` é a conversa que pediu.
+fn dispatch_tool(name: &str, args: &Value, run_id: &str) -> Result<String, String> {
     let text = |key: &str| args[key].as_str().unwrap_or("").to_string();
     match name {
         "browser_navigate" => tool_navigate(&text("url")),
         "browser_read" => read_page(),
-        "browser_click" => tool_act("click", &text("selector"), ""),
-        "browser_type" => tool_act("type", &text("selector"), &text("text")),
+        "browser_snapshot" => tool_snapshot(),
+        "browser_click" => tool_act(run_id, "click", args),
+        "browser_type" => tool_act(run_id, "type", args),
+        "browser_press_key" => tool_press_key(args),
+        "browser_scroll" => tool_scroll(args),
+        "browser_wait" => tool_wait(args),
+        "browser_search" => tool_search(args),
         other => Err(format!("ferramenta desconhecida: {other}")),
     }
 }
@@ -742,19 +853,22 @@ pub fn start(app: AppHandle, app_data: &Path) -> Result<(), String> {
     let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| format!("não foi possível abrir a porta do navegador: {e}"))?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     let exe = std::env::current_exe().map_err(|e| format!("não foi possível localizar o executável: {e}"))?;
+    let url = format!("http://127.0.0.1:{port}/tool");
+    let command = exe.display().to_string();
     let config = json!({
         "mcpServers": {
             "luna-browser": {
                 "type": "stdio",
-                "command": exe.display().to_string(),
+                "command": command.clone(),
                 "args": ["browser-mcp"],
                 "env": {
-                    "LUNA_BROWSER_URL": format!("http://127.0.0.1:{port}/tool"),
-                    "LUNA_BROWSER_TOKEN": token,
+                    "LUNA_BROWSER_URL": url.clone(),
+                    "LUNA_BROWSER_TOKEN": token.clone(),
                 }
             }
         }
     });
+    let _ = MCP_SERVER.set(McpServer { command, url, token: token.clone() });
     std::fs::create_dir_all(app_data).map_err(|e| e.to_string())?;
     let path = app_data.join("browser-mcp.json");
     std::fs::write(&path, serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?)
@@ -774,6 +888,20 @@ pub fn start(app: AppHandle, app_data: &Path) -> Result<(), String> {
 /// Caminho da configuração MCP, quando o servidor do navegador já subiu.
 pub fn mcp_config() -> Option<&'static Path> {
     CONFIG.get().map(PathBuf::as_path)
+}
+
+/// Dados para subir o servidor do navegador por outro caminho que não o arquivo de configuração (Codex).
+pub struct McpServer {
+    pub command: String,
+    pub url: String,
+    pub token: String,
+}
+
+static MCP_SERVER: OnceLock<McpServer> = OnceLock::new();
+
+/// Servidor do navegador, quando já subiu. Usado por quem recebe a configuração por argumentos.
+pub fn mcp_server() -> Option<&'static McpServer> {
+    MCP_SERVER.get()
 }
 
 fn handle_connection(stream: TcpStream) {
@@ -852,7 +980,8 @@ fn run_request(body: &str) -> (u16, Value) {
     };
     let name = request["name"].as_str().unwrap_or_default();
     let args = &request["arguments"];
-    match dispatch_tool(name, args) {
+    let run_id = request["runId"].as_str().unwrap_or_default();
+    match dispatch_tool(name, args, run_id) {
         Ok(text) => (200, json!({ "ok": true, "text": text })),
         Err(error) => (200, json!({ "ok": false, "error": error })),
     }
@@ -864,12 +993,18 @@ fn run_request(body: &str) -> (u16, Value) {
 pub fn tool_specs() -> Value {
     let url_schema = json!({ "type": "object", "properties": { "url": { "type": "string", "description": "Endereço http ou https" } }, "required": ["url"] });
     let empty = json!({ "type": "object", "properties": {} });
-    let selector = json!({ "type": "string", "description": "Seletor CSS do elemento" });
+    let reference = json!({ "type": "integer", "description": "Número entre colchetes no último browser_snapshot" });
+    let key_list: Vec<&str> = browser_actions::KEYS.to_vec();
     json!([
         { "name": "browser_navigate", "description": "Abre um endereço no navegador integrado do Luna.", "inputSchema": url_schema },
         { "name": "browser_read", "description": "Lê o endereço, o título e o texto visível da página aberta.", "inputSchema": empty },
-        { "name": "browser_click", "description": "Clica no elemento que o seletor CSS encontra.", "inputSchema": { "type": "object", "properties": { "selector": selector }, "required": ["selector"] } },
-        { "name": "browser_type", "description": "Preenche o campo que o seletor CSS encontra com o texto dado.", "inputSchema": { "type": "object", "properties": { "selector": selector, "text": { "type": "string" } }, "required": ["selector", "text"] } }
+        { "name": "browser_snapshot", "description": "Lista os elementos clicáveis e os campos visíveis da página, numerados. Use antes de agir: as referências valem até a próxima leitura. Mostra o diálogo aberto (um modal) e avisa quando a página pede login, CAPTCHA ou confirmação.", "inputSchema": empty },
+        { "name": "browser_click", "description": "Clica no elemento de uma referência do browser_snapshot. Ação sensível (comprar, pagar, enviar, publicar, excluir, confirmar) só acontece depois da permissão da pessoa no chat.", "inputSchema": { "type": "object", "properties": { "ref": reference }, "required": ["ref"] } },
+        { "name": "browser_type", "description": "Digita um texto no campo de uma referência do browser_snapshot.", "inputSchema": { "type": "object", "properties": { "ref": reference, "text": { "type": "string" } }, "required": ["ref", "text"] } },
+        { "name": "browser_press_key", "description": "Aperta uma tecla. Com ref, a tecla vai ao elemento; sem ref, ao que tem o foco. Esc fecha a maioria dos modais.", "inputSchema": { "type": "object", "properties": { "key": { "type": "string", "enum": key_list }, "ref": reference }, "required": ["key"] } },
+        { "name": "browser_scroll", "description": "Rola a página, ou a área de rolagem de um elemento quando ref é dado. Use para achar botões fora da tela ou dentro de um modal.", "inputSchema": { "type": "object", "properties": { "direction": { "type": "string", "enum": ["up", "down"] }, "amount": { "type": "integer", "description": "Pixels, até 5000 (padrão 600)" }, "ref": reference }, "required": ["direction"] } },
+        { "name": "browser_wait", "description": "Espera um texto aparecer na página, por até 15 segundos.", "inputSchema": { "type": "object", "properties": { "text": { "type": "string" }, "seconds": { "type": "integer" } }, "required": ["text"] } },
+        { "name": "browser_search", "description": "Pesquisa na web com o motor escolhido em Configurações > Navegador, e troca de motor só quando ele não traz resultados. Abre a busca na aba ativa e devolve os links.", "inputSchema": { "type": "object", "properties": { "query": { "type": "string" } }, "required": ["query"] } }
     ])
 }
 
@@ -933,7 +1068,9 @@ pub fn mcp_stdio() -> i32 {
 fn forward(url: &str, token: &str, name: &str, args: &Value) -> Result<String, String> {
     let rest = url.strip_prefix("http://").ok_or("endereço do navegador não configurado")?;
     let (address, path) = rest.split_once('/').map(|(a, p)| (a, format!("/{p}"))).unwrap_or((rest, "/".into()));
-    let body = json!({ "name": name, "arguments": args }).to_string();
+    // A conversa que pediu a ação vai junto: a confirmação de ação sensível aparece nela.
+    let run_id = std::env::var("LUNA_RUN_ID").unwrap_or_default();
+    let body = json!({ "name": name, "arguments": args, "runId": run_id }).to_string();
     let mut stream = TcpStream::connect(address).map_err(|e| format!("o Luna não está respondendo: {e}"))?;
     let request = format!(
         "POST {path} HTTP/1.1\r\nHost: {address}\r\nContent-Type: application/json\r\nX-Luna-Token: {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
@@ -972,15 +1109,6 @@ mod tests {
         assert!(parse_url("http://localhost:1420/").is_err());
         assert!(parse_url("http://127.0.0.1:1420/x").is_err());
         assert!(parse_url("http://localhost:3000/").is_ok());
-    }
-
-    #[test]
-    fn act_script_embeds_selector_and_text_as_literals() {
-        let script = act_script("type", "input[name='q\"]']", "olá \"mundo\"").unwrap();
-        // O seletor e o texto saem como literais JSON: aspas não quebram o script.
-        assert!(script.contains("document.querySelector(\"input[name='q\\\"]']\")"));
-        assert!(script.contains("el.value = \"olá \\\"mundo\\\"\""));
-        assert!(act_script("drag", "a", "").is_err());
     }
 
     #[test]
@@ -1033,6 +1161,22 @@ mod tests {
         assert!(failed["result"]["content"][0]["text"].as_str().unwrap().contains("ainda não foi aberto"));
 
         assert!(handle_rpc(&json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }), &mut |_, _| Ok(String::new())).is_none());
+    }
+
+    /// Reprodução do bug do modal (YouTube): o agente não conseguia fechar o modal porque não via os
+    /// botões da página nem tinha como apertar Esc ou rolar. Sem essas ferramentas, o modal fica aberto.
+    #[test]
+    fn agent_can_see_page_controls_and_close_a_modal_without_a_selector() {
+        for name in ["browser_snapshot", "browser_press_key", "browser_scroll"] {
+            assert!(TOOL_NAMES.contains(&name), "o agente não tem a ferramenta {name}: não há como achar o botão Fechar de um modal");
+        }
+    }
+
+    /// Ação sensível sem conversa para pedir permissão é recusada: o clique não acontece.
+    #[test]
+    fn a_sensitive_action_without_a_conversation_to_ask_is_refused() {
+        let refused = confirm("", "click", "Comprar agora").unwrap_err();
+        assert!(refused.contains("não há conversa"), "{refused}");
     }
 
     #[test]

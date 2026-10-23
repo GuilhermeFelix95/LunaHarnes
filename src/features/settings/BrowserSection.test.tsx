@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   browserPasswords,
+  browserSetSearchEngine,
   importBrowserHtml,
   importBrowserPasswords,
   pickImportFile,
@@ -17,6 +18,7 @@ vi.mock("../../api", () => ({
   importBrowserHtml: vi.fn(async (_p: string, _t: string) => ({ bookmarks: 0, visits: 0 })),
   importBrowserPasswords: vi.fn(async (_p: string) => 0),
   browserPasswords: vi.fn(async () => []),
+  browserSetSearchEngine: vi.fn(async (_engine: string) => {}),
   listApiProfiles: vi.fn(async () => []),
   apiPresets: vi.fn(async () => []),
   listModels: vi.fn(async () => []),
@@ -84,6 +86,14 @@ describe("Configurações > Navegador > busca e importação", () => {
     fireEvent.click(screen.getByRole("radio", { name: /DuckDuckGo/ }));
 
     expect(localStorage.getItem("luna.searchEngine")).toBe("duckduckgo");
+  });
+
+  it("escolher o motor avisa o app, que usa esse motor na pesquisa do agente", () => {
+    setup();
+
+    fireEvent.click(screen.getByRole("radio", { name: /DuckDuckGo/ }));
+
+    expect(browserSetSearchEngine).toHaveBeenCalledWith("duckduckgo");
   });
 
   it("escolher o Bing também guarda", () => {

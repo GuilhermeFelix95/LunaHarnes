@@ -5,6 +5,7 @@ pub mod api_profiles;
 pub mod auth;
 pub mod background_tasks;
 pub mod browser;
+pub mod browser_actions;
 pub mod browser_bookmarks;
 pub mod browser_history;
 pub mod browser_import;
@@ -194,6 +195,7 @@ pub fn run() {
             browser::browser_set_adblock,
             browser::browser_translate,
             browser::browser_read,
+            browser::browser_set_search_engine,
             site_clone::site_clone_capture,
             favicon::browser_favicon,
             browser::browser_login_suggestions,

@@ -23,6 +23,7 @@ import type {
   ProviderKind,
   RemoteModels,
   RunRequest,
+  SearchEngine,
 } from "./types";
 
 export const PROVIDER_EVENT = "provider-event";
@@ -536,6 +537,11 @@ export function browserHistory(direction: "back" | "forward"): Promise<void> {
 
 export function browserReload(): Promise<void> {
   return invoke("browser_reload");
+}
+
+/// Motor de busca do agente do navegador. O localStorage não chega ao Rust, então o front avisa a escolha.
+export function browserSetSearchEngine(engine: SearchEngine): Promise<void> {
+  return invoke("browser_set_search_engine", { engine });
 }
 
 /// Visita registrada no histórico do app (browser-visits.json, da mais recente para a mais antiga).

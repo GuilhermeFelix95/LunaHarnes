@@ -4,6 +4,24 @@ use super::{ProviderEvent, TodoItem};
 
 use super::{identity_for, AgentBrowser, Permission, RunRequest};
 
+/// Overrides de config que sobem o servidor `luna-browser` no Codex. Caminho, endereço e token entram como
+/// strings JSON, que são strings TOML válidas (as barras do Windows ficam escapadas).
+fn browser_server_flags(server: &crate::browser::McpServer) -> Vec<String> {
+    let quoted = |text: &str| serde_json::to_string(text).unwrap_or_default();
+    vec![
+        "-c".into(),
+        format!("mcp_servers.luna-browser.command={}", quoted(&server.command)),
+        "-c".into(),
+        "mcp_servers.luna-browser.args=[\"browser-mcp\"]".into(),
+        "-c".into(),
+        format!(
+            "mcp_servers.luna-browser.env={{LUNA_BROWSER_URL={},LUNA_BROWSER_TOKEN={}}}",
+            quoted(&server.url),
+            quoted(&server.token)
+        ),
+    ]
+}
+
 /// `codex exec --json -` lê o prompt do stdin e emite JSONL.
 /// `exec resume` não aceita `-s`, então a retomada passa o sandbox por `-c sandbox_mode`.
 pub fn args(request: &RunRequest) -> Vec<String> {
@@ -43,6 +61,12 @@ pub fn args(request: &RunRequest) -> Vec<String> {
         let list: Vec<String> = server_args.iter().map(|a| format!("\"{a}\"")).collect();
         args.extend(["-c".to_string(), format!("mcp_servers.playwright.command=\"{command}\"")]);
         args.extend(["-c".to_string(), format!("mcp_servers.playwright.args=[{}]", list.join(","))]);
+    }
+    // Navegador embutido: o mesmo servidor que o Claude recebe, por override de config.
+    if request.browser == AgentBrowser::Builtin {
+        if let Some(server) = crate::browser::mcp_server() {
+            args.extend(browser_server_flags(server));
+        }
     }
     // Deixa o agente ler o guia de plugins, e só essa pasta.
     if let Some(dir) = crate::plugins::guide::dir() {
@@ -412,6 +436,21 @@ mod tests {
 
         let line = r#"{"type":"item.started","item":{"id":"i1","type":"mcp_tool_call","server":"lunatasks","tool":"set_steps","arguments":{"steps":[{"content":"Criar hello","status":"in_progress"}]}}}"#;
         assert_eq!(parse_line(line), vec![ProviderEvent::Todos { items: vec![TodoItem { content: "Criar hello".into(), status: "in_progress".into() }] }]);
+    }
+
+    #[test]
+    fn the_builtin_browser_reaches_codex_as_a_config_override() {
+        let server = crate::browser::McpServer {
+            command: r"C:\Luna\lunacode.exe".into(),
+            url: "http://127.0.0.1:9/tool".into(),
+            token: "segredo".into(),
+        };
+        let flags = browser_server_flags(&server);
+        // O caminho do Windows sai com as barras escapadas, como string TOML.
+        assert!(flags.contains(&r#"mcp_servers.luna-browser.command="C:\\Luna\\lunacode.exe""#.to_string()));
+        assert!(flags.contains(&"mcp_servers.luna-browser.args=[\"browser-mcp\"]".to_string()));
+        assert!(flags.iter().any(|a| a.starts_with("mcp_servers.luna-browser.env={") && a.contains(r#"LUNA_BROWSER_TOKEN="segredo""#)));
+        assert!(flags.iter().all(|a| a == "-c" || a.starts_with("mcp_servers.luna-browser.")));
     }
 
     #[test]

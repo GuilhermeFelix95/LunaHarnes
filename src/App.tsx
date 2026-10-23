@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  browserSetSearchEngine,
   cliStatus,
   deleteConversation,
   listConversations,
@@ -21,6 +22,7 @@ import { ModeWarp, type ModeWarpRun } from "./ui/ModeWarp";
 import { loadLastWorkspace } from "./workspace";
 import { startUpdateChecks } from "./updates";
 import { startCliUpdateChecks } from "./chat/cliUpdates";
+import { getSearchEngine } from "./chat/searchEngine";
 
 /// Ação pendente de confirmação: o diálogo mostra o texto e roda `run` se o usuário confirmar.
 interface Confirm {
@@ -46,6 +48,10 @@ export function App() {
   const locale = useLocale();
   // Checagem de atualização ao abrir e a cada hora (ver `startUpdateChecks`).
   useEffect(() => startUpdateChecks(), []);
+  // O agente do navegador usa o motor salvo; o app avisa a escolha ao abrir (ver BrowserSection ao trocar).
+  useEffect(() => {
+    void browserSetSearchEngine(getSearchEngine()).catch(() => {});
+  }, []);
   // Versão nova das CLIs, checada no mesmo ritmo (ver `startCliUpdateChecks`).
   const [cliUpdates, setCliUpdates] = useState<CliUpdateInfo[]>([]);
   useEffect(() => startCliUpdateChecks(setCliUpdates), []);
