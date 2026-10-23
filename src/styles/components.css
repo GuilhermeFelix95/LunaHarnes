@@ -50,6 +50,45 @@
   accent-color: var(--accent);
 }
 
+/* Faixa de atualização das CLIs, logo acima do composer: mesma largura do cartão do plugin */
+.cli-update {
+  display: grid;
+  gap: 6px;
+  margin: 0 auto 8px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--bg-sidebar);
+  color: var(--fg);
+  font-size: var(--text-sm);
+  max-width: 760px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cli-update__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.cli-update__row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cli-update__row .btn {
+  flex-shrink: 0;
+}
+
+.cli-update__error {
+  margin: 0;
+  color: var(--error);
+}
+
 /* Cartão do plugin que a Luna criou, logo acima do composer */
 .plugin-offer {
   margin: 0 auto 8px;
@@ -220,6 +259,22 @@
   max-height: 240px;
   overflow: auto;
   font-size: 12px;
+}
+
+/* Notas da versão nova na página Sobre: rolam dentro de um bloco fixo, sem estourar a janela */
+.about__notes {
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sidebar);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .claude-plugins__search {

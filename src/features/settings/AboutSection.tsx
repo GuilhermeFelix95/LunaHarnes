@@ -51,9 +51,11 @@ export function AboutSection() {
         <div>
           <p role="status">{t("about.available", { version: update.version })}</p>
           {update.notes && <pre className="about__notes">{update.notes}</pre>}
-          <button type="button" onClick={install}>
-            {t("about.install")}
-          </button>
+          <div className="settings__row">
+            <button type="button" onClick={install}>
+              {t("about.install")}
+            </button>
+          </div>
         </div>
       )}
       {status === "installing" && <p role="status">{t("about.installing")}</p>}
