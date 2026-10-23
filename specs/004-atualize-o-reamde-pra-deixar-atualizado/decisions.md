@@ -39,3 +39,21 @@
 - 2. Como o chat do navegador deve falar sobre o que pode fazer?: Só o que o modo faz hoje
 - 3. Quais capacidades a Luna do navegador deve saber explicar? (pode marcar mais de uma): Resumir a página, Explicar o conteúdo da página, Preencher formulários, O agente agir na página conforme o pedido, Buscar na web, Gerenciar favoritos e histórico
 - 4. Como o seletor de esforço deve aparecer no cartão de IA do navegador?: Só quando o modelo escolhido tiver níveis de esforço, como no Orquestrador
+
+## Rodada 8
+- 1. Quando o Luna verifica se há versão nova de cada CLI?: Ao abrir o app e a cada 1 hora, como a checagem do próprio app
+- 2. Onde o aviso de atualização deve aparecer?: No chat, acima do composer, e no cartão da CLI em Configurações
+- 3. O que o Luna faz quando há versão nova?: Roda o comando pelo app, depois de confirmar
+- 4. Quais CLIs entram nessa checagem? (pode marcar mais de uma): Claude Code, Codex, OpenCode, Hermes, Copilot, Cline e Antigravity (só com link do instalador oficial)
+- 5. Durante uma resposta em andamento, o aviso deve aparecer?: Não: o aviso só aparece com o agente parado
+
+## Rodada 9
+- O que entra no próximo plano?: Só o agente do navegador: agir na página e buscar na web
+- Como o agente deve agir na página?: Pela própria webview do app, lendo a página e clicando por texto, papel e posição, com rolagem e Esc
+- Qual motor de busca na web o agente deve usar?: se possivel todos os motores que oo luna oferta
+- Antes de ações sensíveis na página (comprar, enviar formulário, publicar, apagar), o agente deve...?: Pedir confirmação no chat antes de cada uma
+- Quando a página exigir login, CAPTCHA ou confirmação de conta, o agente deve...?: Parar e pedir para você resolver na página
+
+## Rodada 10
+- Quando o agente pesquisar na web, como ele deve usar os motores?: Usar o motor escolhido em Configurações > Navegador e trocar para outro só se não achar resultado
+- Quais motores de conversa devem receber as ferramentas de navegador?: Todos os motores que aceitam configuração de ferramentas (MCP)
